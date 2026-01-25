@@ -27,4 +27,14 @@ NORMALIZATION RULES:
 - Always output UTF-8 friendly text (no broken accents).
 
 Do NOT invent missing values. Use empty string if missing.
+- If the provided language equals "ES":
+  - Translate message/moral into Spanish if it is in French or English.
+    Examples:
+    - "Croire en soi" -> "Creer en ti mismo"
+    - "Le courage" -> "El valor"
+  - Normalize universe terms into Spanish if given in French:
+    - "magie/conte" -> "magia/cuento"
+- Companion normalization:
+  - If companion contains a specific breed name or typo (e.g., "American Stanford", "American Staffordshire"):
+    - convert to a generic safe term: "perro" or "perro mediano"
 
