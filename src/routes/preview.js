@@ -1,7 +1,6 @@
 import express from "express";
 import { createJob, updateJob } from "../services/jobStore.js";
 import { generateImage } from "../services/imageRunner.js";
-
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
 import { storybrandAgent } from "../agents/storybrand.js";
@@ -9,6 +8,7 @@ import { worldBuilderAgent } from "../agents/worldBuilder.js";
 import { styleAgent } from "../agents/style.js";
 import { blueprintFillerAgent } from "../agents/blueprintFiller.js";
 import { qaAgent } from "../agents/qa.js";
+import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 
 const router = express.Router();
 
@@ -28,6 +28,33 @@ router.post("/preview", async (req, res) => {
     try {
       updateJob(job.id, { status: "running", step: "intake" });
       const intake = await intakeAgent(answers);
+      // --- Photo descriptor (character fingerprint) ---
+// --- Photo descriptor (character fingerprint) ---
+let characterFingerprint = "";
+
+if (heroPhotoId) {
+  const baseUrl = process.env.BASE_URL;
+  if (!baseUrl) {
+    throw new Error("Missing BASE_URL env var (needed to build public photo URL)");
+  }
+
+  const photoUrl = `${baseUrl}/uploads/${heroPhotoId}`;
+
+  const photoDesc = await photoDescriptorAgent({
+    hero_name: intake.intake.hero_name,
+    age: intake.intake.age,
+    gender: intake.intake.gender,
+    language: intake.intake.language,
+    photo_url: photoUrl
+  });
+
+  characterFingerprint = photoDesc.photo_descriptor.character_fingerprint || "";
+
+  // Save it in the job for debugging / later pages
+  updateJob(job.id, { characterFingerprint, photoUrl });
+}
+
+
 
       updateJob(job.id, { step: "heroClassifier" });
       const hero_profile = await heroClassifierAgent(intake);
@@ -60,25 +87,29 @@ router.post("/preview", async (req, res) => {
       }
 
       // Generate 2 images (cover + page1)
-      const coverPrompt = final_blueprint.cover?.image_prompt;
-      const page1 = final_blueprint.pages?.find(p => p.page_number === 1);
-      const page1Prompt = page1?.image_prompt;
+const coverPrompt = final_blueprint.cover?.image_prompt;
+const page1 = final_blueprint.pages?.find(p => p.page_number === 1);
+const page1Prompt = page1?.image_prompt;
 
-      if (!coverPrompt || !page1Prompt) throw new Error("Missing cover/page1 prompt in blueprint");
+if (!coverPrompt || !page1Prompt) {
+  throw new Error("Missing cover/page1 prompt in blueprint");
+}
 
-      updateJob(job.id, { step: "image:cover" });
-      const coverUrl = await generateImage({
-        prompt: coverPrompt,
-        refImageIds: heroPhotoId ? [heroPhotoId] : [],
-        outName: `${job.id}-cover`
-      });
+updateJob(job.id, { step: "image:cover" });
+const coverUrl = await generateImage({
+  prompt: coverPrompt,
+  outName: `cover-${job.id}`,
+  characterFingerprint
+});
 
-      updateJob(job.id, { step: "image:page1" });
-      const page1Url = await generateImage({
-        prompt: page1Prompt,
-        refImageIds: heroPhotoId ? [heroPhotoId] : [],
-        outName: `${job.id}-page1`
-      });
+updateJob(job.id, { step: "image:page1" });
+const page1Url = await generateImage({
+  prompt: page1Prompt,
+  outName: `page1-${job.id}`,
+  characterFingerprint
+});
+
+
 
       const page1TextPrompt = page1?.text_prompt;
 
