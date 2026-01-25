@@ -17,4 +17,14 @@ Normalize the questionnaire into:
   }
 }
 
+NORMALIZATION RULES:
+- If the provided language equals "ES":
+  - convert gender values:
+    - "fille", "female", "girl" -> "niña"
+    - "garçon", "male", "boy" -> "niño"
+    - otherwise keep as-is
+- Fix encoding artifacts: replace " " with an appropriate character or remove it.
+- Always output UTF-8 friendly text (no broken accents).
+
 Do NOT invent missing values. Use empty string if missing.
+
