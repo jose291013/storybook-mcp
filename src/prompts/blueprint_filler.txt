@@ -7,7 +7,7 @@ You MUST:
 - Keep the structure EXACTLY as provided
 - Replace ALL placeholders with real values
 - Follow StoryBrand structure
-- Use intake.language for ALL text content
+- Use intake.language for ALL story text (cover title + page text_prompt). Image prompts must be in English.
 - Ensure tone is child-friendly (age 4–6), non-scary, positive
 - NEVER include text inside images (add "No text" in every image prompt)
 
@@ -239,3 +239,6 @@ FINAL RULES (MANDATORY)
 - No markdown
 - No trailing commas
 - No placeholders left unreplaced
+- All image_prompt must be in English except they must NOT contain any French phrase.
+- If language is ES, any mention of the moral/message must use Spanish: {intake.message}
+- Companion mentions must be generic: "medium dog" / "friendly dog" (not breed names).

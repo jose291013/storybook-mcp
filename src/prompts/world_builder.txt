@@ -17,3 +17,8 @@ Output:
 
 Language must match intake.language (values can be short Spanish phrases if ES).
 Keep it cute and non-scary.
+
+COMPANION RULE:
+- companion.type must be generic and safe: "perro" or "perro mediano"
+- Do NOT use breed names (American Staffordshire, etc.) and do NOT invent breed details.
+

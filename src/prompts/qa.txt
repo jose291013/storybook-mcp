@@ -16,3 +16,7 @@ Return:
     "fixes": [ { "path": string, "instruction": string } ]
   }
 }
+
+If issues are found, set status="fix_needed" and provide fixes.
+
+
