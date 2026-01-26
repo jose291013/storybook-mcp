@@ -21,6 +21,25 @@ function escapeXml(s) {
     .replaceAll('"', "&quot;");
 }
 
+function wrapText(text, maxCharsPerLine) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines = [];
+  let line = "";
+
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    if (test.length <= maxCharsPerLine) {
+      line = test;
+    } else {
+      if (line) lines.push(line);
+      line = w;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+
 /**
  * Compose a print-like preview PNG with exact A5/A4 ratio.
  * - White page
@@ -95,36 +114,42 @@ const { w, h } = paperDef;
 
   // Title SVG (within safe area)
   const titleSvg = title
-    ? `
-<svg width="${width}" height="${height}">
+  ? `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <text x="${safeLeft}" y="${safeTop + Math.round(titleBlockH * 0.75)}"
         font-family="Arial, Helvetica, sans-serif"
         font-size="${titleFont}"
         font-weight="800"
         fill="#111">${escapeXml(title)}</text>
 </svg>`
-    : "";
+  : "";
+
 
   // Body SVG (bottom text area), with simple wrapping via foreignObject
   const bodySvg = body && layout !== "cover"
-    ? `
-<svg width="${width}" height="${height}">
-  <foreignObject x="${safeLeft}" y="${safeBottom - textBlockH + Math.round(lineHeight * 0.1)}"
-                 width="${safeW}" height="${textBlockH}">
-    <div xmlns="http://www.w3.org/1999/xhtml"
-         style="
-           font-family: Arial, Helvetica, sans-serif;
-           font-size: ${bodyFont}px;
-           line-height: ${lineHeight}px;
-           font-weight: 600;
-           color: #111;
-           white-space: normal;
-         ">
-      ${escapeXml(body)}
-    </div>
-  </foreignObject>
-</svg>`
-    : "";
+  ? (() => {
+      const approxCharWidth = bodyFont * 0.55; // approximation
+      const maxChars = Math.max(12, Math.floor(safeW / approxCharWidth));
+      const lines = wrapText(body, maxChars).slice(0, 8); // limite de lignes
+
+      const startY = safeBottom - textBlockH + Math.round(lineHeight * 1.0);
+
+      const tspans = lines.map((line, i) => {
+        const dy = i === 0 ? 0 : lineHeight;
+        return `<tspan x="${safeLeft}" dy="${dy}">${escapeXml(line)}</tspan>`;
+      }).join("");
+
+      return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+  <text y="${startY}"
+        font-family="Arial, Helvetica, sans-serif"
+        font-size="${bodyFont}"
+        font-weight="600"
+        fill="#111">${tspans}</text>
+</svg>`;
+    })()
+  : "";
+
 
   // Base canvas
   const canvas = sharp({
