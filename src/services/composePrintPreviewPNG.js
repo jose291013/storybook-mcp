@@ -98,25 +98,25 @@ const imageBlockH = safeH;
 
   // Resize illustration to fit image block
   // --- PREMIUM: background "cover" flouté + foreground "contain" net ---
-const coverLayer = await sharp(imgBuf)
+// image plein cadre dans la safe area
+const imgLeft = safeLeft;
+const imgTop = safeTop;
+
+// PREMIUM: background cover flouté + foreground contain net
+const bgLayer = await sharp(imgBuf)
   .resize(imageBlockW, imageBlockH, { fit: "cover", position: "attention" })
+  .blur(Math.round(18 * (dpi / 150)))
+  .modulate({ brightness: 0.95, saturation: 0.9 })
   .png()
   .toBuffer();
-
-composites.push({ input: coverLayer, top: imgTop, left: imgLeft });
-
 
 const fgLayer = await sharp(imgBuf)
   .resize(imageBlockW, imageBlockH, {
     fit: "contain",
-    background: { r: 255, g: 255, b: 255, alpha: 0 }, // transparent padding
+    background: { r: 255, g: 255, b: 255, alpha: 0 },
   })
   .png()
   .toBuffer();
-
-// image plein cadre dans la safe area
-const imgLeft = safeLeft;
-const imgTop = safeTop;
 
 
   // Typography sizes (scale with DPI)
