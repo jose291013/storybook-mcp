@@ -79,6 +79,8 @@ export async function composePrintPreviewPNG({
 
   const safeW = safeRight - safeLeft;
   const safeH = safeBottom - safeTop;
+  
+
 
   // Fetch image
   const imgRes = await fetch(imageUrl);
@@ -101,17 +103,12 @@ const imgTop = 0;
 
 
 // PREMIUM: background cover flouté + foreground contain net
-const bgLayer = await sharp(imgBuf)
-  .resize(imageBlockW, imageBlockH, { fit: "cover", position: "attention" })
-  .blur(Math.round(18 * (dpi / 150)))
-  .modulate({ brightness: 0.95, saturation: 0.9 })
+// FULL BLEED: une seule image sur toute la page
+const coverLayer = await sharp(imgBuf)
+  .resize(width, height, { fit: "cover", position: "attention" })
   .png()
   .toBuffer();
 
-const fgLayer = await sharp(imgBuf)
-  .resize(imageBlockW, imageBlockH, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
-  .png()
-  .toBuffer();
 
 
 
@@ -119,93 +116,83 @@ const fgLayer = await sharp(imgBuf)
   const titleFont = Math.round((paper === "A5" ? 28 : 34) * (dpi / 150));
   const bodyFont = Math.round((paper === "A5" ? 20 : 24) * (dpi / 150));
   const lineHeight = Math.round(bodyFont * 1.25);
+  const colW = Math.round(safeW * 0.42);      // colonne texte ~42% largeur
+const colX = safeLeft;
+  const titleY = safeTop + Math.round(titleFont * 1.2);
+const textStartY = safeTop + Math.round(titleFont * 2.2);
+
 
   // Title SVG (within safe area)
-  const titleSvg = title
-  ? `
+  let bodyTspans = "";
+if (body && layout !== "cover") {
+  const approxCharWidth = bodyFont * 0.55;
+  const maxChars = Math.max(12, Math.floor(colW / approxCharWidth));
+  const lines = wrapText(body, maxChars).slice(0, 10);
+
+  bodyTspans = lines
+    .map((line, i) => {
+      const dy = i === 0 ? 0 : lineHeight;
+      return `<tspan x="${colX}" dy="${dy}">${escapeXml(line)}</tspan>`;
+    })
+    .join("");
+}
+
+  const overlaySvg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
   <defs>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.25)"/>
-    </filter>
-  </defs>
-
-  <rect x="${safeLeft - 18}" y="${safeTop - 12}" rx="18" ry="18"
-        width="${Math.round(safeW * 0.78)}" height="${Math.round(titleFont * 2.2)}"
-        fill="rgba(255,255,255,0.70)"/>
-
-  <text x="${safeLeft}" y="${safeTop + Math.round(titleFont * 1.35)}"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="${titleFont}"
-        font-weight="900"
-        fill="#111"
-        filter="url(#softShadow)">${escapeXml(title)}</text>
-</svg>`
-  : "";
-
-
-
-  // Body SVG (bottom text area), with simple wrapping via foreignObject
-  const bodyOverlaySvg = body && layout !== "cover"
-  ? (() => {
-      const approxCharWidth = bodyFont * 0.55;
-      const maxChars = Math.max(12, Math.floor((safeW * 0.92) / approxCharWidth));
-      const lines = wrapText(body, maxChars).slice(0, 7);
-
-      const tspans = lines.map((line, i) => {
-        const dy = i === 0 ? 0 : lineHeight;
-        return `<tspan x="${safeLeft}" dy="${dy}">${escapeXml(line)}</tspan>`;
-      }).join("");
-
-      const textY = safeTop + Math.round(safeH * 0.78);
-
-      return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <defs>
-    <linearGradient id="fadeBottom" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
-      <stop offset="65%" stop-color="rgba(0,0,0,0)"/>
-      <stop offset="100%" stop-color="rgba(0,0,0,0.55)"/>
+    <!-- Dégradé latéral gauche (pour la lisibilité) -->
+    <linearGradient id="fadeLeft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="rgba(0,0,0,0.55)"/>
+      <stop offset="55%" stop-color="rgba(0,0,0,0.18)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
     </linearGradient>
+
     <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.35)"/>
     </filter>
   </defs>
 
-  <!-- gradient bas (dans la safe area) -->
-  <rect x="${safeLeft}" y="${safeTop + Math.round(safeH * 0.62)}"
-        width="${safeW}" height="${Math.round(safeH * 0.38)}"
-        fill="url(#fadeBottom)"/>
+  <!-- bande dégradée sur toute la hauteur, limitée à la zone colonne -->
+  <rect x="0" y="0" width="${safeLeft + colW + 30}" height="${height}" fill="url(#fadeLeft)"/>
 
-  <text y="${textY}"
-        font-family="Arial, Helvetica, sans-serif"
-        font-size="${bodyFont}"
-        font-weight="700"
-        fill="#fff"
-        filter="url(#softShadow)">${tspans}</text>
+  <!-- Titre (toujours, cover + pages) -->
+  ${title ? `
+    <text x="${colX}" y="${titleY}"
+          font-family="Arial, Helvetica, sans-serif"
+          font-size="${titleFont}"
+          font-weight="900"
+          fill="#fff"
+          filter="url(#softShadow)">${escapeXml(title)}</text>
+  ` : ""}
+
+  <!-- Texte (pages uniquement) -->
+  ${(body && layout !== "cover") ? `
+    <text x="${colX}" y="${textStartY}"
+          font-family="Arial, Helvetica, sans-serif"
+          font-size="${bodyFont}"
+          font-weight="700"
+          fill="#fff"
+          filter="url(#softShadow)">${bodyTspans}</text>
+  ` : ""}
 </svg>`;
-    })()
-  : "";
 
 
-
+  
   // Base canvas
   const canvas = sharp({
     create: { width, height, channels: 4, background: "#ffffff" },
   });
 
   const composites = [];
+composites.push({ input: coverLayer, top: 0, left: 0 });
+composites.push({ input: Buffer.from(overlaySvg), top: 0, left: 0 });
 
-  // Optional: draw a faint safe-area guide (disabled by default)
-  // (If you want it: create an SVG rect and composite it.)
-
-  // Title
-  if (titleSvg) composites.push({ input: Buffer.from(titleSvg), top: 0, left: 0 });
 
   // Image
   // Background flou
-composites.push({ input: bgLayer, top: 0, left: 0 });
-composites.push({ input: fgLayer, top: 0, left: 0 });
+
+composites.push({ input: Buffer.from(overlaySvg), top: 0, left: 0 });
+
 
 
 
