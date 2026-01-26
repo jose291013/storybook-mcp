@@ -194,11 +194,7 @@ composites.push({ input: Buffer.from(overlaySvg), top: 0, left: 0 });
 composites.push({ input: Buffer.from(overlaySvg), top: 0, left: 0 });
 
 
-
-
-  // Body
-  if (bodyOverlaySvg) composites.push({ input: Buffer.from(bodyOverlaySvg), top: 0, left: 0 });
-
+  
   const outBuf = await canvas.composite(composites).png().toBuffer();
 
   await fs.mkdir(outputsDir, { recursive: true });
