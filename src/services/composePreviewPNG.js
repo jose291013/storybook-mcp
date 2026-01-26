@@ -89,23 +89,36 @@ const { w, h } = paperDef;
   // Cover: image occupies most of safe area, title at top (optional)
   // Page: image top ~60%, text bottom ~40%
   const titleBlockH = title ? Math.round(safeH * (layout === "cover" ? 0.12 : 0.10)) : 0;
-  const textBlockH = body ? Math.round(safeH * (layout === "cover" ? 0.0 : 0.35)) : 0;
 
-  const imageBlockTop = safeTop + titleBlockH;
-  const imageBlockH = safeH - titleBlockH - textBlockH;
+// image prend tout (le texte sera en overlay)
+const imageBlockTop = safeTop;
+const imageBlockH = safeH;
+
+
   const imageBlockW = safeW;
 
   // Resize illustration to fit image block
-  const resizedImg = await sharp(imgBuf)
-    .resize(imageBlockW, imageBlockH, { fit: "contain" })
-    .png()
-    .toBuffer();
+  // --- PREMIUM: background "cover" flouté + foreground "contain" net ---
+const coverLayer = await sharp(imgBuf)
+  .resize(imageBlockW, imageBlockH, { fit: "cover", position: "attention" })
+  .png()
+  .toBuffer();
 
-  const imgMeta = await sharp(resizedImg).metadata();
-  const imgW = imgMeta.width || imageBlockW;
-  const imgH = imgMeta.height || imageBlockH;
-  const imgLeft = safeLeft + Math.round((imageBlockW - imgW) / 2);
-  const imgTop = imageBlockTop + Math.round((imageBlockH - imgH) / 2);
+composites.push({ input: coverLayer, top: imgTop, left: imgLeft });
+
+
+const fgLayer = await sharp(imgBuf)
+  .resize(imageBlockW, imageBlockH, {
+    fit: "contain",
+    background: { r: 255, g: 255, b: 255, alpha: 0 }, // transparent padding
+  })
+  .png()
+  .toBuffer();
+
+// image plein cadre dans la safe area
+const imgLeft = safeLeft;
+const imgTop = safeTop;
+
 
   // Typography sizes (scale with DPI)
   const titleFont = Math.round((paper === "A5" ? 28 : 34) * (dpi / 150));
@@ -126,29 +139,47 @@ const { w, h } = paperDef;
 
 
   // Body SVG (bottom text area), with simple wrapping via foreignObject
-  const bodySvg = body && layout !== "cover"
+  const bodyOverlaySvg = body && layout !== "cover"
   ? (() => {
-      const approxCharWidth = bodyFont * 0.55; // approximation
-      const maxChars = Math.max(12, Math.floor(safeW / approxCharWidth));
-      const lines = wrapText(body, maxChars).slice(0, 8); // limite de lignes
-
-      const startY = safeBottom - textBlockH + Math.round(lineHeight * 1.0);
+      const approxCharWidth = bodyFont * 0.55;
+      const maxChars = Math.max(12, Math.floor((safeW * 0.92) / approxCharWidth));
+      const lines = wrapText(body, maxChars).slice(0, 7);
 
       const tspans = lines.map((line, i) => {
         const dy = i === 0 ? 0 : lineHeight;
         return `<tspan x="${safeLeft}" dy="${dy}">${escapeXml(line)}</tspan>`;
       }).join("");
 
+      const textY = safeTop + Math.round(safeH * 0.72);
+
       return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <text y="${startY}"
+  <defs>
+    <linearGradient id="fadeBottom" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="65%" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="100%" stop-color="rgba(0,0,0,0.55)"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.35)"/>
+    </filter>
+  </defs>
+
+  <!-- gradient bas (dans la safe area) -->
+  <rect x="${safeLeft}" y="${safeTop + Math.round(safeH * 0.62)}"
+        width="${safeW}" height="${Math.round(safeH * 0.38)}"
+        fill="url(#fadeBottom)"/>
+
+  <text y="${textY}"
         font-family="Arial, Helvetica, sans-serif"
         font-size="${bodyFont}"
-        font-weight="600"
-        fill="#111">${tspans}</text>
+        font-weight="700"
+        fill="#fff"
+        filter="url(#softShadow)">${tspans}</text>
 </svg>`;
     })()
   : "";
+
 
 
   // Base canvas
@@ -165,10 +196,16 @@ const { w, h } = paperDef;
   if (titleSvg) composites.push({ input: Buffer.from(titleSvg), top: 0, left: 0 });
 
   // Image
-  composites.push({ input: resizedImg, top: imgTop, left: imgLeft });
+  // Background flou
+composites.push({ input: bgLayer, top: imgTop, left: imgLeft });
+
+// Foreground net
+composites.push({ input: fgLayer, top: imgTop, left: imgLeft });
+
 
   // Body
-  if (bodySvg) composites.push({ input: Buffer.from(bodySvg), top: 0, left: 0 });
+  if (bodyOverlaySvg) composites.push({ input: Buffer.from(bodyOverlaySvg), top: 0, left: 0 });
+
 
   const outBuf = await canvas.composite(composites).png().toBuffer();
 
