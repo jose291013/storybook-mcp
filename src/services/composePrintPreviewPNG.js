@@ -91,16 +91,14 @@ export async function composePrintPreviewPNG({
   const titleBlockH = title ? Math.round(safeH * (layout === "cover" ? 0.12 : 0.10)) : 0;
 
 // image prend tout (le texte sera en overlay)
-const imageBlockTop = safeTop;
-const imageBlockH = safeH;
+// FULL BLEED: l’image remplit toute la page
+const imageBlockTop = 0;
+const imageBlockH = height;
+const imageBlockW = width;
 
-  const imageBlockW = safeW;
+const imgLeft = 0;
+const imgTop = 0;
 
-  // Resize illustration to fit image block
-  // --- PREMIUM: background "cover" flouté + foreground "contain" net ---
-// image plein cadre dans la safe area
-const imgLeft = safeLeft;
-const imgTop = safeTop;
 
 // PREMIUM: background cover flouté + foreground contain net
 const bgLayer = await sharp(imgBuf)
@@ -111,12 +109,10 @@ const bgLayer = await sharp(imgBuf)
   .toBuffer();
 
 const fgLayer = await sharp(imgBuf)
-  .resize(imageBlockW, imageBlockH, {
-    fit: "contain",
-    background: { r: 255, g: 255, b: 255, alpha: 0 },
-  })
+  .resize(imageBlockW, imageBlockH, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 0 } })
   .png()
   .toBuffer();
+
 
 
   // Typography sizes (scale with DPI)
@@ -128,13 +124,25 @@ const fgLayer = await sharp(imgBuf)
   const titleSvg = title
   ? `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-  <text x="${safeLeft}" y="${safeTop + Math.round(titleBlockH * 0.75)}"
+  <defs>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.25)"/>
+    </filter>
+  </defs>
+
+  <rect x="${safeLeft - 18}" y="${safeTop - 12}" rx="18" ry="18"
+        width="${Math.round(safeW * 0.78)}" height="${Math.round(titleFont * 2.2)}"
+        fill="rgba(255,255,255,0.70)"/>
+
+  <text x="${safeLeft}" y="${safeTop + Math.round(titleFont * 1.35)}"
         font-family="Arial, Helvetica, sans-serif"
         font-size="${titleFont}"
-        font-weight="800"
-        fill="#111">${escapeXml(title)}</text>
+        font-weight="900"
+        fill="#111"
+        filter="url(#softShadow)">${escapeXml(title)}</text>
 </svg>`
   : "";
+
 
 
   // Body SVG (bottom text area), with simple wrapping via foreignObject
@@ -149,7 +157,7 @@ const fgLayer = await sharp(imgBuf)
         return `<tspan x="${safeLeft}" dy="${dy}">${escapeXml(line)}</tspan>`;
       }).join("");
 
-      const textY = safeTop + Math.round(safeH * 0.72);
+      const textY = safeTop + Math.round(safeH * 0.78);
 
       return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
@@ -196,10 +204,9 @@ const fgLayer = await sharp(imgBuf)
 
   // Image
   // Background flou
-composites.push({ input: bgLayer, top: imgTop, left: imgLeft });
+composites.push({ input: bgLayer, top: 0, left: 0 });
+composites.push({ input: fgLayer, top: 0, left: 0 });
 
-// Foreground net
-composites.push({ input: fgLayer, top: imgTop, left: imgLeft });
 
 
   // Body
