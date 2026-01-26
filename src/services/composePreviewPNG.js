@@ -1,4 +1,4 @@
-// src/services/composePrintPreviewPNG.js
+// src/services/composePreviewPNG.js
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
@@ -28,7 +28,7 @@ function escapeXml(s) {
  * - Illustration placed as "full-bleed-ish" inside safe area (or top block)
  * - Clean typography (SVG overlay)
  */
-export async function composePrintPreviewPNG({
+export async function composePreviewPNG({
   baseUrl,
   imageUrl,
   title = "",
@@ -39,9 +39,9 @@ export async function composePrintPreviewPNG({
   layout = "page",  // "cover" | "page"
   outputsDir = "data/outputs",
 }) {
-  if (!baseUrl) throw new Error("composePrintPreviewPNG: missing baseUrl");
-  if (!imageUrl) throw new Error("composePrintPreviewPNG: missing imageUrl");
-  if (!outName) throw new Error("composePrintPreviewPNG: missing outName");
+  if (!baseUrl) throw new Error("composePreviewPNG: missing baseUrl");
+  if (!imageUrl) throw new Error("composePreviewPNG: missing imageUrl");
+  if (!outName) throw new Error("composePreviewPNG: missing outName");
   const paperDef = PAPER_MM[paper] || PAPER_MM.A5;
 const { w, h } = paperDef;
   const width = mmToPx(w, dpi);
@@ -63,7 +63,7 @@ const { w, h } = paperDef;
 
   // Fetch image
   const imgRes = await fetch(imageUrl);
-  if (!imgRes.ok) throw new Error(`composePrintPreviewPNG: failed to fetch image (${imgRes.status})`);
+  if (!imgRes.ok) throw new Error(`composePreviewPNG: failed to fetch image (${imgRes.status})`);
   const imgBuf = Buffer.from(await imgRes.arrayBuffer());
 
   // Decide blocks
