@@ -16,6 +16,13 @@ RULES:
 - If a detail is not clearly visible, write "unknown" and DO NOT invent.
 - Keep it child-safe: do not mention nudity or any sexual content.
 - Age: use age_input as the primary truth. Also infer a visual age band only to guide proportions.
+- If hair is clearly tied back, do NOT set hair style_family to unknown. Use "ponytail" or "bun" if identifiable; otherwise use "tied_back".
+- canon_short must be consistent with character_fingerprint. Do not downgrade a known trait to unknown.
+- canon_short MUST include: skin_tone + hair_style_family (or tied_back) + whether part is visible (none/unknown).
+- In canon_short, do NOT use enum tokens like "tied_back". Instead write a natural phrase in {language} (e.g., "recogido hacia atrás").
+- canon_short hair styling MUST match character_fingerprint. If fingerprint indicates "recogido hacia atrás" (tied back), canon_short must NOT say "suelto". Use "recogido hacia atrás" instead.
+
+
 
 OUTPUT JSON schema (must match exactly):
 {
@@ -35,7 +42,7 @@ OUTPUT JSON schema (must match exactly):
         "hair": {
           "color": "black|brown|blonde|red|unknown",
           "texture": "straight|wavy|curly|unknown",
-          "style_family": "short|bob|ponytail|pigtails|bun|loose|unknown",
+          "style_family": "short|bob|ponytail|pigtails|bun|loose|tied_back|unknown",
           "part": "center|side|unknown"
         },
         "distinctive_details": ["<only if clearly visible, else empty array>"]
@@ -52,7 +59,8 @@ OUTPUT JSON schema (must match exactly):
         "safe_clothing_rule": "child fully clothed in everyday age-appropriate clothing"
       }
     },
-    "canon_short": "<one compact sentence in {language} listing the key likeness constraints: face shape + eye color/shape + hair color/style_family/part + distinctive details if visible>"
+    "canon_short": "<one compact sentence in {language} listing the key likeness constraints: face shape + skin tone + eye color/shape + hair color + hair style described naturally in {language} (must match character_fingerprint; if tied back, write 'recogido hacia atrás') + hair part (or 'sin raya visible') + distinctive details if visible. Do NOT use enum tokens like 'tied_back' here>"
+
   }
 }
 
