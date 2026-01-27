@@ -14,6 +14,7 @@ You MUST:
 - NEVER include text inside images
 - No brand names, no copyrighted characters, no toy/product brand references
 - The signature object ({intake.signature_object}) MUST be explicitly mentioned in EVERY image_prompt.
+- The hero likeness constraints ({portrait.canon_short}) MUST be included in EVERY image_prompt (cover + all pages), written in {intake.language}. If missing, create a short likeness sentence based on the photo fingerprint, but prefer {portrait.canon_short} when provided.
 - IMPORTANT LAYOUT (Solution B): In EVERY image_prompt, instruct the composition to leave negative space on the LEFT
   (35–45% of the width), smooth uniform background, with NO important characters/objects, reserved for placing text later.
 
@@ -262,6 +263,15 @@ Each image prompt MUST:
 - End with the NO_TEXT_PHRASE (in the correct language)
 - Keep it child-friendly and non-scary
 - No brands, no copyrighted characters
+- Include a "Likeness" sentence in {intake.language} using: {portrait.canon_short}
+Exemple ES :
+Añade una frase al inicio o justo después de la escena: "Rasgos del personaje (mantener constantes): {portrait.canon_short}."
+Exemple FR :
+Ajoute une phrase : "Traits du personnage (à maintenir constants) : {portrait.canon_short}."
+Exemple EN :
+Add: "Character likeness (keep consistent): {portrait.canon_short}."
+
+Tu n’as pas besoin d’écrire 24 templates. Cette règle suffit, car le modèle génère déjà les prompts.
 
 C) PAGE*_TEXT_PROMPT_IN_LANGUAGE
 - Must follow StoryBrand role described by story_role

@@ -55,9 +55,16 @@ router.post("/preview", async (req, res) => {
 
         characterFingerprint =
           photoDesc?.photo_descriptor?.character_fingerprint || "";
+          const portraitCanonShort =
+  photoDesc?.photo_descriptor?.canon_short || "";
+
+const portraitCanonJson =
+  photoDesc?.photo_descriptor?.canon_json || null;
+
 
         // Save debug info
-        updateJob(job.id, { characterFingerprint, photoUrl });
+        updateJob(job.id, { characterFingerprint, portraitCanonShort, portraitCanonJson, photoUrl });
+
       }
 
       updateJob(job.id, { step: "heroClassifier" });
@@ -74,13 +81,16 @@ router.post("/preview", async (req, res) => {
 
       updateJob(job.id, { step: "blueprintFiller" });
       const final_blueprint = await blueprintFillerAgent({
-        intake,
-        hero_profile,
-        storybrand,
-        world,
-        style,
-        heroPhotoId,
-      });
+  intake,
+  hero_profile,
+  storybrand,
+  world,
+  style,
+  heroPhotoId,
+  portraitCanonShort,
+  portraitCanonJson,
+});
+
 
       updateJob(job.id, { step: "qa" });
       const qa = await qaAgent(final_blueprint);

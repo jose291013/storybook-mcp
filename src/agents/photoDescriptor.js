@@ -64,6 +64,13 @@ export async function photoDescriptorAgent({ hero_name, age, gender, language, p
   if (!json?.photo_descriptor?.character_fingerprint) {
     throw new Error("PhotoDescriptor JSON missing photo_descriptor.character_fingerprint");
   }
+  if (!json?.photo_descriptor?.canon_short) {
+  throw new Error("PhotoDescriptor JSON missing photo_descriptor.canon_short");
+}
+if (!json?.photo_descriptor?.canon_json) {
+  throw new Error("PhotoDescriptor JSON missing photo_descriptor.canon_json");
+}
+
 
   return json;
 }

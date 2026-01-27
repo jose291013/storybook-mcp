@@ -7,8 +7,11 @@ export async function blueprintFillerAgent({
   storybrand,
   world,
   style,
-  heroPhotoId
+  heroPhotoId,
+  portraitCanonShort = "",
+  portraitCanonJson = null
 }) {
+
   const system = loadPrompt("blueprint_filler.txt");
 
   // IMPORTANT: The blueprint_filler prompt should include (or reference) the master blueprint template.
@@ -19,12 +22,17 @@ export async function blueprintFillerAgent({
     user: (input) =>
       `MERGE_INPUT_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
     input: {
-      intake,
-      hero_profile,
-      storybrand,
-      world,
-      style,
-      heroPhotoId
-    }
+  intake,
+  hero_profile,
+  storybrand,
+  world,
+  style,
+  heroPhotoId,
+  portrait: {
+    canon_short: portraitCanonShort,
+    canon_json: portraitCanonJson
+  }
+}
+
   });
 }
