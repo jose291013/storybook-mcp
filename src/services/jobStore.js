@@ -56,10 +56,15 @@ export function updateJob(id, patch) {
   if (!store.jobs[id]) throw new Error("Job not found");
 
   store.jobs[id] = {
-    ...store.jobs[id],
-    ...patch,
-    updatedAt: new Date().toISOString()
-  };
+  ...store.jobs[id],
+  ...patch,
+  final_blueprint:
+    patch.final_blueprint !== undefined
+      ? patch.final_blueprint
+      : store.jobs[id].final_blueprint,
+  updatedAt: new Date().toISOString()
+};
+
 
   writeStore(store);
   return store.jobs[id];
