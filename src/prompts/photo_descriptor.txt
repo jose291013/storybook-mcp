@@ -21,6 +21,9 @@ RULES:
 - canon_short MUST include: skin_tone + hair_style_family (or tied_back) + whether part is visible (none/unknown).
 - In canon_short, do NOT use enum tokens like "tied_back". Instead write a natural phrase in {language} (e.g., "recogido hacia atrás").
 - canon_short hair styling MUST match character_fingerprint. If fingerprint indicates "recogido hacia atrás" (tied back), canon_short must NOT say "suelto". Use "recogido hacia atrás" instead.
+- If clearly visible, include 1–2 additional stable facial markers in canon_short: cheeks (rounded/soft), chin (soft/rounded), lips (thin/medium/full) or a gentle smile. If not visible, omit (do not write "unknown" in canon_short).
+- In canon_short, do not write "sin detalles distintivos" unless absolutely nothing else is visible; prefer adding facial markers (cheeks/chin/lips) if visible.
+
 
 
 
