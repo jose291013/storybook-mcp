@@ -115,11 +115,12 @@ const coverLayer = await sharp(imgBuf)
   // Typography sizes (scale with DPI)
   const titleFont = Math.round((paper === "A5" ? 28 : 34) * (dpi / 150));
   const bodyFont = Math.round((paper === "A5" ? 20 : 24) * (dpi / 150));
-  const lineHeight = Math.round(bodyFont * 1.25);
-  const colW = Math.round(safeW * 0.42);      // colonne texte ~42% largeur
+  const colW = Math.round(safeW * 0.38);        // colonne plus élégante
+const lineHeight = Math.round(bodyFont * 1.45); // meilleure lisibilité
+
 const colX = safeLeft;
   const titleY = safeTop + Math.round(titleFont * 1.2);
-const textStartY = safeTop + Math.round(titleFont * 2.2);
+const textStartY = safeTop + Math.round(titleFont * 2.6);
 
 
   // Title SVG (within safe area)
@@ -142,8 +143,8 @@ if (body && layout !== "cover") {
   <defs>
     <!-- Dégradé latéral gauche (pour la lisibilité) -->
     <linearGradient id="fadeLeft" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="rgba(0,0,0,0.55)"/>
-      <stop offset="55%" stop-color="rgba(0,0,0,0.18)"/>
+      <stop offset="0%" stop-color="rgba(0,0,0,0.45)"/>
+      <stop offset="60%" stop-color="rgba(0,0,0,0.12)"/>
       <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
     </linearGradient>
 
@@ -160,12 +161,22 @@ if (body && layout !== "cover") {
     <text x="${colX}" y="${titleY}"
           font-family="Arial, Helvetica, sans-serif"
           font-size="${titleFont}"
-          font-weight="900"
+          font-weight="800"
+          letter-spacing="0.4"
           fill="#fff"
           filter="url(#softShadow)">${escapeXml(title)}</text>
   ` : ""}
 
   <!-- Texte (pages uniquement) -->
+  <rect
+  x="${colX - 14}"
+  y="${safeTop - 12}"
+  width="${colW + 28}"
+  height="${Math.round(safeH * 0.42)}"
+  rx="18"
+  fill="rgba(0,0,0,0.07)"
+/>
+
   ${(body && layout !== "cover") ? `
     <text x="${colX}" y="${textStartY}"
           font-family="Arial, Helvetica, sans-serif"
