@@ -18,6 +18,70 @@ import { composePrintPreviewPNG } from "../services/composePrintPreviewPNG.js";
 
 const router = express.Router();
 
+function pickCompanionCanon({ intake, world, final_blueprint }) {
+  // 1) Essaye de lire un champ structuré s’il existe
+  const fb = final_blueprint || {};
+  const fromHero = fb.hero?.companion;
+  const fromWorld = world?.world?.companion || world?.companion;
+
+  const name =
+    fromHero?.name ||
+    fromWorld?.name ||
+    intake?.intake?.companion_name ||
+    "Lumo";
+
+  const type =
+    fromHero?.type ||
+    fromWorld?.type ||
+    intake?.intake?.companion_type ||
+    "robot";
+
+  const description =
+    fromHero?.description ||
+    fromWorld?.description ||
+    intake?.intake?.companion_description ||
+    "";
+
+  return { name, type, description };
+}
+
+function enforceCompanionConsistency(final_blueprint, companion) {
+  if (!final_blueprint || typeof final_blueprint !== "object") return final_blueprint;
+
+  // stocke le canon dans le blueprint
+  final_blueprint.hero = final_blueprint.hero || {};
+  final_blueprint.hero.companion = companion;
+
+  // remplace les types contradictoires les plus courants vus par ton QA
+  const typeRegex = /\b(perro mediano|perro|robot gen[eé]rico y amistoso|robot)\b/gi;
+
+  const typeReplacement = companion.type; // variable
+
+  const replaceIn = (s) =>
+    typeof s === "string"
+      ? s.replace(typeRegex, typeReplacement).replace(/\bLumo\b/g, companion.name)
+      : s;
+
+  if (final_blueprint.style?.style_prompt) {
+    final_blueprint.style.style_prompt = replaceIn(final_blueprint.style.style_prompt);
+  }
+
+  if (final_blueprint.cover?.image_prompt) {
+    final_blueprint.cover.image_prompt = replaceIn(final_blueprint.cover.image_prompt);
+  }
+
+  if (Array.isArray(final_blueprint.pages)) {
+    final_blueprint.pages = final_blueprint.pages.map((p) => ({
+      ...p,
+      image_prompt: replaceIn(p.image_prompt || ""),
+      text_prompt: replaceIn(p.text_prompt || ""),
+    }));
+  }
+
+  return final_blueprint;
+}
+
+
 /**
  * POST /api/preview
  * body: { answers: {...}, heroPhotoId?: "..." }
@@ -95,6 +159,9 @@ router.post("/preview", async (req, res) => {
   portraitCanonShort,
   portraitCanonJson,
 });
+// ✅ normalize companion to avoid QA inconsistency
+const companionCanon = pickCompanionCanon({ intake, world, final_blueprint });
+enforceCompanionConsistency(final_blueprint, companionCanon);
 
 
       updateJob(job.id, { step: "qa" });
