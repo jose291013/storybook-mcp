@@ -40,6 +40,9 @@ router.post("/preview", async (req, res) => {
       // --- Photo descriptor (character fingerprint) ---
       let characterFingerprint = "";
       let photoUrl = "";
+      let portraitCanonShort = "";
+      let portraitCanonJson = null;
+
 
       if (heroPhotoId) {
         photoUrl = `${baseUrl}/uploads/${heroPhotoId}`;
@@ -54,12 +57,14 @@ router.post("/preview", async (req, res) => {
         });
 
         characterFingerprint =
-          photoDesc?.photo_descriptor?.character_fingerprint || "";
-          const portraitCanonShort =
-  photoDesc?.photo_descriptor?.canon_short || "";
+        photoDesc?.photo_descriptor?.character_fingerprint || "";
 
-const portraitCanonJson =
-  photoDesc?.photo_descriptor?.canon_json || null;
+        portraitCanonShort =
+        photoDesc?.photo_descriptor?.canon_short || "";
+
+        portraitCanonJson =
+        photoDesc?.photo_descriptor?.canon_json || null;
+
 
 
         // Save debug info

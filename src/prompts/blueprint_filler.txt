@@ -65,7 +65,8 @@ MASTER BLUEPRINT TEMPLATE
 
   "cover": {
     "title": "{COVER_TITLE_IN_LANGUAGE}",
-    "image_prompt": "{COVER_IMAGE_PROMPT_IN_LANGUAGE}"
+    "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
   },
 
   "pages": [
@@ -74,168 +75,192 @@ MASTER BLUEPRINT TEMPLATE
       "page_number": 1,
       "story_role": "introduction",
       "text_prompt": "{PAGE1_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE1_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 2,
       "story_role": "everyday_life",
       "text_prompt": "{PAGE2_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE2_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 3,
       "story_role": "desire",
       "text_prompt": "{PAGE3_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE3_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 4,
       "story_role": "problem_external",
       "text_prompt": "{PAGE4_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE4_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 5,
       "story_role": "problem_internal",
       "text_prompt": "{PAGE5_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE5_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 6,
       "story_role": "meeting_the_guide",
       "text_prompt": "{PAGE6_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE6_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 7,
       "story_role": "guidance",
       "text_prompt": "{PAGE7_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE7_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 8,
       "story_role": "plan",
       "text_prompt": "{PAGE8_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE8_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 9,
       "story_role": "plan_step_2",
       "text_prompt": "{PAGE9_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE9_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 10,
       "story_role": "plan_step_3",
       "text_prompt": "{PAGE10_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE10_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 11,
       "story_role": "journey",
       "text_prompt": "{PAGE11_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE11_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 12,
       "story_role": "challenge",
       "text_prompt": "{PAGE12_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE12_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 13,
       "story_role": "encouragement",
       "text_prompt": "{PAGE13_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE13_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 14,
       "story_role": "growth",
       "text_prompt": "{PAGE14_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE14_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 15,
       "story_role": "approaching_climax",
       "text_prompt": "{PAGE15_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE15_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 16,
       "story_role": "climax",
       "text_prompt": "{PAGE16_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE16_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 17,
       "story_role": "success",
       "text_prompt": "{PAGE17_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE17_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 18,
       "story_role": "transformation",
       "text_prompt": "{PAGE18_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE18_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 19,
       "story_role": "resolution",
       "text_prompt": "{PAGE19_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE19_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 20,
       "story_role": "return_home",
       "text_prompt": "{PAGE20_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE20_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 21,
       "story_role": "reflection",
       "text_prompt": "{PAGE21_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE21_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 22,
       "story_role": "moral",
       "text_prompt": "{PAGE22_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE22_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 23,
       "story_role": "closing_emotion",
       "text_prompt": "{PAGE23_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE23_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     },
 
     {
       "page_number": 24,
       "story_role": "dedication",
       "text_prompt": "{PAGE24_TEXT_PROMPT_IN_LANGUAGE}",
-      "image_prompt": "{PAGE24_IMAGE_PROMPT_IN_LANGUAGE}"
+      "image_prompt": "WRITE_A_DETAILED_IMAGE_PROMPT_IN_{intake.language}_HERE"
+
     }
 
   ]
@@ -288,3 +313,4 @@ FINAL RULES (MANDATORY)
 - No trailing commas
 - No placeholders left unreplaced
 - No mixed languages anywhere
+- image_prompt MUST be a non-empty string. Never output null.
