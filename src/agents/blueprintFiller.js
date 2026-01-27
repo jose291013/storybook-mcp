@@ -29,8 +29,8 @@ export async function blueprintFillerAgent({
   style,
   heroPhotoId,
   portrait: {
-    canon_short: portraitCanonShort,
-    canon_json: portraitCanonJson
+  canon_short: portraitCanonShort,
+  canon_json: portraitCanonJson
   }
 }
 
