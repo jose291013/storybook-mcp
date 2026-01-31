@@ -198,15 +198,7 @@ if (body && layout !== "cover") {
 composites.push({ input: coverLayer, top: 0, left: 0 });
 composites.push({ input: Buffer.from(overlaySvg), top: 0, left: 0 });
 
-
-  // Image
-  // Background flou
-
-composites.push({ input: Buffer.from(overlaySvg), top: 0, left: 0 });
-
-
-
-   const outBuf = await canvas.composite(composites).png().toBuffer();
+  const outBuf = await canvas.composite(composites).png().toBuffer();
 
   await fs.mkdir(outputsDir, { recursive: true });
   const filename = `${outName}.png`;
