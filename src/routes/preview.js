@@ -149,7 +149,7 @@ router.post("/preview", async (req, res) => {
       universe: (body?.universe || "").trim(),
       style: (body?.style || "").trim(),
       message: (body?.message || "").trim(),
-      language: (body?.language || "ES").trim(),
+      language: (String(body?.language || "").trim() || "ES"),
 
       signature_object: (body?.signature_object || "").trim(),
       extra_notes: (body?.extra_notes || "").trim(),
@@ -162,6 +162,10 @@ router.post("/preview", async (req, res) => {
   }
 
   if (!answers) return res.status(400).json({ error: "Missing answers" });
+  if (!String(answers.hero_name || "").trim()) {
+  return res.status(400).json({ error: "Missing hero name" });
+}
+
 
   const job = createJob({ status: "running", kind: "preview" });
 
