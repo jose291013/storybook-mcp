@@ -21,4 +21,5 @@ Keep it cute and non-scary.
 COMPANION RULE:
 - companion.type must be generic and safe: "perro" or "perro mediano"
 - Do NOT use breed names (American Staffordshire, etc.) and do NOT invent breed details.
+- If intake.intake.companion contains a name, use that exact name as companion.name (do not translate it). If no name is provided, default to 'Lumo'.
 

@@ -78,17 +78,39 @@ function pickCompanionCanon({ intake, world, final_blueprint, fallback }) {
 
 function enforceCompanionConsistency(final_blueprint, companion) {
   if (!final_blueprint || typeof final_blueprint !== "object") return final_blueprint;
+  if (!companion || typeof companion !== "object") return final_blueprint;
 
+  // --- Ensure structured fields are consistent (hero + top-level companion) ---
   final_blueprint.hero = final_blueprint.hero || {};
-  final_blueprint.hero.companion = companion;
+  final_blueprint.hero.companion = {
+    ...(final_blueprint.hero.companion || {}),
+    ...companion,
+  };
 
+  final_blueprint.companion = {
+    ...(final_blueprint.companion || {}),
+    name: companion.name || final_blueprint.companion?.name,
+    type: companion.type || final_blueprint.companion?.type,
+    personality: companion.personality || final_blueprint.companion?.personality,
+  };
+
+  // --- Replace companion type + name in strings ---
   const typeRegex = /\b(perro mediano|perro|robot gen[eé]rico y amistoso|robot)\b/gi;
-  const typeReplacement = companion.type;
+  const typeReplacement = companion.type || null;
 
-  const replaceIn = (s) =>
-    typeof s === "string"
-      ? s.replace(typeRegex, typeReplacement).replace(/\bLumo\b/g, companion.name)
-      : s;
+  const replaceIn = (s) => {
+    if (typeof s !== "string") return s;
+
+    let out = s;
+
+    // replace known types only if we have a target type
+    if (typeReplacement) out = out.replace(typeRegex, typeReplacement);
+
+    // replace both possible names (your bug is "Luz")
+    if (companion.name) out = out.replace(/\b(Lumo|Luz)\b/g, companion.name);
+
+    return out;
+  };
 
   if (final_blueprint.style?.style_prompt) {
     final_blueprint.style.style_prompt = replaceIn(final_blueprint.style.style_prompt);
@@ -108,6 +130,7 @@ function enforceCompanionConsistency(final_blueprint, companion) {
 
   return final_blueprint;
 }
+
 
 /**
  * POST /api/preview
@@ -236,7 +259,7 @@ router.post("/preview", async (req, res) => {
       // normalize companion ONCE
       companionCanon = pickCompanionCanon({ intake, world, final_blueprint, fallback: companionCanon });
       enforceCompanionConsistency(final_blueprint, companionCanon);
-      updateJob(job.id, { companionCanon });
+            updateJob(job.id, { companionCanon });
 
       updateJob(job.id, { step: "qa" });
       const qa = await qaAgent(final_blueprint);

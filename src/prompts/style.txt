@@ -14,4 +14,5 @@ If intake.style contains "3D", make it vibrant 3D cartoon.
 LANGUAGE RULE:
 - If intake.language = "ES", NEVER include French words in style_prompt or image prompts.
 - Use the Spanish moral/message exactly as: {intake.message}
+- If intake.language = 'ES', write the ENTIRE style_prompt in Spanish only. No English. No French.
 
