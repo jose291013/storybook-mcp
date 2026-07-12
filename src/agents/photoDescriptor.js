@@ -2,7 +2,10 @@
 import OpenAI from "openai";
 import { loadPrompt } from "../services/loadPrompt.js";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getClient() {
+  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 function extractText(res) {
   // Compatible avec responses API : output_text est souvent dispo
@@ -32,11 +35,24 @@ function safeJsonParse(text) {
   }
 }
 
-export async function photoDescriptorAgent({ hero_name, age, gender, language, photo_url }) {
+export async function photoDescriptorAgent({
+  subject_name,
+  role = "other",
+  relationship = "",
+  age = "",
+  gender = "",
+  language,
+  photo_url,
+  hero_name,
+}) {
+  const resolvedName = subject_name || hero_name || "";
   const template = loadPrompt("photo_descriptor.txt");
 
   const promptText = template
-    .replaceAll("{hero_name}", hero_name || "")
+    .replaceAll("{subject_name}", resolvedName)
+    .replaceAll("{hero_name}", resolvedName)
+    .replaceAll("{role}", role || "other")
+    .replaceAll("{relationship}", relationship || "")
     .replaceAll("{age}", age || "")
     .replaceAll("{gender}", gender || "")
     .replaceAll("{language}", language || "")
@@ -44,7 +60,7 @@ export async function photoDescriptorAgent({ hero_name, age, gender, language, p
 
   const model = process.env.VISION_MODEL || process.env.TEXT_MODEL || "gpt-4.1-mini";
 
-  const res = await client.responses.create({
+  const res = await getClient().responses.create({
     model,
     input: [
       {
@@ -72,5 +88,10 @@ if (!json?.photo_descriptor?.canon_json) {
 }
 
 
+  json.photo_descriptor.subject = {
+    name: resolvedName,
+    role,
+    relationship,
+  };
   return json;
 }

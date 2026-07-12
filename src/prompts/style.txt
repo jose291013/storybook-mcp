@@ -8,8 +8,7 @@ Output:
   }
 }
 
-style_prompt must be stable, print-ready, no brand references.
-If intake.style contains "3D", make it vibrant 3D cartoon.
+Use intake.style_instructions as the primary visual direction. Preserve the selected medium and mood while making the result stable, square-page friendly, print-ready and free of brand references.
 
 LANGUAGE RULE:
 - If intake.language = "ES", NEVER include French words in style_prompt or image prompts.

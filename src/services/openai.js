@@ -1,9 +1,13 @@
 // src/services/openai.js
 import OpenAI from "openai";
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+function getClient() {
+  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 export async function chatJson({ system, user }) {
-  const resp = await client.chat.completions.create({
+  const resp = await getClient().chat.completions.create({
     model: process.env.TEXT_MODEL || "gpt-4.1-mini",
     messages: [
       { role: "system", content: system },

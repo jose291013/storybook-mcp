@@ -9,6 +9,9 @@ export async function storybrandAgent({ intake, hero_profile }) {
     system,
     user: (input) =>
       `INPUT_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
-    input: { intake, hero_profile }
+    input: {
+      intake: intake?.intake || intake,
+      hero_profile: hero_profile?.hero_profile || hero_profile,
+    }
   });
 }

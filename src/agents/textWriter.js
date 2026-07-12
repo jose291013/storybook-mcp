@@ -2,7 +2,10 @@
 import OpenAI from "openai";
 import { loadPrompt } from "../services/loadPrompt.js";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getClient() {
+  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 function extractText(res) {
   if (res?.output_text) return res.output_text;
@@ -82,7 +85,7 @@ export async function textWriterAgent({
 
   const model = process.env.TEXT_MODEL || "gpt-4.1-mini";
 
-  const res = await client.responses.create({
+  const res = await getClient().responses.create({
     model,
     input: [
       {

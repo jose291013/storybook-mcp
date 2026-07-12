@@ -1,7 +1,6 @@
 node_modules/
 .env
 data/outputs/*
-echo cover_overlay.png >> .gitignore
-echo cover_print.png >> .gitignore
-echo page1_overlay.png >> .gitignore
-echo page1_print.png >> .gitignore
+data/uploads/*
+!data/outputs/.gitkeep
+!data/uploads/.gitkeep
