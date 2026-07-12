@@ -53,9 +53,9 @@ Lorsqu'une photo correspond à un personnage présent dans une scène, elle est 
     "language": "FR"
   },
   "photos": [
-    { "id": "photo-lina.jpg", "role": "child", "name": "Lina" },
-    { "id": "photo-pixel.jpg", "role": "mascot", "name": "Pixel" },
-    { "id": "photo-noe.jpg", "role": "friend", "name": "Noé", "relationship": "ami" }
+    { "id": "photo-lina.jpg", "role": "child", "story_role": "hero", "name": "Lina" },
+    { "id": "photo-pixel.jpg", "role": "mascot", "story_role": "companion", "name": "Pixel" },
+    { "id": "photo-noe.jpg", "role": "friend", "story_role": "guide", "name": "Noé", "relationship": "ami" }
   ]
 }
 ```

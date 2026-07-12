@@ -24,6 +24,10 @@ Normalize the ten simple questionnaire answers into exactly this structure:
 }
 
 RULES
+- rawAnswers.language is the authoritative requested language for the finished book. It is independent from the language used to answer the questionnaire.
+- If language is ES, translate every descriptive field into Spanish and set intake.language to ES. Never switch it to FR because the answers are in French.
+- If language is EN, translate every descriptive field into English and set intake.language to EN.
+- If language is FR, write every descriptive field in French and set intake.language to FR.
 - Preserve names exactly.
 - Do not invent missing personal information; use an empty string.
 - Correct obvious encoding artifacts.

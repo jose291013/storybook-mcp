@@ -72,6 +72,7 @@ test("new request format accepts up to five typed photo references", () => {
   const photos = Array.from({ length: MAX_REFERENCE_PHOTOS }, (_, index) => ({
     id: `photo-${index}.png`,
     role: index === 0 ? "child" : "friend",
+    story_role: index === 1 ? "guide" : undefined,
     name: index === 0 ? "Lina" : `Ami ${index}`,
   }));
   const normalized = normalizeBookRequest({
@@ -80,6 +81,8 @@ test("new request format accepts up to five typed photo references", () => {
   });
   assert.equal(normalized.answers.language, "FR");
   assert.equal(normalized.photos.length, 5);
+  assert.equal(normalized.photos[0].story_role, "hero");
+  assert.equal(normalized.photos[1].story_role, "guide");
 });
 
 test("request rejects a sixth photo", () => {
@@ -91,6 +94,18 @@ test("request rejects a sixth photo", () => {
     () => normalizeBookRequest({ questionnaire: { hero_name: "Lina", age: 6 }, photos }),
     /maximum of 5/
   );
+});
+
+test("selected book language wins over the language used in questionnaire answers", () => {
+  const normalized = normalizeBookRequest({
+    questionnaire: {
+      hero_name: "Noa",
+      age: 6,
+      favorite_activities: "Observer les étoiles",
+      language: "es",
+    },
+  });
+  assert.equal(normalized.answers.language, "ES");
 });
 
 test("scene continuity locks child outfit and mascot species while attaching the real child photo", () => {
@@ -137,12 +152,26 @@ test("blueprint normalization gives every book one canonical outfit and canonica
   };
   const result = lockBlueprintContinuity(blueprint, {
     heroProfile: { outfit_lock: "green jacket, navy trousers, red boots" },
+    language: "ES",
+    characterCanons: [{
+      name: "Abuela Rosa",
+      role: "family",
+      story_role: "guide",
+      relationship: "abuela",
+      photoId: "abuela.jpg",
+      canon_short: "older woman with silver curls, round glasses and a burgundy cardigan",
+    }],
   });
+  assert.equal(result.language, "ES");
   assert.equal(result.hero.outfit_lock, "green jacket, navy trousers, red boots");
   assert.deepEqual(result.cover.cast_present, ["Noa", "Pixel"]);
   assert.ok(result.pages.filter((page) => page.page_type === "image").every(
     (page) => page.cast_present.join(",") === "Noa,Pixel"
-  ));
+  ) === false);
+  const guidePage = result.pages.find((page) => page.page_type === "image" && page.story_role === "meeting_the_guide");
+  assert.ok(guidePage.cast_present.includes("Abuela Rosa"));
+  assert.match(guidePage.image_prompt, /Incluye claramente a Abuela Rosa/);
+  assert.equal(result.cast.find((character) => character.name === "Abuela Rosa").story_role, "guide");
 });
 
 test("text pages render as a square 21 cm preview", async () => {

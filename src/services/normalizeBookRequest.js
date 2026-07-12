@@ -1,5 +1,11 @@
-import { MAX_REFERENCE_PHOTOS, PHOTO_ROLES } from "../config/questionnaire.js";
+import {
+  DEFAULT_STORY_ROLE_BY_PHOTO_ROLE,
+  MAX_REFERENCE_PHOTOS,
+  PHOTO_ROLES,
+  PHOTO_STORY_ROLES,
+} from "../config/questionnaire.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
+import { normalizeBookLanguage } from "../config/bookLanguages.js";
 
 function clean(value) {
   return value == null ? "" : String(value).trim();
@@ -31,8 +37,12 @@ export function normalizeReferencePhotos(body = {}) {
 
     const role = clean(photo?.role || (index === 0 ? "child" : "other")).toLowerCase();
     if (!PHOTO_ROLES.includes(role)) throw new Error(`Unsupported photo role: ${role}`);
+    const requestedStoryRole = clean(photo?.story_role || photo?.storyRole).toLowerCase();
+    const storyRole = role === "child" ? "hero" : (requestedStoryRole || DEFAULT_STORY_ROLE_BY_PHOTO_ROLE[role]);
+    if (!PHOTO_STORY_ROLES.includes(storyRole)) throw new Error(`Unsupported photo story role: ${storyRole}`);
+    if (role !== "child" && storyRole === "hero") throw new Error("Only the child can have the hero story role");
 
-    return { id, role, name: clean(photo?.name), relationship: clean(photo?.relationship) };
+    return { id, role, story_role: storyRole, name: clean(photo?.name), relationship: clean(photo?.relationship) };
   });
 
   if (photos.filter((photo) => photo.role === "child").length > 1) {
@@ -63,7 +73,7 @@ export function normalizeBookRequest(body = {}) {
     style_id: selectedStyle.id,
     style: customStyle || selectedStyle.name,
     style_instructions: customStyle || selectedStyle.prompt,
-    language: clean(source.language || body.language || "FR").toUpperCase(),
+    language: normalizeBookLanguage(source.language || body.language || "FR"),
     extra_notes: clean(source.extra_notes || body.extra_notes),
   };
 

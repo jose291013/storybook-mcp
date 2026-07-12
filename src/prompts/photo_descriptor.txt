@@ -4,6 +4,7 @@ Return ONLY valid JSON, without markdown or explanations.
 INPUT
 - subject_name: {subject_name}
 - role: {role} (child, mascot, friend, family or other)
+- narrative_role: {story_role} (hero, guide, ally, companion, supporter or guest)
 - relationship: {relationship}
 - age_input: {age}
 - gender: {gender}
@@ -29,6 +30,7 @@ OUTPUT
     "subject": {
       "name": "{subject_name}",
       "role": "{role}",
+      "story_role": "{story_role}",
       "relationship": "{relationship}"
     },
     "character_fingerprint": "2 to 4 short sentences describing the stable visible traits",

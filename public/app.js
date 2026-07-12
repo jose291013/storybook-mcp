@@ -37,6 +37,23 @@ const roleLabels = {
   other: "Autre personnage",
 };
 
+const storyRoleLabels = {
+  hero: "Héros / héroïne",
+  guide: "Guide",
+  ally: "Allié(e)",
+  companion: "Compagnon de route",
+  supporter: "Soutien",
+  guest: "Invité(e)",
+};
+
+const defaultStoryRole = (role) => ({
+  child: "hero",
+  mascot: "companion",
+  friend: "ally",
+  family: "guide",
+  other: "guest",
+}[role] || "guest");
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -87,10 +104,12 @@ function renderStyles() {
 function addPhotos(files) {
   const remaining = 5 - state.photos.length;
   [...files].slice(0, remaining).forEach((file) => {
+    const role = state.photos.some((photo) => photo.role === "child") ? "friend" : "child";
     state.photos.push({
       file,
       url: URL.createObjectURL(file),
-      role: state.photos.some((photo) => photo.role === "child") ? "friend" : "child",
+      role,
+      storyRole: defaultStoryRole(role),
       name: "",
       relationship: "",
     });
@@ -104,17 +123,31 @@ function renderPhotos() {
     <article class="photo-item" data-photo-index="${index}">
       <img src="${photo.url}" alt="Aperçu de ${escapeHtml(photo.file.name)}" />
       <div class="photo-meta">
-        <select aria-label="Rôle de la photo">${Object.entries(roleLabels).map(([value, label]) => `<option value="${value}" ${value === photo.role ? "selected" : ""}>${label}</option>`).join("")}</select>
-        <input type="text" value="${escapeHtml(photo.name)}" placeholder="Prénom ou nom" aria-label="Prénom ou nom du personnage" />
+        <select data-field="role" aria-label="Lien du personnage avec l’enfant">${Object.entries(roleLabels).map(([value, label]) => `<option value="${value}" ${value === photo.role ? "selected" : ""}>${label}</option>`).join("")}</select>
+        <select data-field="storyRole" aria-label="Rôle du personnage dans l’histoire">${Object.entries(storyRoleLabels).map(([value, label]) => `<option value="${value}" ${value === photo.storyRole ? "selected" : ""} ${(photo.role === "child" && value !== "hero") || (photo.role !== "child" && value === "hero") ? "disabled" : ""}>${label}</option>`).join("")}</select>
+        <input data-field="name" type="text" value="${escapeHtml(photo.name)}" placeholder="Prénom ou nom" aria-label="Prénom ou nom du personnage" />
+        <input data-field="relationship" type="text" value="${escapeHtml(photo.relationship)}" placeholder="Lien : mère, grand-père…" aria-label="Lien précis avec l’enfant" />
       </div>
       <button type="button" class="remove-photo" aria-label="Supprimer cette photo">×</button>
     </article>`).join("");
 
   elements.photoList.querySelectorAll(".photo-item").forEach((item) => {
     const index = Number(item.dataset.photoIndex);
-    const [select, input] = item.querySelectorAll("select, input");
-    select.addEventListener("change", () => { state.photos[index].role = select.value; });
-    input.addEventListener("input", () => { state.photos[index].name = input.value; });
+    const roleSelect = item.querySelector('[data-field="role"]');
+    const storyRoleSelect = item.querySelector('[data-field="storyRole"]');
+    const nameInput = item.querySelector('[data-field="name"]');
+    const relationshipInput = item.querySelector('[data-field="relationship"]');
+    roleSelect.addEventListener("change", () => {
+      const previousRole = state.photos[index].role;
+      state.photos[index].role = roleSelect.value;
+      if (roleSelect.value === "child" || state.photos[index].storyRole === defaultStoryRole(previousRole)) {
+        state.photos[index].storyRole = defaultStoryRole(roleSelect.value);
+      }
+      renderPhotos();
+    });
+    storyRoleSelect.addEventListener("change", () => { state.photos[index].storyRole = storyRoleSelect.value; });
+    nameInput.addEventListener("input", () => { state.photos[index].name = nameInput.value; });
+    relationshipInput.addEventListener("input", () => { state.photos[index].relationship = relationshipInput.value; });
     item.querySelector(".remove-photo").addEventListener("click", () => {
       URL.revokeObjectURL(state.photos[index].url);
       state.photos.splice(index, 1);
@@ -170,6 +203,7 @@ function renderReview() {
     ["Détail personnel", values.extra_notes || "Non renseigné"],
     ["Style", style?.name || "—"],
     ["Photos", state.photos.length ? `${state.photos.length} personnage(s) de référence` : "Aucune photo — création imaginaire"],
+    ["Rôles narratifs", state.photos.length ? state.photos.map((photo) => `${photo.name || "Personnage"} : ${storyRoleLabels[photo.storyRole]}`).join(" · ") : "—"],
   ];
   elements.reviewCard.innerHTML = rows.map(([label, value]) => `<div class="review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
 }
@@ -202,6 +236,7 @@ async function uploadPhotos() {
   return payload.photos.map((uploaded, index) => ({
     id: uploaded.id,
     role: state.photos[index].role,
+    story_role: state.photos[index].storyRole,
     name: state.photos[index].name.trim(),
     relationship: state.photos[index].relationship,
   }));

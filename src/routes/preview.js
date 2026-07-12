@@ -30,6 +30,7 @@ async function describeReferences({ photos, answers, baseUrl, jobId }) {
     const result = await photoDescriptorAgent({
       subject_name: name,
       role: photo.role,
+      story_role: photo.story_role,
       relationship: photo.relationship,
       age: isChild ? answers.age : "",
       gender: isChild ? answers.gender : "",
@@ -41,6 +42,7 @@ async function describeReferences({ photos, answers, baseUrl, jobId }) {
       photoUrl,
       name,
       role: photo.role,
+      story_role: photo.story_role,
       relationship: photo.relationship,
       ...result.photo_descriptor,
     });

@@ -4,6 +4,7 @@ The page belongs to a continuous StoryBrand narrative. Use the complete story_co
 
 WRITING RULES
 - Write entirely in the requested language.
+- The explicit language code is authoritative even when text_prompt, previous_text or questionnaire details were written in another language. Translate their meaning; never copy their source language into the page.
 - Match vocabulary and sentence length to the child's age, without making the story simplistic.
 - Respect word_target ± word_tolerance.
 - Continue from previous_text without repeating its events or opening formula.

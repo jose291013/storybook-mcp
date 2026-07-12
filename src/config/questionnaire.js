@@ -72,6 +72,14 @@ export const BOOK_QUESTIONS = [
 ];
 
 export const PHOTO_ROLES = ["child", "mascot", "friend", "family", "other"];
+export const PHOTO_STORY_ROLES = ["hero", "guide", "ally", "companion", "supporter", "guest"];
+export const DEFAULT_STORY_ROLE_BY_PHOTO_ROLE = {
+  child: "hero",
+  mascot: "companion",
+  friend: "ally",
+  family: "guide",
+  other: "guest",
+};
 export const MAX_REFERENCE_PHOTOS = 5;
 
 export const BOOK_FORMAT = {
