@@ -17,6 +17,8 @@ VISUALS
 - All illustrations are square, designed for a full 21 x 21 cm page with full bleed.
 - Do NOT reserve space for text. Text is placed on the facing page.
 - Every image_prompt must request a balanced square composition and end with an instruction meaning "no text, captions, logos or watermarks" in the requested language.
+- Define one precise hero.outfit_lock with garment types and colors. Copy that exact outfit into every visual scene containing the hero; never redesign it for a new location.
+- Every mascot must have one explicit species, coat/color pattern, body shape and accessories in cast.canon_short. Never change its species or imitate a famous copyrighted character.
 - Maintain one illustration style, palette, outfits and stable character traits across the cover and all image pages.
 - Use character_canons only for cast members actually present in that scene. Never force all referenced people into every image.
 - The signature object should recur when narratively appropriate, not mechanically in every scene.
@@ -60,7 +62,8 @@ OUTPUT EXACTLY THIS SHAPE
   },
   "cover": {
     "title": "short personalized title, maximum 5 words",
-    "image_prompt": "detailed square cover prompt"
+    "image_prompt": "detailed square cover prompt",
+    "cast_present": ["exact canonical character names visible on the cover"]
   },
   "pages": [
     {
@@ -81,3 +84,4 @@ MANDATORY
 - Copy page-plan metadata exactly.
 - Never leave placeholders, null prompts or mixed languages.
 - Text-page image_prompt is an empty string. Image-page text_prompt is an empty string.
+- Every cast_present entry must exactly match hero.name or a cast[].name. Never use descriptions or nicknames in cast_present.

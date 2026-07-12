@@ -1,5 +1,7 @@
-// src/services/imageRunner.js
-import OpenAI from "openai";
+import path from "path";
+import fs from "fs/promises";
+import OpenAI, { toFile } from "openai";
+import sharp from "sharp";
 import { saveBase64Png } from "./storageLocal.js";
 
 function getClient() {
@@ -7,97 +9,93 @@ function getClient() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
-/**
- * Build a stable, print-friendly image prompt.
- * - No text in image
- * - Includes optional characterFingerprint for identity consistency across pages
- */
-function buildFinalPrompt({ prompt, characterFingerprint = "", characterFingerprints = [] }) {
+export function buildFinalPrompt({ prompt, characterFingerprint = "", characterFingerprints = [], referenceImages = [] }) {
   const baseRules = [
-    "No text, no captions, no watermarks, no logos.",
-    "Children's book illustration, print-ready, clean composition.",
-    "Consistent main character design across images.",
+    "No text, captions, watermarks, logos, branded characters or copyrighted character lookalikes.",
+    "Children's book illustration, print-ready, clean square composition.",
+    "Treat every named character as a locked model sheet: never change face, species, colors, body markings, outfit or accessories between pages.",
+    "A child must remain the same human child. An animal mascot must remain the exact same animal species and must never become another creature.",
+    "Scene action, pose, expression, camera angle and lighting may change; locked identity and wardrobe may not.",
   ];
 
-  // For a real product: characterFingerprint is a textual description derived from the uploaded photo
-  // (hair/eyes/skin tone/face shape, etc.) to increase identity consistency.
   const combinedFingerprints = characterFingerprints.length
     ? characterFingerprints.filter(Boolean).join("\n")
     : characterFingerprint;
-  const fp = combinedFingerprints?.trim()
-    ? `\n\nCAST VISUAL CANON (apply only to characters named in the scene):\n${combinedFingerprints.trim()}`
+  const canon = combinedFingerprints?.trim()
+    ? `\n\nLOCKED CHARACTER CANON (higher priority than any conflicting scene wording):\n${combinedFingerprints.trim()}`
+    : "";
+  const referenceContract = referenceImages.length
+    ? `\n\nREFERENCE IMAGE CONTRACT:\n${referenceImages.map((item, index) => (
+        `- Reference ${index + 1}: ${item.label || "visual continuity reference"}`
+      )).join("\n")}\nUse these images only to preserve the named characters, their exact wardrobe and the established illustration style. Create a genuinely new scene composition; do not copy the reference background or pose.`
     : "";
 
-  return `${prompt}\n\nGLOBAL RULES:\n- ${baseRules.join("\n- ")}${fp}`;
+  return `${prompt}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}`;
 }
 
-/**
- * Generate an image with OpenAI Images API and save locally.
- *
- * @param {object} params
- * @param {string} params.prompt - The image prompt (already style-rich)
- * @param {string} [params.outName] - Output filename base (without extension)
- * @param {string} [params.characterFingerprint] - Text fingerprint to stabilize character identity
- * @param {string} [params.size] - "1024x1024" | "1536x1024" | "1024x1536" (depends on API support)
- * @returns {Promise<string>} public URL (via storageLocal.js)
- */
+async function loadReferenceFiles(referenceImages) {
+  const files = [];
+  for (let index = 0; index < referenceImages.length; index += 1) {
+    const reference = referenceImages[index];
+    const source = await fs.readFile(reference.path);
+    const normalized = await sharp(source)
+      .rotate()
+      .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+      .png()
+      .toBuffer();
+    files.push(await toFile(normalized, `reference-${index + 1}.png`, { type: "image/png" }));
+  }
+  return files;
+}
+
 export async function generateImage({
   prompt,
   outName = "image",
   characterFingerprint = "",
   characterFingerprints = [],
+  referenceImages = [],
   size = "1024x1024",
   quality = process.env.IMAGE_QUALITY || "low",
   model = process.env.IMAGE_MODEL || "gpt-image-1-mini",
 }) {
-  if (!process.env.OPENAI_API_KEY) {
-    throw new Error("Missing OPENAI_API_KEY");
-  }
-  if (!prompt || typeof prompt !== "string") {
-    throw new Error("Missing or invalid prompt");
-  }
+  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+  if (!prompt || typeof prompt !== "string") throw new Error("Missing or invalid prompt");
 
-  const finalPrompt = buildFinalPrompt({ prompt, characterFingerprint, characterFingerprints });
-
-  // IMPORTANT:
-  // Do NOT send referenced_image_ids — your model/API rejects it (400 Unknown parameter).
-  const payload = {
-    model,
-    prompt: finalPrompt,
-    size,
-    quality,
-  };
+  const usableReferences = referenceImages.filter((item) => item?.path).slice(0, 8);
+  const finalPrompt = buildFinalPrompt({
+    prompt,
+    characterFingerprint,
+    characterFingerprints,
+    referenceImages: usableReferences,
+  });
 
   let res;
   try {
-    res = await getClient().images.generate(payload);
-  } catch (err) {
-    const msg =
-      err?.error?.message ||
-      err?.message ||
-      "Image generation failed (unknown error)";
-    throw new Error(msg);
+    if (usableReferences.length) {
+      const referenceModel = process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2";
+      const payload = {
+        model: referenceModel,
+        image: await loadReferenceFiles(usableReferences),
+        prompt: finalPrompt,
+        size,
+        quality,
+      };
+      // gpt-image-2 already treats every reference at high fidelity. Older full
+      // GPT Image models need this explicit fidelity request.
+      if (["gpt-image-1", "gpt-image-1.5"].includes(referenceModel)) {
+        payload.input_fidelity = "high";
+      }
+      res = await getClient().images.edit(payload);
+    } else {
+      res = await getClient().images.generate({ model, prompt: finalPrompt, size, quality });
+    }
+  } catch (error) {
+    const message = error?.error?.message || error?.message || "Image generation failed (unknown error)";
+    throw new Error(message);
   }
 
-  // Support both base64 and url (SDK can vary)
   const item = res?.data?.[0];
-  const b64 = item?.b64_json;
-  const urlFromApi = item?.url;
-
-  if (b64) {
-    const url = await saveBase64Png(b64, outName);
-    return url;
-  }
-
-  if (urlFromApi) {
-    // If API returns a URL, we still want local persistence for print workflows.
-    // For now, throw a clear error so you can decide: download & store, or keep as URL.
-    // (We can implement download+store later if you want.)
-    throw new Error(
-      "Image API returned a URL instead of base64. Implement download-to-local if needed."
-    );
-  }
-
+  if (item?.b64_json) return saveBase64Png(item.b64_json, outName);
+  if (item?.url) throw new Error("Image API returned a URL instead of base64. Implement download-to-local if needed.");
   throw new Error("No image returned (missing b64_json/url)");
 }
-

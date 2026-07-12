@@ -10,6 +10,9 @@ import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../src/services/composeBookPagePNG.js";
 import { ILLUSTRATION_STYLES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
+import { buildFinalPrompt } from "../src/services/imageRunner.js";
+import { buildSceneContinuity } from "../src/services/visualContinuity.js";
+import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -88,6 +91,58 @@ test("request rejects a sixth photo", () => {
     () => normalizeBookRequest({ questionnaire: { hero_name: "Lina", age: 6 }, photos }),
     /maximum of 5/
   );
+});
+
+test("scene continuity locks child outfit and mascot species while attaching the real child photo", () => {
+  const blueprint = {
+    hero: { name: "Noa", outfit_lock: "blue sweater, ochre trousers, white sneakers" },
+    cast: [{ name: "Pixel", role: "mascot", canon_short: "small red fox with a white muzzle and green scarf" }],
+  };
+  const continuity = buildSceneContinuity({
+    blueprint,
+    characterCanons: [{
+      name: "Noa",
+      role: "child",
+      photoId: "noa.jpg",
+      character_fingerprint: "round face, brown eyes and short dark curls",
+    }],
+    castPresent: ["Noa", "Pixel"],
+    scenePrompt: "Noa and Pixel cross the moonlit forest",
+  });
+  assert.equal(continuity.referenceImages.length, 1);
+  assert.match(continuity.referenceImages[0].path, /noa\.jpg$/);
+  assert.match(continuity.characterFingerprints.join(" "), /FIXED OUTFIT.*blue sweater/i);
+  assert.match(continuity.characterFingerprints.join(" "), /red fox.*SPECIES LOCK/i);
+
+  const prompt = buildFinalPrompt({
+    prompt: "A new forest scene",
+    characterFingerprints: continuity.characterFingerprints,
+    referenceImages: continuity.referenceImages,
+  });
+  assert.match(prompt, /never change face, species.*outfit/i);
+  assert.match(prompt, /primary identity reference/i);
+});
+
+test("blueprint normalization gives every book one canonical outfit and canonical cast names", () => {
+  const blueprint = {
+    hero: { name: "Noa", outfit_lock: "" },
+    cast: [{ name: "Pixel", role: "mascot", canon_short: "red fox" }],
+    cover: { image_prompt: "Noa et Pixel sous les étoiles", cast_present: ["Noa l'enfant", "Pixel le renard"] },
+    pages: createPagePlan().map((page) => ({
+      ...page,
+      text_prompt: page.page_type === "image" ? "" : "text",
+      image_prompt: page.page_type === "image" ? "Noa avec Pixel" : "",
+      cast_present: page.page_type === "image" ? ["Noa l'enfant", "Pixel le renard"] : [],
+    })),
+  };
+  const result = lockBlueprintContinuity(blueprint, {
+    heroProfile: { outfit_lock: "green jacket, navy trousers, red boots" },
+  });
+  assert.equal(result.hero.outfit_lock, "green jacket, navy trousers, red boots");
+  assert.deepEqual(result.cover.cast_present, ["Noa", "Pixel"]);
+  assert.ok(result.pages.filter((page) => page.page_type === "image").every(
+    (page) => page.cast_present.join(",") === "Noa,Pixel"
+  ));
 });
 
 test("text pages render as a square 21 cm preview", async () => {
