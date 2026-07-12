@@ -3,6 +3,7 @@ import { createJob, updateJob } from "../services/jobStore.js";
 import { generateImage } from "../services/imageRunner.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
+import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -131,6 +132,8 @@ router.post("/preview", async (req, res) => {
       });
 
       const draftPages = [];
+      const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
+      let previousText = "";
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
         let text = "";
@@ -141,10 +144,14 @@ router.post("/preview", async (req, res) => {
             language: final_blueprint.language,
             hero: final_blueprint.hero,
             page_number: page.page_number,
+            page_type: page.page_type,
             story_role: page.story_role,
             text_prompt: page.text_prompt,
+            story_context: storyContext,
+            previous_text: previousText,
           });
           text = written.page_text.text;
+          previousText = text;
         } else if (page.page_type === "image") {
           imageUrl = await generateImage({
             prompt: page.image_prompt,

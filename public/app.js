@@ -60,6 +60,12 @@ function renderQuestions() {
   const questions = state.config.questions;
   elements.childQuestions.innerHTML = questions.slice(0, 4).map(renderQuestion).join("");
   elements.storyQuestions.innerHTML = questions.slice(4).map((question, index) => renderQuestion(question, index + 4)).join("");
+  elements.storyQuestions.insertAdjacentHTML("beforeend", `
+    <div class="field is-wide">
+      <label for="extra_notes">Un petit détail qu’il ou elle reconnaîtra immédiatement</label>
+      <textarea id="extra_notes" name="extra_notes" placeholder="Une expression, une habitude, un souvenir, un lieu ou une petite anecdote…"></textarea>
+      <small>Facultatif, mais très utile pour rendre l’histoire plus personnelle et moins générique.</small>
+    </div>`);
 }
 
 function renderStyles() {
@@ -161,6 +167,7 @@ function renderReview() {
     ["Défi", values.challenge || "—"],
     ["Message", values.message || "—"],
     ["Univers", values.universe || "—"],
+    ["Détail personnel", values.extra_notes || "Non renseigné"],
     ["Style", style?.name || "—"],
     ["Photos", state.photos.length ? `${state.photos.length} personnage(s) de référence` : "Aucune photo — création imaginaire"],
   ];

@@ -28,19 +28,21 @@ function safeJsonParse(text) {
   }
 }
 
-function getWordsTargetByAge(ageStr) {
+export function getWordsTargetByAge(ageStr, pageType = "text") {
   const age = parseInt(String(ageStr || "").replace(/[^\d]/g, ""), 10);
-  if (Number.isNaN(age)) return { target: 35, tolerance: 8 }; // default
+  let target;
+  if (Number.isNaN(age)) target = 60;
+  else if (age <= 3) target = 28;
+  else if (age === 4) target = 45;
+  else if (age === 5) target = 55;
+  else if (age === 6) target = 70;
+  else if (age === 7) target = 85;
+  else if (age === 8) target = 105;
+  else if (age <= 10) target = 125;
+  else target = 135;
 
-  if (age <= 3) return { target: 20, tolerance: 6 };
-  if (age === 4) return { target: 26, tolerance: 6 };
-  if (age === 5) return { target: 35, tolerance: 7 };
-  if (age === 6) return { target: 42, tolerance: 8 };
-  if (age === 7) return { target: 55, tolerance: 10 };
-  if (age === 8) return { target: 75, tolerance: 12 };
-  if (age <= 10) return { target: 100, tolerance: 15 };
-
-  return { target: 110, tolerance: 20 };
+  if (["opening_text", "closing_text"].includes(pageType)) target = Math.round(target * 0.58);
+  return { target, tolerance: Math.max(8, Math.round(target * 0.16)) };
 }
 
 /**
@@ -56,11 +58,14 @@ export async function textWriterAgent({
   language = "ES",
   hero = {},
   page_number,
+  page_type = "text",
   story_role = "",
-  text_prompt = ""
+  text_prompt = "",
+  story_context = {},
+  previous_text = "",
 }) {
   const template = loadPrompt("text_writer.txt");
-  const { target, tolerance } = getWordsTargetByAge(hero?.age);
+  const { target, tolerance } = getWordsTargetByAge(hero?.age, page_type);
 
   const inputPayload = {
     language,
@@ -70,8 +75,11 @@ export async function textWriterAgent({
       gender: hero?.gender || ""
     },
     page_number,
+    page_type,
     story_role,
     text_prompt,
+    story_context,
+    previous_text,
     voice_rules: {
       spanish: {
         pronoun: "tú",

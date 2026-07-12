@@ -9,6 +9,7 @@ import { applyPagePlan, createPagePlan } from "../src/config/bookStructure.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../src/services/composeBookPagePNG.js";
 import { ILLUSTRATION_STYLES } from "../src/config/illustrationStyles.js";
+import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -19,6 +20,21 @@ test("illustration catalog exposes six distinct print-ready directions", () => {
   assert.equal(ILLUSTRATION_STYLES.length, 6);
   assert.equal(new Set(ILLUSTRATION_STYLES.map((style) => style.id)).size, 6);
   assert.ok(ILLUSTRATION_STYLES.every((style) => style.prompt && style.palette.length === 3));
+});
+
+test("story pages use richer word targets while opening and closing stay concise", () => {
+  assert.deepEqual(getWordsTargetByAge("6", "text"), { target: 70, tolerance: 11 });
+  assert.deepEqual(getWordsTargetByAge("6", "opening_text"), { target: 41, tolerance: 8 });
+});
+
+test("pedagogical and handwritten fonts are bundled with their licenses", async () => {
+  const files = [
+    "assets/fonts/Andika-Regular.ttf",
+    "assets/fonts/PatrickHand-Regular.ttf",
+    "assets/fonts/Andika-OFL.txt",
+    "assets/fonts/PatrickHand-OFL.txt",
+  ];
+  for (const file of files) assert.ok((await fs.stat(file)).size > 1000);
 });
 
 test("page plan contains 24 square-album interior pages and 11 paired spreads", () => {
