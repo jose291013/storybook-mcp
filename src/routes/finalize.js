@@ -1,18 +1,14 @@
 import express from "express";
+import path from "path";
+import { existsSync } from "fs";
 import { getJob, updateJob } from "../services/jobStore.js";
 import { generateImage } from "../services/imageRunner.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
+import { buildSceneContinuity } from "../services/visualContinuity.js";
 
 const router = express.Router();
-
-function castFingerprintLines(characterCanons, castPresent = []) {
-  const selected = castPresent.length
-    ? characterCanons.filter((canon) => castPresent.includes(canon.name))
-    : characterCanons;
-  return selected.map((canon) => `${canon.name || canon.role}: ${canon.character_fingerprint}`);
-}
 
 router.post("/finalize", async (req, res) => {
   const { jobId } = req.body || {};
@@ -40,11 +36,20 @@ router.post("/finalize", async (req, res) => {
       updateJob(jobId, { status: "running", step: "final:cover" });
       let finalCoverImageUrl = job.result?.finalCoverImageUrl || "";
       let finalCoverUrl = job.result?.finalCoverUrl || "";
+      const draftCoverPath = path.resolve(`data/outputs/draft-cover-${jobId}.png`);
+      const finalCoverPath = path.resolve(`data/outputs/final-cover-${jobId}.png`);
       if (!finalCoverUrl) {
+        const coverContinuity = buildSceneContinuity({
+          blueprint,
+          characterCanons,
+          castPresent: blueprint.cover.cast_present || [],
+          scenePrompt: blueprint.cover.image_prompt,
+          continuityImagePath: existsSync(draftCoverPath) ? draftCoverPath : "",
+        });
         finalCoverImageUrl = await generateImage({
           prompt: blueprint.cover.image_prompt,
           outName: `final-cover-${jobId}`,
-          characterFingerprints: castFingerprintLines(characterCanons, blueprint.cover.cast_present || []),
+          ...coverContinuity,
           size: "1024x1024",
           quality: process.env.FINAL_IMAGE_QUALITY || "high",
           model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",
@@ -80,10 +85,19 @@ router.post("/finalize", async (req, res) => {
           });
           text = written.page_text.text;
         } else if (page.page_type === "image") {
+          const sceneContinuity = buildSceneContinuity({
+            blueprint,
+            characterCanons,
+            castPresent: page.cast_present || [],
+            scenePrompt: page.image_prompt,
+            continuityImagePath: existsSync(finalCoverPath)
+              ? finalCoverPath
+              : (existsSync(draftCoverPath) ? draftCoverPath : ""),
+          });
           imageUrl = await generateImage({
             prompt: page.image_prompt,
             outName: `final-page${page.page_number}-${jobId}`,
-            characterFingerprints: castFingerprintLines(characterCanons, page.cast_present || []),
+            ...sceneContinuity,
             size: "1024x1024",
             quality: process.env.FINAL_IMAGE_QUALITY || "high",
             model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",

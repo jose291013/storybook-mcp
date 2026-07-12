@@ -1,9 +1,11 @@
 import express from "express";
+import path from "path";
 import { createJob, updateJob } from "../services/jobStore.js";
 import { generateImage } from "../services/imageRunner.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
+import { buildSceneContinuity } from "../services/visualContinuity.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -16,13 +18,6 @@ import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 
 const router = express.Router();
-
-function castFingerprintLines(characterCanons, castPresent = []) {
-  const selected = castPresent.length
-    ? characterCanons.filter((canon) => castPresent.includes(canon.name))
-    : characterCanons;
-  return selected.map((canon) => `${canon.name || canon.role}: ${canon.character_fingerprint}`);
-}
 
 async function describeReferences({ photos, answers, baseUrl, jobId }) {
   const canons = [];
@@ -114,10 +109,16 @@ router.post("/preview", async (req, res) => {
       }
 
       updateJob(job.id, { step: "draft:cover" });
+      const coverContinuity = buildSceneContinuity({
+        blueprint: final_blueprint,
+        characterCanons,
+        castPresent: final_blueprint.cover.cast_present || [],
+        scenePrompt: final_blueprint.cover.image_prompt,
+      });
       const coverImageUrl = await generateImage({
         prompt: final_blueprint.cover.image_prompt,
         outName: `draft-cover-${job.id}`,
-        characterFingerprints: castFingerprintLines(characterCanons, final_blueprint.cover.cast_present || []),
+        ...coverContinuity,
         size: "1024x1024",
         quality: "low",
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
@@ -132,6 +133,7 @@ router.post("/preview", async (req, res) => {
       });
 
       const draftPages = [];
+      const coverReferencePath = path.resolve(`data/outputs/draft-cover-${job.id}.png`);
       const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
       let previousText = "";
       for (const page of final_blueprint.pages) {
@@ -153,10 +155,17 @@ router.post("/preview", async (req, res) => {
           text = written.page_text.text;
           previousText = text;
         } else if (page.page_type === "image") {
+          const sceneContinuity = buildSceneContinuity({
+            blueprint: final_blueprint,
+            characterCanons,
+            castPresent: page.cast_present || [],
+            scenePrompt: page.image_prompt,
+            continuityImagePath: coverReferencePath,
+          });
           imageUrl = await generateImage({
             prompt: page.image_prompt,
             outName: `draft-page${page.page_number}-${job.id}`,
-            characterFingerprints: castFingerprintLines(characterCanons, page.cast_present || []),
+            ...sceneContinuity,
             size: "1024x1024",
             quality: "low",
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",

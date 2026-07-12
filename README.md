@@ -31,6 +31,8 @@ La réponse contient également six directions artistiques : aquarelle douce, go
 
 Chaque fichier doit ensuite être associé à un rôle dans la requête de génération : `child`, `mascot`, `friend`, `family` ou `other`.
 
+Lorsqu'une photo correspond à un personnage présent dans une scène, elle est envoyée directement au modèle d'image comme référence haute fidélité. La couverture sert ensuite de cadre de continuité pour verrouiller le visage, la tenue, l'espèce de la mascotte, ses couleurs et ses accessoires sur toutes les pages.
+
 ### Génération du brouillon
 
 `POST /api/preview`
