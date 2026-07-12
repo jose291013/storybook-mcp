@@ -9,6 +9,6 @@ export async function styleAgent(intake) {
     system,
     user: (input) =>
       `INTAKE_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
-    input: intake
+    input: intake?.intake || intake
   });
 }

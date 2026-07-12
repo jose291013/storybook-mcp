@@ -2,14 +2,17 @@
 import OpenAI from "openai";
 import { saveBase64Png } from "./storageLocal.js";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function getClient() {
+  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+}
 
 /**
  * Build a stable, print-friendly image prompt.
  * - No text in image
  * - Includes optional characterFingerprint for identity consistency across pages
  */
-function buildFinalPrompt({ prompt, characterFingerprint = "" }) {
+function buildFinalPrompt({ prompt, characterFingerprint = "", characterFingerprints = [] }) {
   const baseRules = [
     "No text, no captions, no watermarks, no logos.",
     "Children's book illustration, print-ready, clean composition.",
@@ -18,8 +21,11 @@ function buildFinalPrompt({ prompt, characterFingerprint = "" }) {
 
   // For a real product: characterFingerprint is a textual description derived from the uploaded photo
   // (hair/eyes/skin tone/face shape, etc.) to increase identity consistency.
-  const fp = characterFingerprint?.trim()
-    ? `\n\nMAIN CHARACTER FINGERPRINT (must stay consistent):\n${characterFingerprint.trim()}`
+  const combinedFingerprints = characterFingerprints.length
+    ? characterFingerprints.filter(Boolean).join("\n")
+    : characterFingerprint;
+  const fp = combinedFingerprints?.trim()
+    ? `\n\nCAST VISUAL CANON (apply only to characters named in the scene):\n${combinedFingerprints.trim()}`
     : "";
 
   return `${prompt}\n\nGLOBAL RULES:\n- ${baseRules.join("\n- ")}${fp}`;
@@ -39,7 +45,10 @@ export async function generateImage({
   prompt,
   outName = "image",
   characterFingerprint = "",
-  size = "1536x1024",
+  characterFingerprints = [],
+  size = "1024x1024",
+  quality = process.env.IMAGE_QUALITY || "low",
+  model = process.env.IMAGE_MODEL || "gpt-image-1-mini",
 }) {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("Missing OPENAI_API_KEY");
@@ -48,19 +57,20 @@ export async function generateImage({
     throw new Error("Missing or invalid prompt");
   }
 
-  const finalPrompt = buildFinalPrompt({ prompt, characterFingerprint });
+  const finalPrompt = buildFinalPrompt({ prompt, characterFingerprint, characterFingerprints });
 
   // IMPORTANT:
   // Do NOT send referenced_image_ids — your model/API rejects it (400 Unknown parameter).
   const payload = {
-    model: process.env.IMAGE_MODEL || "gpt-image-1",
+    model,
     prompt: finalPrompt,
     size,
+    quality,
   };
 
   let res;
   try {
-    res = await client.images.generate(payload);
+    res = await getClient().images.generate(payload);
   } catch (err) {
     const msg =
       err?.error?.message ||

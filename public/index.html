@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Créez un album jeunesse personnalisé où votre enfant devient le héros." />
+    <title>Mon Histoire Magique</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Accueil Mon Histoire Magique">
+        <span class="brand-mark" aria-hidden="true">✦</span>
+        <span>Mon Histoire Magique</span>
+      </a>
+      <span class="format-pill">Album carré · 21 × 21 cm</span>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">UN ALBUM CRÉÉ POUR LUI, ET POUR PERSONNE D’AUTRE</p>
+          <h1>Votre enfant devient le héros de sa propre histoire.</h1>
+          <p class="hero-intro">Répondez à dix questions simples. Nous transformons ses rêves, ses qualités et les personnes qu’il aime en un album illustré unique.</p>
+          <div class="trust-row" aria-label="Caractéristiques du livre">
+            <span>24 pages</span><span>11 illustrations</span><span>Aperçu avant impression</span>
+          </div>
+        </div>
+        <div class="book-scene" aria-hidden="true">
+          <div class="spark spark-one">✦</div>
+          <div class="spark spark-two">✧</div>
+          <div class="book book-back"></div>
+          <div class="book book-front">
+            <span class="book-star">★</span>
+            <strong>Une aventure<br />rien qu’à toi</strong>
+            <small>Édition personnalisée</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="creator-shell" id="creator">
+        <aside class="steps" aria-label="Étapes de création">
+          <button class="step is-active" data-step-target="0"><span>1</span><div><strong>L’enfant</strong><small>Son univers personnel</small></div></button>
+          <button class="step" data-step-target="1"><span>2</span><div><strong>L’histoire</strong><small>Son aventure StoryBrand</small></div></button>
+          <button class="step" data-step-target="2"><span>3</span><div><strong>Le style</strong><small>La direction artistique</small></div></button>
+          <button class="step" data-step-target="3"><span>4</span><div><strong>Les photos</strong><small>Jusqu’à 5 références</small></div></button>
+          <button class="step" data-step-target="4"><span>5</span><div><strong>Vérification</strong><small>Avant la génération</small></div></button>
+        </aside>
+
+        <div class="form-card">
+          <div class="mobile-progress"><span id="mobileStepLabel">Étape 1 sur 5</span><div><i id="mobileProgressBar"></i></div></div>
+          <form id="bookForm" novalidate>
+            <section class="form-panel is-active" data-panel="0">
+              <p class="section-kicker">FAISONS CONNAISSANCE</p>
+              <h2>Parlez-nous de l’enfant</h2>
+              <p class="section-lead">Ces détails permettent d’écrire avec des mots qui lui ressemblent.</p>
+              <div class="question-grid" id="childQuestions"></div>
+            </section>
+
+            <section class="form-panel" data-panel="1">
+              <p class="section-kicker">LA MATIÈRE DE SON AVENTURE</p>
+              <h2>Construisons son histoire</h2>
+              <p class="section-lead">Ses rêves deviennent l’objectif du héros, sa difficulté devient le défi et votre message devient la transformation finale.</p>
+              <div class="question-grid" id="storyQuestions"></div>
+            </section>
+
+            <section class="form-panel" data-panel="2">
+              <p class="section-kicker">DIRECTION ARTISTIQUE</p>
+              <h2>Choisissez un style d’illustration</h2>
+              <p class="section-lead">Le même style, la même palette et les mêmes personnages seront conservés tout au long du livre.</p>
+              <div class="style-grid" id="styleGrid" role="radiogroup" aria-label="Styles d’illustration"></div>
+            </section>
+
+            <section class="form-panel" data-panel="3">
+              <p class="section-kicker">LES PERSONNAGES</p>
+              <h2>Ajoutez jusqu’à cinq photos</h2>
+              <p class="section-lead">Une photo de l’enfant, de sa mascotte, de ses amis ou de sa famille aide à conserver leurs traits dans les illustrations.</p>
+              <label class="drop-zone" for="photoInput">
+                <input id="photoInput" type="file" accept="image/*" multiple />
+                <span class="upload-icon">↑</span>
+                <strong>Choisir des photos</strong>
+                <small>JPG, PNG ou WEBP · 10 Mo maximum par image</small>
+              </label>
+              <div class="photo-count"><span id="photoCount">0</span> / 5 photos</div>
+              <div class="photo-list" id="photoList"></div>
+            </section>
+
+            <section class="form-panel" data-panel="4">
+              <p class="section-kicker">DERNIÈRE ÉTAPE</p>
+              <h2>Votre livre est prêt à être imaginé</h2>
+              <p class="section-lead">Vérifiez les choix ci-dessous. La première génération crée les 24 pages en qualité brouillon économique.</p>
+              <div class="review-card" id="reviewCard"></div>
+              <label class="language-field">Langue du livre
+                <select id="language" name="language"><option value="FR">Français</option><option value="ES">Español</option><option value="EN">English</option></select>
+              </label>
+              <button type="submit" class="primary-button generate-button">Créer le brouillon de mon livre <span>→</span></button>
+              <p class="cost-note">12 images basse qualité : couverture + 11 illustrations intérieures.</p>
+            </section>
+
+            <div class="form-actions">
+              <button type="button" class="text-button" id="prevButton">← Retour</button>
+              <button type="button" class="primary-button" id="nextButton">Continuer <span>→</span></button>
+            </div>
+            <p class="form-error" id="formError" role="alert"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="generation-panel" id="generationPanel" hidden>
+        <div class="generation-orbit"><span>✦</span></div>
+        <p class="section-kicker">CRÉATION EN COURS</p>
+        <h2 id="generationTitle">Nous écrivons une histoire unique…</h2>
+        <p id="generationMessage">Le héros et son univers prennent forme.</p>
+        <div class="generation-progress"><i id="generationBar"></i></div>
+        <small id="generationStep">Préparation</small>
+      </section>
+
+      <section class="result-section" id="resultSection" hidden>
+        <p class="section-kicker">VOTRE BROUILLON COMPLET</p>
+        <h2>Découvrez les 24 pages de l’album</h2>
+        <p>Chaque double-page associe le texte et l’illustration du même moment narratif.</p>
+        <div class="book-preview" id="bookPreview"></div>
+      </section>
+    </main>
+
+    <footer><span>Mon Histoire Magique</span><small>Des histoires personnelles, créées avec soin.</small></footer>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
