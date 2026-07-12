@@ -9,6 +9,9 @@ NARRATIVE
 - Page 1 is a short welcoming introduction. Page 24 is a warm personalized closing or dedication.
 - Keep language, vocabulary and text length appropriate to the child's age.
 - Use questionnaire details naturally. Do not force every detail into every scene.
+- Turn extra_notes into one or two recognizable story details when provided: a familiar phrase, habit, memory, place or relationship.
+- Build clear cause and effect between spreads. Each scene must change the situation and prepare the next one.
+- Include at least two gentle complications or surprising discoveries before the climax; avoid a flat sequence of easy successes.
 
 VISUALS
 - All illustrations are square, designed for a full 21 x 21 cm page with full bleed.
@@ -56,7 +59,7 @@ OUTPUT EXACTLY THIS SHAPE
     "style_prompt": ""
   },
   "cover": {
-    "title": "short personalized title",
+    "title": "short personalized title, maximum 5 words",
     "image_prompt": "detailed square cover prompt"
   },
   "pages": [
@@ -78,4 +81,3 @@ MANDATORY
 - Copy page-plan metadata exactly.
 - Never leave placeholders, null prompts or mixed languages.
 - Text-page image_prompt is an empty string. Image-page text_prompt is an empty string.
-

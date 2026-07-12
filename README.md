@@ -10,6 +10,7 @@ Backend de génération de livres jeunesse personnalisés par IA.
 - Pages 2 à 23 : 11 doubles-pages, chacune composée d'une page de texte et d'une page illustrée. Le côté du texte alterne à chaque double-page.
 - Page 24 : conclusion ou dédicace.
 - Brouillon complet en basse qualité, puis version 300 dpi après validation/paiement.
+- Typographie pédagogique Andika pour les textes et Patrick Hand pour les titres, distribuées sous licence SIL Open Font License dans `assets/fonts`.
 
 ## API
 

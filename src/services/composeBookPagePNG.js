@@ -2,69 +2,130 @@ import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
 
+const BODY_FONT = path.resolve("assets/fonts/Andika-Regular.ttf");
+const TITLE_FONT = path.resolve("assets/fonts/PatrickHand-Regular.ttf");
+
 function mmToPx(mm, dpi) {
   return Math.round((mm / 25.4) * dpi);
 }
-function escapeXml(value) {
+
+function escapeMarkup(value) {
   return String(value || "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
+    .replaceAll(">", "&gt;");
 }
 
-function wrapText(text, maxChars) {
-  const words = String(text || "").split(/\s+/).filter(Boolean);
-  const lines = [];
-  let line = "";
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (candidate.length <= maxChars) line = candidate;
-    else {
-      if (line) lines.push(line);
-      line = word;
-    }
-  }
-  if (line) lines.push(line);
-  return lines;
+async function renderText({ text, fontFile, fontFamily, fontSize, width, height, color, align = "centre" }) {
+  const input = await sharp({
+    text: {
+      text: `<span foreground="${color}">${escapeMarkup(text)}</span>`,
+      font: `${fontFamily} ${fontSize}`,
+      fontfile: fontFile,
+      width,
+      height,
+      align,
+      rgba: true,
+    },
+  }).png().toBuffer();
+  const metadata = await sharp(input).metadata();
+  return { input, width: metadata.width || width, height: metadata.height || height };
 }
 
-function textSvg({ width, height, title, body, pageType, pageNumber }) {
-  const isOpening = pageType === "opening_text";
-  const isClosing = pageType === "closing_text";
-  const fontSize = Math.round(width * (isOpening || isClosing ? 0.046 : 0.038));
-  const titleSize = Math.round(width * 0.065);
-  const lineHeight = Math.round(fontSize * 1.5);
-  const lines = wrapText(body, isOpening || isClosing ? 34 : 42).slice(0, 14);
-  const blockHeight = Math.max(lineHeight, lines.length * lineHeight);
-  const startY = Math.round((height - blockHeight) / 2);
-  const textLines = lines.map((line, index) =>
-    `<tspan x="${Math.round(width / 2)}" dy="${index === 0 ? 0 : lineHeight}">${escapeXml(line)}</tspan>`
-  ).join("");
-
+function pageDecorSvg(width, height) {
   return Buffer.from(`
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <rect width="100%" height="100%" fill="#fff8ed"/>
       <circle cx="${Math.round(width * 0.1)}" cy="${Math.round(height * 0.12)}" r="${Math.round(width * 0.035)}" fill="#f8d9b6" opacity="0.75"/>
       <circle cx="${Math.round(width * 0.9)}" cy="${Math.round(height * 0.84)}" r="${Math.round(width * 0.05)}" fill="#cfe7df" opacity="0.75"/>
-      ${title ? `<text x="${Math.round(width / 2)}" y="${Math.round(height * 0.22)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${titleSize}" font-weight="700" fill="#3d4a4f">${escapeXml(title)}</text>` : ""}
-      <text x="${Math.round(width / 2)}" y="${startY}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="500" fill="#34454c">${textLines}</text>
-      <text x="${Math.round(width * 0.92)}" y="${Math.round(height * 0.94)}" text-anchor="end" font-family="Arial, sans-serif" font-size="${Math.round(width * 0.022)}" fill="#7b898d">${pageNumber || ""}</text>
+      <path d="M ${Math.round(width * 0.82)} ${Math.round(height * 0.13)} q ${Math.round(width * 0.035)} ${Math.round(height * -0.045)} ${Math.round(width * 0.07)} 0 q ${Math.round(width * -0.035)} ${Math.round(height * 0.045)} ${Math.round(width * -0.07)} 0" fill="none" stroke="#e7b9a8" stroke-width="${Math.max(2, Math.round(width * 0.003))}" stroke-linecap="round"/>
     </svg>`);
 }
 
-function coverOverlaySvg({ width, height, title }) {
+function coverShadeSvg(width, height) {
   return Buffer.from(`
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <defs>
         <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#000" stop-opacity="0.38"/>
-          <stop offset="55%" stop-color="#000" stop-opacity="0"/>
+          <stop offset="0%" stop-color="#000" stop-opacity="0.52"/>
+          <stop offset="65%" stop-color="#000" stop-opacity="0.08"/>
+          <stop offset="100%" stop-color="#000" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <rect width="100%" height="48%" fill="url(#shade)"/>
-      <text x="${Math.round(width / 2)}" y="${Math.round(height * 0.14)}" text-anchor="middle" font-family="Arial, sans-serif" font-size="${Math.round(width * 0.07)}" font-weight="800" fill="#fff">${escapeXml(title)}</text>
+      <rect width="100%" height="52%" fill="url(#shade)"/>
     </svg>`);
+}
+
+async function composeTextPage({ width, height, title, body, pageType, pageNumber }) {
+  const isOpening = pageType === "opening_text";
+  const isClosing = pageType === "closing_text";
+  const canvas = sharp({ create: { width, height, channels: 4, background: "#fff8ed" } });
+  const composites = [{ input: pageDecorSvg(width, height), top: 0, left: 0 }];
+
+  if (title) {
+    const titleLayer = await renderText({
+      text: title,
+      fontFile: TITLE_FONT,
+      fontFamily: "Patrick Hand",
+      fontSize: Math.round(width * 0.043),
+      width: Math.round(width * 0.76),
+      height: Math.round(height * 0.18),
+      color: "#3d4a4f",
+    });
+    composites.push({ input: titleLayer.input, top: Math.round(height * 0.13), left: Math.round((width - titleLayer.width) / 2) });
+  }
+
+  const bodyLayer = await renderText({
+    text: body,
+    fontFile: BODY_FONT,
+    fontFamily: "Andika",
+    fontSize: Math.round(width * (isOpening || isClosing ? 0.031 : 0.026)),
+    width: Math.round(width * 0.78),
+    height: Math.round(height * (title ? 0.56 : 0.68)),
+    color: "#34454c",
+  });
+  const bodyTop = Math.max(
+    Math.round(height * (title ? 0.32 : 0.16)),
+    Math.round((height - bodyLayer.height) / 2)
+  );
+  composites.push({ input: bodyLayer.input, top: bodyTop, left: Math.round((width - bodyLayer.width) / 2) });
+
+  if (pageNumber) {
+    const numberLayer = await renderText({
+      text: String(pageNumber),
+      fontFile: BODY_FONT,
+      fontFamily: "Andika",
+      fontSize: Math.round(width * 0.014),
+      width: Math.round(width * 0.08),
+      height: Math.round(height * 0.05),
+      color: "#7b898d",
+      align: "right",
+    });
+    composites.push({ input: numberLayer.input, top: Math.round(height * 0.91), left: Math.round(width * 0.85) });
+  }
+
+  return canvas.composite(composites).png().toBuffer();
+}
+
+async function composeCover({ imageBuffer, width, height, title }) {
+  const titleLayer = await renderText({
+    text: title,
+    fontFile: TITLE_FONT,
+    fontFamily: "Patrick Hand",
+    fontSize: Math.round(width * 0.052),
+    width: Math.round(width * 0.8),
+    height: Math.round(height * 0.34),
+    color: "#ffffff",
+  });
+  const titleTop = Math.max(Math.round(height * 0.06), Math.round(height * 0.23 - titleLayer.height / 2));
+
+  return sharp(imageBuffer)
+    .resize(width, height, { fit: "cover", position: "attention" })
+    .composite([
+      { input: coverShadeSvg(width, height), top: 0, left: 0 },
+      { input: titleLayer.input, top: titleTop, left: Math.round((width - titleLayer.width) / 2) },
+    ])
+    .png()
+    .toBuffer();
 }
 
 export async function composeBookPagePNG({
@@ -86,16 +147,15 @@ export async function composeBookPagePNG({
   let output;
 
   if (["text", "opening_text", "closing_text"].includes(pageType)) {
-    output = await sharp(textSvg({ width, height, title, body, pageType, pageNumber })).png().toBuffer();
+    output = await composeTextPage({ width, height, title, body, pageType, pageNumber });
   } else {
     if (!imageUrl) throw new Error(`composeBookPagePNG: ${pageType} requires imageUrl`);
     const response = await fetch(imageUrl);
     if (!response.ok) throw new Error(`composeBookPagePNG: failed to fetch image (${response.status})`);
     const imageBuffer = Buffer.from(await response.arrayBuffer());
-    const canvas = sharp(imageBuffer).resize(width, height, { fit: "cover", position: "attention" });
     output = pageType === "cover"
-      ? await canvas.composite([{ input: coverOverlaySvg({ width, height, title }), top: 0, left: 0 }]).png().toBuffer()
-      : await canvas.png().toBuffer();
+      ? await composeCover({ imageBuffer, width, height, title })
+      : await sharp(imageBuffer).resize(width, height, { fit: "cover", position: "attention" }).png().toBuffer();
   }
 
   await fs.mkdir(outputsDir, { recursive: true });

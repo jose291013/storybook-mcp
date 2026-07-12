@@ -3,6 +3,7 @@ import { getJob, updateJob } from "../services/jobStore.js";
 import { generateImage } from "../services/imageRunner.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { textWriterAgent } from "../agents/textWriter.js";
+import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 
 const router = express.Router();
 
@@ -33,6 +34,8 @@ router.post("/finalize", async (req, res) => {
       const draftPages = job.result?.draftPages || [];
       const existingFinalPages = job.result?.finalPages || [];
       const finalPages = [...existingFinalPages];
+      const storyContext = buildNarrativeContext({ blueprint, intake: job.intake, storybrand: job.storybrand });
+      let previousText = "";
 
       updateJob(jobId, { status: "running", step: "final:cover" });
       let finalCoverImageUrl = job.result?.finalCoverImageUrl || "";
@@ -69,8 +72,11 @@ router.post("/finalize", async (req, res) => {
             language: blueprint.language,
             hero: blueprint.hero,
             page_number: page.page_number,
+            page_type: page.page_type,
             story_role: page.story_role,
             text_prompt: page.text_prompt,
+            story_context: storyContext,
+            previous_text: previousText,
           });
           text = written.page_text.text;
         } else if (page.page_type === "image") {
@@ -83,6 +89,7 @@ router.post("/finalize", async (req, res) => {
             model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",
           });
         }
+        if (text) previousText = text;
 
         const printUrl = await composeBookPagePNG({
           baseUrl,
