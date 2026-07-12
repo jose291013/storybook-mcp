@@ -4,6 +4,7 @@ import {
   BOOK_QUESTIONS,
   MAX_REFERENCE_PHOTOS,
   PHOTO_ROLES,
+  PHOTO_STORY_ROLES,
 } from "../config/questionnaire.js";
 import { ILLUSTRATION_STYLES } from "../config/illustrationStyles.js";
 
@@ -15,6 +16,7 @@ router.get("/questionnaire", (req, res) => {
     photos: {
       max: MAX_REFERENCE_PHOTOS,
       roles: PHOTO_ROLES,
+      storyRoles: PHOTO_STORY_ROLES,
     },
     bookFormat: BOOK_FORMAT,
     illustrationStyles: ILLUSTRATION_STYLES.map(({ id, name, description, palette }) => ({

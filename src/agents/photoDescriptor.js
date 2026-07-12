@@ -38,6 +38,7 @@ function safeJsonParse(text) {
 export async function photoDescriptorAgent({
   subject_name,
   role = "other",
+  story_role = "guest",
   relationship = "",
   age = "",
   gender = "",
@@ -52,6 +53,7 @@ export async function photoDescriptorAgent({
     .replaceAll("{subject_name}", resolvedName)
     .replaceAll("{hero_name}", resolvedName)
     .replaceAll("{role}", role || "other")
+    .replaceAll("{story_role}", story_role || "guest")
     .replaceAll("{relationship}", relationship || "")
     .replaceAll("{age}", age || "")
     .replaceAll("{gender}", gender || "")
@@ -91,6 +93,7 @@ if (!json?.photo_descriptor?.canon_json) {
   json.photo_descriptor.subject = {
     name: resolvedName,
     role,
+    story_role,
     relationship,
   };
   return json;

@@ -1,6 +1,7 @@
 // src/agents/textWriter.js
 import OpenAI from "openai";
 import { loadPrompt } from "../services/loadPrompt.js";
+import { bookLanguageInstruction, normalizeBookLanguage } from "../config/bookLanguages.js";
 
 function getClient() {
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
@@ -65,10 +66,11 @@ export async function textWriterAgent({
   previous_text = "",
 }) {
   const template = loadPrompt("text_writer.txt");
+  const targetLanguage = normalizeBookLanguage(language);
   const { target, tolerance } = getWordsTargetByAge(hero?.age, page_type);
 
   const inputPayload = {
-    language,
+    language: targetLanguage,
     hero: {
       name: hero?.name || "",
       age: hero?.age || "",
@@ -99,7 +101,7 @@ export async function textWriterAgent({
       {
         role: "user",
         content: [
-          { type: "input_text", text: template },
+          { type: "input_text", text: `${bookLanguageInstruction(targetLanguage)}\n\n${template}` },
           { type: "input_text", text: "\n\nDATA:\n" + JSON.stringify(inputPayload, null, 2) }
         ]
       }
@@ -116,6 +118,7 @@ export async function textWriterAgent({
   if (out.page_number !== page_number) {
     out.page_number = page_number;
   }
+  out.language = targetLanguage;
 
   return json;
 }
