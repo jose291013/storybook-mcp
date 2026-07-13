@@ -4,6 +4,7 @@ import { parseJsonSafe } from "../services/parseJsonSafe.js";
 import { applyPagePlan, createPagePlan } from "../config/bookStructure.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
 import { normalizePageCount, normalizeTypography } from "../config/bookOptions.js";
+import { extractBlueprintCandidate } from "../services/extractBlueprintCandidate.js";
 
 function nameKey(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -357,7 +358,7 @@ export async function blueprintFillerAgent({
 
   // If it's already an object, return it
   if (candidate && typeof candidate === "object") {
-    return lockBlueprintContinuity(candidate, { heroProfile, characterCanons, language, pageCount, fontStyle });
+    return lockBlueprintContinuity(extractBlueprintCandidate(candidate), { heroProfile, characterCanons, language, pageCount, fontStyle });
   }
 
   // Otherwise parse from string
@@ -365,6 +366,6 @@ export async function blueprintFillerAgent({
   if (!parsed) {
     throw new Error("blueprintFillerAgent: could not parse JSON from agent output");
   }
-  return lockBlueprintContinuity(parsed, { heroProfile, characterCanons, language, pageCount, fontStyle });
+  return lockBlueprintContinuity(extractBlueprintCandidate(parsed), { heroProfile, characterCanons, language, pageCount, fontStyle });
 }
 

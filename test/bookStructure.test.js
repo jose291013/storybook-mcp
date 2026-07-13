@@ -17,6 +17,7 @@ import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js"
 import { ALLOWED_PAGE_COUNTS, calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 import { createEbookPdf, EBOOK_PAGE_SIZE_PT } from "../src/services/createEbookPdf.js";
+import { extractBlueprintCandidate } from "../src/services/extractBlueprintCandidate.js";
 import { PDFDocument } from "pdf-lib";
 
 test("questionnaire contains ten simple questions", () => {
@@ -34,6 +35,39 @@ test("questionnaire contains ten simple questions", () => {
     "important_people",
     "universe",
   ]);
+});
+
+test("repair envelopes prefer the populated final blueprint over an empty page plan", () => {
+  const emptyPages = createPagePlan(24).map((page) => ({
+    ...page,
+    text_prompt: "",
+    image_prompt: "",
+    cast_present: [],
+  }));
+  const completePages = emptyPages.map((page) => ({
+    ...page,
+    text_prompt: page.page_type === "image" ? "" : `Texte complet page ${page.page_number}`,
+    image_prompt: page.page_type === "image" ? `Illustration complete page ${page.page_number}` : "",
+    cast_present: ["Noa"],
+  }));
+  const complete = {
+    language: "ES",
+    format: { interior_pages: 24 },
+    hero: { name: "Noa" },
+    cover: { title: "Noa y Luma", image_prompt: "Portada completa", cast_present: ["Noa"] },
+    pages: completePages,
+  };
+
+  const selected = extractBlueprintCandidate({
+    pages: emptyPages,
+    cover: { image_prompt: "" },
+    final_blueprint: complete,
+    page_plan: emptyPages,
+  });
+
+  assert.equal(selected, complete);
+  assert.equal(selected.pages[0].text_prompt, "Texte complet page 1");
+  assert.equal(selected.pages[2].image_prompt, "Illustration complete page 3");
 });
 
 test("illustration catalog exposes six distinct print-ready directions", () => {
