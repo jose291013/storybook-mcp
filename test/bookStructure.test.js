@@ -329,6 +329,60 @@ test("blueprint normalization gives every book one canonical outfit and canonica
   assert.equal(result.cast.find((character) => character.name === "Abuela Rosa").story_role, "guide");
 });
 
+test("blueprint normalization repairs paired cast contracts, name typos and required side alternation", () => {
+  const plan = createPagePlan(24);
+  const blueprint = {
+    hero: { name: "Julanin", age: 5, outfit_lock: "" },
+    cast: [{ name: "Janine", role: "family", story_role: "guide", canon_short: "grand-mere souriante" }],
+    cover: {
+      title: "Julanin et la foret",
+      image_prompt: "Julanin wearing a blue t-shirt and beige pants beside Janine, square cover",
+      cast_present: ["Julanin", "Janine"],
+    },
+    pages: plan.map((page) => ({
+      ...page,
+      text_prompt: page.page_type === "image"
+        ? ""
+        : (page.page_number === 17 ? "Julian avance avec Janine." : "Julanin avance avec Janine."),
+      image_prompt: page.page_type === "image" ? "Julanin et Janine avancent ensemble, composition carree" : "",
+      cast_present: page.page_type === "image" ? ["Julanin", "Janine"] : [],
+    })),
+  };
+  const result = lockBlueprintContinuity(blueprint, {
+    language: "FR",
+    pageCount: 24,
+    characterCanons: [{
+      name: "Julanin",
+      role: "child",
+      outfit_lock: "pull en laine rouge bordeaux a manches longues, pantalon sombre et baskets blanches",
+    }],
+  });
+
+  assert.equal(result.pages[1].page_type, "text");
+  assert.equal(result.pages[2].page_type, "image");
+  assert.equal(result.pages[3].page_type, "image");
+  assert.equal(result.pages[4].page_type, "text");
+  for (let spread = 1; spread <= 11; spread += 1) {
+    const paired = result.pages.filter((page) => page.spread_number === spread);
+    assert.equal(paired.length, 2);
+    assert.deepEqual(paired[0].cast_present, paired[1].cast_present);
+  }
+  assert.match(result.pages.find((page) => page.page_number === 17).text_prompt, /Julanin avance/);
+  assert.doesNotMatch(result.pages.find((page) => page.page_number === 17).text_prompt, /Julian avance/);
+  assert.match(result.cover.image_prompt, /TENUE VERROUILLEE DE Julanin/);
+  assert.match(result.pages.find((page) => page.page_number === 3).image_prompt, /pull en laine rouge bordeaux/);
+});
+
+test("preview repairs a rejected blueprint before spending image credits", async () => {
+  const source = await fs.readFile("src/routes/preview.js", "utf8");
+  const repairStep = source.indexOf('step: "qa:repair"');
+  const coverStep = source.indexOf('step: "draft:cover"');
+  assert.ok(repairStep >= 0);
+  assert.ok(coverStep > repairStep);
+  assert.match(source, /blueprintRepairAgent/);
+  assert.match(source, /qa:verify_repair/);
+});
+
 test("text pages render as a square 21 cm preview", async () => {
   const outputsDir = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-page-"));
   try {

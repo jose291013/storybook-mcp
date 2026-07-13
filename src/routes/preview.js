@@ -13,10 +13,12 @@ import { heroClassifierAgent } from "../agents/heroClassifier.js";
 import { storybrandAgent } from "../agents/storybrand.js";
 import { worldBuilderAgent } from "../agents/worldBuilder.js";
 import { styleAgent } from "../agents/style.js";
-import { blueprintFillerAgent } from "../agents/blueprintFiller.js";
+import { blueprintFillerAgent, lockBlueprintContinuity } from "../agents/blueprintFiller.js";
+import { blueprintRepairAgent } from "../agents/blueprintRepair.js";
 import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
+import { createPagePlan } from "../config/bookStructure.js";
 
 const router = express.Router();
 
@@ -99,7 +101,7 @@ router.post("/preview", async (req, res) => {
 
       updateJob(job.id, { step: "blueprint" });
       const childCanon = characterCanons.find((canon) => canon.role === "child");
-      const final_blueprint = await blueprintFillerAgent({
+      let final_blueprint = await blueprintFillerAgent({
         intake,
         hero_profile,
         storybrand,
@@ -112,7 +114,24 @@ router.post("/preview", async (req, res) => {
       });
 
       updateJob(job.id, { step: "qa", final_blueprint });
-      const qa = await qaAgent(final_blueprint);
+      let qa = await qaAgent(final_blueprint);
+      if (qa?.qa?.status !== "approved") {
+        updateJob(job.id, { step: "qa:repair", final_blueprint });
+        const repaired = await blueprintRepairAgent({
+          finalBlueprint: final_blueprint,
+          qa,
+          pagePlan: createPagePlan(answers.page_count),
+        });
+        final_blueprint = lockBlueprintContinuity(repaired, {
+          heroProfile: hero_profile?.hero_profile || hero_profile || {},
+          characterCanons,
+          language: answers.language,
+          pageCount: answers.page_count,
+          fontStyle: answers.font_style,
+        });
+        updateJob(job.id, { step: "qa:verify_repair", final_blueprint });
+        qa = await qaAgent(final_blueprint);
+      }
       if (qa?.qa?.status !== "approved") {
         updateJob(job.id, {
           status: "failed",

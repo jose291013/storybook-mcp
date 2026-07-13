@@ -15,6 +15,101 @@ function sameName(left, right) {
   return Boolean(a && b && (a === b || a.includes(b) || b.includes(a)));
 }
 
+function editDistance(left, right) {
+  const a = nameKey(left).replaceAll(" ", "");
+  const b = nameKey(right).replaceAll(" ", "");
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    let previous = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const current = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, previous + (a[i - 1] === b[j - 1] ? 0 : 1));
+      previous = current;
+    }
+  }
+  return row[b.length];
+}
+
+function canonicalizePromptNames(value, canonicalCharacters) {
+  const text = String(value || "");
+  const exactNames = new Map(canonicalCharacters.map((character) => [nameKey(character.name), character.name]));
+  return text.replace(/\b[\p{Lu}][\p{L}'’.-]{2,}\b/gu, (token) => {
+    const exact = exactNames.get(nameKey(token));
+    if (exact) return exact;
+    const candidates = canonicalCharacters
+      .map((character) => ({ name: character.name, distance: editDistance(token, character.name) }))
+      .filter((candidate) => candidate.distance <= Math.max(1, Math.ceil(nameKey(candidate.name).length * 0.4)))
+      .sort((left, right) => left.distance - right.distance);
+    if (!candidates.length || (candidates[1] && candidates[1].distance === candidates[0].distance)) return token;
+    return candidates[0].name;
+  });
+}
+
+function castDirective(language, names, pageType) {
+  if (!names.length) return "";
+  const list = names.join(", ");
+  if (language === "ES") {
+    return pageType === "image"
+      ? `Personajes visibles obligatorios en esta escena: ${list}.`
+      : `En esta escena, ${list} estan fisicamente presentes y participan en el mismo momento.`;
+  }
+  if (language === "EN") {
+    return pageType === "image"
+      ? `Mandatory visible characters in this scene: ${list}.`
+      : `In this scene, ${list} are physically present and take part in the same moment.`;
+  }
+  return pageType === "image"
+    ? `Personnages obligatoirement visibles dans cette scene : ${list}.`
+    : `Dans cette scene, ${list} sont physiquement presents et participent au meme moment.`;
+}
+
+function outfitDirective(language, heroName, outfit) {
+  if (!heroName || !outfit) return "";
+  if (language === "ES") return `VESTUARIO FIJO DE ${heroName}: ${outfit}. Esta regla sustituye cualquier otra descripcion de ropa anterior.`;
+  if (language === "EN") return `FIXED OUTFIT FOR ${heroName}: ${outfit}. This rule replaces any other earlier clothing description.`;
+  return `TENUE VERROUILLEE DE ${heroName} : ${outfit}. Cette regle remplace toute autre description vestimentaire anterieure.`;
+}
+
+function appendDirective(prompt, directive) {
+  const value = String(prompt || "").trim();
+  if (!directive || value.includes(directive)) return value;
+  return `${value} ${directive}`.trim();
+}
+
+function syncSpreadCastContracts(result, canonicalCharacters, questObject) {
+  const canonicalNamesIn = (value) => canonicalCharacters
+    .filter((character) => nameKey(value).includes(nameKey(character.name)))
+    .map((character) => character.name);
+  const spreads = new Map();
+  for (const page of result.pages) {
+    if (!page.spread_number || ["opening_text", "closing_text"].includes(page.page_type)) continue;
+    const pages = spreads.get(page.spread_number) || [];
+    pages.push(page);
+    spreads.set(page.spread_number, pages);
+  }
+  for (const pages of spreads.values()) {
+    const imagePage = pages.find((page) => page.page_type === "image");
+    const textPage = pages.find((page) => page.page_type === "text");
+    if (!imagePage || !textPage) continue;
+    let names = [...new Set([
+      ...(imagePage.cast_present || []),
+      ...(textPage.cast_present || []),
+      ...canonicalNamesIn(imagePage.image_prompt),
+      ...canonicalNamesIn(textPage.text_prompt),
+    ])].filter((name) => canonicalCharacters.some((character) => sameName(character.name, name)));
+    if (imagePage.visual_state?.quest_object_state === "hidden" && questObject?.name) {
+      names = names.filter((name) => !sameName(name, questObject.name));
+    }
+    names = names.map((name) => canonicalCharacters.find((character) => sameName(character.name, name))?.name).filter(Boolean);
+    names = [...new Set(names)];
+    imagePage.cast_present = names;
+    textPage.cast_present = names;
+    imagePage.image_prompt = appendDirective(imagePage.image_prompt, castDirective(result.language, names, "image"));
+    textPage.text_prompt = appendDirective(textPage.text_prompt, castDirective(result.language, names, "text"));
+  }
+}
+
 function appearanceDirective(language, character) {
   const identity = character.name;
   if (language === "ES") {
@@ -161,6 +256,7 @@ export function lockBlueprintContinuity(blueprint, {
   };
 
   result.cover ||= {};
+  result.cover.image_prompt = canonicalizePromptNames(result.cover.image_prompt, canonicalCharacters);
   result.cover.cast_present = canonicalizeCast(result.cover.cast_present, result.cover.image_prompt);
   if (!result.cover.cast_present.length && result.hero.name) {
     result.cover.cast_present = [
@@ -170,9 +266,9 @@ export function lockBlueprintContinuity(blueprint, {
   }
   result.pages = result.pages.map((page) => ({
     ...page,
-    cast_present: page.page_type === "image"
-      ? canonicalizeCast(page.cast_present, page.image_prompt)
-      : [],
+    text_prompt: canonicalizePromptNames(page.text_prompt, canonicalCharacters),
+    image_prompt: canonicalizePromptNames(page.image_prompt, canonicalCharacters),
+    cast_present: canonicalizeCast(page.cast_present, `${page.text_prompt || ""} ${page.image_prompt || ""}`),
   }));
 
   const imagePages = result.pages.filter((page) => page.page_type === "image");
@@ -194,6 +290,16 @@ export function lockBlueprintContinuity(blueprint, {
     assignedPerPage.set(page.page_number, (assignedPerPage.get(page.page_number) || 0) + 1);
   }
   lockPlotObjectTimeline(result, questObject);
+  syncSpreadCastContracts(result, canonicalCharacters, questObject);
+  const fixedOutfit = outfitDirective(result.language, result.hero.name, result.hero.outfit_lock);
+  if (result.cover.cast_present.some((name) => sameName(name, result.hero.name))) {
+    result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);
+  }
+  for (const page of result.pages.filter((item) => item.page_type === "image")) {
+    if (page.cast_present.some((name) => sameName(name, result.hero.name))) {
+      page.image_prompt = appendDirective(page.image_prompt, fixedOutfit);
+    }
+  }
   return result;
 }
 
