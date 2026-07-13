@@ -19,8 +19,10 @@ const elements = {
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), costNote: document.querySelector("#costNote"),
-  heroPageCount: document.querySelector("#heroPageCount"), heroIllustrationCount: document.querySelector("#heroIllustrationCount"), resultTitle: document.querySelector("#resultTitle"),
+  heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
 };
+
+const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
 
 const QUESTION_TEXT = {
   FR: {
@@ -61,6 +63,8 @@ const ROLE_LABELS = {
 const defaultStoryRole = (role) => ({ child: "hero", mascot: "companion", friend: "ally", family: "guide", other: "guest" }[role] || "guest");
 const tr = (key, params) => translate(state.locale, key, params);
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+const formatPrice = (value) => new Intl.NumberFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { style: "currency", currency: "EUR" }).format(value);
+const selectedPageOption = () => state.config?.pageCountOptions?.find((option) => option.pageCount === state.pageCount);
 
 function formValues() { return Object.fromEntries(new FormData(elements.form).entries()); }
 function restoreValues(values) { Object.entries(values).forEach(([name, value]) => { const input = elements.form.elements.namedItem(name); if (input && typeof input.value !== "undefined") input.value = value; }); }
@@ -70,6 +74,9 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = tr(node.dataset.i18n); });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => { node.placeholder = tr(node.dataset.i18nPlaceholder); });
   elements.uiLanguage.value = state.locale;
+  const firstPrice = state.config?.pageCountOptions?.[0]?.priceEur;
+  if (elements.heroStartingPrice && firstPrice != null) elements.heroStartingPrice.textContent = tr("startingAt", { price: formatPrice(firstPrice) });
+  if (elements.heroPageRange) elements.heroPageRange.textContent = tr("pageRange", { min: 24, max: 44 });
   updateBookMetrics();
 }
 
@@ -79,15 +86,47 @@ function renderQuestion(question, index) {
   const input = isTextArea
     ? `<textarea id="${question.id}" name="${question.id}" ${question.required ? "required" : ""} placeholder="${escapeHtml(tr("answerPlaceholder"))}"></textarea>`
     : `<input id="${question.id}" name="${question.id}" type="${question.type}" ${question.required ? "required" : ""} ${question.type === "number" ? 'min="1" max="14"' : ""} placeholder="${escapeHtml(tr("answerPlaceholder"))}" />`;
-  return `<div class="field${isTextArea ? " is-wide" : ""}"><label for="${question.id}">${index + 1}. ${escapeHtml(label)}${question.required ? " *" : ""}</label>${input}<small>${escapeHtml(help)}</small></div>`;
+  const improveButton = IMPROVABLE_QUESTION_IDS.has(question.id) ? `<button type="button" class="improve-answer" data-improve-question="${question.id}"><span aria-hidden="true">✦</span>${escapeHtml(tr("improveAnswer"))}</button>` : "";
+  return `<div class="field${isTextArea ? " is-wide" : ""}"><div class="field-heading"><label for="${question.id}">${index + 1}. ${escapeHtml(label)}${question.required ? " *" : ""}</label>${improveButton}</div>${input}<small>${escapeHtml(help)}</small></div>`;
+}
+
+async function improveAnswer(button) {
+  const questionId = button.dataset.improveQuestion;
+  const input = document.querySelector(`#${questionId}`);
+  const field = button.closest(".field");
+  const question = field?.querySelector("label")?.textContent || questionId;
+  if (!input?.value.trim()) { input?.classList.add("is-invalid"); elements.formError.textContent = tr("improveNeedsAnswer"); input?.focus(); return; }
+  const originalLabel = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(tr("improvingAnswer"))}`;
+  elements.formError.textContent = "";
+  try {
+    const response = await fetch("/api/improve-answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId, question, answer: input.value, locale: state.locale }) });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || tr("improveError"));
+    input.value = payload.improvedAnswer;
+    input.classList.remove("is-invalid");
+    input.focus();
+    button.innerHTML = `<span aria-hidden="true">✦</span>${escapeHtml(tr("improveAgain"))}`;
+  } catch (error) {
+    elements.formError.textContent = error.message || tr("improveError");
+    button.innerHTML = originalLabel;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function bindImproveButtons() {
+  document.querySelectorAll("[data-improve-question]").forEach((button) => button.addEventListener("click", () => improveAnswer(button)));
 }
 
 function renderQuestions(values = {}) {
   const questions = state.config.questions;
   elements.childQuestions.innerHTML = questions.slice(0, 4).map(renderQuestion).join("");
   elements.storyQuestions.innerHTML = questions.filter((question, index) => index >= 4 && question.id !== "universe").map((question) => renderQuestion(question, questions.findIndex((item) => item.id === question.id))).join("");
-  elements.storyQuestions.insertAdjacentHTML("beforeend", `<div class="field is-wide"><label for="extra_notes">${escapeHtml(tr("extraLabel"))}</label><textarea id="extra_notes" name="extra_notes" placeholder="${escapeHtml(tr("extraPlaceholder"))}"></textarea><small>${escapeHtml(tr("extraHelp"))}</small></div>`);
+  elements.storyQuestions.insertAdjacentHTML("beforeend", `<div class="field is-wide"><div class="field-heading"><label for="extra_notes">${escapeHtml(tr("extraLabel"))}</label><button type="button" class="improve-answer" data-improve-question="extra_notes"><span aria-hidden="true">✦</span>${escapeHtml(tr("improveAnswer"))}</button></div><textarea id="extra_notes" name="extra_notes" placeholder="${escapeHtml(tr("extraPlaceholder"))}"></textarea><small>${escapeHtml(tr("extraHelp"))}</small></div>`);
   restoreValues(values);
+  bindImproveButtons();
 }
 
 function renderUniverses() {
@@ -95,10 +134,11 @@ function renderUniverses() {
   state.selectedUniverse ||= options[0]?.id;
   elements.universeGrid.innerHTML = options.map((option) => {
     const [name, description] = UNIVERSE_TEXT[option.id]?.[state.locale] || [option.name, option.description];
-    return `<button type="button" class="visual-card universe-card preview-${option.id} ${option.id === state.selectedUniverse ? "is-selected" : ""}" data-universe-id="${option.id}" role="radio" aria-checked="${option.id === state.selectedUniverse}"><span class="visual-card-art" style="--c1:${option.palette[0]};--c2:${option.palette[1]};--c3:${option.palette[2]}"><i></i><b></b></span><span class="visual-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span><span class="info-dot" title="${escapeHtml(description)}" aria-label="${escapeHtml(tr("information"))}">i</span></button>`;
+    return `<button type="button" class="visual-card universe-card preview-${option.id} ${option.id === state.selectedUniverse ? "is-selected" : ""}" data-universe-id="${option.id}" role="radio" aria-checked="${option.id === state.selectedUniverse}"><span class="visual-card-art" style="--c1:${option.palette[0]};--c2:${option.palette[1]};--c3:${option.palette[2]}">${option.previewImage ? `<img src="${escapeHtml(option.previewImage)}" alt="" loading="lazy" />` : ""}<i></i><b></b></span><span class="visual-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span><span class="info-dot" title="${escapeHtml(description)}" aria-label="${escapeHtml(tr("information"))}">i</span></button>`;
   }).join("");
   document.querySelector("#universe_id").value = state.selectedUniverse;
   document.querySelector("#universe").value = "";
+  elements.universeGrid.querySelectorAll(".visual-card-art img").forEach((image) => image.addEventListener("error", () => image.remove()));
   elements.universeGrid.querySelectorAll("[data-universe-id]").forEach((button) => button.addEventListener("click", () => { state.selectedUniverse = button.dataset.universeId; renderUniverses(); emitWooConfiguration(); }));
 }
 
@@ -107,26 +147,27 @@ function renderStyles() {
   state.selectedStyle ||= styles[0]?.id;
   elements.styleGrid.innerHTML = styles.map((style) => {
     const [name, description] = STYLE_TEXT[style.id]?.[state.locale] || [style.name, style.description];
-    return `<button type="button" class="style-card preview-${style.id} ${style.id === state.selectedStyle ? "is-selected" : ""}" data-style-id="${style.id}" role="radio" aria-checked="${style.id === state.selectedStyle}"><span class="style-preview" style="--c1:${style.palette[0]};--c2:${style.palette[1]};--c3:${style.palette[2]}"><i></i><b></b></span><span class="style-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span></button>`;
+    return `<button type="button" class="style-card preview-${style.id} ${style.id === state.selectedStyle ? "is-selected" : ""}" data-style-id="${style.id}" role="radio" aria-checked="${style.id === state.selectedStyle}"><span class="style-preview" style="--c1:${style.palette[0]};--c2:${style.palette[1]};--c3:${style.palette[2]}">${style.previewImage ? `<img src="${escapeHtml(style.previewImage)}" alt="" loading="lazy" />` : ""}<i></i><b></b></span><span class="style-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span></button>`;
   }).join("");
+  elements.styleGrid.querySelectorAll(".style-preview img").forEach((image) => image.addEventListener("error", () => image.remove()));
   elements.styleGrid.querySelectorAll("[data-style-id]").forEach((button) => button.addEventListener("click", () => { state.selectedStyle = button.dataset.styleId; renderStyles(); emitWooConfiguration(); }));
 }
 
 function renderFonts() {
-  elements.fontGrid.innerHTML = state.config.typographyOptions.map((option) => `<button type="button" class="font-card font-${option.id} ${option.id === state.fontStyle ? "is-selected" : ""}" data-font-id="${option.id}" role="radio" aria-checked="${option.id === state.fontStyle}"><span>${state.locale === "ES" ? "Había una vez una gran aventura..." : state.locale === "EN" ? "Once upon a time, a great adventure..." : "Il était une fois une grande aventure..."}</span></button>`).join("");
+  const sample = state.locale === "ES" ? "Había una vez una gran aventura..." : state.locale === "EN" ? "Once upon a time, a great adventure..." : "Il était une fois une grande aventure...";
+  elements.fontGrid.innerHTML = state.config.typographyOptions.map((option) => `<button type="button" class="font-card font-${option.id} ${option.id === state.fontStyle ? "is-selected" : ""}" data-font-id="${option.id}" role="radio" aria-checked="${option.id === state.fontStyle}"><span>${escapeHtml(sample)}</span></button>`).join("");
   elements.fontGrid.querySelectorAll("[data-font-id]").forEach((button) => button.addEventListener("click", () => { state.fontStyle = button.dataset.fontId; renderFonts(); emitWooConfiguration(); }));
 }
 
 function renderPageCounts() {
-  elements.pageCountGrid.innerHTML = state.config.pageCountOptions.map((option) => `<button type="button" class="page-count-card ${option.pageCount === state.pageCount ? "is-selected" : ""}" data-page-count="${option.pageCount}" role="radio" aria-checked="${option.pageCount === state.pageCount}"><strong>${tr("pages", { count: option.pageCount })}</strong><small>${tr("illustrations", { count: option.illustrationCount })}</small></button>`).join("");
+  elements.pageCountGrid.innerHTML = state.config.pageCountOptions.map((option) => `<button type="button" class="page-count-card ${option.pageCount === state.pageCount ? "is-selected" : ""}" data-page-count="${option.pageCount}" role="radio" aria-checked="${option.pageCount === state.pageCount}"><strong>${tr("pages", { count: option.pageCount })}</strong><small>${tr("illustrations", { count: option.illustrationCount })}</small><em>${formatPrice(option.priceEur)}</em></button>`).join("");
   elements.pageCountGrid.querySelectorAll("[data-page-count]").forEach((button) => button.addEventListener("click", () => { state.pageCount = Number(button.dataset.pageCount); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
 }
 
 function updateBookMetrics() {
   const illustrations = (state.pageCount - 2) / 2;
-  elements.heroPageCount.textContent = tr("pages", { count: state.pageCount });
-  elements.heroIllustrationCount.textContent = tr("illustrations", { count: illustrations });
-  elements.costNote.textContent = `${tr("cost", { count: illustrations + 1, inside: illustrations })} ${tr("priceVariation", { count: state.pageCount })}`;
+  const price = selectedPageOption()?.priceEur ?? state.pageCount * (state.config?.pricing?.unitPagePrice || 0);
+  elements.costNote.textContent = `${tr("selectedPrice", { price: formatPrice(price), count: state.pageCount, unit: formatPrice(state.config?.pricing?.unitPagePrice || 0) })} ${tr("cost", { count: illustrations + 1, inside: illustrations })}`;
   elements.resultTitle.textContent = tr("resultTitle", { count: state.pageCount });
 }
 
@@ -174,7 +215,7 @@ function localizedUniverseName() { const universe = UNIVERSE_TEXT[state.selected
 
 function renderReview() {
   const values = formValues(); const labels = ROLE_LABELS[state.locale];
-  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewPages"), tr("pages", { count: state.pageCount })], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
+  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedPageOption()?.priceEur || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
   elements.reviewCard.innerHTML = rows.map(([label, value]) => `<div class="review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
 }
 
@@ -187,7 +228,7 @@ function showStep(nextStep, shouldScroll = true) {
   if (state.step === 4) renderReview(); if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function productConfiguration() { return { page_count: state.pageCount, font_style: state.fontStyle, style_id: state.selectedStyle, universe_id: state.selectedUniverse, book_language: document.querySelector("#language").value, woo_variation_key: `pages_${state.pageCount}` }; }
+function productConfiguration() { return { page_count: state.pageCount, font_style: state.fontStyle, style_id: state.selectedStyle, universe_id: state.selectedUniverse, book_language: document.querySelector("#language").value, price_eur: selectedPageOption()?.priceEur || 0, unit_page_price_eur: state.config?.pricing?.unitPagePrice || 0, woo_variation_key: `pages_${state.pageCount}` }; }
 function emitWooConfiguration() { const detail = productConfiguration(); window.dispatchEvent(new CustomEvent("storybook:configuration", { detail })); document.documentElement.dataset.storybookVariation = detail.woo_variation_key; }
 
 async function uploadPhotos() {

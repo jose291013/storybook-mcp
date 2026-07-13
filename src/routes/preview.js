@@ -6,6 +6,7 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
+import { calculateBookPrice, PAGE_PRICE_EUR } from "../config/bookOptions.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -68,6 +69,8 @@ router.post("/preview", async (req, res) => {
       style_id: normalized.answers.style_id,
       universe_id: normalized.answers.universe_id,
       book_language: normalized.answers.language,
+      price_eur: calculateBookPrice(normalized.answers.page_count),
+      unit_page_price_eur: PAGE_PRICE_EUR,
       woo_variation_key: `pages_${normalized.answers.page_count}`,
     },
   });

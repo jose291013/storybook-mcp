@@ -5,8 +5,10 @@ import jobsRouter from "./routes/jobs.js";
 import uploadRouter from "./routes/upload.js";
 import finalizeRouter from "./routes/finalize.js";
 import questionnaireRouter from "./routes/questionnaire.js";
+import improveAnswerRouter from "./routes/improveAnswer.js";
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static("public"));
 app.use("/fonts", express.static("assets/fonts"));
@@ -26,6 +28,7 @@ app.use("/api", previewRouter);
 app.use("/api", finalizeRouter);
 app.use("/api", jobsRouter);
 app.use("/api", questionnaireRouter);
+app.use("/api", improveAnswerRouter);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

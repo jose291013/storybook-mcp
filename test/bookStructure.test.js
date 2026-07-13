@@ -14,7 +14,8 @@ import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
-import { ALLOWED_PAGE_COUNTS, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
+import { ALLOWED_PAGE_COUNTS, calculateBookPrice, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
+import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -32,12 +33,20 @@ test("story pages use richer word targets while opening and closing stay concise
   assert.deepEqual(getWordsTargetByAge("6", "opening_text"), { target: 41, tolerance: 8 });
 });
 
-test("pedagogical and handwritten fonts are bundled with their licenses", async () => {
+test("six distinct book fonts are bundled with their licenses", async () => {
   const files = [
     "assets/fonts/Andika-Regular.ttf",
     "assets/fonts/PatrickHand-Regular.ttf",
+    "assets/fonts/Fredoka-Variable.ttf",
+    "assets/fonts/ComicNeue-Regular.ttf",
+    "assets/fonts/Baloo2-Variable.ttf",
+    "assets/fonts/Borel-Regular.ttf",
     "assets/fonts/Andika-OFL.txt",
     "assets/fonts/PatrickHand-OFL.txt",
+    "assets/fonts/Fredoka-OFL.txt",
+    "assets/fonts/ComicNeue-OFL.txt",
+    "assets/fonts/Baloo2-OFL.txt",
+    "assets/fonts/Borel-OFL.txt",
   ];
   for (const file of files) assert.ok((await fs.stat(file)).size > 1000);
 });
@@ -117,9 +126,27 @@ test("every sellable page count creates complete alternating spreads", () => {
 
 test("the product configurator exposes visual universes and previewable typography", () => {
   assert.equal(UNIVERSE_OPTIONS.length, 6);
-  assert.ok(UNIVERSE_OPTIONS.every((option) => option.prompt && option.palette.length === 3));
-  assert.equal(TYPOGRAPHY_OPTIONS.length, 2);
+  assert.ok(UNIVERSE_OPTIONS.every((option) => option.prompt && option.palette.length === 3 && option.previewImage));
+  assert.equal(TYPOGRAPHY_OPTIONS.length, 6);
   assert.ok(TYPOGRAPHY_OPTIONS.every((option) => option.preview));
+  assert.ok(ILLUSTRATION_STYLES.every((style) => style.previewImage));
+});
+
+test("page prices use the configured 1.2458 euro unit price", () => {
+  assert.equal(PAGE_PRICE_EUR, 1.2458);
+  assert.equal(calculateBookPrice(24), 29.9);
+  assert.equal(calculateBookPrice(28), 34.88);
+  assert.equal(calculateBookPrice(32), 39.87);
+  assert.equal(calculateBookPrice(36), 44.85);
+  assert.equal(calculateBookPrice(40), 49.83);
+  assert.equal(calculateBookPrice(44), 54.82);
+});
+
+test("only narrative questionnaire answers can be improved with AI", () => {
+  assert.ok(IMPROVABLE_QUESTION_IDS.has("dream"));
+  assert.ok(IMPROVABLE_QUESTION_IDS.has("message"));
+  assert.equal(IMPROVABLE_QUESTION_IDS.has("hero_name"), false);
+  assert.equal(IMPROVABLE_QUESTION_IDS.has("age"), false);
 });
 
 test("selected book language wins over the language used in questionnaire answers", () => {
@@ -296,7 +323,7 @@ test("text pages render as a square 21 cm preview", async () => {
   }
 });
 
-test("typography selection changes the rendered text page", async () => {
+test("all six typography selections render distinct text pages", async () => {
   const outputsDir = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-font-"));
   try {
     const common = {
@@ -307,11 +334,12 @@ test("typography selection changes the rendered text page", async () => {
       dpi: 72,
       outputsDir,
     };
-    await composeBookPagePNG({ ...common, outName: "school", fontStyle: "school_round" });
-    await composeBookPagePNG({ ...common, outName: "hand", fontStyle: "handwritten_story" });
-    const school = await fs.readFile(path.join(outputsDir, "school.png"));
-    const hand = await fs.readFile(path.join(outputsDir, "hand.png"));
-    assert.notDeepEqual(school, hand);
+    const rendered = [];
+    for (const option of TYPOGRAPHY_OPTIONS) {
+      await composeBookPagePNG({ ...common, outName: option.id, fontStyle: option.id });
+      rendered.push(await fs.readFile(path.join(outputsDir, `${option.id}.png`)));
+    }
+    assert.equal(new Set(rendered.map((buffer) => buffer.toString("base64"))).size, TYPOGRAPHY_OPTIONS.length);
   } finally {
     await fs.rm(outputsDir, { recursive: true, force: true });
   }
