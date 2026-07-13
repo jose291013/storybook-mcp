@@ -15,13 +15,13 @@ const FONT_STYLES = {
 
 export function getBodyFontRatio(readerAge) {
   const age = Number.parseInt(String(readerAge || "").replace(/[^\d]/g, ""), 10);
-  if (Number.isNaN(age) || age <= 3) return 0.038;
-  if (age === 4) return 0.036;
-  if (age === 5) return 0.035;
-  if (age === 6) return 0.032;
-  if (age === 7) return 0.029;
-  if (age === 8) return 0.026;
-  return 0.023;
+  if (Number.isNaN(age) || age <= 3) return 0.043;
+  if (age === 4) return 0.041;
+  if (age === 5) return 0.04;
+  if (age === 6) return 0.0365;
+  if (age === 7) return 0.033;
+  if (age === 8) return 0.0295;
+  return 0.026;
 }
 
 export function getBodyFontSize({ width, fontStyle = "school_round", readerAge = 6 }) {
@@ -72,13 +72,40 @@ function coverShadeSvg(width, height) {
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <defs>
         <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#000" stop-opacity="0.52"/>
-          <stop offset="65%" stop-color="#000" stop-opacity="0.08"/>
+          <stop offset="0%" stop-color="#10272d" stop-opacity="0.68"/>
+          <stop offset="70%" stop-color="#10272d" stop-opacity="0.18"/>
           <stop offset="100%" stop-color="#000" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <rect width="100%" height="52%" fill="url(#shade)"/>
+      <rect width="100%" height="38%" fill="url(#shade)"/>
     </svg>`);
+}
+
+function coverTitlePanelSvg(width, height, top, panelHeight) {
+  const x = Math.round(width * 0.075);
+  const panelWidth = Math.round(width * 0.85);
+  return Buffer.from(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+      <rect x="${x}" y="${top}" width="${panelWidth}" height="${panelHeight}" rx="${Math.round(width * 0.025)}"
+        fill="#17343a" fill-opacity="0.56" stroke="#ffffff" stroke-opacity="0.18" stroke-width="${Math.max(1, Math.round(width * 0.0015))}"/>
+    </svg>`);
+}
+
+export function balanceCoverTitle(value) {
+  const words = String(value || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (words.length <= 2) return words.join(" ");
+  let bestIndex = 1;
+  let smallestDifference = Number.POSITIVE_INFINITY;
+  for (let index = 1; index < words.length; index += 1) {
+    const left = words.slice(0, index).join(" ").length;
+    const right = words.slice(index).join(" ").length;
+    const difference = Math.abs(left - right);
+    if (difference < smallestDifference) {
+      bestIndex = index;
+      smallestDifference = difference;
+    }
+  }
+  return `${words.slice(0, bestIndex).join(" ")}\n${words.slice(bestIndex).join(" ")}`;
 }
 
 async function composeTextPage({ width, height, title, body, fontStyle, readerAge }) {
@@ -118,21 +145,26 @@ async function composeTextPage({ width, height, title, body, fontStyle, readerAg
 
 async function composeCover({ imageBuffer, width, height, title, fontStyle }) {
   const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
+  const balancedTitle = balanceCoverTitle(title);
   const titleLayer = await renderText({
-    text: title,
+    text: balancedTitle,
     fontFile: selectedFont.fontFile,
     fontFamily: selectedFont.fontFamily,
     fontSize: Math.round(width * 0.052 * selectedFont.sizeMultiplier),
-    width: Math.round(width * 0.8),
-    height: Math.round(height * 0.34),
+    width: Math.round(width * 0.76),
     color: "#ffffff",
   });
-  const titleTop = Math.max(Math.round(height * 0.06), Math.round(height * 0.23 - titleLayer.height / 2));
+  const titleTop = Math.round(height * 0.065);
+  const panelTop = Math.max(0, titleTop - Math.round(height * 0.022));
+  const panelHeight = titleLayer.height + Math.round(height * 0.044);
+  const shadowLayer = await sharp(titleLayer.input).blur(Math.max(1, width * 0.0025)).png().toBuffer();
 
   return sharp(imageBuffer)
     .resize(width, height, { fit: "cover", position: "attention" })
     .composite([
       { input: coverShadeSvg(width, height), top: 0, left: 0 },
+      { input: coverTitlePanelSvg(width, height, panelTop, panelHeight), top: 0, left: 0 },
+      { input: shadowLayer, top: titleTop + Math.round(height * 0.004), left: Math.round((width - titleLayer.width) / 2) },
       { input: titleLayer.input, top: titleTop, left: Math.round((width - titleLayer.width) / 2) },
     ])
     .png()

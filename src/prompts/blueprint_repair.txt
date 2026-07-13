@@ -11,4 +11,5 @@ RULES
 - Preserve plot_continuity. A hidden quest object or being must remain absent before its discovery scene.
 - Keep text_prompt only on text page types and image_prompt only on image pages.
 - Keep the cover square and every illustration square, with no text, captions, logos or watermarks inside the generated image.
+- Keep the upper 30% of the cover free of faces and characters as clear title-safe space.
 - Make the smallest changes needed to obtain QA approval. Do not invent a new story.

@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { BOOK_QUESTIONS, MAX_REFERENCE_PHOTOS } from "../src/config/questionnaire.js";
 import { applyPagePlan, createPagePlan } from "../src/config/bookStructure.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
-import { composeBookPagePNG, getBodyFontSize } from "../src/services/composeBookPagePNG.js";
+import { balanceCoverTitle, composeBookPagePNG, getBodyFontSize } from "../src/services/composeBookPagePNG.js";
 import { ILLUSTRATION_STYLES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
@@ -370,6 +370,7 @@ test("blueprint normalization repairs paired cast contracts, name typos and requ
   assert.match(result.pages.find((page) => page.page_number === 17).text_prompt, /Julanin avance/);
   assert.doesNotMatch(result.pages.find((page) => page.page_number === 17).text_prompt, /Julian avance/);
   assert.match(result.cover.image_prompt, /TENUE VERROUILLEE DE Julanin/);
+  assert.match(result.cover.image_prompt, /30 % superieurs/);
   assert.match(result.pages.find((page) => page.page_number === 3).image_prompt, /pull en laine rouge bordeaux/);
 });
 
@@ -435,8 +436,22 @@ test("all text pages in one book use one stable body font size", () => {
   const common = { width, fontStyle: "handwritten_story", readerAge: 5 };
   const expected = getBodyFontSize(common);
   assert.equal(expected, getBodyFontSize(common));
-  assert.equal(expected, 47);
+  assert.equal(expected, 54);
   assert.ok(getBodyFontSize({ width, fontStyle: "handwritten_story", readerAge: 8 }) < expected);
+});
+
+test("cover titles use a compact balanced block and the reader exposes a curved page leaf", async () => {
+  assert.equal(balanceCoverTitle("Noa y el Dragon"), "Noa y el\nDragon");
+  assert.equal(balanceCoverTitle("Luna magique"), "Luna magique");
+  const [appSource, cssSource] = await Promise.all([
+    fs.readFile("public/app.js", "utf8"),
+    fs.readFile("public/styles.css", "utf8"),
+  ]);
+  assert.match(appSource, /readerCurlFront/);
+  assert.match(appSource, /singlePageTurn/);
+  assert.match(cssSource, /@keyframes pageCurlForward/);
+  assert.match(cssSource, /border-radius: 34%/);
+  assert.match(cssSource, /pageCurlShade/);
 });
 
 test("ebook PDF preserves square pages and includes cover plus interiors", async () => {
