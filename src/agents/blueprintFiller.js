@@ -25,6 +25,71 @@ function appearanceDirective(language, character) {
   return `Inclure clairement ${identity} dans cette scène comme personnage reconnaissable, en respectant fidèlement sa photo de référence et sans le remplacer par un autre personnage. Aucun texte, sous-titre, logo ni filigrane.`;
 }
 
+function plotObjectDirective(language, objectName, state) {
+  if (language === "ES") {
+    if (state === "hidden") return `No mostrar ${objectName}: todavia esta perdido y debe permanecer completamente invisible, incluso al fondo, como reflejo o como simbolo.`;
+    if (state === "discovered") return `Mostrar ${objectName} por primera vez en esta escena, en el instante exacto de su descubrimiento; antes no estaba visible ni en posesion de los personajes.`;
+    return `Si aparece ${objectName}, mostrarlo unicamente como ya encontrado despues del descubrimiento, sin repetir el momento del hallazgo.`;
+  }
+  if (language === "EN") {
+    if (state === "hidden") return `Do not show ${objectName}: it is still lost and must remain completely invisible, including in the background, reflections or symbols.`;
+    if (state === "discovered") return `Show ${objectName} for the first time in this scene, at the exact moment it is discovered; it was not visible or possessed earlier.`;
+    return `If ${objectName} appears, show it only as already found after the discovery; do not repeat the discovery moment.`;
+  }
+  if (state === "hidden") return `Ne pas montrer ${objectName} : il est encore perdu et doit rester totalement invisible, meme au loin, dans un reflet ou sous forme de symbole.`;
+  if (state === "discovered") return `Montrer ${objectName} pour la premiere fois dans cette scene, au moment exact de sa decouverte ; il n'etait ni visible ni possede auparavant.`;
+  return `Si ${objectName} apparait, le montrer uniquement comme deja retrouve apres sa decouverte, sans repeter le moment de la trouvaille.`;
+}
+
+function normalizeQuestObject(result) {
+  const raw = result?.plot_continuity?.quest_object || {};
+  const name = String(raw.name || "").trim();
+  const requestedScene = Number.parseInt(raw.discovery_scene_number, 10);
+  const discoveryScene = name && requestedScene >= 1 && requestedScene <= 11 ? requestedScene : 0;
+  result.plot_continuity = {
+    ...(result.plot_continuity || {}),
+    quest_object: {
+      name,
+      appearance_lock: String(raw.appearance_lock || "").trim(),
+      discovery_scene_number: discoveryScene,
+    },
+  };
+  return result.plot_continuity.quest_object;
+}
+
+function lockPlotObjectTimeline(result, questObject) {
+  const objectName = questObject?.name || "";
+  const discoveryScene = questObject?.discovery_scene_number || 0;
+  for (const page of result.pages) {
+    if (page.page_type !== "image") {
+      page.visual_state = {};
+      continue;
+    }
+    if (!objectName || !discoveryScene) {
+      page.visual_state = {};
+      continue;
+    }
+
+    const state = page.scene_number < discoveryScene
+      ? "hidden"
+      : (page.scene_number === discoveryScene ? "discovered" : "after_discovery");
+    const directive = plotObjectDirective(result.language, objectName, state);
+    page.visual_state = {
+      quest_object_name: objectName,
+      quest_object_state: state,
+      directive,
+    };
+    page.image_prompt = `${page.image_prompt} ${directive}`.trim();
+
+    const objectCharacter = result.cast.find((character) => sameName(character.name, objectName));
+    if (objectCharacter && state === "hidden") {
+      page.cast_present = page.cast_present.filter((name) => !sameName(name, objectCharacter.name));
+    } else if (objectCharacter && state === "discovered") {
+      page.cast_present = [...new Set([...page.cast_present, objectCharacter.name])];
+    }
+  }
+}
+
 function preferredStoryRoles(storyRole, role) {
   if (storyRole === "guide") return ["meeting_the_guide", "simple_plan", "call_to_action"];
   if (storyRole === "ally" || storyRole === "companion") return ["simple_plan", "first_attempt", "challenge_and_choice"];
@@ -38,6 +103,7 @@ function preferredStoryRoles(storyRole, role) {
 export function lockBlueprintContinuity(blueprint, { heroProfile = {}, characterCanons = [], language } = {}) {
   const result = applyPagePlan(blueprint);
   result.language = normalizeBookLanguage(language || result.language);
+  const questObject = normalizeQuestObject(result);
   result.hero ||= {};
   const childCanon = characterCanons.find((canon) => canon.role === "child");
   result.hero.outfit_lock = String(
@@ -101,16 +167,22 @@ export function lockBlueprintContinuity(blueprint, { heroProfile = {}, character
   const imagePages = result.pages.filter((page) => page.page_type === "image");
   const assignedPerPage = new Map();
   for (const canon of characterCanons.filter((item) => item.role !== "child" && item.name)) {
-    const alreadyVisible = imagePages.some((page) => page.cast_present.some((name) => sameName(name, canon.name)));
+    const eligiblePages = questObject.discovery_scene_number && sameName(canon.name, questObject.name)
+      ? imagePages.filter((page) => page.scene_number >= questObject.discovery_scene_number)
+      : imagePages;
+    const alreadyVisible = eligiblePages.some((page) => page.cast_present.some((name) => sameName(name, canon.name)));
     if (alreadyVisible || !imagePages.length) continue;
     const preferred = preferredStoryRoles(canon.story_role, canon.role);
     const candidates = preferred.flatMap((storyRole) => imagePages.filter((page) => page.story_role === storyRole));
-    const pool = candidates.length ? candidates : imagePages;
+    const eligibleCandidates = candidates.filter((page) => eligiblePages.includes(page));
+    const pool = eligibleCandidates.length ? eligibleCandidates : eligiblePages;
+    if (!pool.length) continue;
     const page = [...pool].sort((a, b) => (assignedPerPage.get(a.page_number) || 0) - (assignedPerPage.get(b.page_number) || 0))[0];
     page.cast_present = [...new Set([...page.cast_present, canon.name])];
     page.image_prompt = `${page.image_prompt} ${appearanceDirective(result.language, canon)}`.trim();
     assignedPerPage.set(page.page_number, (assignedPerPage.get(page.page_number) || 0) + 1);
   }
+  lockPlotObjectTimeline(result, questObject);
   return result;
 }
 
