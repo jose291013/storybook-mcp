@@ -6,6 +6,7 @@ import {
 } from "../config/questionnaire.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
+import { findUniverse, normalizePageCount, normalizeTypography } from "../config/bookOptions.js";
 
 function clean(value) {
   return value == null ? "" : String(value).trim();
@@ -56,7 +57,9 @@ export function normalizeBookRequest(body = {}) {
   const hero = body.hero || {};
 
   const selectedStyle = findIllustrationStyle(clean(source.style_id || body.style_id));
+  const selectedUniverse = findUniverse(clean(source.universe_id || body.universe_id));
   const customStyle = clean(source.style || body.style);
+  const customUniverse = clean(source.universe || body.universe);
   const answers = {
     hero_name: clean(source.hero_name || hero.name),
     age: clean(source.age || hero.age),
@@ -66,7 +69,9 @@ export function normalizeBookRequest(body = {}) {
     dream: clean(source.dream || source.wish || source.goal),
     challenge: clean(source.challenge || source.fear || source.difficulty),
     message: clean(source.message || body.message),
-    universe: clean(source.universe || body.universe),
+    universe_id: selectedUniverse.id,
+    universe: customUniverse || selectedUniverse.name,
+    universe_instructions: [selectedUniverse.prompt, clean(source.universe_details || body.universe_details)].filter(Boolean).join(". "),
     signature_object: clean(source.signature_object || body.signature_object),
     important_people: clean(source.important_people || source.companions),
     companion: clean(source.companion || body?.companion?.description || [body?.companion?.name, body?.companion?.type].filter(Boolean).join(" - ")),
@@ -74,6 +79,8 @@ export function normalizeBookRequest(body = {}) {
     style: customStyle || selectedStyle.name,
     style_instructions: customStyle || selectedStyle.prompt,
     language: normalizeBookLanguage(source.language || body.language || "FR"),
+    page_count: normalizePageCount(source.page_count || body.page_count),
+    font_style: normalizeTypography(source.font_style || body.font_style),
     extra_notes: clean(source.extra_notes || body.extra_notes),
   };
 

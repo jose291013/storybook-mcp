@@ -1,4 +1,6 @@
-const STORY_ROLES = [
+import { normalizePageCount } from "./bookOptions.js";
+
+const CORE_STORY_ROLES = [
   "character_and_desire",
   "external_problem",
   "internal_problem",
@@ -12,18 +14,44 @@ const STORY_ROLES = [
   "return_home_and_moral",
 ];
 
-export function createPagePlan() {
-  const pages = [
-    {
-      page_number: 1,
-      page_type: "opening_text",
-      spread_number: 0,
-      scene_number: 0,
-      story_role: "introduction",
-    },
-  ];
+const EXPANSION_SCENES = [
+  { role: "world_discovery", after: "character_and_desire" },
+  { role: "second_attempt", after: "first_attempt" },
+  { role: "bond_with_the_guide", after: "meeting_the_guide" },
+  { role: "clue_and_discovery", after: "second_attempt" },
+  { role: "preparing_the_plan", after: "simple_plan" },
+  { role: "setback_and_learning", after: "clue_and_discovery" },
+  { role: "crossing_the_threshold", after: "call_to_action" },
+  { role: "quiet_reflection", after: "climax" },
+  { role: "third_attempt", after: "setback_and_learning" },
+  { role: "celebration_with_loved_ones", after: "success_and_transformation" },
+];
 
-  STORY_ROLES.forEach((storyRole, index) => {
+export function createStoryRoles(interiorPageCount = 24) {
+  const pageCount = normalizePageCount(interiorPageCount);
+  const spreadCount = (pageCount - 2) / 2;
+  const roles = [...CORE_STORY_ROLES];
+  const extraCount = spreadCount - CORE_STORY_ROLES.length;
+
+  for (const extension of EXPANSION_SCENES.slice(0, extraCount)) {
+    const anchor = roles.indexOf(extension.after);
+    roles.splice(anchor >= 0 ? anchor + 1 : roles.length - 2, 0, extension.role);
+  }
+  return roles;
+}
+
+export function createPagePlan(interiorPageCount = 24) {
+  const pageCount = normalizePageCount(interiorPageCount);
+  const storyRoles = createStoryRoles(pageCount);
+  const pages = [{
+    page_number: 1,
+    page_type: "opening_text",
+    spread_number: 0,
+    scene_number: 0,
+    story_role: "introduction",
+  }];
+
+  storyRoles.forEach((storyRole, index) => {
     const leftPage = 2 + index * 2;
     const textOnLeft = index % 2 === 0;
     const sceneNumber = index + 1;
@@ -46,19 +74,29 @@ export function createPagePlan() {
   });
 
   pages.push({
-    page_number: 24,
+    page_number: pageCount,
     page_type: "closing_text",
-    spread_number: 12,
-    scene_number: 12,
+    spread_number: storyRoles.length + 1,
+    scene_number: storyRoles.length + 1,
     story_role: "dedication_and_closing",
   });
   return pages;
 }
-export function applyPagePlan(blueprint) {
-  const plan = createPagePlan();
+
+export function applyPagePlan(blueprint, interiorPageCount = blueprint?.format?.interior_pages || 24) {
+  const pageCount = normalizePageCount(interiorPageCount);
+  const plan = createPagePlan(pageCount);
   const generated = Array.isArray(blueprint?.pages) ? blueprint.pages : [];
   const byNumber = new Map(generated.map((page) => [Number(page?.page_number), page]));
 
+  blueprint.format = {
+    ...(blueprint.format || {}),
+    trim: "SQUARE_21",
+    width_mm: 210,
+    height_mm: 210,
+    interior_pages: pageCount,
+    bleed_mm: 3,
+  };
   blueprint.pages = plan.map((planned) => {
     const page = byNumber.get(planned.page_number) || {};
     const isText = planned.page_type.includes("text") || planned.page_type === "text";

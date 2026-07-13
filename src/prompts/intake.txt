@@ -12,6 +12,8 @@ Normalize the ten simple questionnaire answers into exactly this structure:
     "challenge": "",
     "message": "",
     "universe": "",
+    "universe_id": "",
+    "universe_instructions": "",
     "signature_object": "",
     "important_people": "",
     "companion": "",
@@ -19,6 +21,8 @@ Normalize the ten simple questionnaire answers into exactly this structure:
     "style": "",
     "style_instructions": "",
     "language": "FR",
+    "page_count": 24,
+    "font_style": "school_round",
     "extra_notes": ""
   }
 }
@@ -29,6 +33,7 @@ RULES
 - If language is EN, translate every descriptive field into English and set intake.language to EN.
 - If language is FR, write every descriptive field in French and set intake.language to FR.
 - Preserve names exactly.
+- Preserve universe_id, universe_instructions, page_count and font_style exactly; these are product configuration values, not prose to reinterpret.
 - Do not invent missing personal information; use an empty string.
 - Correct obvious encoding artifacts.
 - Keep the creator's meaning but translate descriptive answers into the requested language.

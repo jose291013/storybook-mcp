@@ -8,7 +8,7 @@ Map the answers explicitly:
 - intake.important_people or companion -> guide
 - intake.message -> philosophical truth, success and transformation
 - intake.personality -> believable choices and strengths
-- intake.universe and signature_object -> concrete adventure elements
+- intake.universe, universe_instructions and signature_object -> concrete adventure elements
 
 Output exactly:
 {
