@@ -25,6 +25,7 @@ VISUALS
 - Use character_canons only for cast members actually present in that scene. Never force all referenced people into every image.
 - Every named character supplied in character_canons represents an intentional uploaded reference and must appear visibly in at least one image page. Respect their story_role: a guide belongs naturally in meeting_the_guide or the plan, an ally helps during attempts, and a guest/supporter appears during success or the return home. List their exact canonical name in cast_present.
 - cast_present is an exact scene contract, not a suggestion. It must list every named character physically present in the paired text and illustration. Every listed character must be explicitly named in image_prompt, and no named character may be described as present in text_prompt while missing from cast_present.
+- Copy the identical cast_present array into both the text page and image page of each spread.
 - When the quest object is also a named character, exclude that character from cast_present before discovery and include it in the discovery scene.
 - The signature object should recur when narratively appropriate, not mechanically in every scene.
 - No brands or copyrighted characters. Child-safe, gentle and non-scary.
