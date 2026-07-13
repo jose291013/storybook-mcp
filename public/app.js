@@ -283,15 +283,17 @@ function renderBook(job) {
   };
   const pageMarkup = (page) => `<figure class="reader-page ${page.isCover ? "reader-cover" : ""}"><img src="${escapeHtml(page.previewUrl)}" alt="${escapeHtml(page.isCover ? tr("readerCover") : tr("readerPage", { page: page.page_number }))}" draggable="false" /><span>${page.isCover ? escapeHtml(tr("readerCover")) : escapeHtml(tr("readerPage", { page: page.page_number }))}</span><em>${escapeHtml(tr("previewWatermark"))}</em></figure>`;
 
-  elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
+  elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div><div class="reader-curl" id="readerCurl" aria-hidden="true"><div class="reader-curl-face reader-curl-front" id="readerCurlFront"></div><div class="reader-curl-face reader-curl-back" id="readerCurlBack"></div></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
 
   let frames = makeFrames();
   let frameIndex = 0;
   let turning = false;
   let touchStartX = 0;
   const readerBook = document.querySelector("#readerBook");
-  const readerSheet = document.querySelector("#readerSheet");
   const readerPages = document.querySelector("#readerPages");
+  const readerCurl = document.querySelector("#readerCurl");
+  const readerCurlFront = document.querySelector("#readerCurlFront");
+  const readerCurlBack = document.querySelector("#readerCurlBack");
   const previousButton = document.querySelector("#readerPrevious");
   const nextButton = document.querySelector("#readerNext");
   const counter = document.querySelector("#readerCounter");
@@ -309,13 +311,26 @@ function renderBook(job) {
     const target = frameIndex + direction;
     if (turning || target < 0 || target >= frames.length) return;
     turning = true;
-    readerSheet.classList.add(direction > 0 ? "turn-forward" : "turn-backward");
+    const currentFrame = frames[frameIndex] || [];
+    const targetFrame = frames[target] || [];
+    const frontPage = direction > 0 ? currentFrame[currentFrame.length - 1] : currentFrame[0];
+    const backPage = direction > 0 ? targetFrame[0] : targetFrame[targetFrame.length - 1];
+    const singlePageTurn = currentFrame.length === 1 || targetFrame.length === 1;
+    readerCurlFront.innerHTML = frontPage ? pageMarkup(frontPage) : "";
+    readerCurlBack.innerHTML = backPage ? pageMarkup(backPage) : "";
+    readerCurl.className = `reader-curl is-active ${direction > 0 ? "is-forward" : "is-backward"} ${singlePageTurn ? "is-single" : ""}`;
+    void readerCurl.offsetWidth;
+    readerCurl.classList.add("is-turning");
     window.setTimeout(() => {
       frameIndex = target;
       paintFrame();
-      readerSheet.classList.remove("turn-forward", "turn-backward");
-      window.setTimeout(() => { turning = false; }, 330);
-    }, 330);
+    }, 390);
+    window.setTimeout(() => {
+      readerCurl.className = "reader-curl";
+      readerCurlFront.innerHTML = "";
+      readerCurlBack.innerHTML = "";
+      turning = false;
+    }, 780);
   };
   previousButton.addEventListener("click", () => turn(-1));
   nextButton.addEventListener("click", () => turn(1));

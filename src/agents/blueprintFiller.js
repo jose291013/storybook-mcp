@@ -71,6 +71,12 @@ function outfitDirective(language, heroName, outfit) {
   return `TENUE VERROUILLEE DE ${heroName} : ${outfit}. Cette regle remplace toute autre description vestimentaire anterieure.`;
 }
 
+function coverCompositionDirective(language) {
+  if (language === "ES") return "COMPOSICION DE PORTADA: reservar el 30% superior como zona limpia para el titulo, mostrando solo cielo o decorado sencillo; colocar todos los rostros y personajes por debajo de esa zona, sin texto dentro de la ilustracion.";
+  if (language === "EN") return "COVER COMPOSITION: reserve the upper 30% as clean title-safe space containing only sky or simple scenery; place every face and character below that area, with no text inside the illustration.";
+  return "COMPOSITION DE COUVERTURE : reserver les 30 % superieurs comme zone claire pour le titre, avec seulement du ciel ou un decor simple ; placer tous les visages et personnages sous cette zone, sans texte dans l'illustration.";
+}
+
 function appendDirective(prompt, directive) {
   const value = String(prompt || "").trim();
   if (!directive || value.includes(directive)) return value;
@@ -257,6 +263,7 @@ export function lockBlueprintContinuity(blueprint, {
 
   result.cover ||= {};
   result.cover.image_prompt = canonicalizePromptNames(result.cover.image_prompt, canonicalCharacters);
+  result.cover.image_prompt = appendDirective(result.cover.image_prompt, coverCompositionDirective(result.language));
   result.cover.cast_present = canonicalizeCast(result.cover.cast_present, result.cover.image_prompt);
   if (!result.cover.cast_present.length && result.hero.name) {
     result.cover.cast_present = [

@@ -19,6 +19,7 @@ VISUALS
 - All illustrations are square, designed for a full 21 x 21 cm page with full bleed.
 - Do NOT reserve space for text. Text is placed on the facing page.
 - Every image_prompt must request a balanced square composition and end with an instruction meaning "no text, captions, logos or watermarks" in the requested language.
+- The cover illustration must reserve its upper 30% as uncluttered title-safe space containing only sky or simple scenery. Keep every face, head and important character below that zone because the title is added there during layout.
 - Define one precise hero.outfit_lock with garment types and colors. Copy that exact outfit into every visual scene containing the hero; never redesign it for a new location.
 - Every mascot must have one explicit species, coat/color pattern, body shape and accessories in cast.canon_short. Never change its species or imitate a famous copyrighted character.
 - Maintain one illustration style, palette, outfits and stable character traits across the cover and all image pages.
