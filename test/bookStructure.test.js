@@ -20,6 +20,18 @@ import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
   assert.equal(new Set(BOOK_QUESTIONS.map((question) => question.id)).size, 10);
+  assert.deepEqual(BOOK_QUESTIONS.map((question) => question.id), [
+    "hero_name",
+    "age",
+    "favorite_activities",
+    "personality",
+    "dream",
+    "challenge",
+    "message",
+    "signature_object",
+    "important_people",
+    "universe",
+  ]);
 });
 
 test("illustration catalog exposes six distinct print-ready directions", () => {

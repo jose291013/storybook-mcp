@@ -49,13 +49,6 @@ export const BOOK_QUESTIONS = [
     type: "textarea",
   },
   {
-    id: "universe",
-    label: "Dans quel univers l'aventure doit-elle se dérouler ?",
-    help: "Forêt magique, espace, océan, château, ville fantastique…",
-    required: true,
-    type: "textarea",
-  },
-  {
     id: "signature_object",
     label: "Quel objet spécial doit accompagner l'enfant ?",
     help: "Un doudou, un sac, une couverture, un instrument ou un objet inventé.",
@@ -67,6 +60,13 @@ export const BOOK_QUESTIONS = [
     label: "Qui doit l'accompagner dans l'histoire ?",
     help: "Mascotte, ami, frère, sœur ou autre proche. Indiquez leur prénom et leur lien.",
     required: false,
+    type: "textarea",
+  },
+  {
+    id: "universe",
+    label: "Dans quel univers l'aventure doit-elle se dérouler ?",
+    help: "Forêt magique, espace, océan, château, ville fantastique…",
+    required: true,
     type: "textarea",
   },
 ];
