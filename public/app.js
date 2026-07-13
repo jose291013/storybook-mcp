@@ -8,13 +8,14 @@ const state = {
   selectedUniverse: "",
   fontStyle: "school_round",
   pageCount: 24,
+  productType: "print",
   photos: [],
   jobId: "",
 };
 
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), fontGrid: document.querySelector("#fontGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
@@ -65,6 +66,11 @@ const tr = (key, params) => translate(state.locale, key, params);
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const formatPrice = (value) => new Intl.NumberFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { style: "currency", currency: "EUR" }).format(value);
 const selectedPageOption = () => state.config?.pageCountOptions?.find((option) => option.pageCount === state.pageCount);
+const selectedUnitPrice = () => state.productType === "ebook" ? state.config?.pricing?.ebookUnitPagePrice : state.config?.pricing?.printUnitPagePrice;
+const selectedProductPrice = () => {
+  const option = selectedPageOption();
+  return state.productType === "ebook" ? option?.ebookPriceEur : option?.printPriceEur;
+};
 
 function formValues() { return Object.fromEntries(new FormData(elements.form).entries()); }
 function restoreValues(values) { Object.entries(values).forEach(([name, value]) => { const input = elements.form.elements.namedItem(name); if (input && typeof input.value !== "undefined") input.value = value; }); }
@@ -161,15 +167,25 @@ function renderFonts() {
   elements.fontGrid.querySelectorAll("[data-font-id]").forEach((button) => button.addEventListener("click", () => { state.fontStyle = button.dataset.fontId; renderFonts(); emitWooConfiguration(); }));
 }
 
+function renderProductTypes() {
+  const products = [
+    { id: "print", title: tr("printBook"), description: tr("printBookHelp") },
+    { id: "ebook", title: tr("ebook"), description: tr("ebookHelp") },
+  ];
+  elements.productTypeGrid.innerHTML = products.map((product) => `<button type="button" class="product-type-card ${product.id === state.productType ? "is-selected" : ""}" data-product-type="${product.id}" role="radio" aria-checked="${product.id === state.productType}"><strong>${escapeHtml(product.title)}</strong><small>${escapeHtml(product.description)}</small></button>`).join("");
+  elements.productTypeGrid.querySelectorAll("[data-product-type]").forEach((button) => button.addEventListener("click", () => { state.productType = button.dataset.productType; renderProductTypes(); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
+}
+
 function renderPageCounts() {
-  elements.pageCountGrid.innerHTML = state.config.pageCountOptions.map((option) => `<button type="button" class="page-count-card ${option.pageCount === state.pageCount ? "is-selected" : ""}" data-page-count="${option.pageCount}" role="radio" aria-checked="${option.pageCount === state.pageCount}"><strong>${tr("pages", { count: option.pageCount })}</strong><small>${tr("illustrations", { count: option.illustrationCount })}</small><em>${formatPrice(option.priceEur)}</em></button>`).join("");
+  elements.pageCountGrid.innerHTML = state.config.pageCountOptions.map((option) => `<button type="button" class="page-count-card ${option.pageCount === state.pageCount ? "is-selected" : ""}" data-page-count="${option.pageCount}" role="radio" aria-checked="${option.pageCount === state.pageCount}"><strong>${tr("pages", { count: option.pageCount })}</strong><small>${tr("illustrations", { count: option.illustrationCount })}</small><em>${formatPrice(state.productType === "ebook" ? option.ebookPriceEur : option.printPriceEur)}</em></button>`).join("");
   elements.pageCountGrid.querySelectorAll("[data-page-count]").forEach((button) => button.addEventListener("click", () => { state.pageCount = Number(button.dataset.pageCount); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
 }
 
 function updateBookMetrics() {
   const illustrations = (state.pageCount - 2) / 2;
-  const price = selectedPageOption()?.priceEur ?? state.pageCount * (state.config?.pricing?.unitPagePrice || 0);
-  elements.costNote.textContent = `${tr("selectedPrice", { price: formatPrice(price), count: state.pageCount, unit: formatPrice(state.config?.pricing?.unitPagePrice || 0) })} ${tr("cost", { count: illustrations + 1, inside: illustrations })}`;
+  const unitPrice = selectedUnitPrice() || 0;
+  const price = selectedProductPrice() ?? state.pageCount * unitPrice;
+  elements.costNote.textContent = `${tr("selectedPrice", { price: formatPrice(price), count: state.pageCount, unit: formatPrice(unitPrice) })} ${tr(state.productType === "ebook" ? "ebookCost" : "cost", { count: illustrations + 1, inside: illustrations })}`;
   elements.resultTitle.textContent = tr("resultTitle", { count: state.pageCount });
 }
 
@@ -217,7 +233,7 @@ function localizedUniverseName() { const universe = UNIVERSE_TEXT[state.selected
 
 function renderReview() {
   const values = formValues(); const labels = ROLE_LABELS[state.locale];
-  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedPageOption()?.priceEur || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
+  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
   elements.reviewCard.innerHTML = rows.map(([label, value]) => `<div class="review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
 }
 
@@ -230,7 +246,7 @@ function showStep(nextStep, shouldScroll = true) {
   if (state.step === 4) renderReview(); if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function productConfiguration() { return { page_count: state.pageCount, font_style: state.fontStyle, style_id: state.selectedStyle, universe_id: state.selectedUniverse, book_language: document.querySelector("#language").value, price_eur: selectedPageOption()?.priceEur || 0, unit_page_price_eur: state.config?.pricing?.unitPagePrice || 0, woo_variation_key: `pages_${state.pageCount}` }; }
+function productConfiguration() { return { page_count: state.pageCount, product_type: state.productType, font_style: state.fontStyle, style_id: state.selectedStyle, universe_id: state.selectedUniverse, book_language: document.querySelector("#language").value, price_eur: selectedProductPrice() || 0, unit_page_price_eur: selectedUnitPrice() || 0, woo_variation_key: `${state.productType}_pages_${state.pageCount}` }; }
 function emitWooConfiguration() { const detail = productConfiguration(); window.dispatchEvent(new CustomEvent("storybook:configuration", { detail })); document.documentElement.dataset.storybookVariation = detail.woo_variation_key; }
 
 async function uploadPhotos() {
@@ -249,10 +265,65 @@ async function pollJob(jobId) {
 }
 
 function renderBook(job) {
-  const { coverPreviewUrl, draftPages = [] } = job.result || {}; const total = job.final_blueprint?.format?.interior_pages || state.pageCount; const spreads = [];
-  const opening = draftPages.find((page) => page.page_number === 1); for (let number = 2; number <= total - 2; number += 2) spreads.push(draftPages.filter((page) => page.page_number === number || page.page_number === number + 1));
-  const closing = draftPages.find((page) => page.page_number === total); const pageMarkup = (page) => page ? `<div class="preview-page"><img src="${page.previewUrl}" alt="Page ${page.page_number}" /><span>Page ${page.page_number}</span></div>` : "";
-  elements.bookPreview.innerHTML = `${coverPreviewUrl ? `<div class="preview-cover"><img src="${coverPreviewUrl}" alt="Cover" /></div>` : ""}${opening ? `<div class="preview-cover">${pageMarkup(opening)}</div>` : ""}${spreads.map((spread) => `<div class="spread">${spread.sort((a, b) => a.page_number - b.page_number).map(pageMarkup).join("")}</div>`).join("")}${closing ? `<div class="preview-cover">${pageMarkup(closing)}</div>` : ""}`;
+  const { coverPreviewUrl, draftPages = [] } = job.result || {};
+  const total = job.final_blueprint?.format?.interior_pages || state.pageCount;
+  const orderedPages = draftPages.slice().sort((a, b) => a.page_number - b.page_number);
+  const cover = coverPreviewUrl ? { previewUrl: coverPreviewUrl, page_number: 0, isCover: true } : null;
+  const makeFrames = () => {
+    if (window.matchMedia("(max-width: 900px)").matches) return [cover, ...orderedPages].filter(Boolean).map((page) => [page]);
+    const frames = cover ? [[cover]] : [];
+    const opening = orderedPages.find((page) => page.page_number === 1);
+    if (opening) frames.push([opening]);
+    for (let number = 2; number <= total - 2; number += 2) {
+      frames.push(orderedPages.filter((page) => page.page_number === number || page.page_number === number + 1));
+    }
+    const closing = orderedPages.find((page) => page.page_number === total);
+    if (closing) frames.push([closing]);
+    return frames;
+  };
+  const pageMarkup = (page) => `<figure class="reader-page ${page.isCover ? "reader-cover" : ""}"><img src="${escapeHtml(page.previewUrl)}" alt="${escapeHtml(page.isCover ? tr("readerCover") : tr("readerPage", { page: page.page_number }))}" draggable="false" /><span>${page.isCover ? escapeHtml(tr("readerCover")) : escapeHtml(tr("readerPage", { page: page.page_number }))}</span><em>${escapeHtml(tr("previewWatermark"))}</em></figure>`;
+
+  elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
+
+  let frames = makeFrames();
+  let frameIndex = 0;
+  let turning = false;
+  let touchStartX = 0;
+  const readerBook = document.querySelector("#readerBook");
+  const readerSheet = document.querySelector("#readerSheet");
+  const readerPages = document.querySelector("#readerPages");
+  const previousButton = document.querySelector("#readerPrevious");
+  const nextButton = document.querySelector("#readerNext");
+  const counter = document.querySelector("#readerCounter");
+
+  const paintFrame = () => {
+    const frame = frames[frameIndex] || [];
+    readerPages.className = `reader-pages ${frame.length === 1 ? "is-single" : "is-spread"}`;
+    readerPages.innerHTML = frame.map(pageMarkup).join("");
+    readerBook.classList.toggle("is-cover", Boolean(frame[0]?.isCover));
+    counter.textContent = tr("readerPosition", { current: frameIndex + 1, total: frames.length });
+    previousButton.disabled = frameIndex === 0;
+    nextButton.disabled = frameIndex === frames.length - 1;
+  };
+  const turn = (direction) => {
+    const target = frameIndex + direction;
+    if (turning || target < 0 || target >= frames.length) return;
+    turning = true;
+    readerSheet.classList.add(direction > 0 ? "turn-forward" : "turn-backward");
+    window.setTimeout(() => {
+      frameIndex = target;
+      paintFrame();
+      readerSheet.classList.remove("turn-forward", "turn-backward");
+      window.setTimeout(() => { turning = false; }, 330);
+    }, 330);
+  };
+  previousButton.addEventListener("click", () => turn(-1));
+  nextButton.addEventListener("click", () => turn(1));
+  readerBook.addEventListener("click", () => turn(1));
+  readerBook.addEventListener("keydown", (event) => { if (event.key === "ArrowRight" || event.key === "Enter" || event.key === " ") { event.preventDefault(); turn(1); } if (event.key === "ArrowLeft") { event.preventDefault(); turn(-1); } });
+  readerBook.addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0]?.clientX || 0; }, { passive: true });
+  readerBook.addEventListener("touchend", (event) => { const distance = (event.changedTouches[0]?.clientX || 0) - touchStartX; if (Math.abs(distance) > 45) turn(distance < 0 ? 1 : -1); }, { passive: true });
+  paintFrame();
 }
 
 async function startGeneration(event) {
@@ -267,7 +338,7 @@ async function startGeneration(event) {
 
 function changeLocale(locale) {
   const values = state.config ? formValues() : {}; state.locale = ["FR", "ES", "EN"].includes(locale) ? locale : "FR"; localStorage.setItem("storybook-ui-language", state.locale); applyTranslations();
-  if (state.config) { renderQuestions(values); renderUniverses(); renderStyles(); renderFonts(); renderPageCounts(); renderPhotos(); if (state.step === 4) renderReview(); showStep(state.step, false); }
+  if (state.config) { renderQuestions(values); renderUniverses(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === 4) renderReview(); showStep(state.step, false); }
 }
 
 async function init() {

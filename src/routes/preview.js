@@ -6,7 +6,7 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
-import { calculateBookPrice, PAGE_PRICE_EUR } from "../config/bookOptions.js";
+import { calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PRINT_PAGE_PRICE_EUR } from "../config/bookOptions.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -65,13 +65,14 @@ router.post("/preview", async (req, res) => {
     referencePhotos: normalized.photos,
     productConfiguration: {
       page_count: normalized.answers.page_count,
+      product_type: normalized.answers.product_type,
       font_style: normalized.answers.font_style,
       style_id: normalized.answers.style_id,
       universe_id: normalized.answers.universe_id,
       book_language: normalized.answers.language,
-      price_eur: calculateBookPrice(normalized.answers.page_count),
-      unit_page_price_eur: PAGE_PRICE_EUR,
-      woo_variation_key: `pages_${normalized.answers.page_count}`,
+      price_eur: calculateBookPrice(normalized.answers.page_count, normalized.answers.product_type),
+      unit_page_price_eur: normalized.answers.product_type === "ebook" ? EBOOK_PAGE_PRICE_EUR : PRINT_PAGE_PRICE_EUR,
+      woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
     },
   });
   res.json({ jobId: job.id });
@@ -194,6 +195,7 @@ router.post("/preview", async (req, res) => {
           pageType: page.page_type,
           pageNumber: page.page_number,
           fontStyle: final_blueprint.typography?.id,
+          readerAge: final_blueprint.hero?.age,
           dpi: 150,
         });
         draftPages.push({

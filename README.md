@@ -21,7 +21,9 @@ Le décor, le style d'illustration, la police et le nombre de pages sont choisis
 
 ### Intégration WooCommerce
 
-À chaque changement de configuration, l'interface émet l'événement navigateur `storybook:configuration`. Son champ `detail` contient notamment `page_count`, `font_style`, `style_id`, `universe_id`, `book_language`, `price_eur`, `unit_page_price_eur` et `woo_variation_key` (`pages_24` à `pages_44`). La même clé est exposée dans `document.documentElement.dataset.storybookVariation` afin qu'un connecteur WooCommerce puisse sélectionner la variation et mettre à jour le prix.
+À chaque changement de configuration, l'interface émet l'événement navigateur `storybook:configuration`. Son champ `detail` contient notamment `product_type` (`print` ou `ebook`), `page_count`, `font_style`, `style_id`, `universe_id`, `book_language`, `price_eur`, `unit_page_price_eur` et `woo_variation_key` (`print_pages_24` à `print_pages_44`, ou `ebook_pages_24` à `ebook_pages_44`). La même clé est exposée dans `document.documentElement.dataset.storybookVariation` afin qu'un connecteur WooCommerce puisse sélectionner la variation et mettre à jour le prix.
+
+Le livre imprimé est calculé à `1,2458 €` par page. L'eBook est calculé à `0,27875 €` par page. Après paiement, la finalisation d'une commande eBook assemble la couverture et les pages basse définition dans un PDF carré 21 × 21 cm sans filigrane ; la liseuse publique conserve un filigrane d'aperçu.
 
 ### Questionnaire
 
@@ -65,6 +67,7 @@ Lorsqu'une photo correspond à un personnage présent dans une scène, elle est 
     "style_id": "gentle_3d",
     "font_style": "school_round",
     "page_count": 32,
+    "product_type": "ebook",
     "signature_object": "Une petite lampe jaune",
     "important_people": "Son ami Noé et sa mascotte Pixel",
     "language": "FR"

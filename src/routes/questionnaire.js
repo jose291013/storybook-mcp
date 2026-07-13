@@ -7,7 +7,14 @@ import {
   PHOTO_STORY_ROLES,
 } from "../config/questionnaire.js";
 import { ILLUSTRATION_STYLES } from "../config/illustrationStyles.js";
-import { PAGE_COUNT_OPTIONS, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../config/bookOptions.js";
+import {
+  EBOOK_PAGE_PRICE_EUR,
+  PAGE_COUNT_OPTIONS,
+  PRINT_PAGE_PRICE_EUR,
+  PRODUCT_TYPES,
+  TYPOGRAPHY_OPTIONS,
+  UNIVERSE_OPTIONS,
+} from "../config/bookOptions.js";
 
 const router = express.Router();
 
@@ -20,7 +27,13 @@ router.get("/questionnaire", (req, res) => {
       storyRoles: PHOTO_STORY_ROLES,
     },
     bookFormat: BOOK_FORMAT,
-    pricing: { currency: "EUR", unitPagePrice: PAGE_PRICE_EUR },
+    pricing: {
+      currency: "EUR",
+      unitPagePrice: PRINT_PAGE_PRICE_EUR,
+      printUnitPagePrice: PRINT_PAGE_PRICE_EUR,
+      ebookUnitPagePrice: EBOOK_PAGE_PRICE_EUR,
+    },
+    productTypes: PRODUCT_TYPES,
     pageCountOptions: PAGE_COUNT_OPTIONS,
     typographyOptions: TYPOGRAPHY_OPTIONS,
     universeOptions: UNIVERSE_OPTIONS,

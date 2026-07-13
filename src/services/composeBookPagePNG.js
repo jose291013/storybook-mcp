@@ -13,6 +13,22 @@ const FONT_STYLES = {
   cursive_magic: { fontFile: path.resolve("assets/fonts/Borel-Regular.ttf"), fontFamily: "Borel", sizeMultiplier: 0.78 },
 };
 
+export function getBodyFontRatio(readerAge) {
+  const age = Number.parseInt(String(readerAge || "").replace(/[^\d]/g, ""), 10);
+  if (Number.isNaN(age) || age <= 3) return 0.038;
+  if (age === 4) return 0.036;
+  if (age === 5) return 0.035;
+  if (age === 6) return 0.032;
+  if (age === 7) return 0.029;
+  if (age === 8) return 0.026;
+  return 0.023;
+}
+
+export function getBodyFontSize({ width, fontStyle = "school_round", readerAge = 6 }) {
+  const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
+  return Math.round(width * getBodyFontRatio(readerAge) * selectedFont.sizeMultiplier);
+}
+
 function mmToPx(mm, dpi) {
   return Math.round((mm / 25.4) * dpi);
 }
@@ -25,16 +41,18 @@ function escapeMarkup(value) {
 }
 
 async function renderText({ text, fontFile, fontFamily, fontSize, width, height, color, align = "centre" }) {
+  const textOptions = {
+    text: `<span foreground="${color}">${escapeMarkup(text)}</span>`,
+    font: `${fontFamily} ${fontSize}`,
+    fontfile: fontFile,
+    width,
+    align,
+    rgba: true,
+    wrap: "word",
+  };
+  if (height) textOptions.height = height;
   const input = await sharp({
-    text: {
-      text: `<span foreground="${color}">${escapeMarkup(text)}</span>`,
-      font: `${fontFamily} ${fontSize}`,
-      fontfile: fontFile,
-      width,
-      height,
-      align,
-      rgba: true,
-    },
+    text: textOptions,
   }).png().toBuffer();
   const metadata = await sharp(input).metadata();
   return { input, width: metadata.width || width, height: metadata.height || height };
@@ -63,9 +81,7 @@ function coverShadeSvg(width, height) {
     </svg>`);
 }
 
-async function composeTextPage({ width, height, title, body, pageType, fontStyle }) {
-  const isOpening = pageType === "opening_text";
-  const isClosing = pageType === "closing_text";
+async function composeTextPage({ width, height, title, body, fontStyle, readerAge }) {
   const canvas = sharp({ create: { width, height, channels: 4, background: "#fff8ed" } });
   const composites = [{ input: pageDecorSvg(width, height), top: 0, left: 0 }];
   const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
@@ -84,12 +100,11 @@ async function composeTextPage({ width, height, title, body, pageType, fontStyle
   }
 
   const bodyLayer = await renderText({
-    text: body,
+    text: String(body || "").replace(/\s+/g, " ").trim(),
     fontFile: selectedFont.fontFile,
     fontFamily: selectedFont.fontFamily,
-    fontSize: Math.round(width * (isOpening || isClosing ? 0.031 : 0.026) * selectedFont.sizeMultiplier),
+    fontSize: getBodyFontSize({ width, fontStyle, readerAge }),
     width: Math.round(width * 0.78),
-    height: Math.round(height * (title ? 0.56 : 0.68)),
     color: "#34454c",
   });
   const bodyTop = Math.max(
@@ -133,6 +148,7 @@ export async function composeBookPagePNG({
   pageType = "image",
   pageNumber,
   fontStyle = "school_round",
+  readerAge = 6,
   dpi = 150,
   outputsDir = "data/outputs",
 }) {
@@ -144,7 +160,7 @@ export async function composeBookPagePNG({
   let output;
 
   if (["text", "opening_text", "closing_text"].includes(pageType)) {
-    output = await composeTextPage({ width, height, title, body, pageType, fontStyle });
+    output = await composeTextPage({ width, height, title, body, fontStyle, readerAge });
   } else {
     if (!imageUrl) throw new Error(`composeBookPagePNG: ${pageType} requires imageUrl`);
     const response = await fetch(imageUrl);

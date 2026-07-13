@@ -7,6 +7,7 @@ import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
+import { createEbookPdf } from "../services/createEbookPdf.js";
 
 const router = express.Router();
 
@@ -28,6 +29,25 @@ router.post("/finalize", async (req, res) => {
       const blueprint = job.final_blueprint;
       const characterCanons = job.characterCanons || [];
       const draftPages = job.result?.draftPages || [];
+      const productType = job.productConfiguration?.product_type || "print";
+
+      if (productType === "ebook") {
+        updateJob(jobId, { status: "running", step: "ebook:pdf" });
+        const ebookUrl = await createEbookPdf({
+          jobId,
+          title: blueprint.cover?.title,
+          language: blueprint.language,
+          coverPreviewUrl: job.result?.coverPreviewUrl,
+          pages: draftPages,
+        });
+        updateJob(jobId, {
+          status: "done",
+          step: "ebook:done",
+          result: { ...job.result, ebookUrl },
+        });
+        return;
+      }
+
       const existingFinalPages = job.result?.finalPages || [];
       const finalPages = [...existingFinalPages];
       const storyContext = buildNarrativeContext({ blueprint, intake: job.intake, storybrand: job.storybrand });
@@ -114,6 +134,7 @@ router.post("/finalize", async (req, res) => {
           pageType: page.page_type,
           pageNumber: page.page_number,
           fontStyle: blueprint.typography?.id,
+          readerAge: blueprint.hero?.age,
           dpi: 300,
         });
         finalPages.push({

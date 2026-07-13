@@ -7,15 +7,17 @@ import sharp from "sharp";
 import { BOOK_QUESTIONS, MAX_REFERENCE_PHOTOS } from "../src/config/questionnaire.js";
 import { applyPagePlan, createPagePlan } from "../src/config/bookStructure.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
-import { composeBookPagePNG } from "../src/services/composeBookPagePNG.js";
+import { composeBookPagePNG, getBodyFontSize } from "../src/services/composeBookPagePNG.js";
 import { ILLUSTRATION_STYLES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
-import { ALLOWED_PAGE_COUNTS, calculateBookPrice, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
+import { ALLOWED_PAGE_COUNTS, calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
+import { createEbookPdf, EBOOK_PAGE_SIZE_PT } from "../src/services/createEbookPdf.js";
+import { PDFDocument } from "pdf-lib";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -154,6 +156,16 @@ test("page prices use the configured 1.2458 euro unit price", () => {
   assert.equal(calculateBookPrice(44), 54.82);
 });
 
+test("ebook prices use the configured 0.27875 euro unit price", () => {
+  assert.equal(EBOOK_PAGE_PRICE_EUR, 0.27875);
+  assert.equal(calculateBookPrice(24, "ebook"), 6.69);
+  assert.equal(calculateBookPrice(28, "ebook"), 7.81);
+  assert.equal(calculateBookPrice(32, "ebook"), 8.92);
+  assert.equal(calculateBookPrice(36, "ebook"), 10.04);
+  assert.equal(calculateBookPrice(40, "ebook"), 11.15);
+  assert.equal(calculateBookPrice(44, "ebook"), 12.27);
+});
+
 test("only narrative questionnaire answers can be improved with AI", () => {
   assert.ok(IMPROVABLE_QUESTION_IDS.has("dream"));
   assert.ok(IMPROVABLE_QUESTION_IDS.has("message"));
@@ -180,12 +192,14 @@ test("product choices are normalized independently from the book language", () =
       age: 6,
       language: "ES",
       page_count: 40,
+      product_type: "ebook",
       font_style: "handwritten_story",
       universe_id: "coral_ocean",
       universe_details: "un petit phare rouge",
     },
   });
   assert.equal(normalized.answers.page_count, 40);
+  assert.equal(normalized.answers.product_type, "ebook");
   assert.equal(normalized.answers.font_style, "handwritten_story");
   assert.equal(normalized.answers.universe_id, "coral_ocean");
   assert.match(normalized.answers.universe_instructions, /phare rouge/);
@@ -360,6 +374,41 @@ test("all six typography selections render distinct text pages", async () => {
 test("rendered text pages do not embed a second large page number", async () => {
   const source = await fs.readFile("src/services/composeBookPagePNG.js", "utf8");
   assert.doesNotMatch(source, /text:\s*String\(pageNumber\)/);
+});
+
+test("all text pages in one book use one stable body font size", () => {
+  const width = 1240;
+  const common = { width, fontStyle: "handwritten_story", readerAge: 5 };
+  const expected = getBodyFontSize(common);
+  assert.equal(expected, getBodyFontSize(common));
+  assert.equal(expected, 47);
+  assert.ok(getBodyFontSize({ width, fontStyle: "handwritten_story", readerAge: 8 }) < expected);
+});
+
+test("ebook PDF preserves square pages and includes cover plus interiors", async () => {
+  const outputsDir = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-ebook-"));
+  try {
+    const pageNames = ["cover.png", "page-1.png", "page-2.png"];
+    for (const [index, name] of pageNames.entries()) {
+      await sharp({ create: { width: 300, height: 300, channels: 3, background: index ? "#fff8ed" : "#29464a" } }).png().toFile(path.join(outputsDir, name));
+    }
+    const ebookUrl = await createEbookPdf({
+      jobId: "test-book",
+      title: "Test book",
+      coverPreviewUrl: "/outputs/cover.png",
+      pages: [
+        { page_number: 2, previewUrl: "/outputs/page-2.png" },
+        { page_number: 1, previewUrl: "/outputs/page-1.png" },
+      ],
+      outputsDir,
+    });
+    assert.equal(ebookUrl, "/outputs/ebook-test-book.pdf");
+    const pdf = await PDFDocument.load(await fs.readFile(path.join(outputsDir, "ebook-test-book.pdf")));
+    assert.equal(pdf.getPageCount(), 3);
+    assert.ok(pdf.getPages().every((page) => Math.abs(page.getWidth() - EBOOK_PAGE_SIZE_PT) < 0.01 && Math.abs(page.getHeight() - EBOOK_PAGE_SIZE_PT) < 0.01));
+  } finally {
+    await fs.rm(outputsDir, { recursive: true, force: true });
+  }
 });
 
 test("the closing moral is explicitly addressed to the child hero", async () => {
