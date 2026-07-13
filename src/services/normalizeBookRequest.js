@@ -6,7 +6,7 @@ import {
 } from "../config/questionnaire.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
-import { findUniverse, normalizePageCount, normalizeTypography } from "../config/bookOptions.js";
+import { findUniverse, normalizePageCount, normalizeProductType, normalizeTypography } from "../config/bookOptions.js";
 
 function clean(value) {
   return value == null ? "" : String(value).trim();
@@ -80,6 +80,7 @@ export function normalizeBookRequest(body = {}) {
     style_instructions: customStyle || selectedStyle.prompt,
     language: normalizeBookLanguage(source.language || body.language || "FR"),
     page_count: normalizePageCount(source.page_count || body.page_count),
+    product_type: normalizeProductType(source.product_type || body.product_type),
     font_style: normalizeTypography(source.font_style || body.font_style),
     extra_notes: clean(source.extra_notes || body.extra_notes),
   };

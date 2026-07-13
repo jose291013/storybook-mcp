@@ -18,6 +18,7 @@ export async function intakeAgent(rawAnswers) {
   // Product choices must never be reinterpreted or dropped by the language model.
   // They drive page planning, rendering and the WooCommerce variation.
   result.intake.page_count = rawAnswers?.page_count;
+  result.intake.product_type = rawAnswers?.product_type;
   result.intake.font_style = rawAnswers?.font_style;
   result.intake.universe_id = rawAnswers?.universe_id;
   result.intake.universe_instructions = rawAnswers?.universe_instructions;

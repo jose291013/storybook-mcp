@@ -1,15 +1,21 @@
 export const ALLOWED_PAGE_COUNTS = [24, 28, 32, 36, 40, 44];
-export const PAGE_PRICE_EUR = 1.2458;
+export const PRINT_PAGE_PRICE_EUR = 1.2458;
+export const EBOOK_PAGE_PRICE_EUR = 0.27875;
+export const PAGE_PRICE_EUR = PRINT_PAGE_PRICE_EUR;
+export const PRODUCT_TYPES = ["print", "ebook"];
 
-export function calculateBookPrice(pageCount) {
-  return Math.round(normalizePageCount(pageCount) * PAGE_PRICE_EUR * 100) / 100;
+export function calculateBookPrice(pageCount, productType = "print") {
+  const unitPrice = productType === "ebook" ? EBOOK_PAGE_PRICE_EUR : PRINT_PAGE_PRICE_EUR;
+  return Math.round(normalizePageCount(pageCount) * unitPrice * 100) / 100;
 }
 
 export const PAGE_COUNT_OPTIONS = ALLOWED_PAGE_COUNTS.map((pageCount) => ({
   pageCount,
   illustrationCount: (pageCount - 2) / 2,
   variationKey: `pages_${pageCount}`,
-  priceEur: calculateBookPrice(pageCount),
+  priceEur: calculateBookPrice(pageCount, "print"),
+  printPriceEur: calculateBookPrice(pageCount, "print"),
+  ebookPriceEur: calculateBookPrice(pageCount, "ebook"),
 }));
 
 export const TYPOGRAPHY_OPTIONS = [
@@ -99,6 +105,10 @@ export const UNIVERSE_OPTIONS = [
 export function normalizePageCount(value) {
   const parsed = Number.parseInt(value, 10);
   return ALLOWED_PAGE_COUNTS.includes(parsed) ? parsed : ALLOWED_PAGE_COUNTS[0];
+}
+
+export function normalizeProductType(value) {
+  return PRODUCT_TYPES.includes(String(value || "").toLowerCase()) ? String(value).toLowerCase() : PRODUCT_TYPES[0];
 }
 
 export function normalizeTypography(value) {
