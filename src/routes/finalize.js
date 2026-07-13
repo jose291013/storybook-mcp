@@ -90,6 +90,7 @@ router.post("/finalize", async (req, res) => {
             characterCanons,
             castPresent: page.cast_present || [],
             scenePrompt: page.image_prompt,
+            visualState: page.visual_state || {},
             continuityImagePath: existsSync(finalCoverPath)
               ? finalCoverPath
               : (existsSync(draftCoverPath) ? draftCoverPath : ""),

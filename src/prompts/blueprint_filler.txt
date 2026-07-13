@@ -13,6 +13,7 @@ NARRATIVE
 - Turn extra_notes into one or two recognizable story details when provided: a familiar phrase, habit, memory, place or relationship.
 - Build clear cause and effect between spreads. Each scene must change the situation and prepare the next one.
 - Include at least two gentle complications or surprising discoveries before the climax; avoid a flat sequence of easy successes.
+- Create one explicit plot_continuity ledger. If the story involves a lost, hidden or searched-for object or being, name it as quest_object and set the exact scene_number where it is first discovered. The text_prompt and image_prompt for that paired scene must both describe the same first discovery. Before that scene, neither the object nor a recognizable representation of it may be visible. If there is no such search-and-discovery element, use an empty name and discovery_scene_number 0.
 
 VISUALS
 - All illustrations are square, designed for a full 21 x 21 cm page with full bleed.
@@ -23,6 +24,8 @@ VISUALS
 - Maintain one illustration style, palette, outfits and stable character traits across the cover and all image pages.
 - Use character_canons only for cast members actually present in that scene. Never force all referenced people into every image.
 - Every named character supplied in character_canons represents an intentional uploaded reference and must appear visibly in at least one image page. Respect their story_role: a guide belongs naturally in meeting_the_guide or the plan, an ally helps during attempts, and a guest/supporter appears during success or the return home. List their exact canonical name in cast_present.
+- cast_present is an exact scene contract, not a suggestion. It must list every named character physically present in the paired text and illustration. Every listed character must be explicitly named in image_prompt, and no named character may be described as present in text_prompt while missing from cast_present.
+- When the quest object is also a named character, exclude that character from cast_present before discovery and include it in the discovery scene.
 - The signature object should recur when narratively appropriate, not mechanically in every scene.
 - No brands or copyrighted characters. Child-safe, gentle and non-scary.
 
@@ -63,6 +66,13 @@ OUTPUT EXACTLY THIS SHAPE
     "illustration_style": "",
     "style_prompt": ""
   },
+  "plot_continuity": {
+    "quest_object": {
+      "name": "lost or searched-for object/being, or empty string",
+      "appearance_lock": "one stable visual description, or empty string",
+      "discovery_scene_number": 0
+    }
+  },
   "cover": {
     "title": "short personalized title, maximum 5 words",
     "image_prompt": "detailed square cover prompt",
@@ -77,7 +87,8 @@ OUTPUT EXACTLY THIS SHAPE
       "story_role": "",
       "text_prompt": "non-empty only for text page types",
       "image_prompt": "non-empty only for image pages",
-      "cast_present": []
+      "cast_present": [],
+      "visual_state": {}
     }
   ]
 }
@@ -88,3 +99,4 @@ MANDATORY
 - Never leave placeholders, null prompts or mixed languages.
 - Text-page image_prompt is an empty string. Image-page text_prompt is an empty string.
 - Every cast_present entry must exactly match hero.name or a cast[].name. Never use descriptions or nicknames in cast_present.
+- A searched-for quest_object must remain absent from every image before discovery_scene_number, appear for the first time in that paired scene, and only be shown as already found afterward.

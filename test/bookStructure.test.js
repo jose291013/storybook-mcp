@@ -13,6 +13,7 @@ import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
+import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -133,9 +134,66 @@ test("scene continuity locks child outfit and mascot species while attaching the
     prompt: "A new forest scene",
     characterFingerprints: continuity.characterFingerprints,
     referenceImages: continuity.referenceImages,
+    sceneContract: continuity.sceneContract,
   });
   assert.match(prompt, /never change face, species.*outfit/i);
   assert.match(prompt, /primary identity reference/i);
+  assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): Noa, Pixel/);
+  assert.match(prompt, /Do not omit, merge, replace or transform/i);
+});
+
+test("lost quest objects stay invisible until the paired discovery scene", () => {
+  const blueprint = {
+    language: "FR",
+    hero: { name: "Noa", outfit_lock: "blue sweater" },
+    cast: [{ name: "Luma", role: "other", story_role: "companion", canon_short: "a small golden star" }],
+    plot_continuity: {
+      quest_object: {
+        name: "Luma, l'etoile perdue",
+        appearance_lock: "a small five-point golden star with a warm glow",
+        discovery_scene_number: 9,
+      },
+    },
+    cover: { title: "Noa et Luma", image_prompt: "Noa et Luma", cast_present: ["Noa", "Luma"] },
+    pages: createPagePlan().map((page) => ({
+      ...page,
+      text_prompt: page.page_type === "image" ? "" : "continue l'histoire",
+      image_prompt: page.page_type === "image" ? "Noa cherche Luma" : "",
+      cast_present: page.page_type === "image" ? ["Noa", "Luma"] : [],
+    })),
+  };
+
+  const result = lockBlueprintContinuity(blueprint, { language: "FR" });
+  const before = result.pages.find((page) => page.page_type === "image" && page.scene_number === 8);
+  const discovery = result.pages.find((page) => page.page_type === "image" && page.scene_number === 9);
+  const after = result.pages.find((page) => page.page_type === "image" && page.scene_number === 10);
+
+  assert.equal(before.visual_state.quest_object_state, "hidden");
+  assert.equal(before.cast_present.includes("Luma"), false);
+  assert.match(before.image_prompt, /Ne pas montrer Luma/);
+  assert.equal(discovery.visual_state.quest_object_state, "discovered");
+  assert.equal(discovery.cast_present.includes("Luma"), true);
+  assert.match(discovery.image_prompt, /pour la premiere fois/);
+  assert.equal(after.visual_state.quest_object_state, "after_discovery");
+});
+
+test("narrative context pairs prose with its exact illustration cast and object state", () => {
+  const pages = createPagePlan().map((page) => ({
+    ...page,
+    text_prompt: page.page_type === "image" ? "" : "Pixel et Noa avancent ensemble",
+    image_prompt: page.page_type === "image" ? "Pixel et Noa dans la foret" : "",
+    cast_present: page.page_type === "image" ? ["Noa", "Pixel"] : [],
+    visual_state: page.page_type === "image" ? { quest_object_state: "hidden" } : {},
+  }));
+  const context = buildNarrativeContext({
+    blueprint: { cover: {}, world: {}, cast: [], pages, plot_continuity: { quest_object: { name: "Luma" } } },
+    intake: {},
+    storybrand: {},
+  });
+  const firstSpreadText = context.outline.find((page) => page.scene_number === 1);
+  assert.deepEqual(firstSpreadText.paired_image.cast_present, ["Noa", "Pixel"]);
+  assert.equal(firstSpreadText.paired_image.visual_state.quest_object_state, "hidden");
+  assert.equal(context.plot_continuity.quest_object.name, "Luma");
 });
 
 test("blueprint normalization gives every book one canonical outfit and canonical cast names", () => {

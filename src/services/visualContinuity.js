@@ -54,6 +54,7 @@ export function buildSceneContinuity({
   characterCanons = [],
   castPresent = [],
   scenePrompt = "",
+  visualState = {},
   continuityImagePath = "",
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
@@ -90,5 +91,21 @@ export function buildSceneContinuity({
     });
   }
 
-  return { characterFingerprints, referenceImages };
+  const castNames = selected.map((character) => character.name).filter(Boolean);
+  const sceneRules = [];
+  if (castNames.length) {
+    sceneRules.push(
+      `MANDATORY VISIBLE CAST (${castNames.length}): ${castNames.join(", ")}.`,
+      "Every listed character must be clearly visible, recognizable and present at the same time.",
+      "Do not omit, merge, replace or transform any listed character, even when several reference images are supplied.",
+      "Do not add another recurring named book character who is not in the mandatory cast."
+    );
+  }
+  if (visualState?.directive) sceneRules.push(String(visualState.directive).trim());
+
+  return {
+    characterFingerprints,
+    referenceImages,
+    sceneContract: sceneRules.filter(Boolean).join("\n"),
+  };
 }

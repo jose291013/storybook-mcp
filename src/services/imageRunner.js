@@ -9,7 +9,13 @@ function getClient() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
-export function buildFinalPrompt({ prompt, characterFingerprint = "", characterFingerprints = [], referenceImages = [] }) {
+export function buildFinalPrompt({
+  prompt,
+  characterFingerprint = "",
+  characterFingerprints = [],
+  referenceImages = [],
+  sceneContract = "",
+}) {
   const baseRules = [
     "No text, captions, watermarks, logos, branded characters or copyrighted character lookalikes.",
     "Children's book illustration, print-ready, clean square composition.",
@@ -27,10 +33,13 @@ export function buildFinalPrompt({ prompt, characterFingerprint = "", characterF
   const referenceContract = referenceImages.length
     ? `\n\nREFERENCE IMAGE CONTRACT:\n${referenceImages.map((item, index) => (
         `- Reference ${index + 1}: ${item.label || "visual continuity reference"}`
-      )).join("\n")}\nUse these images only to preserve the named characters, their exact wardrobe and the established illustration style. Create a genuinely new scene composition; do not copy the reference background or pose.`
+      )).join("\n")}\nUse these images only to preserve the named characters, their exact wardrobe and the established illustration style. Create a genuinely new scene composition. Never copy a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
+    : "";
+  const exactScene = sceneContract?.trim()
+    ? `\n\nSCENE CONTRACT (highest priority for this illustration):\n${sceneContract.trim()}`
     : "";
 
-  return `${prompt}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}`;
+  return `${prompt}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}${exactScene}`;
 }
 
 async function loadReferenceFiles(referenceImages) {
@@ -54,6 +63,7 @@ export async function generateImage({
   characterFingerprint = "",
   characterFingerprints = [],
   referenceImages = [],
+  sceneContract = "",
   size = "1024x1024",
   quality = process.env.IMAGE_QUALITY || "low",
   model = process.env.IMAGE_MODEL || "gpt-image-1-mini",
@@ -67,6 +77,7 @@ export async function generateImage({
     characterFingerprint,
     characterFingerprints,
     referenceImages: usableReferences,
+    sceneContract,
   });
 
   let res;

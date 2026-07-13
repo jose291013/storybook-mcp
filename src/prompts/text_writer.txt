@@ -15,6 +15,9 @@ WRITING RULES
 - Use personal_details naturally and selectively. A recognizable habit, phrase or memory is more valuable than listing facts.
 - Keep the child as the active hero. The guide may help, but must not solve the problem for the child.
 - Maintain names, objects, locations, tense and character behavior consistently with the outline.
+- Treat paired_image as an exact account of the same moment: every named character described as physically present in the prose must be in paired_image.cast_present. Do not add an absent character to the action.
+- Obey plot_continuity and paired_image.visual_state exactly. A lost quest object must not be seen, held, found or described as visibly present before its discovery scene. Describe its first discovery only on the paired discovery scene and never announce it as found earlier.
+- Never introduce a new lost-object quest that is missing from plot_continuity.
 - Keep the tone warm, playful, emotionally sincere and non-scary.
 - Avoid generic moralizing, repetitive praise, brand names and copyrighted characters.
 - Use the hero's name naturally, usually once and never more than twice.
