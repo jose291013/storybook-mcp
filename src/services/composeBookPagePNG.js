@@ -7,6 +7,10 @@ const TITLE_FONT = path.resolve("assets/fonts/PatrickHand-Regular.ttf");
 const FONT_STYLES = {
   school_round: { fontFile: BODY_FONT, fontFamily: "Andika", sizeMultiplier: 1 },
   handwritten_story: { fontFile: TITLE_FONT, fontFamily: "Patrick Hand", sizeMultiplier: 1.08 },
+  rounded_playful: { fontFile: path.resolve("assets/fonts/Fredoka-Variable.ttf"), fontFamily: "Fredoka", sizeMultiplier: 0.92 },
+  comic_bubble: { fontFile: path.resolve("assets/fonts/ComicNeue-Regular.ttf"), fontFamily: "Comic Neue", sizeMultiplier: 1.02 },
+  storybook_bold: { fontFile: path.resolve("assets/fonts/Baloo2-Variable.ttf"), fontFamily: "Baloo 2", sizeMultiplier: 0.94 },
+  cursive_magic: { fontFile: path.resolve("assets/fonts/Borel-Regular.ttf"), fontFamily: "Borel", sizeMultiplier: 0.78 },
 };
 
 function mmToPx(mm, dpi) {
@@ -64,13 +68,14 @@ async function composeTextPage({ width, height, title, body, pageType, fontStyle
   const isClosing = pageType === "closing_text";
   const canvas = sharp({ create: { width, height, channels: 4, background: "#fff8ed" } });
   const composites = [{ input: pageDecorSvg(width, height), top: 0, left: 0 }];
+  const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
 
   if (title) {
     const titleLayer = await renderText({
       text: title,
-      fontFile: TITLE_FONT,
-      fontFamily: "Patrick Hand",
-      fontSize: Math.round(width * 0.043),
+      fontFile: selectedFont.fontFile,
+      fontFamily: selectedFont.fontFamily,
+      fontSize: Math.round(width * 0.043 * selectedFont.sizeMultiplier),
       width: Math.round(width * 0.76),
       height: Math.round(height * 0.18),
       color: "#3d4a4f",
@@ -78,7 +83,6 @@ async function composeTextPage({ width, height, title, body, pageType, fontStyle
     composites.push({ input: titleLayer.input, top: Math.round(height * 0.13), left: Math.round((width - titleLayer.width) / 2) });
   }
 
-  const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
   const bodyLayer = await renderText({
     text: body,
     fontFile: selectedFont.fontFile,
@@ -97,12 +101,13 @@ async function composeTextPage({ width, height, title, body, pageType, fontStyle
   return canvas.composite(composites).png().toBuffer();
 }
 
-async function composeCover({ imageBuffer, width, height, title }) {
+async function composeCover({ imageBuffer, width, height, title, fontStyle }) {
+  const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
   const titleLayer = await renderText({
     text: title,
-    fontFile: TITLE_FONT,
-    fontFamily: "Patrick Hand",
-    fontSize: Math.round(width * 0.052),
+    fontFile: selectedFont.fontFile,
+    fontFamily: selectedFont.fontFamily,
+    fontSize: Math.round(width * 0.052 * selectedFont.sizeMultiplier),
     width: Math.round(width * 0.8),
     height: Math.round(height * 0.34),
     color: "#ffffff",
@@ -146,7 +151,7 @@ export async function composeBookPagePNG({
     if (!response.ok) throw new Error(`composeBookPagePNG: failed to fetch image (${response.status})`);
     const imageBuffer = Buffer.from(await response.arrayBuffer());
     output = pageType === "cover"
-      ? await composeCover({ imageBuffer, width, height, title })
+      ? await composeCover({ imageBuffer, width, height, title, fontStyle })
       : await sharp(imageBuffer).resize(width, height, { fit: "cover", position: "attention" }).png().toBuffer();
   }
 
