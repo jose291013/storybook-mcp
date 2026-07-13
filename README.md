@@ -5,16 +5,22 @@ Backend de génération de livres jeunesse personnalisés par IA.
 ## Format éditorial
 
 - Album carré 21 × 21 cm.
-- 24 pages intérieures.
+- 24, 28, 32, 36, 40 ou 44 pages intérieures, au choix du créateur.
 - Page 1 : introduction.
-- Pages 2 à 23 : 11 doubles-pages, chacune composée d'une page de texte et d'une page illustrée. Le côté du texte alterne à chaque double-page.
-- Page 24 : conclusion ou dédicace.
+- Entre l'introduction et la conclusion : 11 à 21 doubles-pages, chacune composée d'une page de texte et d'une page illustrée. Le côté du texte alterne à chaque double-page.
+- Dernière page : conclusion ou dédicace adressée directement à l'enfant héros.
 - Brouillon complet en basse qualité, puis version 300 dpi après validation/paiement.
-- Typographie pédagogique Andika pour les textes et Patrick Hand pour les titres, distribuées sous licence SIL Open Font License dans `assets/fonts`.
+- Choix visuel entre une typographie pédagogique Andika et une écriture Patrick Hand, distribuées sous licence SIL Open Font License dans `assets/fonts`.
 
 ## API
 
-L'interface web est servie directement à la racine `/`. Elle guide le créateur en cinq étapes : enfant, histoire, style, photos et vérification.
+L'interface web est servie directement à la racine `/`. Elle guide le créateur en cinq étapes : enfant, histoire, style, photos et vérification. L'interface existe en français, espagnol et anglais, indépendamment de la langue choisie pour le livre.
+
+Le décor, le style d'illustration, la police et le nombre de pages sont choisis au moyen d'aperçus visuels. Les photos peuvent être déposées par glisser-déposer, jusqu'à cinq personnages de référence.
+
+### Intégration WooCommerce
+
+À chaque changement de configuration, l'interface émet l'événement navigateur `storybook:configuration`. Son champ `detail` contient notamment `page_count`, `font_style`, `style_id`, `universe_id`, `book_language` et `woo_variation_key` (`pages_24` à `pages_44`). La même clé est exposée dans `document.documentElement.dataset.storybookVariation` afin qu'un connecteur WooCommerce puisse sélectionner la variation et mettre à jour le prix.
 
 ### Questionnaire
 
@@ -47,7 +53,11 @@ Lorsqu'une photo correspond à un personnage présent dans une scène, elle est 
     "dream": "Découvrir une nouvelle constellation",
     "challenge": "Oser demander de l'aide",
     "message": "On avance mieux ensemble",
-    "universe": "Un jardin qui rejoint les étoiles la nuit",
+    "universe_id": "starry_space",
+    "universe_details": "Un jardin qui rejoint les étoiles la nuit",
+    "style_id": "gentle_3d",
+    "font_style": "school_round",
+    "page_count": 32,
     "signature_object": "Une petite lampe jaune",
     "important_people": "Son ami Noé et sa mascotte Pixel",
     "language": "FR"

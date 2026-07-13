@@ -14,6 +14,7 @@ import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
+import { ALLOWED_PAGE_COUNTS, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -97,6 +98,30 @@ test("request rejects a sixth photo", () => {
   );
 });
 
+test("every sellable page count creates complete alternating spreads", () => {
+  for (const pageCount of ALLOWED_PAGE_COUNTS) {
+    const pages = createPagePlan(pageCount);
+    const spreadCount = (pageCount - 2) / 2;
+    assert.equal(pages.length, pageCount);
+    assert.equal(pages.at(-1).page_number, pageCount);
+    assert.equal(pages.at(-1).page_type, "closing_text");
+    assert.equal(pages.filter((page) => page.page_type === "image").length, spreadCount);
+    for (let spread = 1; spread <= spreadCount; spread += 1) {
+      assert.deepEqual(
+        new Set(pages.filter((page) => page.spread_number === spread).map((page) => page.page_type)),
+        new Set(["text", "image"])
+      );
+    }
+  }
+});
+
+test("the product configurator exposes visual universes and previewable typography", () => {
+  assert.equal(UNIVERSE_OPTIONS.length, 6);
+  assert.ok(UNIVERSE_OPTIONS.every((option) => option.prompt && option.palette.length === 3));
+  assert.equal(TYPOGRAPHY_OPTIONS.length, 2);
+  assert.ok(TYPOGRAPHY_OPTIONS.every((option) => option.preview));
+});
+
 test("selected book language wins over the language used in questionnaire answers", () => {
   const normalized = normalizeBookRequest({
     questionnaire: {
@@ -106,6 +131,25 @@ test("selected book language wins over the language used in questionnaire answer
       language: "es",
     },
   });
+  assert.equal(normalized.answers.language, "ES");
+});
+
+test("product choices are normalized independently from the book language", () => {
+  const normalized = normalizeBookRequest({
+    questionnaire: {
+      hero_name: "Noa",
+      age: 6,
+      language: "ES",
+      page_count: 40,
+      font_style: "handwritten_story",
+      universe_id: "coral_ocean",
+      universe_details: "un petit phare rouge",
+    },
+  });
+  assert.equal(normalized.answers.page_count, 40);
+  assert.equal(normalized.answers.font_style, "handwritten_story");
+  assert.equal(normalized.answers.universe_id, "coral_ocean");
+  assert.match(normalized.answers.universe_instructions, /phare rouge/);
   assert.equal(normalized.answers.language, "ES");
 });
 
@@ -250,4 +294,41 @@ test("text pages render as a square 21 cm preview", async () => {
   } finally {
     await fs.rm(outputsDir, { recursive: true, force: true });
   }
+});
+
+test("typography selection changes the rendered text page", async () => {
+  const outputsDir = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-font-"));
+  try {
+    const common = {
+      baseUrl: "http://localhost:3000",
+      body: "Une aventure douce commence ici.",
+      pageType: "text",
+      pageNumber: 8,
+      dpi: 72,
+      outputsDir,
+    };
+    await composeBookPagePNG({ ...common, outName: "school", fontStyle: "school_round" });
+    await composeBookPagePNG({ ...common, outName: "hand", fontStyle: "handwritten_story" });
+    const school = await fs.readFile(path.join(outputsDir, "school.png"));
+    const hand = await fs.readFile(path.join(outputsDir, "hand.png"));
+    assert.notDeepEqual(school, hand);
+  } finally {
+    await fs.rm(outputsDir, { recursive: true, force: true });
+  }
+});
+
+test("rendered text pages do not embed a second large page number", async () => {
+  const source = await fs.readFile("src/services/composeBookPagePNG.js", "utf8");
+  assert.doesNotMatch(source, /text:\s*String\(pageNumber\)/);
+});
+
+test("the closing moral is explicitly addressed to the child hero", async () => {
+  const [blueprintPrompt, textPrompt, qaPrompt] = await Promise.all([
+    fs.readFile("src/prompts/blueprint_filler.txt", "utf8"),
+    fs.readFile("src/prompts/text_writer.txt", "utf8"),
+    fs.readFile("src/prompts/qa.txt", "utf8"),
+  ]);
+  assert.match(blueprintPrompt, /addressed directly to the child hero/i);
+  assert.match(textPrompt, /using second person/i);
+  assert.match(qaPrompt, /addresses the child hero directly in second person/i);
 });

@@ -9,6 +9,7 @@ import questionnaireRouter from "./routes/questionnaire.js";
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static("public"));
+app.use("/fonts", express.static("assets/fonts"));
 
 // Serve generated images
 app.use("/outputs", express.static("data/outputs"));

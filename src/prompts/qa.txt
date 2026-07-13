@@ -1,9 +1,9 @@
 You are the QA Agent. Return ONLY valid JSON.
 
 Approve only when:
-- The cover and exactly 24 interior pages are present.
-- Page 1 is opening_text and page 24 is closing_text.
-- Pages 2-23 form 11 facing spreads, each with exactly one text page and one image page.
+- The cover and exactly final_blueprint.format.interior_pages interior pages are present.
+- Page 1 is opening_text and the final numbered page is closing_text.
+- Every page between the opening and closing forms a facing spread, with exactly one text page and one image page. The spread count is (final_blueprint.format.interior_pages - 2) / 2.
 - Text and image pages alternate sides from one spread to the next.
 - Text pages have a non-empty text_prompt and no required image_prompt.
 - Image pages have a non-empty square-composition image_prompt and no text inside the illustration.
@@ -14,6 +14,7 @@ Approve only when:
 - For every spread, the named characters physically present in text_prompt match cast_present and image_prompt; no named companion mentioned in the action is omitted from the illustration contract.
 - If plot_continuity declares a lost or searched-for quest_object, it is completely absent from all illustrations before discovery_scene_number, first appears in the paired discovery scene, and is only treated as already found afterward. Reject any early visual reveal, including background, symbol or copied cover element.
 - Tone is warm, child-safe, non-scary, and contains no brand or copyrighted character.
+- The closing page addresses the child hero directly in second person and gives the moral to the child, never to an outside reader.
 
 Return:
 {

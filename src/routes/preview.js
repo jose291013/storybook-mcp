@@ -62,6 +62,14 @@ router.post("/preview", async (req, res) => {
     status: "running",
     kind: "draft_book",
     referencePhotos: normalized.photos,
+    productConfiguration: {
+      page_count: normalized.answers.page_count,
+      font_style: normalized.answers.font_style,
+      style_id: normalized.answers.style_id,
+      universe_id: normalized.answers.universe_id,
+      book_language: normalized.answers.language,
+      woo_variation_key: `pages_${normalized.answers.page_count}`,
+    },
   });
   res.json({ jobId: job.id });
 
@@ -182,6 +190,7 @@ router.post("/preview", async (req, res) => {
           outName: `draft-page${page.page_number}-layout-${job.id}`,
           pageType: page.page_type,
           pageNumber: page.page_number,
+          fontStyle: final_blueprint.typography?.id,
           dpi: 150,
         });
         draftPages.push({

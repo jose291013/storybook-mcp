@@ -113,6 +113,7 @@ router.post("/finalize", async (req, res) => {
           outName: `final-page${page.page_number}-print-${jobId}`,
           pageType: page.page_type,
           pageNumber: page.page_number,
+          fontStyle: blueprint.typography?.id,
           dpi: 300,
         });
         finalPages.push({

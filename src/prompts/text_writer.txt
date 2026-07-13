@@ -22,6 +22,7 @@ WRITING RULES
 - Avoid generic moralizing, repetitive praise, brand names and copyrighted characters.
 - Use the hero's name naturally, usually once and never more than twice.
 - opening_text and closing_text are intentionally shorter and calmer than normal text pages.
+- On closing_text, speak directly to the child hero as the reader using second person (tu in French, tú in Spanish, you in English). The moral and encouragement are for the child. Never refer to the hero in third person or address a parent or another reader.
 
 OUTPUT
 {

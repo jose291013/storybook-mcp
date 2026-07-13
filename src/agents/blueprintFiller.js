@@ -3,6 +3,7 @@ import { loadPrompt } from "../services/loadPrompt.js";
 import { parseJsonSafe } from "../services/parseJsonSafe.js";
 import { applyPagePlan, createPagePlan } from "../config/bookStructure.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
+import { normalizePageCount, normalizeTypography } from "../config/bookOptions.js";
 
 function nameKey(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -45,7 +46,8 @@ function normalizeQuestObject(result) {
   const raw = result?.plot_continuity?.quest_object || {};
   const name = String(raw.name || "").trim();
   const requestedScene = Number.parseInt(raw.discovery_scene_number, 10);
-  const discoveryScene = name && requestedScene >= 1 && requestedScene <= 11 ? requestedScene : 0;
+  const maximumScene = Math.max(1, (result.pages || []).filter((page) => page.page_type === "image").length);
+  const discoveryScene = name && requestedScene >= 1 && requestedScene <= maximumScene ? requestedScene : 0;
   result.plot_continuity = {
     ...(result.plot_continuity || {}),
     quest_object: {
@@ -100,9 +102,18 @@ function preferredStoryRoles(storyRole, role) {
   return ["simple_plan", "success_and_transformation", "return_home_and_moral"];
 }
 
-export function lockBlueprintContinuity(blueprint, { heroProfile = {}, characterCanons = [], language } = {}) {
-  const result = applyPagePlan(blueprint);
+export function lockBlueprintContinuity(blueprint, {
+  heroProfile = {},
+  characterCanons = [],
+  language,
+  pageCount,
+  fontStyle,
+} = {}) {
+  const selectedPageCount = normalizePageCount(pageCount ?? blueprint?.format?.interior_pages);
+  const selectedFontStyle = normalizeTypography(fontStyle ?? blueprint?.typography?.id);
+  const result = applyPagePlan(blueprint, selectedPageCount);
   result.language = normalizeBookLanguage(language || result.language);
+  result.typography = { id: selectedFontStyle };
   const questObject = normalizeQuestObject(result);
   result.hero ||= {};
   const childCanon = characterCanons.find((canon) => canon.role === "child");
@@ -198,6 +209,9 @@ export async function blueprintFillerAgent({
   characterCanons = [],
 }) {
   const system = loadPrompt("blueprint_filler.txt");
+  const intakeData = intake?.intake || intake || {};
+  const pageCount = normalizePageCount(intakeData.page_count);
+  const fontStyle = normalizeTypography(intakeData.font_style);
 
   const out = await runAgent({
     name: "blueprintFiller",
@@ -205,13 +219,13 @@ export async function blueprintFillerAgent({
     user: (input) =>
       `MERGE_INPUT_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
     input: {
-      intake: intake?.intake || intake,
+      intake: intakeData,
       hero_profile: hero_profile?.hero_profile || hero_profile,
       storybrand: storybrand?.storybrand || storybrand,
       world: world?.world || world,
       style: style?.style || style,
       heroPhotoId,
-      page_plan: createPagePlan(),
+      page_plan: createPagePlan(pageCount),
       character_canons: characterCanons,
       portrait: {
         canon_short: portraitCanonShort,
@@ -226,11 +240,11 @@ export async function blueprintFillerAgent({
     out?.json ?? out?.data ?? out?.output ?? out?.message ?? out?.text ?? out;
 
   const heroProfile = hero_profile?.hero_profile || hero_profile || {};
-  const language = normalizeBookLanguage((intake?.intake || intake)?.language);
+  const language = normalizeBookLanguage(intakeData.language);
 
   // If it's already an object, return it
   if (candidate && typeof candidate === "object") {
-    return lockBlueprintContinuity(candidate, { heroProfile, characterCanons, language });
+    return lockBlueprintContinuity(candidate, { heroProfile, characterCanons, language, pageCount, fontStyle });
   }
 
   // Otherwise parse from string
@@ -238,6 +252,6 @@ export async function blueprintFillerAgent({
   if (!parsed) {
     throw new Error("blueprintFillerAgent: could not parse JSON from agent output");
   }
-  return lockBlueprintContinuity(parsed, { heroProfile, characterCanons, language });
+  return lockBlueprintContinuity(parsed, { heroProfile, characterCanons, language, pageCount, fontStyle });
 }
 

@@ -4,6 +4,10 @@ import sharp from "sharp";
 
 const BODY_FONT = path.resolve("assets/fonts/Andika-Regular.ttf");
 const TITLE_FONT = path.resolve("assets/fonts/PatrickHand-Regular.ttf");
+const FONT_STYLES = {
+  school_round: { fontFile: BODY_FONT, fontFamily: "Andika", sizeMultiplier: 1 },
+  handwritten_story: { fontFile: TITLE_FONT, fontFamily: "Patrick Hand", sizeMultiplier: 1.08 },
+};
 
 function mmToPx(mm, dpi) {
   return Math.round((mm / 25.4) * dpi);
@@ -55,7 +59,7 @@ function coverShadeSvg(width, height) {
     </svg>`);
 }
 
-async function composeTextPage({ width, height, title, body, pageType, pageNumber }) {
+async function composeTextPage({ width, height, title, body, pageType, fontStyle }) {
   const isOpening = pageType === "opening_text";
   const isClosing = pageType === "closing_text";
   const canvas = sharp({ create: { width, height, channels: 4, background: "#fff8ed" } });
@@ -74,11 +78,12 @@ async function composeTextPage({ width, height, title, body, pageType, pageNumbe
     composites.push({ input: titleLayer.input, top: Math.round(height * 0.13), left: Math.round((width - titleLayer.width) / 2) });
   }
 
+  const selectedFont = FONT_STYLES[fontStyle] || FONT_STYLES.school_round;
   const bodyLayer = await renderText({
     text: body,
-    fontFile: BODY_FONT,
-    fontFamily: "Andika",
-    fontSize: Math.round(width * (isOpening || isClosing ? 0.031 : 0.026)),
+    fontFile: selectedFont.fontFile,
+    fontFamily: selectedFont.fontFamily,
+    fontSize: Math.round(width * (isOpening || isClosing ? 0.031 : 0.026) * selectedFont.sizeMultiplier),
     width: Math.round(width * 0.78),
     height: Math.round(height * (title ? 0.56 : 0.68)),
     color: "#34454c",
@@ -88,20 +93,6 @@ async function composeTextPage({ width, height, title, body, pageType, pageNumbe
     Math.round((height - bodyLayer.height) / 2)
   );
   composites.push({ input: bodyLayer.input, top: bodyTop, left: Math.round((width - bodyLayer.width) / 2) });
-
-  if (pageNumber) {
-    const numberLayer = await renderText({
-      text: String(pageNumber),
-      fontFile: BODY_FONT,
-      fontFamily: "Andika",
-      fontSize: Math.round(width * 0.014),
-      width: Math.round(width * 0.08),
-      height: Math.round(height * 0.05),
-      color: "#7b898d",
-      align: "right",
-    });
-    composites.push({ input: numberLayer.input, top: Math.round(height * 0.91), left: Math.round(width * 0.85) });
-  }
 
   return canvas.composite(composites).png().toBuffer();
 }
@@ -136,6 +127,7 @@ export async function composeBookPagePNG({
   outName,
   pageType = "image",
   pageNumber,
+  fontStyle = "school_round",
   dpi = 150,
   outputsDir = "data/outputs",
 }) {
@@ -147,7 +139,7 @@ export async function composeBookPagePNG({
   let output;
 
   if (["text", "opening_text", "closing_text"].includes(pageType)) {
-    output = await composeTextPage({ width, height, title, body, pageType, pageNumber });
+    output = await composeTextPage({ width, height, title, body, pageType, fontStyle });
   } else {
     if (!imageUrl) throw new Error(`composeBookPagePNG: ${pageType} requires imageUrl`);
     const response = await fetch(imageUrl);
