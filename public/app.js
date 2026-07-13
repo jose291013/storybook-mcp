@@ -19,7 +19,7 @@ const elements = {
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), costNote: document.querySelector("#costNote"),
-  heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
+  heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
 };
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
@@ -77,6 +77,8 @@ function applyTranslations() {
   const firstPrice = state.config?.pageCountOptions?.[0]?.priceEur;
   if (elements.heroStartingPrice && firstPrice != null) elements.heroStartingPrice.textContent = tr("startingAt", { price: formatPrice(firstPrice) });
   if (elements.heroPageRange) elements.heroPageRange.textContent = tr("pageRange", { min: 24, max: 44 });
+  const universeIndex = state.config?.questions?.findIndex((question) => question.id === "universe") ?? -1;
+  if (elements.universeTitle && universeIndex >= 0) elements.universeTitle.textContent = `${universeIndex + 1}. ${tr("universeTitle")}`;
   updateBookMetrics();
 }
 
