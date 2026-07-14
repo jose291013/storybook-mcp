@@ -72,6 +72,15 @@ export class JsonProjectStore {
     return Object.values(this.read().projects).filter((project) => project.customerId === customer.id)
       .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
   }
+  async getForCustomer(id, identity) {
+    const customer = await this.ensureCustomer(identity);
+    const project = await this.get(id);
+    return project?.customerId === customer.id ? project : null;
+  }
+  async updateForCustomer(id, identity, patch) {
+    const project = await this.getForCustomer(id, identity);
+    return project ? this.update(id, patch) : null;
+  }
 }
 
 function fromRow(row) {
@@ -131,6 +140,15 @@ export class PostgresProjectStore {
     const customer = await this.ensureCustomer(identity);
     const { rows } = await this.database.query("SELECT * FROM book_projects WHERE customer_id=$1 ORDER BY updated_at DESC", [customer.id]);
     return rows.map(fromRow);
+  }
+  async getForCustomer(id, identity) {
+    const customer = await this.ensureCustomer(identity);
+    const { rows } = await this.database.query("SELECT * FROM book_projects WHERE id=$1 AND customer_id=$2", [id, customer.id]);
+    return fromRow(rows[0]);
+  }
+  async updateForCustomer(id, identity, patch) {
+    const project = await this.getForCustomer(id, identity);
+    return project ? this.update(id, patch) : null;
   }
 }
 

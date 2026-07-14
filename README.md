@@ -21,6 +21,10 @@ Le décor, le style d'illustration, la police et le nombre de pages sont choisis
 
 ### Intégration WooCommerce
 
+Le dossier `wordpress/calitiki-bridge` contient le plugin WordPress installable. Lorsqu'un visiteur demande son aperçu, le générateur sauvegarde d'abord son projet anonyme, l'envoie vers la page **Mon compte** WooCommerce, puis récupère une identité client HMAC valable cinq minutes. Le brouillon est rattaché au compte et la génération reprend automatiquement. Les photos restent exclusivement sur le service de génération.
+
+Configurer la même valeur longue dans le plugin et dans `WOOCOMMERCE_BRIDGE_SECRET`, puis copier l'URL affichée par le plugin dans `WOOCOMMERCE_BRIDGE_URL`. La session client propre au générateur est conservée dans un cookie HTTP-only pendant `CUSTOMER_SESSION_DAYS`.
+
 À chaque changement de configuration, l'interface émet l'événement navigateur `storybook:configuration`. Son champ `detail` contient notamment `product_type` (`print` ou `ebook`), `page_count`, `font_style`, `style_id`, `universe_id`, `book_language`, `price_eur`, `unit_page_price_eur` et `woo_variation_key` (`print_pages_24` à `print_pages_44`, ou `ebook_pages_24` à `ebook_pages_44`). La même clé est exposée dans `document.documentElement.dataset.storybookVariation` afin qu'un connecteur WooCommerce puisse sélectionner la variation et mettre à jour le prix.
 
 Le livre imprimé est calculé à `1,2458 €` par page. L'eBook est calculé à `0,27875 €` par page. Après paiement, la finalisation d'une commande eBook assemble la couverture et les pages basse définition dans un PDF carré 21 × 21 cm sans filigrane ; la liseuse publique conserve un filigrane d'aperçu.

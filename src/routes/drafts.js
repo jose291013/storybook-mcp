@@ -76,4 +76,26 @@ router.get("/projects", async (req, res) => {
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });
 
+router.get("/projects/:id", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.json({ project: publicProject(project) });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.put("/projects/:id", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const body = req.body || {};
+    const project = await projectStore.updateForCustomer(req.params.id, identity, {
+      status: body.status, title: body.title, locale: body.locale, questionnaire: body.questionnaire,
+      photoRefs: body.photos, productConfiguration: body.productConfiguration,
+    });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.json({ project: publicProject(project) });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
 export default router;
