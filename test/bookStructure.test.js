@@ -27,7 +27,7 @@ import {
   verifyWooAuthState,
   verifyWooCustomerToken,
 } from "../src/services/draftIdentity.js";
-import { JsonProjectStore } from "../src/services/projectStore.js";
+import { JsonProjectStore, PostgresProjectStore } from "../src/services/projectStore.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -181,6 +181,53 @@ test("anonymous drafts can be claimed and then listed as customer creations", as
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("PostgreSQL stores photo reference arrays as JSONB during create and update", async () => {
+  const queries = [];
+  const baseRow = {
+    id: "11111111-1111-4111-8111-111111111111",
+    customer_id: null,
+    anonymous_owner_hash: "anonymous-owner",
+    child_profile_id: null,
+    series_id: null,
+    episode_number: null,
+    status: "draft",
+    title: "Noa",
+    locale: "FR",
+    questionnaire: { hero_name: "Noa" },
+    photo_refs: [],
+    product_configuration: {},
+    continuity_snapshot: {},
+    final_blueprint: null,
+    preview_result: null,
+    generation_job_id: null,
+    expires_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  const database = {
+    async query(sql, params = []) {
+      queries.push({ sql, params });
+      if (sql.startsWith("SELECT")) return { rows: [baseRow] };
+      if (sql.startsWith("INSERT")) return { rows: [{ ...baseRow, id: params[0], photo_refs: JSON.parse(params[10]) }] };
+      if (sql.startsWith("UPDATE")) return { rows: [{ ...baseRow, photo_refs: JSON.parse(params[5]) }] };
+      return { rows: [] };
+    },
+  };
+  const store = new PostgresProjectStore(database);
+  const photoRefs = [{ url: "/uploads/noa.webp", name: "Noa", role: "child", story_role: "hero" }];
+
+  await store.create({ anonymousOwnerHash: "anonymous-owner", questionnaire: { hero_name: "Noa" }, photoRefs });
+  const insert = queries.find(({ sql }) => sql.startsWith("INSERT"));
+  assert.equal(typeof insert.params[10], "string");
+  assert.deepEqual(JSON.parse(insert.params[10]), photoRefs);
+
+  queries.length = 0;
+  await store.update(baseRow.id, { photoRefs });
+  const update = queries.find(({ sql }) => sql.startsWith("UPDATE"));
+  assert.equal(typeof update.params[5], "string");
+  assert.deepEqual(JSON.parse(update.params[5]), photoRefs);
 });
 
 test("illustration catalog exposes six distinct print-ready directions", () => {

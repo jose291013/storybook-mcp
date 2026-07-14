@@ -11,6 +11,7 @@ const PATCH_FIELDS = new Set([
 ]);
 const now = () => new Date().toISOString();
 const safePatch = (patch = {}) => Object.fromEntries(Object.entries(patch).filter(([key, value]) => PATCH_FIELDS.has(key) && value !== undefined));
+const jsonbParameter = (value) => value == null ? null : JSON.stringify(value);
 
 function createRecord(input = {}) {
   const createdAt = now();
@@ -114,8 +115,8 @@ export class PostgresProjectStore {
       `INSERT INTO book_projects (id,customer_id,anonymous_owner_hash,child_profile_id,series_id,episode_number,status,title,locale,
        questionnaire,photo_refs,product_configuration,continuity_snapshot,final_blueprint,preview_result,generation_job_id,expires_at,created_at,updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
-      [p.id,p.customerId,p.anonymousOwnerHash,p.childProfileId,p.seriesId,p.episodeNumber,p.status,p.title,p.locale,p.questionnaire,
-        p.photoRefs,p.productConfiguration,p.continuitySnapshot,p.finalBlueprint,p.previewResult,p.generationJobId,p.expiresAt,p.createdAt,p.updatedAt]
+      [p.id,p.customerId,p.anonymousOwnerHash,p.childProfileId,p.seriesId,p.episodeNumber,p.status,p.title,p.locale,jsonbParameter(p.questionnaire),
+        jsonbParameter(p.photoRefs),jsonbParameter(p.productConfiguration),jsonbParameter(p.continuitySnapshot),jsonbParameter(p.finalBlueprint),jsonbParameter(p.previewResult),p.generationJobId,p.expiresAt,p.createdAt,p.updatedAt]
     ); return fromRow(rows[0]);
   }
   async get(id) { const { rows } = await this.database.query("SELECT * FROM book_projects WHERE id=$1", [id]); return fromRow(rows[0]); }
@@ -125,8 +126,8 @@ export class PostgresProjectStore {
       `UPDATE book_projects SET status=$2,title=$3,locale=$4,questionnaire=$5,photo_refs=$6,product_configuration=$7,
        continuity_snapshot=$8,final_blueprint=$9,preview_result=$10,generation_job_id=$11,expires_at=$12,child_profile_id=$13,
        series_id=$14,episode_number=$15,updated_at=$16 WHERE id=$1 RETURNING *`,
-      [id,p.status,p.title,p.locale,p.questionnaire,p.photoRefs,p.productConfiguration,p.continuitySnapshot,p.finalBlueprint,
-        p.previewResult,p.generationJobId,p.expiresAt,p.childProfileId,p.seriesId,p.episodeNumber,p.updatedAt]
+      [id,p.status,p.title,p.locale,jsonbParameter(p.questionnaire),jsonbParameter(p.photoRefs),jsonbParameter(p.productConfiguration),jsonbParameter(p.continuitySnapshot),jsonbParameter(p.finalBlueprint),
+        jsonbParameter(p.previewResult),p.generationJobId,p.expiresAt,p.childProfileId,p.seriesId,p.episodeNumber,p.updatedAt]
     ); return fromRow(rows[0]);
   }
   async claim(id, ownerHash, identity) {
