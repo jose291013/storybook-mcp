@@ -149,6 +149,9 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(html, /id="logoutButton"/);
   assert.match(app, /localStorage\.removeItem\(LOCAL_DRAFT_KEY\)/);
   assert.match(app, /localStorage\.removeItem\(PENDING_PREVIEW_KEY\)/);
+  assert.match(app, /searchParams\.set\("newBook", Date\.now\(\)\.toString\(\)\)/);
+  assert.match(app, /window\.location\.replace\(reloadUrl\.toString\(\)\)/);
+  assert.match(app, /const saved = newBookRequested \? null : readLocalDraft\(\)/);
   assert.match(app, /fetch\("\/api\/auth\/logout", \{ method: "POST" \}\)/);
   assert.match(app, /refreshCustomerSession\(\)/);
 });
