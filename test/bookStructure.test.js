@@ -139,6 +139,20 @@ test("preview generation requires an authenticated customer-owned project", asyn
   assert.match(source, /project\.photoRefs/);
 });
 
+test("the creator can start a fresh book and see the WooCommerce session state", async () => {
+  const [html, app] = await Promise.all([
+    fs.readFile("public/index.html", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
+  ]);
+  assert.match(html, /id="newBookButton"/);
+  assert.match(html, /id="accountStatus"/);
+  assert.match(html, /id="logoutButton"/);
+  assert.match(app, /localStorage\.removeItem\(LOCAL_DRAFT_KEY\)/);
+  assert.match(app, /localStorage\.removeItem\(PENDING_PREVIEW_KEY\)/);
+  assert.match(app, /fetch\("\/api\/auth\/logout", \{ method: "POST" \}\)/);
+  assert.match(app, /refreshCustomerSession\(\)/);
+});
+
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-projects-"));
   try {
