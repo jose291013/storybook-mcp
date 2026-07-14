@@ -19,7 +19,14 @@ import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 import { createEbookPdf, EBOOK_PAGE_SIZE_PT } from "../src/services/createEbookPdf.js";
 import { extractBlueprintCandidate } from "../src/services/extractBlueprintCandidate.js";
 import { PDFDocument } from "pdf-lib";
-import { createWooCustomerToken, verifyWooCustomerToken } from "../src/services/draftIdentity.js";
+import {
+  createWooAuthState,
+  createWooCustomerToken,
+  readWooCustomer,
+  setWooCustomerSession,
+  verifyWooAuthState,
+  verifyWooCustomerToken,
+} from "../src/services/draftIdentity.js";
 import { JsonProjectStore } from "../src/services/projectStore.js";
 
 test("questionnaire contains ten simple questions", () => {
@@ -84,6 +91,54 @@ test("WooCommerce bridge tokens are signed, expiring customer identities", () =>
   assert.throws(() => verifyWooCustomerToken(expired, secret), /Expired/);
 });
 
+test("WooCommerce login state binds the callback to one saved project", () => {
+  const secret = "test-secret-with-enough-entropy";
+  const state = createWooAuthState({ projectId: "project-291013" }, secret);
+  const verified = verifyWooAuthState(state, secret);
+  assert.equal(verified.projectId, "project-291013");
+  assert.ok(verified.nonce.length >= 20);
+  assert.throws(() => verifyWooAuthState(`${state}x`, secret), /signature/);
+  const expired = createWooAuthState({ projectId: "project-291013", expiresInSeconds: -1 }, secret);
+  assert.throws(() => verifyWooAuthState(expired, secret), /Expired/);
+});
+
+test("the generator exchanges the short Woo token for an HTTP-only customer session", () => {
+  const previousSecret = process.env.WOOCOMMERCE_BRIDGE_SECRET;
+  process.env.WOOCOMMERCE_BRIDGE_SECRET = "session-secret-with-enough-entropy";
+  try {
+    const headers = [];
+    const req = { secure: true, headers: {} };
+    const res = { append(name, value) { headers.push([name, value]); } };
+    setWooCustomerSession(req, res, { wooCustomerId: "42", email: "parent@example.com" });
+    const cookie = headers[0][1];
+    assert.match(cookie, /HttpOnly/);
+    assert.match(cookie, /SameSite=Lax/);
+    assert.match(cookie, /Secure/);
+    const requestWithCookie = { headers: { cookie: cookie.split(";")[0] } };
+    assert.deepEqual(readWooCustomer(requestWithCookie), { wooCustomerId: "42", email: "parent@example.com" });
+  } finally {
+    if (previousSecret === undefined) delete process.env.WOOCOMMERCE_BRIDGE_SECRET;
+    else process.env.WOOCOMMERCE_BRIDGE_SECRET = previousSecret;
+  }
+});
+
+test("the WordPress bridge signs only a short-lived customer identity", async () => {
+  const source = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
+  assert.match(source, /hash_hmac\('sha256', \$payload, \$secret, true\)/);
+  assert.match(source, /'exp' => time\(\) \+ 300/);
+  assert.match(source, /HttpOnly|httponly/);
+  assert.doesNotMatch(source, /photo_refs|data\/uploads|OPENAI_API_KEY/);
+});
+
+test("preview generation requires an authenticated customer-owned project", async () => {
+  const source = await fs.readFile("src/routes/preview.js", "utf8");
+  assert.match(source, /readWooCustomer\(req\)/);
+  assert.match(source, /Authentication required/);
+  assert.match(source, /projectStore\.getForCustomer\(projectId, identity\)/);
+  assert.match(source, /project\.questionnaire/);
+  assert.match(source, /project\.photoRefs/);
+});
+
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-projects-"));
   try {
@@ -102,6 +157,10 @@ test("anonymous drafts can be claimed and then listed as customer creations", as
     const projects = await store.listForCustomer({ wooCustomerId: "42" });
     assert.equal(projects.length, 1);
     assert.equal(projects[0].title, "Noa et Luma");
+    assert.equal((await store.getForCustomer(draft.id, { wooCustomerId: "42" })).id, draft.id);
+    assert.equal(await store.getForCustomer(draft.id, { wooCustomerId: "43" }), null);
+    const updated = await store.updateForCustomer(draft.id, { wooCustomerId: "42" }, { title: "Une nouvelle aventure" });
+    assert.equal(updated.title, "Une nouvelle aventure");
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

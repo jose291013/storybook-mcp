@@ -1,9 +1,32 @@
 import crypto from "crypto";
 
 export const DRAFT_COOKIE_NAME = "storybook_draft_session";
+export const CUSTOMER_SESSION_COOKIE_NAME = "storybook_customer_session";
 
 function signature(value, secret) {
   return crypto.createHmac("sha256", secret).update(value).digest("base64url");
+}
+
+function createSignedPayload(data, secret) {
+  if (!secret) throw new Error("Missing WooCommerce bridge secret");
+  const payload = Buffer.from(JSON.stringify(data)).toString("base64url");
+  return `${payload}.${signature(payload, secret)}`;
+}
+
+function verifySignedPayload(token, secret) {
+  if (!token || !secret) return null;
+  const parts = String(token).split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) throw new Error("Invalid signed payload");
+  const [payload, suppliedSignature] = parts;
+  const expected = signature(payload, secret);
+  const left = Buffer.from(suppliedSignature);
+  const right = Buffer.from(expected);
+  if (left.length !== right.length || !crypto.timingSafeEqual(left, right)) throw new Error("Invalid signed payload signature");
+  try {
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch {
+    throw new Error("Invalid signed payload data");
+  }
 }
 
 export function hashDraftOwner(token) {
@@ -16,7 +39,10 @@ export function readCookies(req) {
     if (index < 0) return cookies;
     const name = pair.slice(0, index).trim();
     const value = pair.slice(index + 1).trim();
-    if (name) cookies[name] = decodeURIComponent(value);
+    if (name) {
+      try { cookies[name] = decodeURIComponent(value); }
+      catch { cookies[name] = value; }
+    }
     return cookies;
   }, {});
 }
@@ -35,38 +61,59 @@ export function ensureDraftOwner(req, res) {
 }
 
 export function createWooCustomerToken({ wooCustomerId, email = "", expiresInSeconds = 300 }, secret) {
-  if (!secret) throw new Error("Missing WooCommerce bridge secret");
-  const payload = Buffer.from(JSON.stringify({
+  return createSignedPayload({
     sub: String(wooCustomerId),
     email: String(email || ""),
     exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
-  })).toString("base64url");
-  return `${payload}.${signature(payload, secret)}`;
+  }, secret);
 }
 
 export function verifyWooCustomerToken(token, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
-  if (!token || !secret) return null;
-  const [payload, suppliedSignature] = String(token).split(".");
-  if (!payload || !suppliedSignature) throw new Error("Invalid customer token");
-  const expected = signature(payload, secret);
-  const left = Buffer.from(suppliedSignature);
-  const right = Buffer.from(expected);
-  if (left.length !== right.length || !crypto.timingSafeEqual(left, right)) throw new Error("Invalid customer token signature");
   let data;
-  try {
-    data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-  } catch {
-    throw new Error("Invalid customer token payload");
-  }
+  try { data = verifySignedPayload(token, secret); }
+  catch (error) { throw new Error(String(error?.message || error).replace("signed payload", "customer token")); }
+  if (!data) return null;
   if (!data.sub || !Number.isFinite(Number(data.sub))) throw new Error("Invalid WooCommerce customer id");
   if (!data.exp || data.exp <= Math.floor(Date.now() / 1000)) throw new Error("Expired customer token");
   return { wooCustomerId: String(data.sub), email: String(data.email || "") };
+}
+
+export function createWooAuthState({ projectId, expiresInSeconds = 600 }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
+  if (!projectId) throw new Error("Missing project id");
+  return createSignedPayload({
+    type: "woocommerce_auth",
+    projectId: String(projectId),
+    nonce: crypto.randomBytes(18).toString("base64url"),
+    exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
+  }, secret);
+}
+
+export function verifyWooAuthState(token, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
+  const data = verifySignedPayload(token, secret);
+  if (!data || data.type !== "woocommerce_auth" || !data.projectId || !data.nonce) throw new Error("Invalid authentication state");
+  if (!data.exp || data.exp <= Math.floor(Date.now() / 1000)) throw new Error("Expired authentication state");
+  return { projectId: String(data.projectId), nonce: String(data.nonce) };
+}
+
+function cookieSecurity(req) {
+  return process.env.NODE_ENV === "production" || req.secure ? "; Secure" : "";
+}
+
+export function setWooCustomerSession(req, res, identity) {
+  const days = Math.max(1, Number.parseInt(process.env.CUSTOMER_SESSION_DAYS || "7", 10) || 7);
+  const token = createWooCustomerToken({ ...identity, expiresInSeconds: days * 86400 }, process.env.WOOCOMMERCE_BRIDGE_SECRET);
+  res.append("Set-Cookie", `${CUSTOMER_SESSION_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${days * 86400}${cookieSecurity(req)}`);
+  return token;
+}
+
+export function clearWooCustomerSession(req, res) {
+  res.append("Set-Cookie", `${CUSTOMER_SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${cookieSecurity(req)}`);
 }
 
 export function readWooCustomer(req) {
   const authorization = String(req.headers.authorization || "");
   const token = authorization.startsWith("Bearer ")
     ? authorization.slice(7).trim()
-    : String(req.headers["x-storybook-customer-token"] || "").trim();
+    : String(req.headers["x-storybook-customer-token"] || readCookies(req)[CUSTOMER_SESSION_COOKIE_NAME] || "").trim();
   return verifyWooCustomerToken(token);
 }

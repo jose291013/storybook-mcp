@@ -31,7 +31,7 @@ Last updated: 2026-07-14
 ## Delivery phases
 
 1. Persistent draft foundation: PostgreSQL schema, anonymous ownership, draft API, local autosave, and Woo identity contract.
-2. Account gate and **My creations**: claim anonymous draft after login and list customer projects.
+2. Account gate and **My creations**: claim anonymous draft after login and list customer projects. **Account gate implemented; customer-library UI remains.**
 3. Preview entitlements: credit ledger, single-use codes, reservation/capture/release, idempotent retry.
 4. WooCommerce checkout: configuration token, order metadata, signed webhooks, and payment-triggered finalization.
 5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots.
@@ -44,7 +44,8 @@ Last updated: 2026-07-14
 - Anonymous questionnaire choices are restored from browser storage, and a server-side project is created before preview generation.
 - The project store uses PostgreSQL when `DATABASE_URL` is configured and a local JSON fallback during development.
 - Anonymous projects can be claimed and listed through the signed WooCommerce customer-token contract.
-- The WooCommerce login UI, preview credit/code gate, private object storage, and customer library UI remain for the next phases.
+- The installable `wordpress/calitiki-bridge` plugin sends logged-in customers back from WooCommerce with a five-minute HMAC identity token. The generator exchanges it for its own HTTP-only customer session and resumes the saved preview request.
+- Preview generation now requires an authenticated customer-owned project. The preview credit/code gate, private object storage, and customer library UI remain for the next phases.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -54,6 +55,8 @@ Last updated: 2026-07-14
 - `DRAFT_SESSION_DAYS`: anonymous draft-cookie lifetime, default 7 days.
 - `DRAFT_TTL_DAYS`: anonymous draft retention, default 7 days.
 - `WOOCOMMERCE_BRIDGE_SECRET`: shared secret used to verify short-lived customer identity tokens.
+- `WOOCOMMERCE_BRIDGE_URL`: public connection URL displayed in WooCommerce > Calitiki Bridge.
+- `CUSTOMER_SESSION_DAYS`: lifetime of the generator's HTTP-only customer session, default 7 days.
 
 ## Resume prompt for a new Codex task
 

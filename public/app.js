@@ -15,6 +15,7 @@ const state = {
 };
 
 const LOCAL_DRAFT_KEY = "storybook-anonymous-draft-v1";
+const PENDING_PREVIEW_KEY = "storybook-pending-preview-v1";
 let localDraftTimer;
 
 const elements = {
@@ -97,11 +98,27 @@ async function saveServerDraft(questionnaire, photos) {
   let response = state.projectId
     ? await fetch(`/api/drafts/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
     : null;
+  if (response && !response.ok) {
+    response = await fetch(`/api/projects/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body });
+  }
   if (!response?.ok) response = await fetch("/api/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body });
   const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || "Draft could not be saved");
   state.projectId = payload.project.id;
   persistLocalDraft();
+  return payload.project;
+}
+
+async function readCustomerSession() {
+  const response = await fetch("/api/auth/session", { cache: "no-store" });
+  return response.ok ? response.json() : { authenticated: false };
+}
+
+async function claimProject(projectId) {
+  let response = await fetch(`/api/drafts/${encodeURIComponent(projectId)}/claim`, { method: "POST" });
+  if (response.status === 404) response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || tr("startError"));
   return payload.project;
 }
 
@@ -371,15 +388,86 @@ function renderBook(job) {
   paintFrame();
 }
 
-async function startGeneration(event) {
-  event.preventDefault(); elements.formError.textContent = ""; const submit = elements.form.querySelector("[type=submit]"); submit.disabled = true; submit.textContent = tr("loading");
+function showGenerationPanel() {
+  document.querySelector("#creator").hidden = true;
+  elements.resultSection.hidden = true;
+  elements.generationPanel.hidden = false;
+  elements.generationBar.style.width = "5%";
+  elements.generationStep.textContent = friendlyStep("preparing");
+  elements.generationPanel.scrollIntoView({ behavior: "smooth" });
+}
+
+async function generatePreviewForProject(projectId) {
+  showGenerationPanel();
+  const response = await fetch("/api/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ projectId }),
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || tr("startError"));
+  state.jobId = payload.jobId;
+  const job = await pollJob(payload.jobId);
+  elements.generationBar.style.width = "100%";
+  elements.generationPanel.hidden = true;
+  elements.resultSection.hidden = false;
+  renderBook(job);
+  elements.resultSection.scrollIntoView({ behavior: "smooth" });
+}
+
+async function resumePreviewAfterLogin() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("auth") !== "connected") return;
+  const projectId = params.get("project") || localStorage.getItem(PENDING_PREVIEW_KEY) || "";
+  window.history.replaceState({}, "", `${window.location.pathname}#creator`);
+  localStorage.removeItem(PENDING_PREVIEW_KEY);
+  if (!projectId) return;
+  state.projectId = projectId;
+  persistLocalDraft();
   try {
-    const uploadedPhotos = await uploadPhotos(); const questionnaire = { ...formValues(), ...productConfiguration(), universe_details: document.querySelector("#universe_details").value };
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || tr("startError"));
+    await generatePreviewForProject(projectId);
+  } catch (error) {
+    document.querySelector("#creator").hidden = false;
+    elements.generationPanel.hidden = true;
+    elements.formError.textContent = error.message;
+    elements.formError.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+async function startGeneration(event) {
+  event.preventDefault();
+  elements.formError.textContent = "";
+  const submit = elements.form.querySelector("[type=submit]");
+  submit.disabled = true;
+  submit.textContent = tr("loading");
+  let leavingForLogin = false;
+  try {
+    const uploadedPhotos = await uploadPhotos();
+    const questionnaire = { ...formValues(), ...productConfiguration(), universe_details: document.querySelector("#universe_details").value };
     const project = await saveServerDraft(questionnaire, uploadedPhotos);
-    const response = await fetch("/api/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionnaire, photos: uploadedPhotos, projectId: project.id }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || tr("startError"));
-    state.jobId = payload.jobId; document.querySelector("#creator").hidden = true; elements.generationPanel.hidden = false; elements.generationPanel.scrollIntoView({ behavior: "smooth" }); const job = await pollJob(payload.jobId); elements.generationBar.style.width = "100%"; elements.generationPanel.hidden = true; elements.resultSection.hidden = false; renderBook(job); elements.resultSection.scrollIntoView({ behavior: "smooth" });
-  } catch (error) { document.querySelector("#creator").hidden = false; elements.generationPanel.hidden = true; elements.formError.textContent = error.message; elements.formError.scrollIntoView({ behavior: "smooth" }); }
-  finally { submit.disabled = false; submit.innerHTML = `<span>${escapeHtml(tr("generate"))}</span> <span>→</span>`; }
+    const session = await readCustomerSession();
+    if (!session.authenticated) {
+      leavingForLogin = true;
+      localStorage.setItem(PENDING_PREVIEW_KEY, project.id);
+      window.location.assign(`/api/auth/woocommerce/start?projectId=${encodeURIComponent(project.id)}`);
+      return;
+    }
+    await claimProject(project.id);
+    await generatePreviewForProject(project.id);
+  } catch (error) {
+    document.querySelector("#creator").hidden = false;
+    elements.generationPanel.hidden = true;
+    elements.formError.textContent = error.message;
+    elements.formError.scrollIntoView({ behavior: "smooth" });
+  } finally {
+    if (!leavingForLogin) {
+      submit.disabled = false;
+      submit.innerHTML = `<span>${escapeHtml(tr("generate"))}</span> <span>→</span>`;
+    }
+  }
 }
 
 function changeLocale(locale) {
@@ -388,7 +476,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await resumePreviewAfterLogin(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 

@@ -20,7 +20,7 @@ import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
-import { ensureDraftOwner } from "../services/draftIdentity.js";
+import { readWooCustomer } from "../services/draftIdentity.js";
 
 const router = express.Router();
 
@@ -56,25 +56,28 @@ async function describeReferences({ photos, answers, baseUrl, jobId }) {
 }
 
 router.post("/preview", async (req, res) => {
+  let identity;
+  try { identity = readWooCustomer(req); }
+  catch (error) { return res.status(401).json({ error: String(error?.message || error) }); }
+  if (!identity) return res.status(401).json({ error: "Authentication required" });
+
+  const projectId = String(req.body?.projectId || "");
+  if (!projectId) return res.status(400).json({ error: "A saved project is required" });
+  const project = await projectStore.getForCustomer(projectId, identity);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+
   let normalized;
   try {
-    normalized = normalizeBookRequest(req.body || {});
+    normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
   } catch (error) {
     return res.status(400).json({ error: String(error?.message || error) });
-  }
-
-  if (req.body?.projectId) {
-    const owner = ensureDraftOwner(req, res);
-    const project = await projectStore.get(req.body.projectId);
-    if (!project) return res.status(404).json({ error: "Draft not found" });
-    if (project.anonymousOwnerHash !== owner.ownerHash) return res.status(403).json({ error: "Draft access denied" });
   }
 
   const job = createJob({
     status: "running",
     kind: "draft_book",
     referencePhotos: normalized.photos,
-    projectId: req.body?.projectId || null,
+    projectId,
     productConfiguration: {
       page_count: normalized.answers.page_count,
       product_type: normalized.answers.product_type,
@@ -87,9 +90,7 @@ router.post("/preview", async (req, res) => {
       woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
     },
   });
-  if (req.body?.projectId) {
-    await projectStore.update(req.body.projectId, { status: "preview_generating", generationJobId: job.id });
-  }
+  await projectStore.updateForCustomer(projectId, identity, { status: "preview_generating", generationJobId: job.id });
   res.json({ jobId: job.id });
 
   (async () => {
