@@ -19,6 +19,18 @@ const LOCAL_DRAFT_KEY = "storybook-anonymous-draft-v1";
 const PENDING_PREVIEW_KEY = "storybook-pending-preview-v1";
 let localDraftTimer;
 
+function consumeNewBookRequest() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("newBook")) return false;
+  localStorage.removeItem(LOCAL_DRAFT_KEY);
+  localStorage.removeItem(PENDING_PREVIEW_KEY);
+  url.searchParams.delete("newBook");
+  window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  return true;
+}
+
+const newBookRequested = consumeNewBookRequest();
+
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
   styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
@@ -134,7 +146,10 @@ function startNewBook() {
   window.clearTimeout(localDraftTimer);
   localStorage.removeItem(LOCAL_DRAFT_KEY);
   localStorage.removeItem(PENDING_PREVIEW_KEY);
-  window.location.assign("/#creator");
+  const reloadUrl = new URL(window.location.origin);
+  reloadUrl.searchParams.set("newBook", Date.now().toString());
+  reloadUrl.hash = "creator";
+  window.location.replace(reloadUrl.toString());
 }
 
 async function logoutCustomer() {
@@ -507,7 +522,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await resumePreviewAfterLogin(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await resumePreviewAfterLogin(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 
