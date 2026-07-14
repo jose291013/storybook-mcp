@@ -6,6 +6,8 @@ import uploadRouter from "./routes/upload.js";
 import finalizeRouter from "./routes/finalize.js";
 import questionnaireRouter from "./routes/questionnaire.js";
 import improveAnswerRouter from "./routes/improveAnswer.js";
+import draftsRouter from "./routes/drafts.js";
+import { projectStore } from "./services/projectStore.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -29,8 +31,10 @@ app.use("/api", finalizeRouter);
 app.use("/api", jobsRouter);
 app.use("/api", questionnaireRouter);
 app.use("/api", improveAnswerRouter);
+app.use("/api", draftsRouter);
 
 const port = process.env.PORT || 3000;
+await projectStore.initialize();
 app.listen(port, () => {
   console.log(`✅ Server listening on port ${port}`);
 });

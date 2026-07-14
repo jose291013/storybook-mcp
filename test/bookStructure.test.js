@@ -19,6 +19,8 @@ import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 import { createEbookPdf, EBOOK_PAGE_SIZE_PT } from "../src/services/createEbookPdf.js";
 import { extractBlueprintCandidate } from "../src/services/extractBlueprintCandidate.js";
 import { PDFDocument } from "pdf-lib";
+import { createWooCustomerToken, verifyWooCustomerToken } from "../src/services/draftIdentity.js";
+import { JsonProjectStore } from "../src/services/projectStore.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -68,6 +70,41 @@ test("repair envelopes prefer the populated final blueprint over an empty page p
   assert.equal(selected, complete);
   assert.equal(selected.pages[0].text_prompt, "Texte complet page 1");
   assert.equal(selected.pages[2].image_prompt, "Illustration complete page 3");
+});
+
+test("WooCommerce bridge tokens are signed, expiring customer identities", () => {
+  const secret = "test-secret-with-enough-entropy";
+  const token = createWooCustomerToken({ wooCustomerId: 291013, email: "parent@example.com" }, secret);
+  assert.deepEqual(verifyWooCustomerToken(token, secret), {
+    wooCustomerId: "291013",
+    email: "parent@example.com",
+  });
+  assert.throws(() => verifyWooCustomerToken(`${token}x`, secret), /signature/);
+  const expired = createWooCustomerToken({ wooCustomerId: 291013, expiresInSeconds: -1 }, secret);
+  assert.throws(() => verifyWooCustomerToken(expired, secret), /Expired/);
+});
+
+test("anonymous drafts can be claimed and then listed as customer creations", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-projects-"));
+  try {
+    const store = new JsonProjectStore(path.join(directory, "projects.json"));
+    const draft = await store.create({
+      anonymousOwnerHash: "anonymous-owner",
+      title: "Noa et Luma",
+      questionnaire: { hero_name: "Noa" },
+      photoRefs: [{ id: "noa.webp", role: "child" }],
+    });
+    assert.equal((await store.get(draft.id)).status, "draft");
+    assert.equal(await store.claim(draft.id, "wrong-owner", { wooCustomerId: "42" }), null);
+    const claimed = await store.claim(draft.id, "anonymous-owner", { wooCustomerId: "42", email: "parent@example.com" });
+    assert.equal(claimed.anonymousOwnerHash, null);
+    assert.equal(claimed.expiresAt, null);
+    const projects = await store.listForCustomer({ wooCustomerId: "42" });
+    assert.equal(projects.length, 1);
+    assert.equal(projects[0].title, "Noa et Luma");
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("illustration catalog exposes six distinct print-ready directions", () => {
