@@ -12,6 +12,7 @@ const state = {
   photos: [],
   jobId: "",
   projectId: "",
+  customerSession: { authenticated: false, customer: null },
 };
 
 const LOCAL_DRAFT_KEY = "storybook-anonymous-draft-v1";
@@ -26,6 +27,7 @@ const elements = {
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
+  accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"),
 };
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
@@ -114,6 +116,34 @@ async function readCustomerSession() {
   return response.ok ? response.json() : { authenticated: false };
 }
 
+function renderCustomerSession() {
+  const connected = Boolean(state.customerSession?.authenticated);
+  elements.accountStatus.dataset.state = connected ? "connected" : "disconnected";
+  elements.accountStatus.textContent = tr(connected ? "accountConnected" : "accountDisconnected");
+  elements.logoutButton.hidden = !connected;
+}
+
+async function refreshCustomerSession() {
+  state.customerSession = await readCustomerSession();
+  renderCustomerSession();
+  return state.customerSession;
+}
+
+function startNewBook() {
+  if (!window.confirm(tr("newBookConfirm"))) return;
+  window.clearTimeout(localDraftTimer);
+  localStorage.removeItem(LOCAL_DRAFT_KEY);
+  localStorage.removeItem(PENDING_PREVIEW_KEY);
+  window.location.assign("/#creator");
+}
+
+async function logoutCustomer() {
+  const response = await fetch("/api/auth/logout", { method: "POST" });
+  if (!response.ok) throw new Error(tr("startError"));
+  state.customerSession = { authenticated: false, customer: null };
+  renderCustomerSession();
+}
+
 async function claimProject(projectId) {
   let response = await fetch(`/api/drafts/${encodeURIComponent(projectId)}/claim`, { method: "POST" });
   if (response.status === 404) response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
@@ -132,6 +162,7 @@ function applyTranslations() {
   if (elements.heroPageRange) elements.heroPageRange.textContent = tr("pageRange", { min: 24, max: 44 });
   const universeIndex = state.config?.questions?.findIndex((question) => question.id === "universe") ?? -1;
   if (elements.universeTitle && universeIndex >= 0) elements.universeTitle.textContent = `${universeIndex + 1}. ${tr("universeTitle")}`;
+  renderCustomerSession();
   updateBookMetrics();
 }
 
@@ -476,7 +507,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await resumePreviewAfterLogin(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await resumePreviewAfterLogin(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 
@@ -490,5 +521,7 @@ document.querySelectorAll(".step").forEach((step, index) => step.addEventListene
 elements.form.addEventListener("input", scheduleLocalDraft);
 elements.form.addEventListener("change", scheduleLocalDraft);
 elements.form.addEventListener("click", (event) => { if (event.target.closest("[data-style-id],[data-universe-id],[data-font-id],[data-product-type],[data-page-count]")) window.setTimeout(persistLocalDraft, 0); });
+elements.newBookButton.addEventListener("click", startNewBook);
+elements.logoutButton.addEventListener("click", () => { logoutCustomer().catch((error) => { elements.formError.textContent = error.message; }); });
 
 init();

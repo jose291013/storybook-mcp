@@ -51,6 +51,11 @@
         </aside>
 
         <div class="form-card">
+          <div class="creator-toolbar" aria-live="polite">
+            <span class="account-status" id="accountStatus" data-state="disconnected" data-i18n="accountDisconnected">Non connecté</span>
+            <button type="button" class="toolbar-button" id="logoutButton" data-i18n="logout" hidden>Se déconnecter</button>
+            <button type="button" class="toolbar-button is-emphasized" id="newBookButton" data-i18n="newBook">Nouveau livre</button>
+          </div>
           <div class="mobile-progress"><span id="mobileStepLabel">Étape 1 sur 5</span><div><i id="mobileProgressBar"></i></div></div>
           <form id="bookForm" novalidate>
             <section class="form-panel is-active" data-panel="0">
