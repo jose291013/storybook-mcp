@@ -11,7 +11,11 @@ const state = {
   productType: "print",
   photos: [],
   jobId: "",
+  projectId: "",
 };
+
+const LOCAL_DRAFT_KEY = "storybook-anonymous-draft-v1";
+let localDraftTimer;
 
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
@@ -74,6 +78,32 @@ const selectedProductPrice = () => {
 
 function formValues() { return Object.fromEntries(new FormData(elements.form).entries()); }
 function restoreValues(values) { Object.entries(values).forEach(([name, value]) => { const input = elements.form.elements.namedItem(name); if (input && typeof input.value !== "undefined") input.value = value; }); }
+function readLocalDraft() { try { return JSON.parse(localStorage.getItem(LOCAL_DRAFT_KEY) || "null"); } catch { return null; } }
+function persistLocalDraft() {
+  if (!state.config) return;
+  localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
+    values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
+    selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
+    productType: state.productType, projectId: state.projectId, updatedAt: new Date().toISOString(),
+  }));
+}
+function scheduleLocalDraft() { window.clearTimeout(localDraftTimer); localDraftTimer = window.setTimeout(persistLocalDraft, 250); }
+
+async function saveServerDraft(questionnaire, photos) {
+  const body = JSON.stringify({
+    status: "ready_for_preview", title: questionnaire.hero_name || "", locale: state.locale,
+    questionnaire, photos, productConfiguration: productConfiguration(),
+  });
+  let response = state.projectId
+    ? await fetch(`/api/drafts/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
+    : null;
+  if (!response?.ok) response = await fetch("/api/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "Draft could not be saved");
+  state.projectId = payload.project.id;
+  persistLocalDraft();
+  return payload.project;
+}
 
 function applyTranslations() {
   document.documentElement.lang = state.locale.toLowerCase();
@@ -345,7 +375,8 @@ async function startGeneration(event) {
   event.preventDefault(); elements.formError.textContent = ""; const submit = elements.form.querySelector("[type=submit]"); submit.disabled = true; submit.textContent = tr("loading");
   try {
     const uploadedPhotos = await uploadPhotos(); const questionnaire = { ...formValues(), ...productConfiguration(), universe_details: document.querySelector("#universe_details").value };
-    const response = await fetch("/api/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionnaire, photos: uploadedPhotos }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || tr("startError"));
+    const project = await saveServerDraft(questionnaire, uploadedPhotos);
+    const response = await fetch("/api/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionnaire, photos: uploadedPhotos, projectId: project.id }) }); const payload = await response.json(); if (!response.ok) throw new Error(payload.error || tr("startError"));
     state.jobId = payload.jobId; document.querySelector("#creator").hidden = true; elements.generationPanel.hidden = false; elements.generationPanel.scrollIntoView({ behavior: "smooth" }); const job = await pollJob(payload.jobId); elements.generationBar.style.width = "100%"; elements.generationPanel.hidden = true; elements.resultSection.hidden = false; renderBook(job); elements.resultSection.scrollIntoView({ behavior: "smooth" });
   } catch (error) { document.querySelector("#creator").hidden = false; elements.generationPanel.hidden = true; elements.formError.textContent = error.message; elements.formError.scrollIntoView({ behavior: "smooth" }); }
   finally { submit.disabled = false; submit.innerHTML = `<span>${escapeHtml(tr("generate"))}</span> <span>→</span>`; }
@@ -357,7 +388,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); state.pageCount = state.config.bookFormat.interiorPageCount; changeLocale(state.locale); emitWooConfiguration(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 
@@ -368,5 +399,8 @@ elements.photoDropZone.addEventListener("drop", (event) => addPhotos(event.dataT
 elements.uiLanguage.addEventListener("change", () => changeLocale(elements.uiLanguage.value)); document.querySelector("#language").addEventListener("change", emitWooConfiguration);
 elements.prevButton.addEventListener("click", () => showStep(state.step - 1)); elements.nextButton.addEventListener("click", () => { if (validateStep()) showStep(state.step + 1); });
 document.querySelectorAll(".step").forEach((step, index) => step.addEventListener("click", () => { if (index <= state.step || validateStep()) showStep(index); })); elements.form.addEventListener("submit", startGeneration);
+elements.form.addEventListener("input", scheduleLocalDraft);
+elements.form.addEventListener("change", scheduleLocalDraft);
+elements.form.addEventListener("click", (event) => { if (event.target.closest("[data-style-id],[data-universe-id],[data-font-id],[data-product-type],[data-page-count]")) window.setTimeout(persistLocalDraft, 0); });
 
 init();

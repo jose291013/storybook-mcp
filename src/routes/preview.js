@@ -19,6 +19,8 @@ import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { createPagePlan } from "../config/bookStructure.js";
+import { projectStore } from "../services/projectStore.js";
+import { ensureDraftOwner } from "../services/draftIdentity.js";
 
 const router = express.Router();
 
@@ -61,10 +63,18 @@ router.post("/preview", async (req, res) => {
     return res.status(400).json({ error: String(error?.message || error) });
   }
 
+  if (req.body?.projectId) {
+    const owner = ensureDraftOwner(req, res);
+    const project = await projectStore.get(req.body.projectId);
+    if (!project) return res.status(404).json({ error: "Draft not found" });
+    if (project.anonymousOwnerHash !== owner.ownerHash) return res.status(403).json({ error: "Draft access denied" });
+  }
+
   const job = createJob({
     status: "running",
     kind: "draft_book",
     referencePhotos: normalized.photos,
+    projectId: req.body?.projectId || null,
     productConfiguration: {
       page_count: normalized.answers.page_count,
       product_type: normalized.answers.product_type,
@@ -77,6 +87,9 @@ router.post("/preview", async (req, res) => {
       woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
     },
   });
+  if (req.body?.projectId) {
+    await projectStore.update(req.body.projectId, { status: "preview_generating", generationJobId: job.id });
+  }
   res.json({ jobId: job.id });
 
   (async () => {
@@ -237,8 +250,17 @@ router.post("/preview", async (req, res) => {
         final_blueprint,
         result: { coverImageUrl, coverPreviewUrl, draftPages },
       });
+      if (job.projectId) {
+        await projectStore.update(job.projectId, {
+          status: "preview_ready",
+          finalBlueprint: final_blueprint,
+          previewResult: { coverImageUrl, coverPreviewUrl, draftPages },
+          generationJobId: job.id,
+        });
+      }
     } catch (error) {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+      if (job.projectId) await projectStore.update(job.projectId, { status: "preview_failed", generationJobId: job.id });
     }
   })();
 });

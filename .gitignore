@@ -2,5 +2,7 @@ node_modules/
 .env
 data/outputs/*
 data/uploads/*
+data/projects.json
+data/projects.json.tmp
 !data/outputs/.gitkeep
 !data/uploads/.gitkeep
