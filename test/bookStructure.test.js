@@ -28,6 +28,7 @@ import {
   verifyWooCustomerToken,
 } from "../src/services/draftIdentity.js";
 import { JsonProjectStore, PostgresProjectStore } from "../src/services/projectStore.js";
+import { inspectPageStructure } from "../src/agents/qa.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -527,7 +528,13 @@ test("blueprint normalization repairs paired cast contracts, name typos and requ
   const plan = createPagePlan(24);
   const blueprint = {
     hero: { name: "Julanin", age: 5, outfit_lock: "" },
-    cast: [{ name: "Janine", role: "family", story_role: "guide", canon_short: "grand-mere souriante" }],
+    cast: [{
+      name: "Janine",
+      role: "family",
+      story_role: "guide",
+      canon_short: "grand-mere souriante",
+      outfit_lock: "cardigan prune, chemisier creme et pantalon marine",
+    }],
     cover: {
       title: "Julanin et la foret",
       image_prompt: "Julanin wearing a blue t-shirt and beige pants beside Janine, square cover",
@@ -566,16 +573,27 @@ test("blueprint normalization repairs paired cast contracts, name typos and requ
   assert.match(result.cover.image_prompt, /TENUE VERROUILLEE DE Julanin/);
   assert.match(result.cover.image_prompt, /30 % superieurs/);
   assert.match(result.pages.find((page) => page.page_number === 3).image_prompt, /pull en laine rouge bordeaux/);
+  assert.match(result.pages.find((page) => page.page_number === 3).image_prompt, /TENUE VERROUILLEE DE Janine/);
+  assert.match(result.pages.find((page) => page.page_number === 4).image_prompt, /COMPOSITION CARREE DETAILLEE/);
+  assert.match(result.pages.find((page) => page.page_number === 5).text_prompt, /action concrete/);
+});
+
+test("deterministic QA accepts the required reversal between consecutive spreads", () => {
+  const pages = createPagePlan(24);
+  const result = inspectPageStructure({ format: { interior_pages: 24 }, pages });
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.issues, []);
 });
 
 test("preview repairs a rejected blueprint before spending image credits", async () => {
   const source = await fs.readFile("src/routes/preview.js", "utf8");
-  const repairStep = source.indexOf('step: "qa:repair"');
+  const repairStep = source.indexOf('"qa:repair"');
   const coverStep = source.indexOf('step: "draft:cover"');
   assert.ok(repairStep >= 0);
   assert.ok(coverStep > repairStep);
   assert.match(source, /blueprintRepairAgent/);
   assert.match(source, /qa:verify_repair/);
+  assert.match(source, /maximumRepairAttempts = 3/);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

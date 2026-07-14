@@ -78,6 +78,18 @@ function coverCompositionDirective(language) {
   return "COMPOSITION DE COUVERTURE : reserver les 30 % superieurs comme zone claire pour le titre, avec seulement du ciel ou un decor simple ; placer tous les visages et personnages sous cette zone, sans texte dans l'illustration.";
 }
 
+function illustrationCompositionDirective(language) {
+  if (language === "ES") return "COMPOSICION CUADRADA DETALLADA: describir claramente el lugar, la accion, la expresion de los personajes, el encuadre, el primer plano, el fondo y la luz, con un punto focal legible. Sin texto, subtitulos, logotipos ni marcas de agua dentro de la ilustracion.";
+  if (language === "EN") return "DETAILED SQUARE COMPOSITION: clearly describe the setting, action, character expressions, framing, foreground, background and lighting, with one readable focal point. No text, captions, logos or watermarks inside the illustration.";
+  return "COMPOSITION CARREE DETAILLEE : decrire clairement le lieu, l'action, l'expression des personnages, le cadrage, le premier plan, l'arriere-plan et la lumiere, avec un point focal lisible. Aucun texte, sous-titre, logo ni filigrane dans l'illustration.";
+}
+
+function narrativeDetailDirective(language) {
+  if (language === "ES") return "Desarrollar este momento con una accion concreta, una emocion perceptible, un detalle sensorial y una progresion clara de causa a efecto; evitar un resumen generico.";
+  if (language === "EN") return "Develop this moment with a concrete action, a perceptible emotion, one sensory detail and clear cause-and-effect progression; avoid a generic summary.";
+  return "Developper ce moment avec une action concrete, une emotion perceptible, un detail sensoriel et une progression claire de cause a effet ; eviter un resume generique.";
+}
+
 function appendDirective(prompt, directive) {
   const value = String(prompt || "").trim();
   if (!directive || value.includes(directive)) return value;
@@ -274,8 +286,12 @@ export function lockBlueprintContinuity(blueprint, {
   }
   result.pages = result.pages.map((page) => ({
     ...page,
-    text_prompt: canonicalizePromptNames(page.text_prompt, canonicalCharacters),
-    image_prompt: canonicalizePromptNames(page.image_prompt, canonicalCharacters),
+    text_prompt: page.page_type.includes("text")
+      ? appendDirective(canonicalizePromptNames(page.text_prompt, canonicalCharacters), narrativeDetailDirective(result.language))
+      : "",
+    image_prompt: page.page_type === "image"
+      ? appendDirective(canonicalizePromptNames(page.image_prompt, canonicalCharacters), illustrationCompositionDirective(result.language))
+      : "",
     cast_present: canonicalizeCast(page.cast_present, `${page.text_prompt || ""} ${page.image_prompt || ""}`),
   }));
 
@@ -299,13 +315,16 @@ export function lockBlueprintContinuity(blueprint, {
   }
   lockPlotObjectTimeline(result, questObject);
   syncSpreadCastContracts(result, canonicalCharacters, questObject);
-  const fixedOutfit = outfitDirective(result.language, result.hero.name, result.hero.outfit_lock);
-  if (result.cover.cast_present.some((name) => sameName(name, result.hero.name))) {
-    result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);
-  }
-  for (const page of result.pages.filter((item) => item.page_type === "image")) {
-    if (page.cast_present.some((name) => sameName(name, result.hero.name))) {
-      page.image_prompt = appendDirective(page.image_prompt, fixedOutfit);
+  const outfitCharacters = [result.hero, ...result.cast].filter((character) => character?.name && character?.outfit_lock);
+  for (const character of outfitCharacters) {
+    const fixedOutfit = outfitDirective(result.language, character.name, character.outfit_lock);
+    if (result.cover.cast_present.some((name) => sameName(name, character.name))) {
+      result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);
+    }
+    for (const page of result.pages.filter((item) => item.page_type === "image")) {
+      if (page.cast_present.some((name) => sameName(name, character.name))) {
+        page.image_prompt = appendDirective(page.image_prompt, fixedOutfit);
+      }
     }
   }
   return result;

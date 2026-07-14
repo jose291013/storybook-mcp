@@ -129,8 +129,12 @@ router.post("/preview", async (req, res) => {
 
       updateJob(job.id, { step: "qa", final_blueprint });
       let qa = await qaAgent(final_blueprint);
-      if (qa?.qa?.status !== "approved") {
-        updateJob(job.id, { step: "qa:repair", final_blueprint });
+      const maximumRepairAttempts = 3;
+      for (let repairAttempt = 1; qa?.qa?.status !== "approved" && repairAttempt <= maximumRepairAttempts; repairAttempt += 1) {
+        updateJob(job.id, {
+          step: repairAttempt === 1 ? "qa:repair" : `qa:repair:${repairAttempt}`,
+          final_blueprint,
+        });
         const repaired = await blueprintRepairAgent({
           finalBlueprint: final_blueprint,
           qa,
@@ -143,7 +147,10 @@ router.post("/preview", async (req, res) => {
           pageCount: answers.page_count,
           fontStyle: answers.font_style,
         });
-        updateJob(job.id, { step: "qa:verify_repair", final_blueprint });
+        updateJob(job.id, {
+          step: repairAttempt === 1 ? "qa:verify_repair" : `qa:verify_repair:${repairAttempt}`,
+          final_blueprint,
+        });
         qa = await qaAgent(final_blueprint);
       }
       if (qa?.qa?.status !== "approved") {
