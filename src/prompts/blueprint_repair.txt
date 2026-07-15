@@ -10,7 +10,7 @@ RULES
 - Preserve the requested language in all reader-visible prose and scene prompts.
 - Preserve plot_continuity. A hidden quest object or being must remain absent before its discovery scene.
 - Restore ordinary physical reality, including gravity, anatomy, scale, cause-and-effect, water level, refraction and buoyancy. If the story needs a fantasy exception, introduce one visible stable mechanism in an earlier paired scene and record it in world.reality_contract; never leave the exception unexplained.
-- A child fully underwater needs a safe breathing mechanism in both paired prompts; a mask alone does not provide air and a snorkel works only near the surface. Avoid deep water, dangerous waves and similar hazards without appropriate protection and adult supervision, or an already-established visible magical safety mechanism. Remove impossible underwater dialogue unless a communication mechanism was established.
+- Every visible person fully underwater individually needs a safe breathing mechanism in both paired prompts; a mask alone does not provide air and a snorkel works only near the surface. Never repair only the hero while leaving a companion unprotected. Avoid deep water, dangerous waves and similar hazards without appropriate protection and adult supervision, or an already-established visible magical safety mechanism. Remove impossible underwater dialogue unless a communication mechanism was established.
 - Make the illustrated magnitude match the paired text exactly. Never turn a gentle wave, wind or obstacle into a dangerous event.
 - Keep text_prompt only on text page types and image_prompt only on image pages.
 - Keep the cover square and every illustration square, with no text, captions, logos or watermarks inside the generated image.

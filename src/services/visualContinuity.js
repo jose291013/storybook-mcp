@@ -50,6 +50,10 @@ function selectedCharacters({ blueprint, characterCanons, castPresent, sceneProm
   return selected;
 }
 
+function isFullyUnderwaterScene(value) {
+  return /(sous\s+l['’]eau|sous[- ]marine?|au\s+fond\s+de\s+l['’](?:eau|oc[eé]an)|parmi\s+les\s+coraux|underwater|fully\s+submerged|beneath\s+the\s+surface|on\s+the\s+seabed|debajo\s+del\s+agua|bajo\s+el\s+agua|sumergid[oa]s?|fondo\s+del\s+oc[eé]ano)/iu.test(String(value || ""));
+}
+
 export function buildSceneContinuity({
   blueprint,
   characterCanons = [],
@@ -104,6 +108,16 @@ export function buildSceneContinuity({
     );
   }
   if (visualState?.directive) sceneRules.push(String(visualState.directive).trim());
+  const underwaterScene = isFullyUnderwaterScene(`${pairedText} ${scenePrompt}`);
+  const underwaterPeople = selected.filter((character) => character.role !== "mascot");
+  if (underwaterScene && underwaterPeople.length) {
+    const names = underwaterPeople.map((character) => character.name).filter(Boolean);
+    sceneRules.push(
+      `MANDATORY INDIVIDUAL UNDERWATER SAFETY (${names.length} people: ${names.join(", ")}): every listed person must individually have a complete visible breathing or story-established magical air mechanism.`,
+      "Apply the same safety logic to every person, not only the hero. If one person wears a transparent diving helmet, bubble, mask-and-snorkel or other established mechanism, every other submerged person must have their own complete appropriate mechanism too.",
+      "No listed person may appear bare-headed and breathing normally underwater. Do not merge two people's equipment into one shared object."
+    );
+  }
   const facingPageContract = buildFacingPageSceneContract({
     pairedText,
     imagePrompt: scenePrompt,

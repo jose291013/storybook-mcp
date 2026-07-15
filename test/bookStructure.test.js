@@ -139,12 +139,15 @@ test("preview generation requires an authenticated customer-owned project", asyn
   assert.match(source, /projectStore\.getForCustomer\(projectId, identity\)/);
   assert.match(source, /project\.questionnaire/);
   assert.match(source, /project\.photoRefs/);
+  assert.match(source, /project\.status === "preview_generating"/);
+  assert.match(source, /project\.status === "preview_ready" && project\.previewResult/);
 });
 
 test("the creator can start a fresh book and see the WooCommerce session state", async () => {
-  const [html, app] = await Promise.all([
+  const [html, app, styles] = await Promise.all([
     fs.readFile("public/index.html", "utf8"),
     fs.readFile("public/app.js", "utf8"),
+    fs.readFile("public/styles.css", "utf8"),
   ]);
   assert.match(html, /id="newBookButton"/);
   assert.match(html, /id="accountStatus"/);
@@ -156,6 +159,9 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /const saved = newBookRequested \? null : readLocalDraft\(\)/);
   assert.match(app, /fetch\("\/api\/auth\/logout", \{ method: "POST" \}\)/);
   assert.match(app, /refreshCustomerSession\(\)/);
+  assert.match(app, /setPreviewComplete\(true\)/);
+  assert.match(app, /!state\.previewComplete/);
+  assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
@@ -464,6 +470,22 @@ test("world reality keeps physics by default and requires explicit visible fanta
   assert.match(contract, /Nolan montre une branche a Mateo/);
   assert.match(contract, /object and gesture must be clearly visible/i);
   assert.match(contract, /one coherent surface level/i);
+});
+
+test("every submerged person receives their own complete breathing mechanism", () => {
+  const continuity = buildSceneContinuity({
+    blueprint: {
+      hero: { name: "Nolan", outfit_lock: "white t-shirt and blue shorts" },
+      cast: [{ name: "Mateo", role: "family", canon_short: "Nolan's older brother" }],
+      world: normalizeWorldReality({ primary_setting: "ocean de corail" }),
+    },
+    castPresent: ["Nolan", "Mateo"],
+    scenePrompt: "Nolan et Mateo explorent un jardin sous-marin.",
+    pairedText: "Sous l'eau, Nolan et Mateo avancent ensemble parmi les coraux.",
+  });
+  assert.match(continuity.sceneContract, /MANDATORY INDIVIDUAL UNDERWATER SAFETY \(2 people: Nolan, Mateo\)/);
+  assert.match(continuity.sceneContract, /every other submerged person must have their own complete appropriate mechanism/i);
+  assert.match(continuity.sceneContract, /No listed person may appear bare-headed/i);
 });
 
 test("lost quest objects stay invisible until the paired discovery scene", () => {
