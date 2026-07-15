@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.0.0');
+define('CALITIKI_THEME_VERSION', '1.0.1');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -29,7 +29,8 @@ function calitiki_assets() {
 add_action('wp_enqueue_scripts', 'calitiki_assets');
 
 function calitiki_generator_url() {
-    return esc_url(get_theme_mod('calitiki_generator_url', 'https://storybook-mcp.onrender.com'));
+    $base_url = get_theme_mod('calitiki_generator_url', 'https://storybook-mcp.onrender.com');
+    return esc_url(add_query_arg('newBook', '1', $base_url));
 }
 
 function calitiki_customize_register($customizer) {
@@ -76,4 +77,3 @@ function calitiki_excerpt_more() {
     return '&hellip;';
 }
 add_filter('excerpt_more', 'calitiki_excerpt_more');
-

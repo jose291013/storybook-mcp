@@ -150,12 +150,14 @@ test("the creator can start a fresh book and see the WooCommerce session state",
     fs.readFile("public/styles.css", "utf8"),
   ]);
   assert.match(html, /id="newBookButton"/);
+  assert.match(html, /id="resultNewBookButton"/);
   assert.match(html, /id="accountStatus"/);
   assert.match(html, /id="logoutButton"/);
   assert.match(app, /localStorage\.removeItem\(LOCAL_DRAFT_KEY\)/);
   assert.match(app, /localStorage\.removeItem\(PENDING_PREVIEW_KEY\)/);
   assert.match(app, /searchParams\.set\("newBook", Date\.now\(\)\.toString\(\)\)/);
   assert.match(app, /window\.location\.replace\(reloadUrl\.toString\(\)\)/);
+  assert.match(app, /resultNewBookButton\.addEventListener\("click", startNewBook\)/);
   assert.match(app, /const saved = newBookRequested \? null : readLocalDraft\(\)/);
   assert.match(app, /fetch\("\/api\/auth\/logout", \{ method: "POST" \}\)/);
   assert.match(app, /refreshCustomerSession\(\)/);
@@ -165,6 +167,16 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /final_blueprint: project\.finalBlueprint/);
   assert.match(app, /else await restoreCompletedPreview\(\)/);
   assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
+});
+
+test("the Calitiki theme starts a fresh creator flow and contains the WooCommerce account layout fix", async () => {
+  const [themeFunctions, themeStyles] = await Promise.all([
+    fs.readFile("wordpress/calitiki-theme/functions.php", "utf8"),
+    fs.readFile("wordpress/calitiki-theme/assets/css/theme.css", "utf8"),
+  ]);
+  assert.match(themeFunctions, /add_query_arg\('newBook', '1', \$base_url\)/);
+  assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
+  assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
