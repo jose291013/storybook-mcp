@@ -170,6 +170,8 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .generation-progress { height: 8px; background: #eee5da; border-radius: 99px; overflow: hidden; max-width: 520px; margin: 30px auto 12px; }.generation-progress i { display: block; height: 100%; width: 5%; background: linear-gradient(90deg, var(--sage), var(--peach)); border-radius: inherit; transition: width .6s ease; }
 .generation-panel p:not(.section-kicker), .result-section > p:not(.section-kicker) { color: var(--muted); }
 .book-preview { margin-top: 40px; }
+.result-actions { display: flex; justify-content: center; margin: 22px 0 28px; }
+.result-actions .toolbar-button { padding: 12px 22px; font-size: .9rem; }
 .reader-shell { display: grid; justify-items: center; gap: 16px; }
 .reader-book { position: relative; width: min(920px, 100%); aspect-ratio: 2 / 1; display: grid; place-items: center; perspective: 2200px; cursor: pointer; outline: none; transition: width .35s ease; }
 .reader-book:focus-visible { border-radius: 18px; box-shadow: 0 0 0 4px rgba(125,168,156,.35); }

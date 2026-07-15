@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "layout": { "contentSize": "760px", "wideSize": "1180px" },
+    "color": {
+      "palette": [
+        { "slug": "ink", "name": "Encre", "color": "#18373a" },
+        { "slug": "coral", "name": "Corail", "color": "#d8755b" },
+        { "slug": "sage", "name": "Sauge", "color": "#86b5aa" },
+        { "slug": "cream", "name": "Crème", "color": "#fbf7ef" },
+        { "slug": "sun", "name": "Soleil", "color": "#efb34f" }
+      ]
+    },
+    "typography": { "fluid": true }
+  },
+  "styles": {
+    "color": { "background": "#fbf7ef", "text": "#18373a" },
+    "typography": { "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif", "lineHeight": "1.65" }
+  }
+}
+
