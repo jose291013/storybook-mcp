@@ -1,4 +1,5 @@
 import path from "path";
+import { buildFacingPageSceneContract } from "./worldReality.js";
 
 const UPLOAD_DIR = path.resolve("data/uploads");
 
@@ -56,6 +57,7 @@ export function buildSceneContinuity({
   scenePrompt = "",
   visualState = {},
   continuityImagePath = "",
+  pairedText = "",
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
   const characterFingerprints = [];
@@ -102,6 +104,12 @@ export function buildSceneContinuity({
     );
   }
   if (visualState?.directive) sceneRules.push(String(visualState.directive).trim());
+  const facingPageContract = buildFacingPageSceneContract({
+    pairedText,
+    imagePrompt: scenePrompt,
+    realityContract: blueprint?.world?.reality_contract,
+  });
+  if (facingPageContract) sceneRules.push(facingPageContract);
 
   return {
     characterFingerprints,

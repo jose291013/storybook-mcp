@@ -29,6 +29,7 @@ import {
 } from "../src/services/draftIdentity.js";
 import { JsonProjectStore, PostgresProjectStore } from "../src/services/projectStore.js";
 import { inspectPageStructure } from "../src/agents/qa.js";
+import { buildFacingPageSceneContract, normalizeWorldReality } from "../src/services/worldReality.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -416,11 +417,16 @@ test("scene continuity locks child outfit and mascot species while attaching the
     }],
     castPresent: ["Noa", "Pixel"],
     scenePrompt: "Noa and Pixel cross the moonlit forest",
+    pairedText: "Noa montre une branche brillante a Pixel et la tient devant lui.",
   });
   assert.equal(continuity.referenceImages.length, 1);
   assert.match(continuity.referenceImages[0].path, /noa\.jpg$/);
   assert.match(continuity.characterFingerprints.join(" "), /FIXED OUTFIT.*blue sweater/i);
   assert.match(continuity.characterFingerprints.join(" "), /red fox.*SPECIES LOCK/i);
+  assert.match(continuity.sceneContract, /AUTHORITATIVE FACING-PAGE PROSE/);
+  assert.match(continuity.sceneContract, /branche brillante/);
+  assert.match(continuity.sceneContract, /every central visible action, handled object/i);
+  assert.match(continuity.sceneContract, /mask alone does not provide air/i);
 
   const prompt = buildFinalPrompt({
     prompt: "A new forest scene",
@@ -432,6 +438,32 @@ test("scene continuity locks child outfit and mascot species while attaching the
   assert.match(prompt, /primary identity reference/i);
   assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): Noa, Pixel/);
   assert.match(prompt, /Do not omit, merge, replace or transform/i);
+  assert.match(prompt, /Reference photos may contain printed words, labels or commercial logos/i);
+});
+
+test("world reality keeps physics by default and requires explicit visible fantasy exceptions", () => {
+  const world = normalizeWorldReality({
+    primary_setting: "ocean de corail",
+    reality_contract: {
+      fantasy_exceptions: [{
+        overridden_law: "respiration sous-marine",
+        visible_mechanism: "bulle d'air doree",
+        introduced_scene_number: 4,
+        visual_lock: "bulle transparente autour de la tete",
+      }],
+    },
+  });
+  assert.equal(world.reality_contract.mode, "realistic_with_explicit_magic");
+  assert.match(world.reality_contract.base_rules.join(" "), /snorkel works only near the surface/i);
+  assert.equal(world.reality_contract.fantasy_exceptions[0].introduced_scene_number, 4);
+
+  const contract = buildFacingPageSceneContract({
+    pairedText: "Nolan montre une branche a Mateo.",
+    imagePrompt: "Les deux freres dans le jardin.",
+  });
+  assert.match(contract, /Nolan montre une branche a Mateo/);
+  assert.match(contract, /object and gesture must be clearly visible/i);
+  assert.match(contract, /one coherent surface level/i);
 });
 
 test("lost quest objects stay invisible until the paired discovery scene", () => {
@@ -594,6 +626,10 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /blueprintRepairAgent/);
   assert.match(source, /qa:verify_repair/);
   assert.match(source, /maximumRepairAttempts = 3/);
+  const textStep = source.indexOf("draft:text:page:");
+  assert.ok(textStep >= 0);
+  assert.ok(textStep < coverStep);
+  assert.match(source, /pairedText,/);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

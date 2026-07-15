@@ -5,6 +5,7 @@ import { applyPagePlan, createPagePlan } from "../config/bookStructure.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
 import { normalizePageCount, normalizeTypography } from "../config/bookOptions.js";
 import { extractBlueprintCandidate } from "../services/extractBlueprintCandidate.js";
+import { normalizeWorldReality } from "../services/worldReality.js";
 
 function nameKey(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -228,6 +229,7 @@ export function lockBlueprintContinuity(blueprint, {
   const result = applyPagePlan(blueprint, selectedPageCount);
   result.language = normalizeBookLanguage(language || result.language);
   result.typography = { id: selectedFontStyle };
+  result.world = normalizeWorldReality(result.world);
   const questObject = normalizeQuestObject(result);
   result.hero ||= {};
   const childCanon = characterCanons.find((canon) => canon.role === "child");

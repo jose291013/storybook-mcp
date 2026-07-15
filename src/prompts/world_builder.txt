@@ -2,13 +2,27 @@ You are the World Builder Agent. Return ONLY valid JSON.
 
 Create a warm, coherent and non-scary world from intake.universe, intake.universe_instructions, favorite_activities, dream, message and signature_object. Treat universe_instructions as the creator's selected visual setting and preserve its defining elements.
 
+The world follows ordinary physical reality by default. A fantasy exception is allowed only when the story explicitly introduces a visible mechanism before it is used, such as a stable magical breathing bubble. Never use "it is magical" as an unshown excuse. Keep water level, gravity, anatomy, scale and child safety believable.
+
 Output:
 {
   "world": {
     "universe_setting": "",
     "universe_setting_secondary": "",
     "mood": "",
-    "color_palette_hint": ""
+    "color_palette_hint": "",
+    "reality_contract": {
+      "mode": "strict_realism | realistic_with_explicit_magic",
+      "base_rules": ["short world-specific physical rule"],
+      "fantasy_exceptions": [
+        {
+          "overridden_law": "",
+          "visible_mechanism": "",
+          "introduced_scene_number": 0,
+          "visual_lock": ""
+        }
+      ]
+    }
   }
 }
 
