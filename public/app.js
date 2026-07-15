@@ -452,6 +452,15 @@ function showGenerationPanel() {
   elements.generationPanel.scrollIntoView({ behavior: "smooth" });
 }
 
+function showCompletedPreview(job, { scroll = true } = {}) {
+  document.querySelector("#creator").hidden = true;
+  elements.generationPanel.hidden = true;
+  elements.resultSection.hidden = false;
+  renderBook(job);
+  setPreviewComplete(true);
+  if (scroll) elements.resultSection.scrollIntoView({ behavior: "smooth" });
+}
+
 async function generatePreviewForProject(projectId) {
   showGenerationPanel();
   const response = await fetch("/api/preview", {
@@ -464,11 +473,18 @@ async function generatePreviewForProject(projectId) {
   state.jobId = payload.jobId;
   const job = await pollJob(payload.jobId);
   elements.generationBar.style.width = "100%";
-  elements.generationPanel.hidden = true;
-  elements.resultSection.hidden = false;
-  renderBook(job);
-  setPreviewComplete(true);
-  elements.resultSection.scrollIntoView({ behavior: "smooth" });
+  showCompletedPreview(job);
+}
+
+async function restoreCompletedPreview() {
+  if (!state.customerSession?.authenticated || !state.projectId) return false;
+  const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+  if (!response.ok) return false;
+  const payload = await response.json();
+  const project = payload.project;
+  if (project?.status !== "preview_ready" || !project.previewResult) return false;
+  showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint }, { scroll: false });
+  return true;
 }
 
 async function resumePreviewAfterLogin() {
@@ -532,7 +548,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await resumePreviewAfterLogin(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected"; if (authCallback) await resumePreviewAfterLogin(); else await restoreCompletedPreview(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 
