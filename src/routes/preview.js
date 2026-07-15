@@ -21,6 +21,8 @@ import { textWriterAgent } from "../agents/textWriter.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
+import { creditStore, InsufficientCreditError } from "../services/creditStore.js";
+import { previewEntitlementsEnabled, previewPriceCents } from "../config/previewPricing.js";
 
 const router = express.Router();
 
@@ -77,6 +79,27 @@ router.post("/preview", async (req, res) => {
     normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
   } catch (error) {
     return res.status(400).json({ error: String(error?.message || error) });
+  }
+
+  let creditReservation = null;
+  if (previewEntitlementsEnabled()) {
+    const requiredCents = previewPriceCents(normalized.answers.page_count);
+    try {
+      creditReservation = await creditStore.reservePreview(identity, {
+        projectId,
+        amountCents: requiredCents,
+        idempotencyKey: `preview:${projectId}:${project.updatedAt}`,
+      });
+    } catch (error) {
+      if (error instanceof InsufficientCreditError) {
+        return res.status(402).json({
+          error: "Insufficient preview credit", code: "insufficient_credit",
+          requiredCents: error.requiredCents, balanceCents: error.balanceCents, missingCents: error.missingCents,
+          buyCreditsUrl: process.env.WOOCOMMERCE_CREDITS_URL || "",
+        });
+      }
+      return res.status(500).json({ error: String(error?.message || error) });
+    }
   }
 
   const job = createJob({
@@ -165,7 +188,7 @@ router.post("/preview", async (req, res) => {
           step: "qa",
           error: qa?.qa?.issues?.join(" | ") || "Blueprint QA failed",
         });
-        return;
+        throw new Error(qa?.qa?.issues?.join(" | ") || "Blueprint QA failed");
       }
 
       const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
@@ -280,6 +303,7 @@ router.post("/preview", async (req, res) => {
         result: { coverImageUrl, coverPreviewUrl, draftPages },
       });
       if (job.projectId) {
+        if (creditReservation?.id) await creditStore.capturePreview(creditReservation.id);
         await projectStore.update(job.projectId, {
           status: "preview_ready",
           finalBlueprint: final_blueprint,
@@ -289,6 +313,7 @@ router.post("/preview", async (req, res) => {
       }
     } catch (error) {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+      if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
       if (job.projectId) await projectStore.update(job.projectId, { status: "preview_failed", generationJobId: job.id });
     }
   })();
