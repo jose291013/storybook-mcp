@@ -32,8 +32,9 @@ Last updated: 2026-07-15
 
 - After a successful preview, the questionnaire and free-generation button are replaced by one action center directly below the book reader. The original preview is immutable and a second generation can never be triggered accidentally.
 - The action center shows the current credit balance, **Request a change**, **Regenerate**, **Buy the eBook**, **Buy the printed book**, and **Buy credits**. Production and delivery estimates are shown beside the printed-book action before checkout.
-- One credit has a customer value of **EUR 2.50 including tax** by default. The amount must be administratively editable and snapshotted on purchase and use.
-- A complete preview regeneration costs one credit. A targeted modification creates a new revision and must quote the affected spreads before reservation; it never silently rewrites or charges additional pages.
+- Preview credit is stored as a euro-cent wallet. The configured preview prices are **EUR 2.50 / 3.00 / 3.50 / 4.00 / 4.50 / 5.00 including tax** for 24 / 28 / 32 / 36 / 40 / 44 pages. The amount is snapshotted on reservation.
+- Promotion codes have a configurable euro-cent value of EUR 2.50 or more. A campaign code may be redeemed once per WooCommerce customer; an individual code can use the same mechanism with a single intended customer. If the code does not cover the selected preview, the missing wallet credit must be purchased before generation.
+- Every successful preview consumes its reserved wallet amount and creates an equal purchase rebate tied to that book project. Multiple previews remain possible while the wallet is funded; their successful charges accumulate as purchase rebate for that project only. A targeted modification creates a new revision and must quote the affected spreads before reservation.
 - Credits are purchased through WooCommerce products. A signed paid-order webhook grants append-only entries in the Storybook credit ledger.
 - Credits may also be applied to an eBook or printed-book checkout at their snapshotted monetary value. The Storybook service reserves the selected balance and issues a short-lived signed credit application to WooCommerce; WooCommerce applies it as an order discount and collects any remainder by its configured payment methods. A paid/cancelled/refunded webhook captures or releases the reservation.
 - WooCommerce remains authoritative for tax, invoice, refund and payment presentation. Storybook remains authoritative for available, reserved and spent credit ledger entries. Every grant, reservation, capture, release and checkout conversion is idempotent and auditable.
@@ -43,7 +44,7 @@ Last updated: 2026-07-15
 
 1. Persistent draft foundation: PostgreSQL schema, anonymous ownership, draft API, local autosave, and Woo identity contract.
 2. Account gate and **My creations**: claim anonymous draft after login and list customer projects. **Account gate implemented; customer-library UI remains.**
-3. Preview entitlements: credit ledger, single-use codes, reservation/capture/release, idempotent retry.
+3. Preview entitlements: credit ledger, per-customer promotion codes, reservation/capture/release, project purchase rebate, idempotent retry. **Core implementation present behind `PREVIEW_ENTITLEMENTS_ENABLED`; WooCommerce paid credit fulfillment remains phase 4.**
 4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization.
 5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots.
 6. Series experience: child profiles, approved memory, episode planner, new obstacle selection.
@@ -68,6 +69,9 @@ Last updated: 2026-07-15
 - `WOOCOMMERCE_BRIDGE_SECRET`: shared secret used to verify short-lived customer identity tokens.
 - `WOOCOMMERCE_BRIDGE_URL`: public connection URL displayed in WooCommerce > Calitiki Bridge.
 - `CUSTOMER_SESSION_DAYS`: lifetime of the generator's HTTP-only customer session, default 7 days.
+- `PREVIEW_ENTITLEMENTS_ENABLED`: activates the preview wallet gate after promotion codes or paid credit fulfillment are configured.
+- `PREVIEW_PROMO_CODES`: comma-separated `CODE:AMOUNT_IN_EURO_CENTS` campaign codes; each code can be redeemed once per WooCommerce customer.
+- `WOOCOMMERCE_CREDITS_URL`: WooCommerce URL used by the generator's **Buy credits** action.
 
 ## Resume prompt for a new Codex task
 

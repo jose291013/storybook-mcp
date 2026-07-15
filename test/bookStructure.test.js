@@ -30,6 +30,8 @@ import {
 import { JsonProjectStore, PostgresProjectStore } from "../src/services/projectStore.js";
 import { inspectPageStructure } from "../src/agents/qa.js";
 import { buildFacingPageSceneContract, normalizeWorldReality } from "../src/services/worldReality.js";
+import { previewPriceCents, PREVIEW_PRICE_CENTS_BY_PAGE_COUNT } from "../src/config/previewPricing.js";
+import { configuredPromoCodes, InsufficientCreditError, JsonCreditStore } from "../src/services/creditStore.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -186,6 +188,57 @@ test("the Calitiki theme starts a fresh creator flow and contains the WooCommerc
   assert.match(frontPage, /dinosaur-valley\.webp/);
   assert.match(frontPage, /wonder-city\.webp/);
   assert.match(themeScript, /data-universe-toggle/);
+});
+
+test("preview prices follow the approved progressive 24-to-44-page schedule", () => {
+  assert.deepEqual(PREVIEW_PRICE_CENTS_BY_PAGE_COUNT, { 24: 250, 28: 300, 32: 350, 36: 400, 40: 450, 44: 500 });
+  assert.equal(previewPriceCents(24), 250);
+  assert.equal(previewPriceCents(44), 500);
+});
+
+test("promotion credit is redeemable once per customer and successful preview spend becomes a project rebate", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-credits-"));
+  const previousCodes = process.env.PREVIEW_PROMO_CODES;
+  process.env.PREVIEW_PROMO_CODES = "LANCEMENT250:250,LANCEMENT500:500";
+  try {
+    assert.equal(configuredPromoCodes().size, 2);
+    const customerStore = { async ensureCustomer(identity) { return { id: `customer-${identity.wooCustomerId}` }; } };
+    const store = new JsonCreditStore(path.join(directory, "credits.json"), customerStore);
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    const granted = await store.redeem(identity, { code: "lancement250", projectId: "project-1" });
+    assert.equal(granted.balanceCents, 250);
+    await assert.rejects(() => store.redeem(identity, { code: "LANCEMENT250", projectId: "project-1" }), /already used/);
+    await assert.rejects(() => store.reservePreview(identity, { projectId: "project-1", amountCents: 300, idempotencyKey: "too-much" }), InsufficientCreditError);
+    const reservation = await store.reservePreview(identity, { projectId: "project-1", amountCents: 250, idempotencyKey: "preview-1" });
+    assert.equal((await store.summary(identity, "project-1")).balanceCents, 0);
+    await store.capturePreview(reservation.id);
+    assert.deepEqual(await store.summary(identity, "project-1"), { balanceCents: 0, rebateCents: 250 });
+    const secondGrant = await store.redeem(identity, { code: "LANCEMENT500", projectId: "project-1" });
+    assert.equal(secondGrant.balanceCents, 500);
+    const released = await store.reservePreview(identity, { projectId: "project-1", amountCents: 500, idempotencyKey: "preview-2" });
+    await store.releasePreview(released.id);
+    assert.equal((await store.summary(identity, "project-1")).balanceCents, 500);
+  } finally {
+    if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("preview generation reserves credits before work and captures or releases them idempotently", async () => {
+  const [previewSource, creditsRoute, html, app] = await Promise.all([
+    fs.readFile("src/routes/preview.js", "utf8"),
+    fs.readFile("src/routes/credits.js", "utf8"),
+    fs.readFile("public/index.html", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
+  ]);
+  assert.match(previewSource, /creditStore\.reservePreview/);
+  assert.match(previewSource, /creditStore\.capturePreview/);
+  assert.match(previewSource, /creditStore\.releasePreview/);
+  assert.match(previewSource, /status\(402\)/);
+  assert.match(creditsRoute, /\/credits\/redeem/);
+  assert.match(html, /id="creditPanel"/);
+  assert.match(html, /id="previewActionCenter"/);
+  assert.match(app, /hasPreviewEntitlement/);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
