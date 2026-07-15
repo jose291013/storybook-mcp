@@ -161,6 +161,9 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /refreshCustomerSession\(\)/);
   assert.match(app, /setPreviewComplete\(true\)/);
   assert.match(app, /!state\.previewComplete/);
+  assert.match(app, /project\?\.status !== "preview_ready" \|\| !project\.previewResult/);
+  assert.match(app, /final_blueprint: project\.finalBlueprint/);
+  assert.match(app, /else await restoreCompletedPreview\(\)/);
   assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
 });
 
