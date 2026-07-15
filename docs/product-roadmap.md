@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-14
+Last updated: 2026-07-15
 
 ## Product flow
 
@@ -28,12 +28,23 @@ Last updated: 2026-07-14
 - A project stores a frozen continuity snapshot so later profile edits cannot change an old book.
 - A preview becomes series canon only after explicit validation or purchase.
 
+## Post-preview experience and credit wallet
+
+- After a successful preview, the questionnaire and free-generation button are replaced by one action center directly below the book reader. The original preview is immutable and a second generation can never be triggered accidentally.
+- The action center shows the current credit balance, **Request a change**, **Regenerate**, **Buy the eBook**, **Buy the printed book**, and **Buy credits**. Production and delivery estimates are shown beside the printed-book action before checkout.
+- One credit has a customer value of **EUR 2.50 including tax** by default. The amount must be administratively editable and snapshotted on purchase and use.
+- A complete preview regeneration costs one credit. A targeted modification creates a new revision and must quote the affected spreads before reservation; it never silently rewrites or charges additional pages.
+- Credits are purchased through WooCommerce products. A signed paid-order webhook grants append-only entries in the Storybook credit ledger.
+- Credits may also be applied to an eBook or printed-book checkout at their snapshotted monetary value. The Storybook service reserves the selected balance and issues a short-lived signed credit application to WooCommerce; WooCommerce applies it as an order discount and collects any remainder by its configured payment methods. A paid/cancelled/refunded webhook captures or releases the reservation.
+- WooCommerce remains authoritative for tax, invoice, refund and payment presentation. Storybook remains authoritative for available, reserved and spent credit ledger entries. Every grant, reservation, capture, release and checkout conversion is idempotent and auditable.
+- A text or illustration correction never overwrites a purchased or explicitly approved revision. Series canon changes only when the customer approves or purchases the new revision.
+
 ## Delivery phases
 
 1. Persistent draft foundation: PostgreSQL schema, anonymous ownership, draft API, local autosave, and Woo identity contract.
 2. Account gate and **My creations**: claim anonymous draft after login and list customer projects. **Account gate implemented; customer-library UI remains.**
 3. Preview entitlements: credit ledger, single-use codes, reservation/capture/release, idempotent retry.
-4. WooCommerce checkout: configuration token, order metadata, signed webhooks, and payment-triggered finalization.
+4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization.
 5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots.
 6. Series experience: child profiles, approved memory, episode planner, new obstacle selection.
 7. Subscription: recurring credits and family plans after the series value is visible.

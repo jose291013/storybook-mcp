@@ -65,6 +65,12 @@ router.post("/preview", async (req, res) => {
   if (!projectId) return res.status(400).json({ error: "A saved project is required" });
   const project = await projectStore.getForCustomer(projectId, identity);
   if (!project) return res.status(404).json({ error: "Project not found" });
+  if (project.status === "preview_generating") {
+    return res.status(409).json({ error: "Preview generation is already in progress" });
+  }
+  if (project.status === "preview_ready" && project.previewResult) {
+    return res.status(409).json({ error: "This draft has already been generated" });
+  }
 
   let normalized;
   try {

@@ -20,6 +20,7 @@
   background: var(--paper);
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; }
 body { margin: 0; min-width: 320px; background: radial-gradient(circle at 12% 0%, #fbefe4 0, transparent 28rem), var(--paper); }
 button, input, textarea, select { font: inherit; }
@@ -159,7 +160,7 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .language-separation { color: var(--muted); font-size: 12px; margin: -10px 0 20px; }
 .form-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 44px; border-top: 1px solid var(--line); padding-top: 24px; }
 .primary-button { border: 0; border-radius: 999px; background: var(--ink); color: white; padding: 13px 21px; font-weight: 750; display: inline-flex; gap: 14px; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(36,57,61,.18); }
-.primary-button:hover { background: #172b2f; transform: translateY(-1px); }.text-button { border: 0; background: transparent; color: var(--muted); padding: 10px; }
+.primary-button:hover { background: #172b2f; transform: translateY(-1px); }.primary-button:disabled { cursor: not-allowed; opacity: .52; transform: none; box-shadow: none; }.text-button { border: 0; background: transparent; color: var(--muted); padding: 10px; }
 .generate-button { width: 100%; padding: 17px; font-size: 16px; background: var(--peach-dark); }.cost-note { color: var(--muted); font-size: 12px; text-align: center; }
 .form-error { color: #a23f3a; min-height: 20px; font-size: 13px; text-align: right; }
 

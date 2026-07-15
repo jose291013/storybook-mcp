@@ -1,7 +1,7 @@
 const BASE_PHYSICAL_RULES = [
   "Obey gravity, anatomy, scale, perspective, light direction and cause-and-effect unless one explicit story rule overrides a named law.",
   "Water must have one coherent surface level, horizon, depth, refraction and buoyancy. Coral and reef fish stay below the water surface unless the story explicitly places them in a tide pool or aquarium.",
-  "A child fully underwater must have a safe breathing mechanism that the prose introduced before submersion and the illustration shows consistently. A mask alone does not provide air; a snorkel works only near the surface.",
+  "Every person fully underwater must individually have a safe breathing mechanism that the prose introduced before submersion and the illustration shows consistently. A mask alone does not provide air; a snorkel works only near the surface. Never equip only the hero while another person remains unprotected.",
   "Do not show a young child diving, swimming in deep water or facing a dangerous wave without age-appropriate protection and adult supervision, or a clearly established visible magical safety mechanism.",
   "Characters cannot speak normally underwater unless the story has already established a visible magical or technological communication mechanism.",
   "The magnitude shown in the illustration must match the prose: a small wave, light wind or gentle obstacle must never become a life-threatening event.",

@@ -12,6 +12,7 @@ const state = {
   photos: [],
   jobId: "",
   projectId: "",
+  previewComplete: false,
   customerSession: { authenticated: false, customer: null },
 };
 
@@ -103,6 +104,14 @@ function persistLocalDraft() {
   }));
 }
 function scheduleLocalDraft() { window.clearTimeout(localDraftTimer); localDraftTimer = window.setTimeout(persistLocalDraft, 250); }
+
+function setPreviewComplete(complete) {
+  state.previewComplete = Boolean(complete);
+  const submit = elements.form.querySelector("[type=submit]");
+  if (!submit) return;
+  submit.disabled = state.previewComplete;
+  if (state.previewComplete) submit.innerHTML = `<span>${escapeHtml(tr("previewAlreadyGenerated"))}</span>`;
+}
 
 async function saveServerDraft(questionnaire, photos) {
   const body = JSON.stringify({
@@ -458,6 +467,7 @@ async function generatePreviewForProject(projectId) {
   elements.generationPanel.hidden = true;
   elements.resultSection.hidden = false;
   renderBook(job);
+  setPreviewComplete(true);
   elements.resultSection.scrollIntoView({ behavior: "smooth" });
 }
 
@@ -509,7 +519,7 @@ async function startGeneration(event) {
     elements.formError.textContent = error.message;
     elements.formError.scrollIntoView({ behavior: "smooth" });
   } finally {
-    if (!leavingForLogin) {
+    if (!leavingForLogin && !state.previewComplete) {
       submit.disabled = false;
       submit.innerHTML = `<span>${escapeHtml(tr("generate"))}</span> <span>→</span>`;
     }
