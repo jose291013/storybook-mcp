@@ -166,17 +166,26 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /project\?\.status !== "preview_ready" \|\| !project\.previewResult/);
   assert.match(app, /final_blueprint: project\.finalBlueprint/);
   assert.match(app, /else await restoreCompletedPreview\(\)/);
+  assert.match(app, /pageCountOptions\?\.\[0\]\?\.ebookPriceEur/);
+  assert.match(html, /À partir de 6,69 €/);
   assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
 });
 
 test("the Calitiki theme starts a fresh creator flow and contains the WooCommerce account layout fix", async () => {
-  const [themeFunctions, themeStyles] = await Promise.all([
+  const [themeFunctions, themeStyles, frontPage, themeScript] = await Promise.all([
     fs.readFile("wordpress/calitiki-theme/functions.php", "utf8"),
     fs.readFile("wordpress/calitiki-theme/assets/css/theme.css", "utf8"),
+    fs.readFile("wordpress/calitiki-theme/front-page.php", "utf8"),
+    fs.readFile("wordpress/calitiki-theme/assets/js/theme.js", "utf8"),
   ]);
   assert.match(themeFunctions, /add_query_arg\('newBook', '1', \$base_url\)/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
+  assert.match(frontPage, /id="tous-les-univers" hidden/);
+  assert.match(frontPage, /cloud-castle\.webp/);
+  assert.match(frontPage, /dinosaur-valley\.webp/);
+  assert.match(frontPage, /wonder-city\.webp/);
+  assert.match(themeScript, /data-universe-toggle/);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {

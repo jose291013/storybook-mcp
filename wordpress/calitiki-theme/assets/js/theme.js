@@ -1,4 +1,15 @@
 (function () {
+  const universeToggle = document.querySelector('[data-universe-toggle]');
+  if (universeToggle) {
+    const gallery = document.getElementById(universeToggle.getAttribute('aria-controls'));
+    universeToggle.addEventListener('click', function () {
+      const expanded = universeToggle.getAttribute('aria-expanded') === 'true';
+      universeToggle.setAttribute('aria-expanded', String(!expanded));
+      gallery.hidden = expanded;
+      universeToggle.querySelector('span').textContent = expanded ? universeToggle.dataset.openLabel : universeToggle.dataset.closeLabel;
+      universeToggle.querySelector('b').textContent = expanded ? '↓' : '↑';
+    });
+  }
   const toggle = document.querySelector('.menu-toggle');
   const navigation = document.querySelector('.site-navigation');
   if (!toggle || !navigation) return;

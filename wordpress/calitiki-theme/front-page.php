@@ -43,7 +43,12 @@
         <article class="world-card"><img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/starry-space.webp'); ?>" alt="<?php esc_attr_e('Espace étoilé', 'calitiki'); ?>" /><div><h3><?php esc_html_e('Espace étoilé', 'calitiki'); ?></h3></div></article>
         <article class="world-card"><img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/coral-ocean.webp'); ?>" alt="<?php esc_attr_e('Océan de corail', 'calitiki'); ?>" /><div><h3><?php esc_html_e('Océan de corail', 'calitiki'); ?></h3></div></article>
     </div>
-    <p class="center-action"><a class="button button-ghost" href="<?php echo calitiki_generator_url(); ?>"><?php esc_html_e('Voir tous les univers', 'calitiki'); ?> <span>→</span></a></p>
+    <div class="world-grid-extra" id="tous-les-univers" hidden>
+        <article class="world-card"><img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/cloud-castle.webp'); ?>" alt="<?php esc_attr_e('Château de nuages', 'calitiki'); ?>" /><div><h3><?php esc_html_e('Château de nuages', 'calitiki'); ?></h3><p><?php esc_html_e('Tours dorées, ponts aériens et magie légère.', 'calitiki'); ?></p></div></article>
+        <article class="world-card"><img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/dinosaur-valley.webp'); ?>" alt="<?php esc_attr_e('Vallée des dinosaures', 'calitiki'); ?>" /><div><h3><?php esc_html_e('Vallée des dinosaures', 'calitiki'); ?></h3><p><?php esc_html_e('Dinosaures amicaux, grandes fougères et traces mystérieuses.', 'calitiki'); ?></p></div></article>
+        <article class="world-card"><img src="<?php echo esc_url(get_template_directory_uri() . '/assets/images/wonder-city.webp'); ?>" alt="<?php esc_attr_e('Cité merveilleuse', 'calitiki'); ?>" /><div><h3><?php esc_html_e('Cité merveilleuse', 'calitiki'); ?></h3><p><?php esc_html_e('Places lumineuses, passages secrets et habitants surprenants.', 'calitiki'); ?></p></div></article>
+    </div>
+    <p class="center-action"><button class="button button-ghost" type="button" data-universe-toggle aria-expanded="false" aria-controls="tous-les-univers" data-open-label="<?php esc_attr_e('Voir les trois autres univers', 'calitiki'); ?>" data-close-label="<?php esc_attr_e('Réduire la galerie', 'calitiki'); ?>"><span><?php esc_html_e('Voir les trois autres univers', 'calitiki'); ?></span> <b aria-hidden="true">↓</b></button></p>
 </section>
 
 <section class="formats" id="formats">
