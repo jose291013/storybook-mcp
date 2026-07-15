@@ -105,6 +105,10 @@ router.post("/finalize", async (req, res) => {
           });
           text = written.page_text.text;
         } else if (page.page_type === "image") {
+          const pairedText = draftPages.find((candidate) => (
+            candidate.spread_number === page.spread_number
+            && ["text", "opening_text", "closing_text"].includes(candidate.page_type)
+          ))?.text || "";
           const sceneContinuity = buildSceneContinuity({
             blueprint,
             characterCanons,
@@ -114,6 +118,7 @@ router.post("/finalize", async (req, res) => {
             continuityImagePath: existsSync(finalCoverPath)
               ? finalCoverPath
               : (existsSync(draftCoverPath) ? draftCoverPath : ""),
+            pairedText,
           });
           imageUrl = await generateImage({
             prompt: page.image_prompt,

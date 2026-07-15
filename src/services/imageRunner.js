@@ -22,6 +22,7 @@ export function buildFinalPrompt({
     "Treat every named character as a locked model sheet: never change face, species, colors, body markings, outfit or accessories between pages.",
     "A child must remain the same human child. An animal mascot must remain the exact same animal species and must never become another creature.",
     "Scene action, pose, expression, camera angle and lighting may change; locked identity and wardrobe may not.",
+    "Reference photos may contain printed words, labels or commercial logos on clothing. Remove all of them and replace them with a plain, non-branded fabric or simple generic motif while preserving garment type and color.",
   ];
 
   const combinedFingerprints = characterFingerprints.length

@@ -162,6 +162,28 @@ router.post("/preview", async (req, res) => {
         return;
       }
 
+      const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
+      const draftTextByPage = new Map();
+      let previousText = "";
+      for (const textPage of final_blueprint.pages.filter((page) => (
+        ["text", "opening_text", "closing_text"].includes(page.page_type)
+      ))) {
+        updateJob(job.id, { step: `draft:text:page:${textPage.page_number}` });
+        const written = await textWriterAgent({
+          language: final_blueprint.language,
+          hero: final_blueprint.hero,
+          page_number: textPage.page_number,
+          page_type: textPage.page_type,
+          story_role: textPage.story_role,
+          text_prompt: textPage.text_prompt,
+          story_context: storyContext,
+          previous_text: previousText,
+        });
+        const text = written.page_text.text;
+        draftTextByPage.set(textPage.page_number, text);
+        previousText = text;
+      }
+
       updateJob(job.id, { step: "draft:cover" });
       const coverContinuity = buildSceneContinuity({
         blueprint: final_blueprint,
@@ -188,27 +210,19 @@ router.post("/preview", async (req, res) => {
 
       const draftPages = [];
       const coverReferencePath = path.resolve(`data/outputs/draft-cover-${job.id}.png`);
-      const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
-      let previousText = "";
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
         let text = "";
         let imageUrl = "";
 
         if (["text", "opening_text", "closing_text"].includes(page.page_type)) {
-          const written = await textWriterAgent({
-            language: final_blueprint.language,
-            hero: final_blueprint.hero,
-            page_number: page.page_number,
-            page_type: page.page_type,
-            story_role: page.story_role,
-            text_prompt: page.text_prompt,
-            story_context: storyContext,
-            previous_text: previousText,
-          });
-          text = written.page_text.text;
-          previousText = text;
+          text = draftTextByPage.get(page.page_number) || "";
         } else if (page.page_type === "image") {
+          const pairedTextPage = final_blueprint.pages.find((candidate) => (
+            candidate.spread_number === page.spread_number
+            && ["text", "opening_text", "closing_text"].includes(candidate.page_type)
+          ));
+          const pairedText = pairedTextPage ? draftTextByPage.get(pairedTextPage.page_number) || "" : "";
           const sceneContinuity = buildSceneContinuity({
             blueprint: final_blueprint,
             characterCanons,
@@ -216,6 +230,7 @@ router.post("/preview", async (req, res) => {
             scenePrompt: page.image_prompt,
             visualState: page.visual_state || {},
             continuityImagePath: coverReferencePath,
+            pairedText,
           });
           imageUrl = await generateImage({
             prompt: page.image_prompt,
