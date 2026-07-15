@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.1.1
+ * Version: 0.2.0
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -26,6 +26,11 @@ final class Calitiki_Woo_Bridge {
         add_filter('woocommerce_registration_redirect', array(__CLASS__, 'registration_redirect'));
         add_action('woocommerce_before_customer_login_form', array(__CLASS__, 'login_notice'));
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array(__CLASS__, 'settings_link'));
+        add_action('woocommerce_product_options_general_product_data', array(__CLASS__, 'credit_product_field'));
+        add_action('woocommerce_process_product_meta', array(__CLASS__, 'save_credit_product_field'));
+        add_action('woocommerce_payment_complete', array(__CLASS__, 'grant_order_credits'));
+        add_action('woocommerce_order_status_processing', array(__CLASS__, 'grant_order_credits'));
+        add_action('woocommerce_order_status_completed', array(__CLASS__, 'grant_order_credits'));
     }
 
     public static function activate() {
@@ -235,6 +240,79 @@ final class Calitiki_Woo_Bridge {
     public static function login_notice() {
         if (self::pending_state()) {
             wc_print_notice(__('Connectez-vous ou créez votre compte pour sauvegarder ce livre et générer son aperçu.', 'calitiki-bridge'), 'notice');
+        }
+    }
+
+    public static function credit_product_field() {
+        if (!function_exists('woocommerce_wp_text_input')) {
+            return;
+        }
+        woocommerce_wp_text_input(array(
+            'id' => '_calitiki_credit_cents',
+            'label' => __('Crédits Calitiki (centimes)', 'calitiki-bridge'),
+            'description' => __('Montant ajouté au portefeuille après paiement. Exemple : 250 pour 2,50 €.', 'calitiki-bridge'),
+            'desc_tip' => true,
+            'type' => 'number',
+            'custom_attributes' => array('min' => '50', 'step' => '1'),
+        ));
+    }
+
+    public static function save_credit_product_field($product_id) {
+        if (!isset($_POST['_calitiki_credit_cents'])) {
+            return;
+        }
+        $amount = absint(wp_unslash($_POST['_calitiki_credit_cents']));
+        if ($amount >= 50) {
+            update_post_meta($product_id, '_calitiki_credit_cents', $amount);
+        } else {
+            delete_post_meta($product_id, '_calitiki_credit_cents');
+        }
+    }
+
+    public static function grant_order_credits($order_id) {
+        if (!function_exists('wc_get_order')) {
+            return;
+        }
+        $order = wc_get_order($order_id);
+        if (!$order || $order->get_meta('_calitiki_credit_granted')) {
+            return;
+        }
+        $customer_id = (string) $order->get_customer_id();
+        if (!$customer_id) {
+            return;
+        }
+        $amount_cents = 0;
+        foreach ($order->get_items() as $item) {
+            $product = $item->get_product();
+            if (!$product) {
+                continue;
+            }
+            $credit_cents = absint($product->get_meta('_calitiki_credit_cents', true));
+            $amount_cents += $credit_cents * max(1, absint($item->get_quantity()));
+        }
+        if ($amount_cents < 50) {
+            return;
+        }
+        $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        if (!$generator_url || strlen($secret) < 32) {
+            return;
+        }
+        $signature = hash_hmac('sha256', $order_id . '|' . $customer_id . '|' . $amount_cents, $secret);
+        $response = wp_remote_post($generator_url . '/api/commerce/credit-order-paid', array(
+            'timeout' => 20,
+            'headers' => array('Content-Type' => 'application/json', 'X-Calitiki-Signature' => $signature),
+            'body' => wp_json_encode(array(
+                'orderId' => (string) $order_id,
+                'wooCustomerId' => $customer_id,
+                'email' => $order->get_billing_email(),
+                'amountCents' => $amount_cents,
+            )),
+        ));
+        if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) >= 200 && wp_remote_retrieve_response_code($response) < 300) {
+            $order->update_meta_data('_calitiki_credit_granted', gmdate('c'));
+            $order->save();
+            $order->add_order_note(sprintf(__('Portefeuille Calitiki crédité de %s.', 'calitiki-bridge'), wc_price($amount_cents / 100)));
         }
     }
 }

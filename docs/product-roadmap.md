@@ -45,7 +45,7 @@ Last updated: 2026-07-15
 1. Persistent draft foundation: PostgreSQL schema, anonymous ownership, draft API, local autosave, and Woo identity contract.
 2. Account gate and **My creations**: claim anonymous draft after login and list customer projects. **Account gate implemented; customer-library UI remains.**
 3. Preview entitlements: credit ledger, per-customer promotion codes, reservation/capture/release, project purchase rebate, idempotent retry. **Core implementation present behind `PREVIEW_ENTITLEMENTS_ENABLED`; WooCommerce paid credit fulfillment remains phase 4.**
-4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization.
+4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization. **Paid credit products and their signed idempotent wallet-grant webhook are implemented; applying project rebates to ebook/print checkout remains.**
 5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots.
 6. Series experience: child profiles, approved memory, episode planner, new obstacle selection.
 7. Subscription: recurring credits and family plans after the series value is visible.

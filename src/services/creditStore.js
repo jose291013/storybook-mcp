@@ -57,6 +57,12 @@ export class JsonCreditStore {
     store.entries.push({ id: crypto.randomUUID(), customerId: customer.id, projectId, amountCents: promotion.amountCents, entryType: "promotion_grant", idempotencyKey: `promo:${key}`, createdAt: now() });
     this.write(store); return { amountCents: promotion.amountCents, ...(await this.summary(identity, projectId)) };
   }
+  async grantPaidOrder(identity, { amountCents, orderId }) {
+    const customer = await this.customer(identity); const store = this.read(); const key = `woo-credit-order:${orderId}`;
+    const existing = store.entries.find((entry) => entry.idempotencyKey === key);
+    if (!existing) { store.entries.push({ id: crypto.randomUUID(), customerId: customer.id, projectId: null, amountCents, entryType: "woocommerce_credit_purchase", idempotencyKey: key, createdAt: now() }); this.write(store); }
+    return this.summary(identity);
+  }
   async reservePreview(identity, { projectId, amountCents, idempotencyKey }) {
     const customer = await this.customer(identity); const store = this.read();
     const existing = store.reservations.find((item) => item.idempotencyKey === idempotencyKey);
@@ -108,6 +114,11 @@ export class PostgresCreditStore {
     } catch (error) { await client.query("ROLLBACK"); if (error?.code === "23505") throw new Error("Promotion code already used by this customer"); throw error; }
     finally { client.release(); }
     return { amountCents: promotion.amountCents, ...(await this.summary(identity, projectId)) };
+  }
+  async grantPaidOrder(identity, { amountCents, orderId }) {
+    const customer = await this.customer(identity);
+    await this.database.query("INSERT INTO credit_wallet_entries (id,customer_id,project_id,amount_cents,entry_type,idempotency_key,metadata) VALUES ($1,$2,NULL,$3,'woocommerce_credit_purchase',$4,$5) ON CONFLICT (idempotency_key) DO NOTHING", [crypto.randomUUID(), customer.id, amountCents, `woo-credit-order:${orderId}`, JSON.stringify({ wooOrderId: String(orderId) })]);
+    return this.summary(identity);
   }
   async reservePreview(identity, { projectId, amountCents, idempotencyKey }) {
     const customer = await this.customer(identity); const client = await this.database.connect();

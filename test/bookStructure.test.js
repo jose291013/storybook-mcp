@@ -218,10 +218,29 @@ test("promotion credit is redeemable once per customer and successful preview sp
     const released = await store.reservePreview(identity, { projectId: "project-1", amountCents: 500, idempotencyKey: "preview-2" });
     await store.releasePreview(released.id);
     assert.equal((await store.summary(identity, "project-1")).balanceCents, 500);
+    await store.grantPaidOrder(identity, { amountCents: 250, orderId: "woo-1001" });
+    await store.grantPaidOrder(identity, { amountCents: 250, orderId: "woo-1001" });
+    assert.equal((await store.summary(identity, "project-1")).balanceCents, 750);
   } finally {
     if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("paid WooCommerce credit products grant wallet value through a signed idempotent webhook", async () => {
+  const [plugin, route, store] = await Promise.all([
+    fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
+    fs.readFile("src/routes/commerceCredits.js", "utf8"),
+    fs.readFile("src/services/creditStore.js", "utf8"),
+  ]);
+  assert.match(plugin, /_calitiki_credit_cents/);
+  assert.match(plugin, /woocommerce_payment_complete/);
+  assert.match(plugin, /X-Calitiki-Signature/);
+  assert.match(plugin, /hash_hmac\('sha256'/);
+  assert.match(route, /timingSafeEqual/);
+  assert.match(route, /creditStore\.grantPaidOrder/);
+  assert.match(store, /woo-credit-order:/);
+  assert.match(store, /ON CONFLICT \(idempotency_key\) DO NOTHING/);
 });
 
 test("preview generation reserves credits before work and captures or releases them idempotently", async () => {
