@@ -174,14 +174,26 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
 });
 
-test("the Calitiki theme starts a fresh creator flow and contains the WooCommerce account layout fix", async () => {
-  const [themeFunctions, themeStyles, frontPage, themeScript] = await Promise.all([
+test("the Calitiki theme starts a localized creator flow and contains the WooCommerce account layout fix", async () => {
+  const [themeFunctions, themeStyles, frontPage, themeScript, header, app] = await Promise.all([
     fs.readFile("wordpress/calitiki-theme/functions.php", "utf8"),
     fs.readFile("wordpress/calitiki-theme/assets/css/theme.css", "utf8"),
     fs.readFile("wordpress/calitiki-theme/front-page.php", "utf8"),
     fs.readFile("wordpress/calitiki-theme/assets/js/theme.js", "utf8"),
+    fs.readFile("wordpress/calitiki-theme/header.php", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
   ]);
-  assert.match(themeFunctions, /add_query_arg\('newBook', '1', \$base_url\)/);
+  assert.match(themeFunctions, /'uiLanguage' => calitiki_creator_language\(\)/);
+  assert.match(themeFunctions, /trp_custom_language_switcher\(\)/);
+  assert.match(themeFunctions, /shortcode_exists\('language-switcher'\)/);
+  assert.match(themeFunctions, /do_shortcode\('\[language-switcher\]'\)/);
+  assert.match(themeFunctions, /flag_link/);
+  assert.match(themeFunctions, /current_page_url/);
+  assert.match(header, /calitiki_language_switcher\(\)/);
+  assert.match(themeStyles, /\.calitiki-language-switcher/);
+  assert.match(themeStyles, /\.calitiki-translatepress-switcher/);
+  assert.match(app, /searchParams\.get\("uiLanguage"\)/);
+  assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);

@@ -62,6 +62,7 @@ Last updated: 2026-07-15
 - Personalized eBook and print products can no longer be added directly to the cart. Their product pages lead to the creator; only a short-lived signed link issued after a completed preview can select the matching page-count variation and attach the project to the WooCommerce cart.
 - Successful preview spend is reserved as a project rebate when checkout starts, deducted from the configured book line, captured on payment, and released after cancellation, failure or refund.
 - Preview spending requires a distinct customer confirmation after authentication and after wallet/code choices are displayed. The creator header exposes the live balance, and Calitiki Bridge 0.4.0 adds a signed wallet/history page to WooCommerce My account.
+- The WordPress theme is prepared for TranslatePress with an accessible flag-and-language dropdown. Active languages keep the same page context, and links to the external creator carry the selected FR/ES/EN interface language. TranslatePress Multiple Languages is required to publish all three languages simultaneously.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
