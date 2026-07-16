@@ -19,6 +19,7 @@ import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 import { createEbookPdf, EBOOK_PAGE_SIZE_PT } from "../src/services/createEbookPdf.js";
 import { extractBlueprintCandidate } from "../src/services/extractBlueprintCandidate.js";
 import { PDFDocument } from "pdf-lib";
+import PhpParser from "php-parser";
 import {
   createWooAuthState,
   createWooCustomerToken,
@@ -32,7 +33,11 @@ import { inspectPageStructure } from "../src/agents/qa.js";
 import { buildFacingPageSceneContract, normalizeWorldReality } from "../src/services/worldReality.js";
 import { previewPriceCents, PREVIEW_PRICE_CENTS_BY_PAGE_COUNT } from "../src/config/previewPricing.js";
 import { configuredPromoCodes, InsufficientCreditError, JsonCreditStore } from "../src/services/creditStore.js";
-import { signCommercePayload } from "../src/services/commerceToken.js";
+import { signBookOrderWebhook, signCommercePayload, verifyBookOrderWebhook } from "../src/services/commerceToken.js";
+import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
+import { LocalDeliveryStorage } from "../src/services/deliveryStorage.js";
+import { signDeliveryToken, verifyDeliveryToken } from "../src/services/deliveryToken.js";
+import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../src/services/ebookFulfillment.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -166,7 +171,7 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /refreshCustomerSession\(\)/);
   assert.match(app, /setPreviewComplete\(true\)/);
   assert.match(app, /!state\.previewComplete/);
-  assert.match(app, /project\?\.status !== "preview_ready" \|\| !project\.previewResult/);
+  assert.match(app, /\["preview_ready", "purchased"\]\.includes\(project\?\.status\)/);
   assert.match(app, /final_blueprint: project\.finalBlueprint/);
   assert.match(app, /else await restoreCompletedPreview\(\)/);
   assert.match(app, /pageCountOptions\?\.\[0\]\?\.ebookPriceEur/);
@@ -282,10 +287,14 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(html, /id="previewActionCenter"/);
   assert.match(html, /id="confirmPreviewButton"/);
   assert.match(html, /id="headerCreditBalance"/);
+  assert.match(html, /id="storefrontReturnLink"/);
   assert.match(app, /preparePreviewAuthorization/);
   assert.match(app, /confirmPreviewAuthorization/);
   assert.doesNotMatch(app, /hasPreviewEntitlement/);
   assert.match(app, /confirmPreviewButton\.addEventListener\("click", confirmPreviewAuthorization\)/);
+  assert.match(app, /safeCalitikiReturnUrl/);
+  assert.match(app, /calitiki_connect/);
+  assert.match(app, /https:\/\/calitiki\.com\/es\//);
 });
 
 test("WooCommerce My Account exposes the signed wallet balance and transaction history", async () => {
@@ -345,6 +354,68 @@ test("personalized checkout reserves one project rebate and requires a signed Wo
     if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("paid and zero-total WooCommerce orders use the same signed ebook fulfillment flow", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-delivery-"));
+  const outputsDir = path.join(directory, "outputs");
+  await fs.mkdir(outputsDir, { recursive: true });
+  try {
+    for (const [index, name] of ["cover.png", "page-1.png"].entries()) {
+      await sharp({ create: { width: 240, height: 240, channels: 3, background: index ? "#fff8ed" : "#29464a" } }).png().toFile(path.join(outputsDir, name));
+    }
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    const projects = new JsonProjectStore(path.join(directory, "projects.json"));
+    const customer = await projects.ensureCustomer(identity);
+    const project = await projects.create({
+      customerId: customer.id, status: "preview_ready", title: "Noa et Luma", locale: "FR",
+      finalBlueprint: { language: "FR", cover: { title: "Noa et Luma" } },
+      previewResult: { coverPreviewUrl: "/outputs/cover.png", draftPages: [{ page_number: 1, previewUrl: "/outputs/page-1.png" }] },
+    });
+    const orders = new JsonCommerceOrderStore(path.join(directory, "orders.json"));
+    const storage = new LocalDeliveryStorage(path.join(directory, "private"));
+    const options = { projectStore: projects, commerceOrderStore: orders, deliveryStorage: storage, outputsDir, deliveryUrlOptions: { baseUrl: "https://books.example", secret: "s".repeat(64), expiresInSeconds: 3600 } };
+    const delivery = await fulfillPaidBookOrder({ orderId: "1001", projectId: project.id, productType: "ebook", pageCount: 24, orderTotalCents: 0, ...identity }, options);
+    assert.equal(delivery.status, "ready");
+    assert.match(delivery.downloadUrl, /^https:\/\/books\.example\/api\/deliveries\/ebook\//);
+    const record = await orders.findForCustomer({ orderId: "1001", projectId: project.id, wooCustomerId: "42", productType: "ebook" });
+    assert.equal(record.orderTotalCents, 0);
+    assert.equal(record.paymentStatus, "paid");
+    assert.equal((await storage.get(record.storageKey)).contentType, "application/pdf");
+    assert.equal((await freshEbookDeliveryLink({ orderId: "1001", projectId: project.id, wooCustomerId: "42" }, options)).status, "ready");
+    await orders.recordStatus({ orderId: "1001", projectId: project.id, productType: "ebook", wooCustomerId: "42", status: "refunded" });
+    assert.equal(await freshEbookDeliveryLink({ orderId: "1001", projectId: project.id, wooCustomerId: "42" }, options), null);
+
+    const signedPayload = { orderId: "1001", customerId: "42", projectId: project.id, reservationId: "", productType: "ebook", pageCount: 24, orderTotalCents: 0, status: "paid" };
+    const signature = signBookOrderWebhook(signedPayload, "b".repeat(64));
+    assert.equal(verifyBookOrderWebhook({ ...signedPayload, signature }, "b".repeat(64)), true);
+    assert.equal(verifyBookOrderWebhook({ ...signedPayload, orderTotalCents: 1, signature }, "b".repeat(64)), false);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("ebook delivery tokens are signed and expire", () => {
+  const secret = "d".repeat(64);
+  const token = signDeliveryToken({ projectId: "project-1", orderId: "1001", customerId: "42", storageKey: "ebooks/project-1/book.pdf" }, { secret, expiresInSeconds: 60 });
+  assert.equal(verifyDeliveryToken(token, { secret }).projectId, "project-1");
+  assert.throws(() => verifyDeliveryToken(token, { secret, now: Date.now() + 120000 }), /expired/);
+  assert.throws(() => verifyDeliveryToken(`${token}x`, { secret }), /Invalid delivery token/);
+});
+
+test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-total orders", async () => {
+  const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
+  const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
+  assert.equal(parser.parseCode(plugin).kind, "program");
+  assert.match(plugin, /Version: 0\.5\.0/);
+  assert.match(plugin, /woocommerce_checkout_order_processed/);
+  assert.match(plugin, /get_total\(\) <= 0/);
+  assert.match(plugin, /payment_complete\(\)/);
+  assert.match(plugin, /send_ebook_ready_email/);
+  assert.match(plugin, /WC\(\)->mailer\(\)/);
+  assert.match(plugin, /calitiki_retry_book_order/);
+  assert.match(plugin, /woocommerce_account_calitiki-creations_endpoint/);
+  assert.match(plugin, /delivery-link\|/);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {

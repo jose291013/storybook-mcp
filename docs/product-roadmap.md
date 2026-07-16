@@ -47,7 +47,7 @@ Last updated: 2026-07-15
 2. Account gate and **My creations**: claim anonymous draft after login and list customer projects. **Account gate implemented; customer-library UI remains.**
 3. Preview entitlements: credit ledger, per-customer promotion codes, reservation/capture/release, project purchase rebate, idempotent retry. **Core implementation present behind `PREVIEW_ENTITLEMENTS_ENABLED`; WooCommerce paid credit fulfillment remains phase 4.**
 4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization. **Paid credit products, signed wallet grants, project-bound eBook/print cart creation, preview-rebate reservation and paid/cancelled/refunded settlement are implemented. Applying unused wallet balance beyond the project preview rebate and production fulfillment remain.**
-5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots.
+5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots. **Paid eBook fulfillment, private S3-compatible storage, expiring download links, retryable WooCommerce notification and the purchased eBook account view are implemented; production storage credentials must be configured. Print production remains.**
 6. Series experience: child profiles, approved memory, episode planner, new obstacle selection.
 7. Subscription: recurring credits and family plans after the series value is visible.
 
@@ -63,6 +63,8 @@ Last updated: 2026-07-15
 - Successful preview spend is reserved as a project rebate when checkout starts, deducted from the configured book line, captured on payment, and released after cancellation, failure or refund.
 - Preview spending requires a distinct customer confirmation after authentication and after wallet/code choices are displayed. The creator header exposes the live balance, and Calitiki Bridge 0.4.0 adds a signed wallet/history page to WooCommerce My account.
 - The WordPress theme is prepared for TranslatePress with an accessible flag-and-language dropdown. Active languages keep the same page context, and links to the external creator carry the selected FR/ES/EN interface language. TranslatePress Multiple Languages is required to publish all three languages simultaneously.
+- The external creator header provides a localized return to Calitiki. It remembers a trusted Calitiki referrer path without retaining query parameters or commerce authentication tokens, and otherwise falls back to the FR, ES or EN storefront home.
+- A paid personalized eBook order now creates one idempotent commerce record, generates the low-definition unwatermarked PDF, stores it in a private S3-compatible bucket and returns an expiring signed link. WooCommerce sends a separate localized “eBook ready” email and exposes a fresh link under **My creations Calitiki**. Processing/completed orders with a zero total after coupons follow the exact same paid flow; failed callbacks are retried with WP-Cron, and refunded deliveries are revoked.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -78,6 +80,10 @@ Last updated: 2026-07-15
 - `PREVIEW_ENTITLEMENTS_ENABLED`: activates the preview wallet gate after promotion codes or paid credit fulfillment are configured.
 - `PREVIEW_PROMO_CODES`: comma-separated `CODE:AMOUNT_IN_EURO_CENTS` campaign codes; each code can be redeemed once per WooCommerce customer.
 - `WOOCOMMERCE_CREDITS_URL`: WooCommerce URL used by the generator's **Buy credits** action.
+- `PRIVATE_STORAGE_BACKEND=s3`: private production delivery backend. `local` is allowed only for local development.
+- `PRIVATE_STORAGE_ENDPOINT`, `PRIVATE_STORAGE_REGION`, `PRIVATE_STORAGE_BUCKET`, `PRIVATE_STORAGE_ACCESS_KEY_ID`, `PRIVATE_STORAGE_SECRET_ACCESS_KEY`, `PRIVATE_STORAGE_FORCE_PATH_STYLE`: credentials and compatibility options for the private S3-compatible bucket.
+- `DELIVERY_SIGNING_SECRET`: secret used for expiring eBook links; minimum 32 characters and preferably different from the WooCommerce bridge secret.
+- `EBOOK_LINK_DAYS`: emailed eBook link lifetime, default 7 days. Customers can request a fresh link from their account.
 
 ## Resume prompt for a new Codex task
 

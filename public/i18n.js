@@ -1,4 +1,5 @@
 const fr = {
+  returnToStore: "Retour à Calitiki",
   format: "Album carré · 21 × 21 cm", interfaceLanguage: "Interface",
   heroEyebrow: "UN ALBUM CRÉÉ POUR LUI, ET POUR PERSONNE D'AUTRE", heroTitle: "Votre enfant devient le héros de sa propre histoire.", heroIntro: "Répondez à dix questions simples. Nous transformons ses rêves, ses qualités et les personnes qu'il aime en un album illustré unique.", previewBeforePrint: "Aperçu avant impression", coverMockup: "Une aventure rien qu'à toi", customEdition: "Édition personnalisée",
   startingAt: "À partir de {price}", pageRange: "{min} à {max} pages au choix", startCreating: "Créer mon livre",
@@ -21,6 +22,7 @@ const fr = {
 
 const es = {
   ...fr,
+  returnToStore: "Volver a Calitiki",
   format: "Álbum cuadrado · 21 × 21 cm", interfaceLanguage: "Interfaz", heroEyebrow: "UN ÁLBUM CREADO SOLO PARA ÉL", heroTitle: "Tu peque se convierte en protagonista de su propia historia.", heroIntro: "Responde diez preguntas sencillas. Convertimos sus sueños, cualidades y seres queridos en un álbum ilustrado único.", previewBeforePrint: "Vista previa antes de imprimir", coverMockup: "Una aventura solo para ti", customEdition: "Edición personalizada",
   startingAt: "Desde {price}", pageRange: "De {min} a {max} páginas a elegir", startCreating: "Crear mi libro",
   accountConnected: "Cuenta Calitiki conectada", accountDisconnected: "Sin conexión", logout: "Cerrar sesión", newBook: "Nuevo libro", newBookConfirm: "¿Empezar un nuevo libro? El borrador mostrado se retirará de este dispositivo, pero las creaciones guardadas en tu cuenta se conservarán.", walletBalance: "Saldo",
@@ -41,6 +43,7 @@ const es = {
 
 const en = {
   ...fr,
+  returnToStore: "Back to Calitiki",
   format: "Square book · 21 × 21 cm", interfaceLanguage: "Interface", heroEyebrow: "A BOOK CREATED FOR ONE VERY SPECIAL CHILD", heroTitle: "Your child becomes the hero of their own story.", heroIntro: "Answer ten simple questions. We turn their dreams, qualities and loved ones into a unique illustrated book.", previewBeforePrint: "Preview before printing", coverMockup: "An adventure just for you", customEdition: "Personalized edition",
   startingAt: "From {price}", pageRange: "Choose from {min} to {max} pages", startCreating: "Create my book",
   accountConnected: "Calitiki account connected", accountDisconnected: "Not connected", logout: "Sign out", newBook: "New book", newBookConfirm: "Start a new book? The displayed draft will be removed from this device, but creations already saved to your account will remain available.", walletBalance: "Balance",

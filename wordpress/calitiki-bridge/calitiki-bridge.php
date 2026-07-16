@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.4.0
+ * Version: 0.5.0
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -17,6 +17,7 @@ if (!defined('ABSPATH')) {
 final class Calitiki_Woo_Bridge {
     const GENERATOR_URL_OPTION = 'calitiki_generator_url';
     const SHARED_SECRET_OPTION = 'calitiki_bridge_secret';
+    const VERSION_OPTION = 'calitiki_bridge_version';
     const STATE_COOKIE = 'calitiki_bridge_state';
     const EBOOK_SLUG = 'livre-enfant-personnalise-ebook';
     const PRINT_SLUG = 'livre-enfant-personnalise-imprime';
@@ -44,11 +45,14 @@ final class Calitiki_Woo_Bridge {
         add_action('woocommerce_payment_complete', array(__CLASS__, 'book_order_paid'));
         add_action('woocommerce_order_status_processing', array(__CLASS__, 'book_order_paid'));
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'book_order_paid'));
+        add_action('woocommerce_checkout_order_processed', array(__CLASS__, 'maybe_book_order_paid'), 20, 3);
         add_action('woocommerce_order_status_cancelled', array(__CLASS__, 'book_order_cancelled'));
         add_action('woocommerce_order_status_failed', array(__CLASS__, 'book_order_failed'));
         add_action('woocommerce_order_refunded', array(__CLASS__, 'book_order_refunded'), 10, 2);
+        add_action('calitiki_retry_book_order', array(__CLASS__, 'retry_book_order'), 10, 2);
         add_filter('woocommerce_account_menu_items', array(__CLASS__, 'account_menu_items'));
         add_action('woocommerce_account_calitiki-credits_endpoint', array(__CLASS__, 'render_account_credits'));
+        add_action('woocommerce_account_calitiki-creations_endpoint', array(__CLASS__, 'render_account_creations'));
     }
 
     public static function activate() {
@@ -64,11 +68,17 @@ final class Calitiki_Woo_Bridge {
 
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
+        add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
+        if (get_option(self::VERSION_OPTION) !== '0.5.0') {
+            update_option(self::VERSION_OPTION, '0.5.0');
+            flush_rewrite_rules(false);
+        }
     }
 
     public static function account_menu_items($items) {
         $logout = isset($items['customer-logout']) ? $items['customer-logout'] : null;
         unset($items['customer-logout']);
+        $items['calitiki-creations'] = __('Mes créations Calitiki', 'calitiki-bridge');
         $items['calitiki-credits'] = __('Mes crédits Calitiki', 'calitiki-bridge');
         if ($logout !== null) {
             $items['customer-logout'] = $logout;
@@ -140,6 +150,57 @@ final class Calitiki_Woo_Bridge {
         }
         echo '<style>.calitiki-wallet-summary{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px;margin:18px 0;border:1px solid #ead8c8;border-radius:18px;background:#fffaf4}.calitiki-wallet-summary div{display:grid;gap:4px}.calitiki-wallet-summary span{font-size:13px;color:#667a7c}.calitiki-wallet-summary strong{font-size:30px;color:#24393d}.calitiki-wallet-table-wrap{overflow-x:auto}.calitiki-wallet-account .is-credit{color:#357564;font-weight:700}.calitiki-wallet-account .is-debit{color:#a24d43;font-weight:700}@media(max-width:600px){.calitiki-wallet-summary{align-items:stretch;flex-direction:column}}</style>';
         echo '</div>';
+    }
+
+    private static function fresh_ebook_link($order_id, $customer_id, $project_id) {
+        $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        if (!$generator_url || strlen($secret) < 32) {
+            return '';
+        }
+        $timestamp = time();
+        $signature = hash_hmac('sha256', 'delivery-link|' . $order_id . '|' . $customer_id . '|' . $project_id . '|' . $timestamp, $secret);
+        $url = add_query_arg(array('orderId' => (string) $order_id, 'wooCustomerId' => (string) $customer_id, 'projectId' => (string) $project_id, 'timestamp' => $timestamp), $generator_url . '/api/commerce/ebook-download-link');
+        $response = wp_remote_get($url, array('timeout' => 20, 'headers' => array('X-Calitiki-Signature' => $signature)));
+        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) < 200 || wp_remote_retrieve_response_code($response) >= 300) {
+            return '';
+        }
+        $payload = json_decode(wp_remote_retrieve_body($response), true);
+        return esc_url_raw($payload['delivery']['downloadUrl'] ?? '');
+    }
+
+    public static function render_account_creations() {
+        $customer_id = get_current_user_id();
+        echo '<div class="calitiki-creations-account"><h2>' . esc_html__('Mes créations Calitiki', 'calitiki-bridge') . '</h2>';
+        $orders = wc_get_orders(array('customer_id' => $customer_id, 'limit' => -1, 'orderby' => 'date', 'order' => 'DESC', 'status' => array('wc-processing', 'wc-completed')));
+        $found = false;
+        echo '<div class="calitiki-creation-grid">';
+        foreach ($orders as $order) {
+            foreach ($order->get_items() as $item) {
+                $project_id = (string) $item->get_meta('_calitiki_project_id', true);
+                $product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
+                if (!$project_id || !in_array($product_type, array('ebook', 'print'), true)) {
+                    continue;
+                }
+                $found = true;
+                $pages = absint($item->get_meta('_calitiki_page_count', true));
+                $download_url = $product_type === 'ebook' ? self::fresh_ebook_link($order->get_id(), $customer_id, $project_id) : '';
+                echo '<article class="calitiki-creation-card"><span>' . esc_html($product_type === 'ebook' ? __('eBook personnalisé', 'calitiki-bridge') : __('Livre imprimé personnalisé', 'calitiki-bridge')) . '</span>';
+                echo '<h3>' . esc_html($item->get_name()) . '</h3><p>' . esc_html(sprintf(__('Commande n°%1$s · %2$d pages', 'calitiki-bridge'), $order->get_order_number(), $pages)) . '</p>';
+                if ($download_url) {
+                    echo '<a class="button alt" href="' . esc_url($download_url) . '">' . esc_html__('Télécharger mon eBook', 'calitiki-bridge') . '</a>';
+                } elseif ($product_type === 'ebook') {
+                    echo '<p class="calitiki-delivery-pending">' . esc_html__('Votre eBook est en cours de préparation. Actualisez cette page dans quelques instants.', 'calitiki-bridge') . '</p>';
+                } else {
+                    echo '<a class="button" href="' . esc_url($order->get_view_order_url()) . '">' . esc_html__('Suivre ma commande', 'calitiki-bridge') . '</a>';
+                }
+                echo '</article>';
+            }
+        }
+        if (!$found) {
+            echo '<p>' . esc_html__('Aucune création achetée pour le moment.', 'calitiki-bridge') . '</p>';
+        }
+        echo '</div><style>.calitiki-creation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.calitiki-creation-card{padding:22px;border:1px solid #ead8c8;border-radius:18px;background:#fffaf4}.calitiki-creation-card>span{font-size:12px;font-weight:800;color:#c96f57;text-transform:uppercase;letter-spacing:.08em}.calitiki-creation-card h3{margin:8px 0}.calitiki-delivery-pending{color:#667a7c}@media(max-width:700px){.calitiki-creation-grid{grid-template-columns:1fr}}</style></div>';
     }
 
     public static function settings_link($links) {
@@ -502,6 +563,52 @@ final class Calitiki_Woo_Bridge {
         $item->add_meta_data(__('Nombre de pages', 'calitiki-bridge'), absint($values['calitiki_page_count']), true);
     }
 
+    private static function schedule_book_order_retry($order_id, $status) {
+        $args = array(absint($order_id), sanitize_key($status));
+        if (!wp_next_scheduled('calitiki_retry_book_order', $args)) {
+            wp_schedule_single_event(time() + 300, 'calitiki_retry_book_order', $args);
+        }
+    }
+
+    private static function ebook_email_copy($order) {
+        $locale = strtolower((string) $order->get_meta('_trp_language', true));
+        if (!$locale) {
+            $locale = strtolower((string) $order->get_meta('_order_locale', true));
+        }
+        if (!$locale && $order->get_customer_id()) {
+            $locale = strtolower((string) get_user_locale($order->get_customer_id()));
+        }
+        if (strpos($locale, 'es') === 0) {
+            return array('subject' => 'Tu eBook Calitiki está listo', 'heading' => '¡Tu historia está lista!', 'intro' => 'Tu eBook personalizado ya está preparado.', 'button' => 'Descargar mi eBook', 'expiry' => 'Por seguridad, este enlace es temporal. Siempre puedes obtener uno nuevo desde Mis creaciones en tu cuenta Calitiki.');
+        }
+        if (strpos($locale, 'en') === 0) {
+            return array('subject' => 'Your Calitiki eBook is ready', 'heading' => 'Your story is ready!', 'intro' => 'Your personalized eBook is now ready.', 'button' => 'Download my eBook', 'expiry' => 'For security, this link is temporary. You can always get a new one from My creations in your Calitiki account.');
+        }
+        return array('subject' => 'Votre eBook Calitiki est prêt', 'heading' => 'Votre histoire est prête !', 'intro' => 'Votre eBook personnalisé est maintenant disponible.', 'button' => 'Télécharger mon eBook', 'expiry' => 'Pour votre sécurité, ce lien est temporaire. Vous pourrez toujours en obtenir un nouveau depuis Mes créations dans votre compte Calitiki.');
+    }
+
+    private static function send_ebook_ready_email($order, $item, $delivery) {
+        if ($item->get_meta('_calitiki_ebook_email_sent', true)) {
+            return true;
+        }
+        $download_url = esc_url_raw($delivery['downloadUrl'] ?? '');
+        if (!$download_url || !function_exists('WC')) {
+            return false;
+        }
+        $copy = self::ebook_email_copy($order);
+        $mailer = WC()->mailer();
+        $content = '<p>' . esc_html($copy['intro']) . '</p><p style="margin:28px 0"><a href="' . esc_url($download_url) . '" style="display:inline-block;padding:14px 24px;border-radius:999px;background:#d8755b;color:#fff;text-decoration:none;font-weight:700">' . esc_html($copy['button']) . '</a></p><p>' . esc_html($copy['expiry']) . '</p>';
+        $message = $mailer->wrap_message($copy['heading'], $content);
+        $sent = $mailer->send($order->get_billing_email(), $copy['subject'], $message, "Content-Type: text/html\r\n", array());
+        if ($sent) {
+            $item->update_meta_data('_calitiki_ebook_ready', gmdate('c'));
+            $item->update_meta_data('_calitiki_ebook_email_sent', gmdate('c'));
+            $item->update_meta_data('_calitiki_ebook_download_expires', sanitize_text_field($delivery['expiresAt'] ?? ''));
+            $item->save();
+        }
+        return (bool) $sent;
+    }
+
     private static function notify_book_order($order_id, $status) {
         $order = function_exists('wc_get_order') ? wc_get_order($order_id) : null;
         if (!$order || !$order->get_customer_id()) {
@@ -518,25 +625,54 @@ final class Calitiki_Woo_Bridge {
                 continue;
             }
             $reservation_id = (string) $item->get_meta('_calitiki_checkout_reservation_id', true);
+            $product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
+            if (!$product_type && $item->get_product()) {
+                $product_type = (string) self::book_format_for_product($item->get_product());
+            }
+            $page_count = absint($item->get_meta('_calitiki_page_count', true));
+            $order_total_cents = (int) round((float) $order->get_total() * 100);
+            if (!in_array($product_type, array('ebook', 'print'), true) || !$page_count) {
+                continue;
+            }
             $marker = '_calitiki_book_' . $status . '_' . md5($project_id . '|' . $reservation_id);
             if ($order->get_meta($marker)) {
                 continue;
             }
             $customer_id = (string) $order->get_customer_id();
-            $signature = hash_hmac('sha256', $order_id . '|' . $customer_id . '|' . $reservation_id . '|' . $status, $secret);
+            $signature_value = implode('|', array((string) $order_id, $customer_id, $project_id, $reservation_id, $product_type, (string) $page_count, (string) $order_total_cents, $status));
+            $signature = hash_hmac('sha256', $signature_value, $secret);
             $response = wp_remote_post($generator_url . '/api/commerce/book-order-status', array(
-                'timeout' => 20,
+                'timeout' => 60,
                 'headers' => array('Content-Type' => 'application/json', 'X-Calitiki-Signature' => $signature),
-                'body' => wp_json_encode(array('orderId' => (string) $order_id, 'wooCustomerId' => $customer_id, 'projectId' => $project_id, 'reservationId' => $reservation_id, 'status' => $status)),
+                'body' => wp_json_encode(array('orderId' => (string) $order_id, 'wooCustomerId' => $customer_id, 'email' => $order->get_billing_email(), 'projectId' => $project_id, 'reservationId' => $reservation_id, 'productType' => $product_type, 'pageCount' => $page_count, 'orderTotalCents' => $order_total_cents, 'status' => $status)),
             ));
             if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) >= 200 && wp_remote_retrieve_response_code($response) < 300) {
-                $order->update_meta_data($marker, gmdate('c'));
+                $payload = json_decode(wp_remote_retrieve_body($response), true);
+                $delivery = is_array($payload) && !empty($payload['fulfillment']) ? $payload['fulfillment'] : array();
+                $email_ready = $status !== 'paid' || $product_type !== 'ebook' || (($delivery['status'] ?? '') === 'ready' && self::send_ebook_ready_email($order, $item, $delivery));
+                if ($email_ready) {
+                    $order->update_meta_data($marker, gmdate('c'));
+                } else {
+                    self::schedule_book_order_retry($order_id, $status);
+                }
+            } else {
+                self::schedule_book_order_retry($order_id, $status);
             }
         }
         $order->save();
     }
 
     public static function book_order_paid($order_id) { self::notify_book_order($order_id, 'paid'); }
+    public static function maybe_book_order_paid($order_id, $posted_data = array(), $order = null) {
+        $order = $order instanceof WC_Order ? $order : (function_exists('wc_get_order') ? wc_get_order($order_id) : null);
+        if ($order && (float) $order->get_total() <= 0 && !$order->is_paid()) {
+            $order->payment_complete();
+        }
+        if ($order && ($order->is_paid() || ((float) $order->get_total() <= 0 && in_array($order->get_status(), array('processing', 'completed'), true)))) {
+            self::notify_book_order($order_id, 'paid');
+        }
+    }
+    public static function retry_book_order($order_id, $status) { self::notify_book_order($order_id, $status); }
     public static function book_order_cancelled($order_id) { self::notify_book_order($order_id, 'cancelled'); }
     public static function book_order_failed($order_id) { self::notify_book_order($order_id, 'failed'); }
     public static function book_order_refunded($order_id, $refund_id) { self::notify_book_order($order_id, 'refunded'); }

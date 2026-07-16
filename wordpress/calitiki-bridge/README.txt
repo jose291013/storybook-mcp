@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -29,6 +29,11 @@ Après paiement, l’extension envoie un webhook signé au générateur. Un mêm
 Les produits ayant les slugs `livre-enfant-personnalise-ebook` et `livre-enfant-personnalise-imprime` ne peuvent pas être ajoutés directement au panier.
 Après un aperçu réussi, le générateur émet un lien signé et limité dans le temps. L’extension sélectionne alors la variation du nombre de pages, attache l’identifiant du projet au panier et déduit le crédit d’aperçu réservé.
 Le paiement capture la remise ; une annulation, un échec ou un remboursement la rend de nouveau disponible pour cette création.
+
+== Livraison eBook ==
+
+Une commande eBook payée, y compris une commande dont les coupons ramènent le total à 0 €, déclenche la création du PDF privé. WooCommerce envoie ensuite un e-mail « Votre eBook est prêt » avec un lien temporaire et affiche un nouveau lien dans « Mes créations Calitiki ».
+Si Render ou le stockage privé est momentanément indisponible, l’extension planifie une nouvelle tentative avec WP-Cron. Un remboursement révoque l’accès au fichier.
 
 == Portefeuille client ==
 
