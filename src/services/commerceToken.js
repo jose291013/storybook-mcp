@@ -16,6 +16,27 @@ export function verifyCommerceWebhookSignature({ orderId, customerId, reservatio
   return supplied.length === expected.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
 }
 
+export function bookOrderSignatureValue({ orderId, customerId, projectId, reservationId = "", productType, pageCount, orderTotalCents = 0, status }) {
+  return [orderId, customerId, projectId, reservationId, productType, pageCount, orderTotalCents, status].map((value) => String(value ?? "")).join("|");
+}
+
+export function signBookOrderWebhook(payload, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET || "") {
+  if (String(secret).length < 32) throw new Error("WooCommerce bridge secret is not configured");
+  return crypto.createHmac("sha256", secret).update(bookOrderSignatureValue(payload)).digest("hex");
+}
+
+export function verifyBookOrderWebhook({ signature, ...payload }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET || "") {
+  if (!signature || String(secret).length < 32) return false;
+  const expected = signBookOrderWebhook(payload, secret);
+  return String(signature).length === expected.length && crypto.timingSafeEqual(Buffer.from(String(signature)), Buffer.from(expected));
+}
+
+export function verifyDeliveryLinkRequest({ orderId, customerId, projectId, timestamp, signature }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET || "", now = Date.now()) {
+  if (!signature || String(secret).length < 32 || Math.abs(Math.floor(now / 1000) - Number(timestamp)) > 300) return false;
+  const expected = crypto.createHmac("sha256", secret).update(`delivery-link|${orderId}|${customerId}|${projectId}|${timestamp}`).digest("hex");
+  return String(signature).length === expected.length && crypto.timingSafeEqual(Buffer.from(String(signature)), Buffer.from(expected));
+}
+
 export function woocommerceCheckoutBridgeUrl(token) {
   const source = process.env.WOOCOMMERCE_CHECKOUT_URL || process.env.WOOCOMMERCE_BRIDGE_URL || "";
   if (!source) throw new Error("WooCommerce checkout bridge URL is not configured");

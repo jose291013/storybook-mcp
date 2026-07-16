@@ -13,15 +13,13 @@ function localOutputPath(assetUrl, outputsDir) {
   return path.join(outputsDir, filename);
 }
 
-export async function createEbookPdf({
-  jobId,
+export async function createEbookPdfBuffer({
   title = "Personalized story",
   language = "FR",
   coverPreviewUrl,
   pages = [],
   outputsDir = "data/outputs",
 }) {
-  if (!jobId) throw new Error("createEbookPdf: missing jobId");
   if (!coverPreviewUrl) throw new Error("createEbookPdf: missing cover");
 
   const orderedUrls = [
@@ -45,9 +43,22 @@ export async function createEbookPdf({
     page.drawImage(image, { x: 0, y: 0, width: PAGE_SIZE_PT, height: PAGE_SIZE_PT });
   }
 
+  return Buffer.from(await pdf.save({ useObjectStreams: true }));
+}
+
+export async function createEbookPdf({
+  jobId,
+  title = "Personalized story",
+  language = "FR",
+  coverPreviewUrl,
+  pages = [],
+  outputsDir = "data/outputs",
+}) {
+  if (!jobId) throw new Error("createEbookPdf: missing jobId");
+  const bytes = await createEbookPdfBuffer({ title, language, coverPreviewUrl, pages, outputsDir });
   await fs.mkdir(outputsDir, { recursive: true });
   const filename = `ebook-${jobId}.pdf`;
-  await fs.writeFile(path.join(outputsDir, filename), await pdf.save({ useObjectStreams: true }));
+  await fs.writeFile(path.join(outputsDir, filename), bytes);
   return `/outputs/${filename}`;
 }
 

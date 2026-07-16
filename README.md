@@ -29,6 +29,10 @@ Configurer la même valeur longue dans le plugin et dans `WOOCOMMERCE_BRIDGE_SEC
 
 Le livre imprimé est calculé à `1,2458 €` par page. L'eBook est calculé à `0,27875 €` par page. Après paiement, la finalisation d'une commande eBook assemble la couverture et les pages basse définition dans un PDF carré 21 × 21 cm sans filigrane ; la liseuse publique conserve un filigrane d'aperçu.
 
+La commande WooCommerce payée déclenche automatiquement cette finalisation, y compris lorsque des coupons ramènent son total à `0 €`. Le PDF est placé dans un bucket privé compatible S3, puis WooCommerce envoie un e-mail localisé avec un lien signé temporaire. Le client peut générer un nouveau lien depuis **Mon compte > Mes créations Calitiki**. Un remboursement révoque le téléchargement.
+
+Sur Render, configurer `PRIVATE_STORAGE_BACKEND=s3`, l'endpoint, la région, le bucket et les identifiants `PRIVATE_STORAGE_*`, ainsi qu'un `DELIVERY_SIGNING_SECRET` d'au moins 32 caractères. Le stockage local privé est réservé au développement et n'est jamais utilisé automatiquement sur Render.
+
 ### Questionnaire
 
 `GET /api/questionnaire` retourne les dix questions, les rôles disponibles pour les photos et le format du livre.

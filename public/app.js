@@ -11,6 +11,36 @@ try {
 } catch { referrerLocale = ""; }
 const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLocale : referrerLocale;
 
+const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
+
+function safeCalitikiReturnUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    const isCalitikiHost = url.hostname === "calitiki.com" || url.hostname.endsWith(".calitiki.com");
+    if (url.protocol !== "https:" || !isCalitikiHost) return "";
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return "";
+  }
+}
+
+try {
+  const referrer = new URL(document.referrer);
+  const safeReferrer = safeCalitikiReturnUrl(referrer.href);
+  if (safeReferrer && !referrer.searchParams.has("calitiki_connect")) sessionStorage.setItem(STOREFRONT_RETURN_KEY, safeReferrer);
+} catch {
+  // A direct visit to the creator uses the localized storefront fallback.
+}
+
+function storefrontReturnUrl(locale) {
+  let remembered = "";
+  try { remembered = safeCalitikiReturnUrl(sessionStorage.getItem(STOREFRONT_RETURN_KEY)); } catch { remembered = ""; }
+  if (remembered && new URL(remembered).pathname !== "/") return remembered;
+  if (locale === "ES") return "https://calitiki.com/es/";
+  if (locale === "EN") return "https://calitiki.com/en/";
+  return "https://calitiki.com/";
+}
+
 const state = {
   config: null,
   locale: requestedUiLanguage || localStorage.getItem("storybook-ui-language") || "FR",
@@ -51,7 +81,7 @@ const elements = {
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
-  mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), costNote: document.querySelector("#costNote"),
+  mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
@@ -295,6 +325,11 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = tr(node.dataset.i18n); });
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => { node.placeholder = tr(node.dataset.i18nPlaceholder); });
   elements.uiLanguage.value = state.locale;
+  if (elements.storefrontReturnLink) {
+    elements.storefrontReturnLink.href = storefrontReturnUrl(state.locale);
+    elements.storefrontReturnLink.setAttribute("aria-label", tr("returnToStore"));
+    elements.storefrontReturnLink.title = tr("returnToStore");
+  }
   const firstPrice = state.config?.pageCountOptions?.[0]?.ebookPriceEur;
   if (elements.heroStartingPrice && firstPrice != null) elements.heroStartingPrice.textContent = tr("startingAt", { price: formatPrice(firstPrice) });
   if (elements.heroPageRange) elements.heroPageRange.textContent = tr("pageRange", { min: 24, max: 44 });
@@ -597,7 +632,7 @@ async function restoreCompletedPreview() {
   if (!response.ok) return false;
   const payload = await response.json();
   const project = payload.project;
-  if (project?.status !== "preview_ready" || !project.previewResult) return false;
+  if (!["preview_ready", "purchased"].includes(project?.status) || !project.previewResult) return false;
   showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint }, { scroll: false });
   return true;
 }
