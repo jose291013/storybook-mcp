@@ -6,7 +6,7 @@ Last updated: 2026-07-15
 
 1. An anonymous visitor can complete all ten questions, choose the book configuration, and add up to five photos.
 2. When the visitor requests an AI preview, the draft is preserved and WooCommerce authentication is required.
-3. An authenticated customer authorizes one preview with either one credit or a single-use access code.
+3. An authenticated customer sees the exact preview price, may apply a single-use access code, and explicitly confirms the displayed wallet debit. A sufficient balance never starts generation automatically.
 4. A credit is reserved at generation start, captured on success, and released after a technical failure. A redeemed code grants an idempotent retry for the same project after a technical failure.
 5. The customer receives a low-definition, watermarked preview stored in **My creations**.
 6. The customer may purchase an ebook, a printed book, or a future bundle.
@@ -30,8 +30,9 @@ Last updated: 2026-07-15
 
 ## Post-preview experience and credit wallet
 
-- After a successful preview, the questionnaire and free-generation button are replaced by one action center directly below the book reader. The original preview is immutable and a second generation can never be triggered accidentally.
-- The action center shows the current credit balance, **Request a change**, **Regenerate**, **Buy the eBook**, **Buy the printed book**, and **Buy credits**. Production and delivery estimates are shown beside the printed-book action before checkout.
+- After a successful preview, the questionnaire and generation controls are replaced by one action center directly below the book reader. The original preview is immutable and a second generation can never be triggered accidentally.
+- The connected creator header shows the current wallet balance at every step. Immediately before preview, a separate confirmation button displays the exact amount that will be used; promotion codes remain available before that decision. The WooCommerce **My account** area shows the same balance, recent ledger history and a **Buy credits** action.
+- The post-preview action center shows the remaining credit balance, **Request a change**, **Regenerate**, **Buy the eBook**, **Buy the printed book**, and **Buy credits**. Production and delivery estimates are shown beside the printed-book action before checkout.
 - Preview credit is stored as a euro-cent wallet. The configured preview prices are **EUR 2.50 / 3.00 / 3.50 / 4.00 / 4.50 / 5.00 including tax** for 24 / 28 / 32 / 36 / 40 / 44 pages. The amount is snapshotted on reservation.
 - Promotion codes have a configurable euro-cent value of EUR 2.50 or more. A campaign code may be redeemed once per WooCommerce customer; an individual code can use the same mechanism with a single intended customer. If the code does not cover the selected preview, the missing wallet credit must be purchased before generation.
 - Every successful preview consumes its reserved wallet amount and creates an equal purchase rebate tied to that book project. Multiple previews remain possible while the wallet is funded; their successful charges accumulate as purchase rebate for that project only. A targeted modification creates a new revision and must quote the affected spreads before reservation.
@@ -45,7 +46,7 @@ Last updated: 2026-07-15
 1. Persistent draft foundation: PostgreSQL schema, anonymous ownership, draft API, local autosave, and Woo identity contract.
 2. Account gate and **My creations**: claim anonymous draft after login and list customer projects. **Account gate implemented; customer-library UI remains.**
 3. Preview entitlements: credit ledger, per-customer promotion codes, reservation/capture/release, project purchase rebate, idempotent retry. **Core implementation present behind `PREVIEW_ENTITLEMENTS_ENABLED`; WooCommerce paid credit fulfillment remains phase 4.**
-4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization. **Paid credit products and their signed idempotent wallet-grant webhook are implemented; applying project rebates to ebook/print checkout remains.**
+4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization. **Paid credit products, signed wallet grants, project-bound eBook/print cart creation, preview-rebate reservation and paid/cancelled/refunded settlement are implemented. Applying unused wallet balance beyond the project preview rebate and production fulfillment remain.**
 5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots.
 6. Series experience: child profiles, approved memory, episode planner, new obstacle selection.
 7. Subscription: recurring credits and family plans after the series value is visible.
@@ -57,7 +58,10 @@ Last updated: 2026-07-15
 - The project store uses PostgreSQL when `DATABASE_URL` is configured and a local JSON fallback during development.
 - Anonymous projects can be claimed and listed through the signed WooCommerce customer-token contract.
 - The installable `wordpress/calitiki-bridge` plugin sends logged-in customers back from WooCommerce with a five-minute HMAC identity token. The generator exchanges it for its own HTTP-only customer session and resumes the saved preview request.
-- Preview generation now requires an authenticated customer-owned project. The preview credit/code gate, private object storage, and customer library UI remain for the next phases.
+- Preview generation requires an authenticated customer-owned project. The preview credit/code gate is implemented behind `PREVIEW_ENTITLEMENTS_ENABLED`; private object storage and the customer-library UI remain for later phases.
+- Personalized eBook and print products can no longer be added directly to the cart. Their product pages lead to the creator; only a short-lived signed link issued after a completed preview can select the matching page-count variation and attach the project to the WooCommerce cart.
+- Successful preview spend is reserved as a project rebate when checkout starts, deducted from the configured book line, captured on payment, and released after cancellation, failure or refund.
+- Preview spending requires a distinct customer confirmation after authentication and after wallet/code choices are displayed. The creator header exposes the live balance, and Calitiki Bridge 0.4.0 adds a signed wallet/history page to WooCommerce My account.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -68,6 +72,7 @@ Last updated: 2026-07-15
 - `DRAFT_TTL_DAYS`: anonymous draft retention, default 7 days.
 - `WOOCOMMERCE_BRIDGE_SECRET`: shared secret used to verify short-lived customer identity tokens.
 - `WOOCOMMERCE_BRIDGE_URL`: public connection URL displayed in WooCommerce > Calitiki Bridge.
+- `WOOCOMMERCE_CHECKOUT_URL`: optional WooCommerce checkout bridge base URL. When empty, it is derived from `WOOCOMMERCE_BRIDGE_URL`.
 - `CUSTOMER_SESSION_DAYS`: lifetime of the generator's HTTP-only customer session, default 7 days.
 - `PREVIEW_ENTITLEMENTS_ENABLED`: activates the preview wallet gate after promotion codes or paid credit fulfillment are configured.
 - `PREVIEW_PROMO_CODES`: comma-separated `CODE:AMOUNT_IN_EURO_CENTS` campaign codes; each code can be redeemed once per WooCommerce customer.

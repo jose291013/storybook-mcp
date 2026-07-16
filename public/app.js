@@ -13,6 +13,7 @@ const state = {
   jobId: "",
   projectId: "",
   previewComplete: false,
+  awaitingPreviewConfirmation: false,
   customerSession: { authenticated: false, customer: null },
 };
 
@@ -31,6 +32,7 @@ function consumeNewBookRequest() {
 }
 
 const newBookRequested = consumeNewBookRequest();
+const requestedProductType = ["ebook", "print"].includes(new URL(window.location.href).searchParams.get("productType")) ? new URL(window.location.href).searchParams.get("productType") : "";
 
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
@@ -40,8 +42,8 @@ const elements = {
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
-  accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"),
-  creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionBuyCredits: document.querySelector("#actionBuyCredits"),
+  accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
+  creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
 };
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
@@ -143,37 +145,66 @@ function renderCustomerSession() {
   elements.accountStatus.dataset.state = connected ? "connected" : "disconnected";
   elements.accountStatus.textContent = tr(connected ? "accountConnected" : "accountDisconnected");
   elements.logoutButton.hidden = !connected;
+  elements.headerCreditBalance.hidden = !connected;
 }
 
-function renderCreditSummary(summary) {
+function renderCreditSummary(summary, { showPanel = false } = {}) {
   const enabled = Boolean(summary?.enabled);
-  elements.creditPanel.hidden = !enabled;
-  if (!enabled) return summary;
+  elements.headerCreditBalanceValue.textContent = formatPrice((summary?.balanceCents || 0) / 100);
+  elements.creditPanel.hidden = !showPanel;
   elements.previewCreditPrice.textContent = formatPrice((summary.requiredCents || 0) / 100);
   elements.creditBalance.textContent = formatPrice((summary.balanceCents || 0) / 100);
   elements.creditMissing.textContent = formatPrice((summary.missingCents || 0) / 100);
   elements.creditMissing.closest("div").classList.toggle("has-missing-credit", summary.missingCents > 0);
   elements.buyCreditsLink.hidden = !summary.buyCreditsUrl;
   if (summary.buyCreditsUrl) elements.buyCreditsLink.href = summary.buyCreditsUrl;
+  if (showPanel) {
+    elements.confirmPreviewButton.disabled = enabled && summary.missingCents > 0;
+    elements.confirmPreviewButton.textContent = enabled ? tr("confirmPreviewDebit", { amount: formatPrice((summary.requiredCents || 0) / 100) }) : tr("confirmPreviewFree");
+  }
   return summary;
 }
 
 async function refreshCreditSummary(projectId = state.projectId) {
-  if (!state.customerSession?.authenticated || !projectId) return null;
-  const response = await fetch(`/api/credits/summary?projectId=${encodeURIComponent(projectId)}`, { cache: "no-store" });
+  if (!state.customerSession?.authenticated) return null;
+  const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+  const response = await fetch(`/api/credits/summary${query}`, { cache: "no-store" });
   const summary = await response.json();
   if (!response.ok) throw new Error(summary.error || tr("creditError"));
-  return renderCreditSummary(summary);
+  return renderCreditSummary(summary, { showPanel: Boolean(projectId) });
 }
 
-async function hasPreviewEntitlement(projectId) {
+async function preparePreviewAuthorization(projectId) {
   const summary = await refreshCreditSummary(projectId);
-  if (!summary?.enabled || summary.missingCents <= 0) return true;
   document.querySelector("#creator").hidden = false;
   showStep(4, false);
+  state.awaitingPreviewConfirmation = true;
   elements.creditPanel.scrollIntoView({ behavior: "smooth", block: "center" });
-  elements.creditFeedback.textContent = tr("creditRequired", { amount: formatPrice(summary.missingCents / 100) });
-  return false;
+  elements.creditFeedback.textContent = summary?.missingCents > 0
+    ? tr("creditRequired", { amount: formatPrice(summary.missingCents / 100) })
+    : tr("previewAwaitingConfirmation");
+}
+
+async function confirmPreviewAuthorization() {
+  if (!state.projectId || !state.awaitingPreviewConfirmation) return;
+  const summary = await refreshCreditSummary(state.projectId);
+  if (summary?.enabled && summary.missingCents > 0) {
+    elements.creditFeedback.textContent = tr("creditRequired", { amount: formatPrice(summary.missingCents / 100) });
+    return;
+  }
+  const original = elements.confirmPreviewButton.textContent;
+  elements.confirmPreviewButton.disabled = true;
+  elements.confirmPreviewButton.textContent = tr("confirmingPreview");
+  elements.creditFeedback.textContent = tr("previewDebitConfirmed", { amount: formatPrice((summary?.requiredCents || 0) / 100) });
+  try {
+    state.awaitingPreviewConfirmation = false;
+    await generatePreviewForProject(state.projectId);
+  } catch (error) {
+    state.awaitingPreviewConfirmation = true;
+    elements.confirmPreviewButton.disabled = false;
+    elements.confirmPreviewButton.textContent = original;
+    elements.formError.textContent = error.message;
+  }
 }
 
 async function redeemPromotion() {
@@ -193,11 +224,27 @@ async function redeemPromotion() {
 
 async function renderPreviewActionCenter() {
   const summary = await refreshCreditSummary().catch(() => null);
-  if (!summary?.enabled) return;
   elements.previewActionCenter.hidden = false;
-  elements.previewRebateText.textContent = tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) });
-  elements.actionBuyCredits.hidden = !summary.buyCreditsUrl;
-  if (summary.buyCreditsUrl) elements.actionBuyCredits.href = summary.buyCreditsUrl;
+  elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
+  elements.actionBuyCredits.hidden = !summary?.buyCreditsUrl;
+  if (summary?.buyCreditsUrl) elements.actionBuyCredits.href = summary.buyCreditsUrl;
+  elements.actionBuyEbook.disabled = false;
+  elements.actionBuyPrint.disabled = false;
+}
+
+async function openConfiguredCheckout(productType, button) {
+  if (!state.projectId || !state.previewComplete) return;
+  const original = button.textContent;
+  button.disabled = true; button.textContent = tr("checkoutPreparing");
+  try {
+    const response = await fetch("/api/commerce/checkout-link", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ projectId: state.projectId, productType }) });
+    const payload = await response.json();
+    if (!response.ok || !payload.checkoutUrl) throw new Error(payload.error || tr("checkoutError"));
+    window.location.assign(payload.checkoutUrl);
+  } catch (error) {
+    button.disabled = false; button.textContent = original;
+    elements.previewRebateText.textContent = error.message || tr("checkoutError");
+  }
 }
 
 async function refreshCustomerSession() {
@@ -557,7 +604,7 @@ async function resumePreviewAfterLogin() {
     const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || tr("startError"));
-    if (await hasPreviewEntitlement(projectId)) await generatePreviewForProject(projectId);
+    await preparePreviewAuthorization(projectId);
   } catch (error) {
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;
@@ -585,7 +632,7 @@ async function startGeneration(event) {
       return;
     }
     await claimProject(project.id);
-    if (await hasPreviewEntitlement(project.id)) await generatePreviewForProject(project.id);
+    await preparePreviewAuthorization(project.id);
   } catch (error) {
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;
@@ -594,7 +641,7 @@ async function startGeneration(event) {
   } finally {
     if (!leavingForLogin && !state.previewComplete) {
       submit.disabled = false;
-      submit.innerHTML = `<span>${escapeHtml(tr("generate"))}</span> <span>→</span>`;
+      submit.innerHTML = `<span>${escapeHtml(tr("reviewCreditsAction"))}</span> <span>→</span>`;
     }
   }
 }
@@ -605,7 +652,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected"; if (authCallback) await resumePreviewAfterLogin(); else await restoreCompletedPreview(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || requestedProductType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await refreshCreditSummary("").catch(() => null); const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected"; if (authCallback) await resumePreviewAfterLogin(); else await restoreCompletedPreview(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 
@@ -622,6 +669,9 @@ elements.form.addEventListener("click", (event) => { if (event.target.closest("[
 elements.newBookButton.addEventListener("click", startNewBook);
 elements.resultNewBookButton.addEventListener("click", startNewBook);
 elements.redeemPromoButton.addEventListener("click", redeemPromotion);
+elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
+elements.actionBuyEbook.addEventListener("click", () => openConfiguredCheckout("ebook", elements.actionBuyEbook));
+elements.actionBuyPrint.addEventListener("click", () => openConfiguredCheckout("print", elements.actionBuyPrint));
 elements.logoutButton.addEventListener("click", () => { logoutCustomer().catch((error) => { elements.formError.textContent = error.message; }); });
 
 init();

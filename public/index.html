@@ -14,6 +14,7 @@
         <span>Mon Histoire Magique</span>
       </a>
       <div class="header-tools">
+        <a class="wallet-pill" id="headerCreditBalance" href="#creator" hidden><span data-i18n="walletBalance">Solde</span> <strong id="headerCreditBalanceValue">—</strong></a>
         <span class="format-pill" data-i18n="format">Album carre · 21 × 21 cm</span>
         <label class="ui-language"><span data-i18n="interfaceLanguage">Interface</span>
           <select id="uiLanguage" aria-label="Langue de l'interface">
@@ -140,8 +141,9 @@
                 <dl><div><dt data-i18n="previewPrice">Prix de cet aperçu</dt><dd id="previewCreditPrice">—</dd></div><div><dt data-i18n="creditBalance">Solde disponible</dt><dd id="creditBalance">—</dd></div><div><dt data-i18n="creditMissing">Complément nécessaire</dt><dd id="creditMissing">—</dd></div></dl>
                 <div class="promo-code-row"><input id="promoCodeInput" type="text" autocomplete="off" data-i18n-placeholder="promoPlaceholder" placeholder="Votre code promotionnel" /><button type="button" class="toolbar-button is-emphasized" id="redeemPromoButton" data-i18n="redeemPromo">Utiliser le code</button></div>
                 <a class="credit-buy-link" id="buyCreditsLink" href="#" hidden data-i18n="buyCredits">Acheter des crédits</a><p class="credit-feedback" id="creditFeedback" aria-live="polite"></p>
+                <div class="preview-confirmation"><p data-i18n="previewDebitNotice">Aucun crédit ne sera utilisé avant votre confirmation.</p><button type="button" class="primary-button" id="confirmPreviewButton" disabled>Confirmer</button></div>
               </section>
-              <button type="submit" class="primary-button generate-button"><span data-i18n="generate">Creer le brouillon de mon livre</span> <span>→</span></button>
+              <button type="submit" class="primary-button generate-button"><span data-i18n="reviewCreditsAction">Continuer et vérifier mes crédits</span> <span>→</span></button>
               <p class="cost-note" id="costNote"></p>
             </section>
 
@@ -170,7 +172,7 @@
         <div class="book-preview" id="bookPreview"></div>
         <section class="preview-action-center" id="previewActionCenter" hidden>
           <div><p class="section-kicker" data-i18n="creditKicker">CRÉDITS D’APERÇU</p><h3 data-i18n="previewActionsTitle">Que souhaitez-vous faire maintenant ?</h3><p id="previewRebateText"></p></div>
-          <div class="preview-action-buttons"><a id="actionBuyCredits" class="toolbar-button" href="#" hidden data-i18n="buyCredits">Acheter des crédits</a><button type="button" class="toolbar-button" disabled data-i18n="requestChange">Demander une modification</button><button type="button" class="toolbar-button" disabled data-i18n="buyEbook">Acheter l’eBook</button><button type="button" class="toolbar-button is-emphasized" disabled data-i18n="buyPrint">Acheter le livre imprimé</button></div>
+          <div class="preview-action-buttons"><a id="actionBuyCredits" class="toolbar-button" href="#" hidden data-i18n="buyCredits">Acheter des crédits</a><button type="button" class="toolbar-button" disabled data-i18n="requestChange">Demander une modification</button><button type="button" class="toolbar-button" id="actionBuyEbook" data-i18n="buyEbook">Acheter l’eBook</button><button type="button" class="toolbar-button is-emphasized" id="actionBuyPrint" data-i18n="buyPrint">Acheter le livre imprimé</button></div>
         </section>
       </section>
     </main>

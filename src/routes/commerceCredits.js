@@ -23,5 +23,20 @@ router.post("/commerce/credit-order-paid", async (req, res) => {
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });
 
+router.get("/commerce/wallet", async (req, res) => {
+  const wooCustomerId = String(req.query?.wooCustomerId || "");
+  const timestamp = Number.parseInt(req.query?.timestamp, 10);
+  const secret = String(process.env.WOOCOMMERCE_BRIDGE_SECRET || "");
+  const expected = crypto.createHmac("sha256", secret).update(`wallet|${wooCustomerId}|${timestamp}`).digest("hex");
+  if (secret.length < 32 || !safeEqual(req.get("x-calitiki-signature"), expected)) return res.status(401).json({ error: "Invalid wallet signature" });
+  if (!wooCustomerId || !Number.isInteger(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) return res.status(400).json({ error: "Wallet request has expired" });
+  try {
+    const identity = { wooCustomerId, email: "" };
+    const [summary, history] = await Promise.all([creditStore.summary(identity), creditStore.history(identity, 50)]);
+    res.set("Cache-Control", "private, no-store");
+    res.json({ ...summary, history, buyCreditsUrl: process.env.WOOCOMMERCE_CREDITS_URL || "" });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
 export default router;
 

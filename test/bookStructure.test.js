@@ -32,6 +32,7 @@ import { inspectPageStructure } from "../src/agents/qa.js";
 import { buildFacingPageSceneContract, normalizeWorldReality } from "../src/services/worldReality.js";
 import { previewPriceCents, PREVIEW_PRICE_CENTS_BY_PAGE_COUNT } from "../src/config/previewPricing.js";
 import { configuredPromoCodes, InsufficientCreditError, JsonCreditStore } from "../src/services/creditStore.js";
+import { signCommercePayload } from "../src/services/commerceToken.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -181,12 +182,18 @@ test("the Calitiki theme starts a fresh creator flow and contains the WooCommerc
     fs.readFile("wordpress/calitiki-theme/assets/js/theme.js", "utf8"),
   ]);
   assert.match(themeFunctions, /add_query_arg\('newBook', '1', \$base_url\)/);
+  assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
+  assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
   assert.match(frontPage, /id="tous-les-univers" hidden/);
   assert.match(frontPage, /cloud-castle\.webp/);
   assert.match(frontPage, /dinosaur-valley\.webp/);
   assert.match(frontPage, /wonder-city\.webp/);
+  assert.match(frontPage, /calitiki_product_url\('ebook'\)/);
+  assert.match(frontPage, /calitiki_product_url\('print'\)/);
+  assert.match(frontPage, /À partir de 6,69 € · Découvrir/);
+  assert.match(frontPage, /À partir de 29,90 € · Découvrir/);
   assert.match(themeScript, /data-universe-toggle/);
 });
 
@@ -221,6 +228,10 @@ test("promotion credit is redeemable once per customer and successful preview sp
     await store.grantPaidOrder(identity, { amountCents: 250, orderId: "woo-1001" });
     await store.grantPaidOrder(identity, { amountCents: 250, orderId: "woo-1001" });
     assert.equal((await store.summary(identity, "project-1")).balanceCents, 750);
+    const history = await store.history(identity);
+    assert.equal(history.filter((entry) => entry.entryType === "woocommerce_credit_purchase").length, 1);
+    assert.ok(history.some((entry) => entry.entryType === "promotion_grant"));
+    assert.ok(history.some((entry) => entry.entryType === "preview_reserve"));
   } finally {
     if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
     await fs.rm(directory, { recursive: true, force: true });
@@ -257,7 +268,71 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(creditsRoute, /\/credits\/redeem/);
   assert.match(html, /id="creditPanel"/);
   assert.match(html, /id="previewActionCenter"/);
-  assert.match(app, /hasPreviewEntitlement/);
+  assert.match(html, /id="confirmPreviewButton"/);
+  assert.match(html, /id="headerCreditBalance"/);
+  assert.match(app, /preparePreviewAuthorization/);
+  assert.match(app, /confirmPreviewAuthorization/);
+  assert.doesNotMatch(app, /hasPreviewEntitlement/);
+  assert.match(app, /confirmPreviewButton\.addEventListener\("click", confirmPreviewAuthorization\)/);
+});
+
+test("WooCommerce My Account exposes the signed wallet balance and transaction history", async () => {
+  const [plugin, route, store] = await Promise.all([
+    fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
+    fs.readFile("src/routes/commerceCredits.js", "utf8"),
+    fs.readFile("src/services/creditStore.js", "utf8"),
+  ]);
+  assert.match(plugin, /woocommerce_account_menu_items/);
+  assert.match(plugin, /woocommerce_account_calitiki-credits_endpoint/);
+  assert.match(plugin, /Mes crédits Calitiki/);
+  assert.match(plugin, /wallet\|/);
+  assert.match(route, /\/commerce\/wallet/);
+  assert.match(route, /creditStore\.history/);
+  assert.match(store, /async history\(identity/);
+});
+
+test("personalized checkout reserves one project rebate and requires a signed WooCommerce cart entry", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-checkout-"));
+  const previousCodes = process.env.PREVIEW_PROMO_CODES;
+  process.env.PREVIEW_PROMO_CODES = "CHECKOUT250:250";
+  try {
+    const customerStore = { async ensureCustomer(identity) { return { id: `customer-${identity.wooCustomerId}` }; } };
+    const store = new JsonCreditStore(path.join(directory, "credits.json"), customerStore);
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    await store.redeem(identity, { code: "CHECKOUT250", projectId: "project-1" });
+    const preview = await store.reservePreview(identity, { projectId: "project-1", amountCents: 250, idempotencyKey: "preview-1" });
+    await store.capturePreview(preview.id);
+    assert.equal((await store.summary(identity, "project-1")).rebateCents, 250);
+    const checkout = await store.reserveProjectRebate(identity, { projectId: "project-1", idempotencyKey: "checkout-1" });
+    const repeated = await store.reserveProjectRebate(identity, { projectId: "project-1", idempotencyKey: "checkout-2" });
+    assert.equal(checkout.amountCents, 250);
+    assert.equal(repeated.id, checkout.id);
+    assert.equal((await store.summary(identity, "project-1")).rebateCents, 0);
+    await store.releaseCheckout(checkout.id, "1001");
+    assert.equal((await store.summary(identity, "project-1")).rebateCents, 250);
+    const retry = await store.reserveProjectRebate(identity, { projectId: "project-1", idempotencyKey: "checkout-3" });
+    await store.captureCheckout(retry.id, "1002");
+    assert.equal((await store.summary(identity, "project-1")).rebateCents, 0);
+
+    const token = signCommercePayload({ sub: "42", projectId: "project-1", exp: Math.floor(Date.now() / 1000) + 600 }, "a".repeat(64));
+    assert.equal(token.split(".").length, 2);
+    const [plugin, route, html, app] = await Promise.all([
+      fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
+      fs.readFile("src/routes/commerceCheckout.js", "utf8"),
+      fs.readFile("public/index.html", "utf8"),
+      fs.readFile("public/app.js", "utf8"),
+    ]);
+    assert.match(plugin, /validate_personalized_add_to_cart/);
+    assert.match(plugin, /calitiki_project_id/);
+    assert.match(plugin, /Crédit d’aperçu déduit/);
+    assert.match(route, /\/commerce\/checkout-link/);
+    assert.match(route, /reserveProjectRebate/);
+    assert.match(html, /id="actionBuyEbook"/);
+    assert.match(app, /openConfiguredCheckout/);
+  } finally {
+    if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
