@@ -395,6 +395,26 @@ test("paid and zero-total WooCommerce orders use the same signed ebook fulfillme
   }
 });
 
+test("ebook fulfillment claims prevent duplicate generation and allow stale recovery", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-delivery-claim-"));
+  try {
+    const orderPath = path.join(directory, "orders.json");
+    const orders = new JsonCommerceOrderStore(orderPath);
+    const identity = { orderId: "1002", projectId: "project-2", productType: "ebook", wooCustomerId: "42" };
+    const paidInput = { ...identity, customerId: "customer-2", pageCount: 24, orderTotalCents: 669 };
+    await orders.recordPaid(paidInput);
+    assert.equal((await orders.claimDelivery(identity)).fulfillmentStatus, "generating");
+    assert.equal(await orders.claimDelivery(identity), null);
+    const persisted = JSON.parse(await fs.readFile(orderPath, "utf8"));
+    Object.values(persisted.orders)[0].updatedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    await fs.writeFile(orderPath, JSON.stringify(persisted), "utf8");
+    await orders.recordPaid(paidInput);
+    assert.equal((await orders.claimDelivery(identity)).fulfillmentStatus, "generating");
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("ebook delivery tokens are signed and expire", () => {
   const secret = "d".repeat(64);
   const token = signDeliveryToken({ projectId: "project-1", orderId: "1001", customerId: "42", storageKey: "ebooks/project-1/book.pdf" }, { secret, expiresInSeconds: 60 });
@@ -407,7 +427,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.0/);
+  assert.match(plugin, /Version: 0\.5\.1/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -416,6 +436,10 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /calitiki_retry_book_order/);
   assert.match(plugin, /woocommerce_account_calitiki-creations_endpoint/);
   assert.match(plugin, /delivery-link\|/);
+  assert.match(plugin, /wp_strip_all_tags/);
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.1.zip");
+  assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
+  assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {
@@ -999,6 +1023,9 @@ test("ebook PDF preserves square pages and includes cover plus interiors", async
     const pdf = await PDFDocument.load(await fs.readFile(path.join(outputsDir, "ebook-test-book.pdf")));
     assert.equal(pdf.getPageCount(), 3);
     assert.ok(pdf.getPages().every((page) => Math.abs(page.getWidth() - EBOOK_PAGE_SIZE_PT) < 0.01 && Math.abs(page.getHeight() - EBOOK_PAGE_SIZE_PT) < 0.01));
+    const source = await fs.readFile("src/services/createEbookPdf.js", "utf8");
+    assert.match(source, /embedJpg/);
+    assert.doesNotMatch(source, /embedPng/);
   } finally {
     await fs.rm(outputsDir, { recursive: true, force: true });
   }

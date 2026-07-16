@@ -4,6 +4,7 @@ import { commerceOrderStore } from "./commerceOrderStore.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { projectStore } from "./projectStore.js";
 import { normalizePageCount } from "../config/bookOptions.js";
+import { logMemory } from "./runtimeMemory.js";
 
 function deliveryIdentity({ orderId, projectId, productType = "ebook", wooCustomerId = "" }) {
   return { orderId: String(orderId), projectId: String(projectId), productType, wooCustomerId: String(wooCustomerId) };
@@ -20,6 +21,10 @@ function readyPayload(record, options = {}) {
       projectId: record.projectId, orderId: record.orderId, customerId: record.wooCustomerId, storageKey: record.storageKey,
     }, { expiresInSeconds, ...options }),
   };
+}
+
+function generatingPayload(record) {
+  return { status: "generating", productType: record.productType, retryAfterSeconds: 300 };
 }
 
 export async function fulfillPaidBookOrder(input, dependencies = {}) {
@@ -46,7 +51,9 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
   const key = `ebooks/${project.id}/${String(input.orderId)}/book.pdf`;
   const filename = `calitiki-ebook-${project.id.slice(0, 8)}.pdf`;
   const orderIdentity = deliveryIdentity({ orderId: input.orderId, projectId: project.id, productType, wooCustomerId: identity.wooCustomerId });
-  await orders.updateDelivery(orderIdentity, { fulfillmentStatus: "generating", deliveryError: "" });
+  const claimed = await orders.claimDelivery(orderIdentity, { staleAfterMs: dependencies.staleAfterMs });
+  if (!claimed) return generatingPayload(record);
+  logMemory("ebook.start", { orderId: String(input.orderId), pageCount: expectedPageCount });
   try {
     const pdf = await createEbookPdfBuffer({
       title: project.title || project.finalBlueprint?.cover?.title || "Calitiki",
@@ -54,13 +61,22 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
       coverPreviewUrl: project.previewResult.coverPreviewUrl,
       pages: project.previewResult.draftPages || [],
       outputsDir: dependencies.outputsDir || "data/outputs",
+      onProgress: async ({ completed, total }) => {
+        if (completed === 1 || completed === total || completed % 4 === 0) {
+          await orders.updateDelivery(orderIdentity, { fulfillmentStatus: "generating" });
+          logMemory("ebook.page", { orderId: String(input.orderId), completed, total });
+        }
+      },
     });
+    logMemory("ebook.pdf-ready", { orderId: String(input.orderId), pdfMb: Math.round((pdf.length / 1024 / 1024) * 10) / 10 });
     await storage.put({ key, body: pdf, contentType: "application/pdf" });
     const ready = await orders.updateDelivery(orderIdentity, {
       fulfillmentStatus: "ready", storageKey: key, downloadFilename: filename, deliveryError: "", readyAt: new Date().toISOString(),
     });
+    logMemory("ebook.stored", { orderId: String(input.orderId) });
     return readyPayload(ready, dependencies.deliveryUrlOptions);
   } catch (error) {
+    logMemory("ebook.failed", { orderId: String(input.orderId), error: String(error?.message || error).slice(0, 160) });
     await orders.updateDelivery(orderIdentity, { fulfillmentStatus: "failed", deliveryError: String(error?.message || error) }).catch(() => null);
     throw error;
   }

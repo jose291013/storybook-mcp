@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
+import sharp from "sharp";
 
 const PAGE_SIZE_PT = (210 / 25.4) * 72;
 
@@ -19,15 +20,16 @@ export async function createEbookPdfBuffer({
   coverPreviewUrl,
   pages = [],
   outputsDir = "data/outputs",
+  onProgress,
 }) {
   if (!coverPreviewUrl) throw new Error("createEbookPdf: missing cover");
 
-  const orderedUrls = [
-    coverPreviewUrl,
+  const orderedAssets = [
+    { previewUrl: coverPreviewUrl, pageType: "cover" },
     ...pages
       .filter((page) => page?.previewUrl)
       .sort((a, b) => a.page_number - b.page_number)
-      .map((page) => page.previewUrl),
+      .map((page) => ({ previewUrl: page.previewUrl, pageType: page.page_type || "image", pageNumber: page.page_number })),
   ];
 
   const pdf = await PDFDocument.create();
@@ -36,14 +38,22 @@ export async function createEbookPdfBuffer({
   pdf.setCreator("Mon Histoire Magique");
   pdf.setProducer("Mon Histoire Magique");
 
-  for (const assetUrl of orderedUrls) {
-    const imageBytes = await fs.readFile(localOutputPath(assetUrl, outputsDir));
-    const image = await pdf.embedPng(imageBytes);
+  for (let index = 0; index < orderedAssets.length; index += 1) {
+    const asset = orderedAssets[index];
+    const quality = ["text", "opening_text", "closing_text"].includes(asset.pageType) ? 92 : 86;
+    const imageBytes = await sharp(localOutputPath(asset.previewUrl, outputsDir), { sequentialRead: true })
+      .flatten({ background: "#fff8ed" })
+      .resize(1240, 1240, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality, chromaSubsampling: "4:4:4" })
+      .toBuffer();
+    const image = await pdf.embedJpg(imageBytes);
     const page = pdf.addPage([PAGE_SIZE_PT, PAGE_SIZE_PT]);
     page.drawImage(image, { x: 0, y: 0, width: PAGE_SIZE_PT, height: PAGE_SIZE_PT });
+    await onProgress?.({ completed: index + 1, total: orderedAssets.length, pageNumber: asset.pageNumber || 0 });
   }
 
-  return Buffer.from(await pdf.save({ useObjectStreams: true }));
+  const bytes = await pdf.save({ useObjectStreams: true, addDefaultPage: false });
+  return Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 }
 
 export async function createEbookPdf({

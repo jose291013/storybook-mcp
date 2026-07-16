@@ -1,4 +1,5 @@
-import fs from "fs/promises";
+import fs from "fs";
+import fsPromises from "fs/promises";
 import path from "path";
 import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
@@ -15,13 +16,14 @@ export class LocalDeliveryStorage {
   constructor(root = DEFAULT_LOCAL_DIR) { this.root = path.resolve(root); }
   async put({ key, body }) {
     const target = safeLocalPath(this.root, key);
-    await fs.mkdir(path.dirname(target), { recursive: true });
-    await fs.writeFile(target, body);
+    await fsPromises.mkdir(path.dirname(target), { recursive: true });
+    await fsPromises.writeFile(target, body);
     return { key, byteSize: Buffer.byteLength(body) };
   }
   async get(key) {
-    const body = await fs.readFile(safeLocalPath(this.root, key));
-    return { body, contentType: "application/pdf", byteSize: body.length };
+    const target = safeLocalPath(this.root, key);
+    const stat = await fsPromises.stat(target);
+    return { body: fs.createReadStream(target), contentType: "application/pdf", byteSize: stat.size };
   }
 }
 
@@ -33,8 +35,7 @@ export class S3DeliveryStorage {
   }
   async get(key) {
     const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
-    const body = Buffer.from(await result.Body.transformToByteArray());
-    return { body, contentType: result.ContentType || "application/pdf", byteSize: Number(result.ContentLength || body.length) };
+    return { body: result.Body, contentType: result.ContentType || "application/pdf", byteSize: Number(result.ContentLength || 0) };
   }
 }
 
