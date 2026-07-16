@@ -1,8 +1,19 @@
 import { translate } from "./i18n.js";
 
+const initialUrl = new URL(window.location.href);
+const queryLocale = String(initialUrl.searchParams.get("uiLanguage") || "").toUpperCase();
+let referrerLocale = "";
+try {
+  const referrer = new URL(document.referrer);
+  if (referrer.hostname === "calitiki.com" || referrer.hostname.endsWith(".calitiki.com")) {
+    referrerLocale = ({ fr: "FR", es: "ES", en: "EN" })[referrer.pathname.split("/").filter(Boolean)[0]] || "FR";
+  }
+} catch { referrerLocale = ""; }
+const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLocale : referrerLocale;
+
 const state = {
   config: null,
-  locale: localStorage.getItem("storybook-ui-language") || "FR",
+  locale: requestedUiLanguage || localStorage.getItem("storybook-ui-language") || "FR",
   step: 0,
   selectedStyle: "",
   selectedUniverse: "",
@@ -32,7 +43,7 @@ function consumeNewBookRequest() {
 }
 
 const newBookRequested = consumeNewBookRequest();
-const requestedProductType = ["ebook", "print"].includes(new URL(window.location.href).searchParams.get("productType")) ? new URL(window.location.href).searchParams.get("productType") : "";
+const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams.get("productType")) ? initialUrl.searchParams.get("productType") : "";
 
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),

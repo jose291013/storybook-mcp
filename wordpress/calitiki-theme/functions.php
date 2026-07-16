@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.0.4');
+define('CALITIKI_THEME_VERSION', '1.1.1');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -30,7 +30,68 @@ add_action('wp_enqueue_scripts', 'calitiki_assets');
 
 function calitiki_generator_url() {
     $base_url = get_theme_mod('calitiki_generator_url', 'https://storybook-mcp.onrender.com');
-    return esc_url(add_query_arg('newBook', '1', $base_url));
+    return esc_url(add_query_arg(array('newBook' => '1', 'uiLanguage' => calitiki_creator_language()), $base_url));
+}
+
+function calitiki_creator_language() {
+    if (function_exists('trp_custom_language_switcher')) {
+        foreach ((array) trp_custom_language_switcher() as $language) {
+            if (!empty($language['current_language']) && !empty($language['language_code'])) {
+                $prefix = strtoupper(substr((string) $language['language_code'], 0, 2));
+                return in_array($prefix, array('FR', 'ES', 'EN'), true) ? $prefix : 'FR';
+            }
+        }
+    }
+    $prefix = strtoupper(substr((string) determine_locale(), 0, 2));
+    return in_array($prefix, array('FR', 'ES', 'EN'), true) ? $prefix : 'FR';
+}
+
+function calitiki_language_switcher() {
+    if (shortcode_exists('language-switcher')) {
+        echo '<div class="calitiki-translatepress-switcher" data-no-translation>';
+        echo do_shortcode('[language-switcher]');
+        echo '</div>';
+        return;
+    }
+
+    if (!function_exists('trp_custom_language_switcher')) {
+        return;
+    }
+
+    $languages = array_values((array) trp_custom_language_switcher());
+    if (empty($languages)) {
+        return;
+    }
+    $current = null;
+    foreach ($languages as $language) {
+        if (!empty($language['current_language'])) {
+            $current = $language;
+            break;
+        }
+    }
+    $current = $current ?: $languages[0];
+    ?>
+    <details class="calitiki-language-switcher" data-no-translation>
+        <summary aria-label="<?php esc_attr_e('Changer de langue', 'calitiki'); ?>">
+            <?php if (!empty($current['flag_link'])) : ?><img src="<?php echo esc_url($current['flag_link']); ?>" alt="" width="24" height="16" /><?php endif; ?>
+            <span aria-hidden="true"><?php echo esc_html(strtoupper(substr((string) ($current['short_language_name'] ?? $current['language_code']), 0, 2))); ?></span>
+            <span class="screen-reader-text"><?php echo esc_html($current['language_name'] ?? ''); ?></span>
+        </summary>
+        <ul>
+            <?php foreach ($languages as $language) :
+                $is_current = !empty($language['current_language']);
+                $name = (string) ($language['language_name'] ?? $language['language_code'] ?? '');
+                ?>
+                <li>
+                    <a href="<?php echo esc_url($language['current_page_url'] ?? home_url('/')); ?>" lang="<?php echo esc_attr(substr((string) ($language['language_code'] ?? ''), 0, 2)); ?>"<?php echo $is_current ? ' aria-current="page"' : ''; ?>>
+                        <?php if (!empty($language['flag_link'])) : ?><img src="<?php echo esc_url($language['flag_link']); ?>" alt="" width="24" height="16" /><?php endif; ?>
+                        <span><?php echo esc_html($name); ?></span>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </details>
+    <?php
 }
 
 function calitiki_product_url($format) {

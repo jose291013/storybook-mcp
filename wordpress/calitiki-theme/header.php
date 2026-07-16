@@ -22,6 +22,7 @@
         <nav class="site-navigation" id="site-navigation" aria-label="<?php esc_attr_e('Navigation principale', 'calitiki'); ?>">
             <?php wp_nav_menu(array('theme_location' => 'primary', 'container' => false, 'menu_class' => 'site-menu', 'fallback_cb' => 'calitiki_menu_fallback')); ?>
             <div class="header-actions">
+                <?php calitiki_language_switcher(); ?>
                 <?php if (function_exists('wc_get_page_permalink')) : ?>
                     <a class="account-link" href="<?php echo esc_url(wc_get_page_permalink('myaccount')); ?>"><?php esc_html_e('Mon compte', 'calitiki'); ?></a>
                     <a class="cart-link" href="<?php echo esc_url(wc_get_cart_url()); ?>" aria-label="<?php esc_attr_e('Voir le panier', 'calitiki'); ?>">♡<span class="cart-count"><?php echo esc_html(function_exists('WC') && WC()->cart ? WC()->cart->get_cart_contents_count() : 0); ?></span></a>
