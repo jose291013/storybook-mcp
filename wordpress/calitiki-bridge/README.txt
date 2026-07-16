@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.2.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -23,3 +23,14 @@ Le plugin ne reçoit ni ne stocke les photos des enfants. Il émet uniquement un
 Créez un produit WooCommerce simple et virtuel, par exemple « Crédit Calitiki 2,50 € ».
 Dans les données générales du produit, renseignez « Crédits Calitiki (centimes) » avec 250.
 Après paiement, l’extension envoie un webhook signé au générateur. Un même numéro de commande ne peut créditer le portefeuille qu’une seule fois.
+
+== Livres personnalisés ==
+
+Les produits ayant les slugs `livre-enfant-personnalise-ebook` et `livre-enfant-personnalise-imprime` ne peuvent pas être ajoutés directement au panier.
+Après un aperçu réussi, le générateur émet un lien signé et limité dans le temps. L’extension sélectionne alors la variation du nombre de pages, attache l’identifiant du projet au panier et déduit le crédit d’aperçu réservé.
+Le paiement capture la remise ; une annulation, un échec ou un remboursement la rend de nouveau disponible pour cette création.
+
+== Portefeuille client ==
+
+La rubrique « Mes crédits Calitiki » dans Mon compte affiche le solde, l’historique des achats, promotions, aperçus et restitutions techniques, ainsi qu’un bouton d’achat de crédits.
+Dans le créateur, le solde est visible dès la connexion et toute dépense d’aperçu demande une confirmation explicite.

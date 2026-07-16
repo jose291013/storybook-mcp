@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.0.2');
+define('CALITIKI_THEME_VERSION', '1.0.4');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -33,6 +33,46 @@ function calitiki_generator_url() {
     return esc_url(add_query_arg('newBook', '1', $base_url));
 }
 
+function calitiki_product_url($format) {
+    $products = array(
+        'ebook' => array(
+            'sku' => 'CAL-EBOOK',
+            'slug' => 'livre-enfant-personnalise-ebook',
+        ),
+        'print' => array(
+            'sku' => 'CAL-PRINT-21',
+            'slug' => 'livre-enfant-personnalise-imprime',
+        ),
+    );
+
+    if (!isset($products[$format])) {
+        return home_url('/');
+    }
+
+    $custom_url = get_theme_mod('calitiki_' . $format . '_product_url', '');
+    if ($custom_url) {
+        return esc_url($custom_url);
+    }
+
+    if (function_exists('wc_get_product_id_by_sku')) {
+        $product_id = wc_get_product_id_by_sku($products[$format]['sku']);
+        if ($product_id) {
+            return esc_url(get_permalink($product_id));
+        }
+    }
+
+    $product = get_page_by_path($products[$format]['slug'], OBJECT, 'product');
+    if ($product && 'publish' === $product->post_status) {
+        return esc_url(get_permalink($product));
+    }
+
+    if (function_exists('wc_get_page_permalink')) {
+        return esc_url(wc_get_page_permalink('shop'));
+    }
+
+    return home_url('/');
+}
+
 function calitiki_customize_register($customizer) {
     $customizer->add_section('calitiki_links', array(
         'title' => __('Liens Calitiki', 'calitiki'),
@@ -44,6 +84,26 @@ function calitiki_customize_register($customizer) {
     ));
     $customizer->add_control('calitiki_generator_url', array(
         'label' => __('URL du créateur de livre', 'calitiki'),
+        'section' => 'calitiki_links',
+        'type' => 'url',
+    ));
+    $customizer->add_setting('calitiki_ebook_product_url', array(
+        'default' => '',
+        'sanitize_callback' => 'esc_url_raw',
+    ));
+    $customizer->add_control('calitiki_ebook_product_url', array(
+        'label' => __('URL du produit eBook (facultatif)', 'calitiki'),
+        'description' => __('Laissez vide pour détecter automatiquement le produit Calitiki.', 'calitiki'),
+        'section' => 'calitiki_links',
+        'type' => 'url',
+    ));
+    $customizer->add_setting('calitiki_print_product_url', array(
+        'default' => '',
+        'sanitize_callback' => 'esc_url_raw',
+    ));
+    $customizer->add_control('calitiki_print_product_url', array(
+        'label' => __('URL du produit imprimé (facultatif)', 'calitiki'),
+        'description' => __('Laissez vide pour détecter automatiquement le produit Calitiki.', 'calitiki'),
         'section' => 'calitiki_links',
         'type' => 'url',
     ));

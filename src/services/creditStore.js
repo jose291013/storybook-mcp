@@ -27,7 +27,7 @@ export function configuredPromoCodes(source = process.env.PREVIEW_PROMO_CODES ||
   }).filter(([, value]) => value.label && Number.isInteger(value.amountCents) && value.amountCents >= 250));
 }
 
-function emptyLocalStore() { return { entries: [], reservations: [], redemptions: [], rebates: [] }; }
+function emptyLocalStore() { return { entries: [], reservations: [], redemptions: [], rebates: [], checkoutReservations: [] }; }
 
 export class JsonCreditStore {
   constructor(filePath = LOCAL_PATH, customerStore = projectStore) { this.filePath = path.resolve(filePath); this.customerStore = customerStore; }
@@ -47,6 +47,13 @@ export class JsonCreditStore {
     const balanceCents = store.entries.filter((entry) => entry.customerId === customer.id).reduce((sum, entry) => sum + entry.amountCents, 0);
     const rebateCents = store.rebates.filter((entry) => entry.customerId === customer.id && entry.projectId === projectId && entry.status === "available").reduce((sum, entry) => sum + entry.amountCents, 0);
     return { balanceCents, rebateCents };
+  }
+  async history(identity, limit = 50) {
+    const customer = await this.customer(identity); const store = this.read();
+    return store.entries.filter((entry) => entry.customerId === customer.id)
+      .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+      .slice(0, Math.max(1, Math.min(100, Number(limit) || 50)))
+      .map((entry) => ({ id: entry.id, projectId: entry.projectId || null, amountCents: entry.amountCents, entryType: entry.entryType, metadata: entry.metadata || {}, createdAt: entry.createdAt }));
   }
   async redeem(identity, { code, projectId }) {
     const customer = await this.customer(identity); const configured = configuredPromoCodes(); const normalizedHash = codeHash(code); const promotion = configured.get(normalizedHash);
@@ -88,6 +95,42 @@ export class JsonCreditStore {
     store.entries.push({ id: crypto.randomUUID(), customerId: reservation.customerId, projectId: reservation.projectId, amountCents: reservation.amountCents, entryType: "preview_release", idempotencyKey: `release:${reservation.id}`, createdAt: now() });
     this.write(store); return reservation;
   }
+  async reserveProjectRebate(identity, { projectId, idempotencyKey }) {
+    const customer = await this.customer(identity); const store = this.read(); const timestamp = Date.now();
+    for (const reservation of store.checkoutReservations) {
+      if (reservation.status === "reserved" && Date.parse(reservation.expiresAt) <= timestamp) {
+        reservation.status = "expired"; reservation.updatedAt = now();
+        store.rebates.filter((rebate) => rebate.checkoutReservationId === reservation.id && rebate.status === "reserved")
+          .forEach((rebate) => { rebate.status = "available"; rebate.checkoutReservationId = null; rebate.updatedAt = now(); });
+      }
+    }
+    const existing = store.checkoutReservations.find((item) => item.customerId === customer.id && item.projectId === projectId && item.status === "reserved");
+    if (existing) { this.write(store); return existing; }
+    const rebates = store.rebates.filter((item) => item.customerId === customer.id && item.projectId === projectId && item.status === "available");
+    const amountCents = rebates.reduce((sum, item) => sum + item.amountCents, 0);
+    if (amountCents <= 0) { this.write(store); return { id: "", projectId, amountCents: 0, status: "none" }; }
+    const reservation = { id: crypto.randomUUID(), customerId: customer.id, projectId, amountCents, status: "reserved", idempotencyKey, expiresAt: new Date(timestamp + 30 * 60000).toISOString(), createdAt: now(), updatedAt: now() };
+    store.checkoutReservations.push(reservation);
+    rebates.forEach((rebate) => { rebate.status = "reserved"; rebate.checkoutReservationId = reservation.id; rebate.updatedAt = now(); });
+    this.write(store); return reservation;
+  }
+  async captureCheckout(reservationId, orderId) {
+    if (!reservationId) return null;
+    const store = this.read(); const reservation = store.checkoutReservations.find((item) => item.id === reservationId);
+    if (!reservation || reservation.status === "captured") return reservation || null;
+    if (reservation.status !== "reserved") return reservation;
+    reservation.status = "captured"; reservation.wooOrderId = String(orderId); reservation.updatedAt = now();
+    store.rebates.filter((item) => item.checkoutReservationId === reservation.id).forEach((item) => { item.status = "spent"; item.updatedAt = now(); });
+    this.write(store); return reservation;
+  }
+  async releaseCheckout(reservationId, orderId = "") {
+    if (!reservationId) return null;
+    const store = this.read(); const reservation = store.checkoutReservations.find((item) => item.id === reservationId);
+    if (!reservation || ["released", "expired"].includes(reservation.status)) return reservation || null;
+    reservation.status = "released"; reservation.wooOrderId = String(orderId || reservation.wooOrderId || ""); reservation.updatedAt = now();
+    store.rebates.filter((item) => item.checkoutReservationId === reservation.id).forEach((item) => { item.status = "available"; item.checkoutReservationId = null; item.updatedAt = now(); });
+    this.write(store); return reservation;
+  }
 }
 
 export class PostgresCreditStore {
@@ -100,6 +143,15 @@ export class PostgresCreditStore {
       projectId ? this.database.query("SELECT COALESCE(SUM(amount_cents),0)::int AS amount FROM project_purchase_rebates WHERE customer_id=$1 AND project_id=$2 AND status='available'", [customer.id, projectId]) : { rows: [{ amount: 0 }] },
     ]);
     return { balanceCents: wallet.rows[0].amount, rebateCents: rebate.rows[0].amount };
+  }
+  async history(identity, limit = 50) {
+    const customer = await this.customer(identity);
+    const capped = Math.max(1, Math.min(100, Number(limit) || 50));
+    const { rows } = await this.database.query(
+      "SELECT id,project_id,amount_cents,entry_type,metadata,created_at FROM credit_wallet_entries WHERE customer_id=$1 ORDER BY created_at DESC LIMIT $2",
+      [customer.id, capped]
+    );
+    return rows.map((row) => ({ id: row.id, projectId: row.project_id || null, amountCents: row.amount_cents, entryType: row.entry_type, metadata: row.metadata || {}, createdAt: row.created_at?.toISOString?.() || row.created_at }));
   }
   async redeem(identity, { code, projectId }) {
     const customer = await this.customer(identity); const normalizedHash = codeHash(code); const promotion = configuredPromoCodes().get(normalizedHash);
@@ -152,6 +204,42 @@ export class PostgresCreditStore {
       const reservation = updated.rows[0];
       if (reservation) await client.query("INSERT INTO credit_wallet_entries (id,customer_id,project_id,amount_cents,entry_type,idempotency_key) VALUES ($1,$2,$3,$4,'preview_release',$5) ON CONFLICT (idempotency_key) DO NOTHING", [crypto.randomUUID(), reservation.customer_id, reservation.project_id, reservation.amount_cents, `release:${reservation.id}`]);
       await client.query("COMMIT"); return reservation || null;
+    } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async reserveProjectRebate(identity, { projectId, idempotencyKey }) {
+    const customer = await this.customer(identity); const client = await this.database.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query("SELECT id FROM app_customers WHERE id=$1 FOR UPDATE", [customer.id]);
+      const expired = await client.query("UPDATE checkout_credit_reservations SET status='expired',updated_at=now() WHERE customer_id=$1 AND status='reserved' AND expires_at<=now() RETURNING id", [customer.id]);
+      if (expired.rows.length) await client.query("UPDATE project_purchase_rebates SET status='available',checkout_reservation_id=NULL,updated_at=now() WHERE checkout_reservation_id=ANY($1::uuid[]) AND status='reserved'", [expired.rows.map((row) => row.id)]);
+      const prior = await client.query("SELECT * FROM checkout_credit_reservations WHERE customer_id=$1 AND project_id=$2 AND status='reserved' ORDER BY created_at DESC LIMIT 1", [customer.id, projectId]);
+      if (prior.rows[0]) { await client.query("COMMIT"); return { ...prior.rows[0], amountCents: prior.rows[0].amount_cents }; }
+      const rebates = await client.query("SELECT id,amount_cents FROM project_purchase_rebates WHERE customer_id=$1 AND project_id=$2 AND status='available' FOR UPDATE", [customer.id, projectId]);
+      const amountCents = rebates.rows.reduce((sum, row) => sum + row.amount_cents, 0);
+      if (amountCents <= 0) { await client.query("COMMIT"); return { id: "", projectId, amountCents: 0, status: "none" }; }
+      const id = crypto.randomUUID();
+      const inserted = await client.query("INSERT INTO checkout_credit_reservations (id,customer_id,project_id,amount_cents,idempotency_key,expires_at) VALUES ($1,$2,$3,$4,$5,now()+interval '30 minutes') RETURNING *", [id, customer.id, projectId, amountCents, idempotencyKey]);
+      await client.query("UPDATE project_purchase_rebates SET status='reserved',checkout_reservation_id=$1,updated_at=now() WHERE id=ANY($2::uuid[])", [id, rebates.rows.map((row) => row.id)]);
+      await client.query("COMMIT"); return { ...inserted.rows[0], amountCents };
+    } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async captureCheckout(reservationId, orderId) {
+    if (!reservationId) return null; const client = await this.database.connect();
+    try {
+      await client.query("BEGIN");
+      const updated = await client.query("UPDATE checkout_credit_reservations SET status='captured',woo_order_id=$2,updated_at=now() WHERE id=$1 AND status='reserved' RETURNING *", [reservationId, orderId]);
+      if (updated.rows[0]) await client.query("UPDATE project_purchase_rebates SET status='spent',updated_at=now() WHERE checkout_reservation_id=$1", [reservationId]);
+      await client.query("COMMIT"); return updated.rows[0] || null;
+    } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async releaseCheckout(reservationId, orderId = null) {
+    if (!reservationId) return null; const client = await this.database.connect();
+    try {
+      await client.query("BEGIN");
+      const updated = await client.query("UPDATE checkout_credit_reservations SET status='released',woo_order_id=COALESCE($2,woo_order_id),updated_at=now() WHERE id=$1 AND status IN ('reserved','captured') RETURNING *", [reservationId, orderId || null]);
+      if (updated.rows[0]) await client.query("UPDATE project_purchase_rebates SET status='available',checkout_reservation_id=NULL,updated_at=now() WHERE checkout_reservation_id=$1", [reservationId]);
+      await client.query("COMMIT"); return updated.rows[0] || null;
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   }
 }
