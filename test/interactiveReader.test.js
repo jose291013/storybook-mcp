@@ -47,11 +47,12 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(html, /data-top-back/);
   assert.match(html, /data-reveal/);
   assert.match(html, /data-text-toggle/);
+  assert.match(html, /data-collapsed-controls[^]*data-listen[^]*data-show-text/);
   assert.match(html, /scene-navigation/);
   assert.match(app, /voiceschanged/);
   assert.match(app, /Aucune voix française ne répond/);
   assert.match(styles, /background: rgba\(9,45,49,\.6\)/);
   assert.equal(JSON.parse(manifest).display, "standalone");
-  assert.match(worker, /calitiki-interactive-demo-v2/);
+  assert.match(worker, /calitiki-interactive-demo-v3/);
   assert.equal(JSON.parse(book).scenes.length, 3);
 });

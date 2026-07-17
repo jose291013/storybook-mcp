@@ -58,7 +58,9 @@ button.round-control { cursor: pointer; }
 .speaker-control { border: 0; background: var(--coral); }
 [data-listen].is-speaking { animation: speaking 1s ease-in-out infinite alternate; box-shadow: 0 0 0 6px rgba(239,188,98,.24); }
 .text-toggle { min-height: 48px; padding: 0 10px 0 0; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; color: #fff; font-weight: 800; font-size: .76rem; }
-.show-text-button { position: absolute; z-index: 5; right: 20px; bottom: 96px; min-height: 50px; padding: 0 15px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--gold); border-radius: 999px; background: rgba(9,45,49,.88); color: #fff; backdrop-filter: blur(12px); font-weight: 900; }
+.collapsed-controls { position: absolute; z-index: 5; right: 20px; bottom: 96px; display: flex; align-items: center; gap: 10px; }
+.show-text-button { min-height: 50px; padding: 0 15px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--gold); border-radius: 999px; background: rgba(9,45,49,.78); color: #fff; backdrop-filter: blur(10px); font-weight: 900; }
+.collapsed-controls .speaker-control { width: 50px; height: 50px; box-shadow: 0 9px 22px rgba(0,0,0,.22); }
 .scene-navigation { position: absolute; z-index: 6; left: 18px; right: 18px; bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
 .scene-navigation button { width: 56px; height: 56px; border: 1px solid var(--gold); border-radius: 50%; background: rgba(9,45,49,.88); color: #fff; backdrop-filter: blur(10px); font-size: 1.65rem; }
 .scene-navigation button:disabled { opacity: .32; }

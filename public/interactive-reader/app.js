@@ -21,6 +21,7 @@ const elements = {
   next: document.querySelector("[data-next]"),
   textOverlay: document.querySelector("[data-text-overlay]"),
   showText: document.querySelector("[data-show-text]"),
+  collapsedControls: document.querySelector("[data-collapsed-controls]"),
   toggleLabel: document.querySelector("[data-toggle-label]"),
   install: document.querySelector("[data-install]"),
   toast: document.querySelector("[data-toast]"),
@@ -139,7 +140,7 @@ function render() {
   );
 
   elements.textOverlay.hidden = !state.textVisible;
-  elements.showText.hidden = state.textVisible;
+  elements.collapsedControls.hidden = state.textVisible;
   elements.toggleLabel.textContent = state.textVisible ? "Masquer le texte" : "Voir le texte";
 }
 
