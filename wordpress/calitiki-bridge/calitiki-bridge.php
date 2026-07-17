@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.5.3
+ * Version: 0.5.4
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -70,8 +70,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.5.3') {
-            update_option(self::VERSION_OPTION, '0.5.3');
+        if (get_option(self::VERSION_OPTION) !== '0.5.4') {
+            update_option(self::VERSION_OPTION, '0.5.4');
             flush_rewrite_rules(false);
         }
     }
@@ -173,6 +173,7 @@ final class Calitiki_Woo_Bridge {
     public static function render_account_creations() {
         $customer_id = get_current_user_id();
         echo '<div class="calitiki-creations-account"><h2>' . esc_html__('Mes créations Calitiki', 'calitiki-bridge') . '</h2>';
+        self::render_ebook_resend_notice($customer_id);
         $orders = wc_get_orders(array('customer_id' => $customer_id, 'limit' => -1, 'orderby' => 'date', 'order' => 'DESC', 'status' => array('wc-processing', 'wc-completed')));
         $found = false;
         echo '<div class="calitiki-creation-grid">';
@@ -232,29 +233,71 @@ final class Calitiki_Woo_Bridge {
         $order_id = absint($_POST['order_id'] ?? 0);
         $item_id = absint($_POST['item_id'] ?? 0);
         if (!$customer_id || !$order_id || !$item_id) {
+            if ($customer_id) {
+                self::store_ebook_resend_notice($customer_id, 'not_found');
+            }
             wp_safe_redirect($redirect);
             exit;
         }
         check_admin_referer('calitiki_resend_ebook_' . $order_id . '_' . $item_id);
-        $order = function_exists('wc_get_order') ? wc_get_order($order_id) : null;
-        $item = $order ? $order->get_item($item_id) : null;
-        if (!$order || (int) $order->get_customer_id() !== (int) $customer_id || !$item) {
-            wc_add_notice(__('Impossible de retrouver cet eBook dans votre compte.', 'calitiki-bridge'), 'error');
-            wp_safe_redirect($redirect);
-            exit;
-        }
-        $project_id = (string) $item->get_meta('_calitiki_project_id', true);
-        $product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
-        $delivery = $project_id && $product_type === 'ebook' ? self::fresh_ebook_delivery($order_id, $customer_id, $project_id) : array();
-        if (empty($delivery['downloadUrl'])) {
-            wc_add_notice(__('Votre eBook est encore en préparation. Réessayez dans quelques instants.', 'calitiki-bridge'), 'notice');
-        } elseif (self::send_ebook_ready_email($order, $item, $delivery, true)) {
-            wc_add_notice(sprintf(__('L’e-mail a été envoyé à %s.', 'calitiki-bridge'), $order->get_billing_email()), 'success');
-        } else {
-            wc_add_notice(__('WordPress n’a pas pu envoyer l’e-mail. Vérifiez la configuration SMTP du site.', 'calitiki-bridge'), 'error');
+        try {
+            $order = function_exists('wc_get_order') ? wc_get_order($order_id) : null;
+            $item = $order ? $order->get_item($item_id) : null;
+            if (!$order || (int) $order->get_customer_id() !== (int) $customer_id || !$item) {
+                self::store_ebook_resend_notice($customer_id, 'not_found');
+                wp_safe_redirect($redirect);
+                exit;
+            }
+            $project_id = (string) $item->get_meta('_calitiki_project_id', true);
+            $product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
+            $delivery = $project_id && $product_type === 'ebook' ? self::fresh_ebook_delivery($order_id, $customer_id, $project_id) : array();
+            if (empty($delivery['downloadUrl'])) {
+                self::store_ebook_resend_notice($customer_id, 'pending');
+            } elseif (self::send_ebook_ready_email($order, $item, $delivery, true)) {
+                self::store_ebook_resend_notice($customer_id, 'sent');
+            } else {
+                self::store_ebook_resend_notice($customer_id, 'error');
+            }
+        } catch (Throwable $error) {
+            self::log_ebook_email_error($error, $order_id);
+            self::store_ebook_resend_notice($customer_id, 'error');
         }
         wp_safe_redirect($redirect);
         exit;
+    }
+
+    private static function store_ebook_resend_notice($customer_id, $status) {
+        set_transient('calitiki_ebook_resend_' . absint($customer_id), sanitize_key($status), 5 * MINUTE_IN_SECONDS);
+    }
+
+    private static function render_ebook_resend_notice($customer_id) {
+        $key = 'calitiki_ebook_resend_' . absint($customer_id);
+        $status = sanitize_key((string) get_transient($key));
+        if (!$status) {
+            return;
+        }
+        delete_transient($key);
+        $notices = array(
+            'sent' => array('success', __('L’e-mail contenant votre eBook a bien été envoyé.', 'calitiki-bridge')),
+            'pending' => array('notice', __('Votre eBook est encore en préparation. Réessayez dans quelques instants.', 'calitiki-bridge')),
+            'not_found' => array('error', __('Impossible de retrouver cet eBook dans votre compte.', 'calitiki-bridge')),
+            'error' => array('error', __('WordPress n’a pas pu envoyer l’e-mail. Vérifiez la configuration SMTP du site.', 'calitiki-bridge')),
+        );
+        if (!isset($notices[$status])) {
+            return;
+        }
+        $class = $notices[$status][0] === 'success' ? 'woocommerce-message' : ($notices[$status][0] === 'notice' ? 'woocommerce-info' : 'woocommerce-error');
+        echo '<div class="' . esc_attr($class) . '" role="alert">' . esc_html($notices[$status][1]) . '</div>';
+    }
+
+    private static function log_ebook_email_error($error, $order_id) {
+        if (!function_exists('wc_get_logger')) {
+            return;
+        }
+        wc_get_logger()->error(
+            'Impossible d’envoyer l’e-mail eBook : ' . sanitize_text_field($error->getMessage()),
+            array('source' => 'calitiki-bridge', 'order_id' => absint($order_id))
+        );
     }
 
     public static function settings_link($links) {
@@ -652,11 +695,19 @@ final class Calitiki_Woo_Bridge {
         if (!$download_url || !is_email($recipient) || !function_exists('WC')) {
             return false;
         }
-        $copy = self::ebook_email_copy($order);
-        $mailer = WC()->mailer();
-        $content = '<p>' . esc_html($copy['intro']) . '</p><p style="margin:28px 0"><a href="' . esc_url($download_url) . '" style="display:inline-block;padding:14px 24px;border-radius:999px;background:#d8755b;color:#fff;text-decoration:none;font-weight:700">' . esc_html($copy['button']) . '</a></p><p>' . esc_html($copy['expiry']) . '</p>';
-        $message = $mailer->wrap_message($copy['heading'], $content);
-        $sent = $mailer->send($recipient, $copy['subject'], $message, "Content-Type: text/html\r\n", array());
+        $sent = false;
+        try {
+            $copy = self::ebook_email_copy($order);
+            $mailer = WC()->mailer();
+            if (!is_object($mailer) || !is_callable(array($mailer, 'wrap_message')) || !is_callable(array($mailer, 'send'))) {
+                throw new RuntimeException('Le moteur d’e-mail WooCommerce est indisponible.');
+            }
+            $content = '<p>' . esc_html($copy['intro']) . '</p><p style="margin:28px 0"><a href="' . esc_url($download_url) . '" style="display:inline-block;padding:14px 24px;border-radius:999px;background:#d8755b;color:#fff;text-decoration:none;font-weight:700">' . esc_html($copy['button']) . '</a></p><p>' . esc_html($copy['expiry']) . '</p>';
+            $message = $mailer->wrap_message($copy['heading'], $content);
+            $sent = $mailer->send($recipient, $copy['subject'], $message, "Content-Type: text/html\r\n", array());
+        } catch (Throwable $error) {
+            self::log_ebook_email_error($error, $order->get_id());
+        }
         if ($sent) {
             $item->update_meta_data('_calitiki_ebook_ready', gmdate('c'));
             $item->update_meta_data('_calitiki_ebook_email_sent', gmdate('c'));
