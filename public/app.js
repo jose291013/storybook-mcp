@@ -561,7 +561,13 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     previousButton.disabled = frameIndex === 0;
     nextButton.disabled = frameIndex === frames.length - 1;
     repairPage = frame.find((page) => page.page_type === "image") || null;
-    const canRepair = Boolean(repairPage && state.projectId && [undefined, "preview_ready", "preview_repairing"].includes(job.projectStatus));
+    const canRepair = Boolean(
+      repairPage
+      && !repairPage.technicalCheckAt
+      && !repairPage.repairedAt
+      && state.projectId
+      && [undefined, "preview_ready", "preview_repairing"].includes(job.projectStatus)
+    );
     repairButton.hidden = !canRepair;
     if (canRepair) repairButton.textContent = tr("repairIllustration", { page: repairPage.page_number });
   };
@@ -604,21 +610,26 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     repairFeedback.textContent = "";
     elements.actionBuyEbook.disabled = true;
     elements.actionBuyPrint.disabled = true;
+    let requestAccepted = false;
     try {
       const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-pages/${encodeURIComponent(pageNumber)}/repair`, { method: "POST" });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error || tr("repairIllustrationError"));
-      await pollJob(payload.jobId);
+      requestAccepted = true;
+      const repairJob = await pollJob(payload.jobId);
       const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
       const projectPayload = await projectResponse.json();
       if (!projectResponse.ok) throw new Error(projectPayload.error || tr("repairIllustrationError"));
       showCompletedPreview({ result: projectPayload.project.previewResult, final_blueprint: projectPayload.project.finalBlueprint, projectStatus: projectPayload.project.status }, { scroll: false, initialPageNumber: pageNumber });
       const refreshedFeedback = document.querySelector("#readerRepairFeedback");
-      if (refreshedFeedback) refreshedFeedback.textContent = tr("repairIllustrationDone", { page: pageNumber });
+      if (refreshedFeedback) refreshedFeedback.textContent = repairJob.result?.repaired
+        ? tr("repairIllustrationDone", { page: pageNumber })
+        : (repairJob.result?.technicalDefect ? tr("repairIllustrationLimit") : tr("repairIllustrationNoDefect", { page: pageNumber }));
     } catch (error) {
-      repairButton.disabled = false;
-      repairButton.textContent = tr("repairIllustration", { page: pageNumber });
-      repairFeedback.textContent = error.message || tr("repairIllustrationError");
+      repairButton.disabled = requestAccepted;
+      repairButton.hidden = requestAccepted;
+      if (!requestAccepted) repairButton.textContent = tr("repairIllustration", { page: pageNumber });
+      repairFeedback.textContent = tr("repairIllustrationError");
       elements.actionBuyEbook.disabled = false;
       elements.actionBuyPrint.disabled = false;
     }

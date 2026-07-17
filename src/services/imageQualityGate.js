@@ -35,7 +35,7 @@ export function outputImagePath(imageUrl, outputsDir = "data/outputs") {
   return path.resolve(outputsDir, decodeURIComponent(path.basename(pathname)));
 }
 
-export async function inspectGeneratedIllustration({ imagePath, scenePrompt, castPresent = [], pageLabel = "illustration" }) {
+export async function inspectGeneratedIllustration({ imagePath, pageLabel = "illustration" }) {
   const source = await fs.readFile(imagePath);
   const metadata = await sharp(source).metadata();
   if (metadata.format !== "png" || Number(metadata.width || 0) < 512 || Number(metadata.height || 0) < 512) {
@@ -45,19 +45,16 @@ export async function inspectGeneratedIllustration({ imagePath, scenePrompt, cas
 
   const compact = await sharp(source).rotate().resize(512, 512, { fit: "inside" }).jpeg({ quality: 72 }).toBuffer();
   const dataUrl = `data:image/jpeg;base64,${compact.toString("base64")}`;
-  const expectedCast = castPresent.filter(Boolean).join(", ") || "no named character requirement";
-  const instruction = `You are the final visual quality controller for a personalized children's book.
-Inspect the attached ${pageLabel}. The requested scene is:
-${scenePrompt}
+  const instruction = `You are a technical file-quality controller for a personalized children's book.
+Inspect the attached ${pageLabel}.
 
-Expected visible named characters: ${expectedCast}.
+Reject only when the image has an objective technical production defect:
+- corrupted pixels, blank or nearly blank content;
+- abstract noise, repeated bands or stripes such as a broken decoder output;
+- extreme accidental blur, truncated rendering or a visibly unfinished image;
+- no coherent recognizable children's-book scene at all.
 
-Reject only for an objective production defect:
-- corrupted, blank, abstract-noise, repeated bands/stripes, extreme blur, unfinished or otherwise not a coherent children's illustration;
-- the essential action or setting is visibly unrelated to the requested scene;
-- one or more expected named characters are clearly absent;
-- prominent written text, a watermark or a logo appears inside the illustration.
-Do not reject for harmless artistic interpretation, minor pose differences or details that cannot be verified visually.
+Approve every coherent illustration, even if you would prefer a different composition, character, outfit, color, pose, style or scene interpretation. Never compare wardrobe, cast, likeness or narrative accuracy. Small preview watermarks and page-number badges are expected and are not defects.
 Return only JSON in this exact form: {"approved":true,"issues":[]} or {"approved":false,"issues":["short objective reason"]}.`;
 
   const response = await getClient().responses.create({
@@ -66,17 +63,16 @@ Return only JSON in this exact form: {"approved":true,"issues":[]} or {"approved
     max_output_tokens: 300,
   });
   const result = parseJson(extractText(response));
-  return {
-    approved: result?.approved === true,
-    issues: Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 5) : ["The image failed visual quality control."],
-  };
+  const approved = result?.approved === true;
+  const issues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 5) : [];
+  return { approved, issues: approved ? [] : (issues.length ? issues : ["The image failed technical quality control."]) };
 }
 
 export async function generateQualityCheckedImage({
   prompt,
   castPresent = [],
   pageLabel = "illustration",
-  maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "3", 10) || 3),
+  maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "2", 10) || 2),
   ...generationOptions
 }) {
   let previousIssues = [];
@@ -91,8 +87,6 @@ export async function generateQualityCheckedImage({
     });
     const inspection = await inspectGeneratedIllustration({
       imagePath: outputImagePath(imageUrl),
-      scenePrompt: prompt,
-      castPresent,
       pageLabel,
     });
     if (inspection.approved) return imageUrl;

@@ -8,12 +8,13 @@ import { projectStore } from "../services/projectStore.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../services/previewAssetStorage.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
-import { generateQualityCheckedImage } from "../services/imageQualityGate.js";
+import { generateQualityCheckedImage, inspectGeneratedIllustration } from "../services/imageQualityGate.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
-const FREE_TECHNICAL_REPAIRS_PER_PROJECT = 3;
+const FREE_TECHNICAL_CHECKS_PER_PROJECT = 3;
+const FREE_TECHNICAL_REPAIRS_PER_PROJECT = 1;
 
 function names(values = []) {
   return new Set(values.map((value) => String(value || "").trim().toLowerCase()).filter(Boolean));
@@ -59,6 +60,14 @@ async function downloadContinuityReference(project, blueprintPage, temporaryDire
   return target;
 }
 
+async function downloadStoredPreviewAsset(storageKey, targetPath) {
+  if (!storageKey) throw new Error("The existing preview image is unavailable");
+  const asset = await getDeliveryStorage().get(storageKey);
+  const body = await storageBodyToBuffer(asset.body);
+  await fs.writeFile(targetPath, body);
+  return targetPath;
+}
+
 router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) => {
   let identity;
   try { identity = readWooCustomer(req); }
@@ -78,10 +87,12 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
   if (!blueprintPage || blueprintPage.page_type !== "image") return res.status(400).json({ error: "Only an illustration page can be repaired" });
   const existingDraftPage = project.previewResult.draftPages?.find((page) => Number(page.page_number) === pageNumber);
   if (!existingDraftPage) return res.status(404).json({ error: "Preview page not found" });
-  if (existingDraftPage.repairedAt) return res.status(409).json({ error: "This illustration has already received its free technical repair" });
-  const priorRepairCount = (project.previewResult.draftPages || []).filter((page) => page.repairedAt).length;
-  if (priorRepairCount >= FREE_TECHNICAL_REPAIRS_PER_PROJECT) {
-    return res.status(409).json({ error: "The free technical repair limit for this preview has been reached" });
+  if (existingDraftPage.technicalCheckAt || existingDraftPage.repairedAt) {
+    return res.status(409).json({ error: "This page has already received its one-time technical check" });
+  }
+  const priorCheckCount = (project.previewResult.draftPages || []).filter((page) => page.technicalCheckAt || page.repairedAt).length;
+  if (priorCheckCount >= FREE_TECHNICAL_CHECKS_PER_PROJECT) {
+    return res.status(409).json({ error: "The technical-check limit for this preview has been reached" });
   }
 
   const priorCharacterCanons = project.continuitySnapshot?.characterCanons
@@ -105,6 +116,52 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
       temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-page-repair-"));
       const refreshed = await projectStore.get(project.id);
       const draftPages = [...(refreshed.previewResult?.draftPages || [])];
+      const index = draftPages.findIndex((page) => Number(page.page_number) === pageNumber);
+      if (index < 0) throw new Error("Preview page not found");
+
+      updateJob(job.id, { step: `repair:page:${pageNumber}:checking` });
+      const existingStorageKey = draftPages[index].imageStorageKey || draftPages[index].storageKey;
+      const existingImagePath = await downloadStoredPreviewAsset(
+        existingStorageKey,
+        path.join(temporaryDirectory, "existing-preview.png"),
+      );
+      const technicalInspection = await inspectGeneratedIllustration({
+        imagePath: existingImagePath,
+        pageLabel: `existing composed preview page ${pageNumber}; its small preview watermark and page-number badge are expected`,
+      });
+      const technicalCheckAt = new Date().toISOString();
+      draftPages[index] = {
+        ...draftPages[index],
+        technicalCheckAt,
+        technicalCheckResult: technicalInspection.approved ? "passed" : "defective",
+        technicalCheckIssues: technicalInspection.issues,
+      };
+      let previewResult = { ...refreshed.previewResult, draftPages };
+      await projectStore.update(refreshed.id, { previewResult });
+
+      if (technicalInspection.approved) {
+        await projectStore.update(refreshed.id, { status: "preview_ready", previewResult, generationJobId: job.id });
+        updateJob(job.id, {
+          status: "done",
+          step: `repair:page:${pageNumber}:no-defect`,
+          result: { pageNumber, repaired: false, technicalDefect: false },
+        });
+        return;
+      }
+
+      const priorDefectCount = draftPages.filter((page, pageIndex) => (
+        pageIndex !== index && (page.technicalCheckResult === "defective" || page.repairedAt)
+      )).length;
+      if (priorDefectCount >= FREE_TECHNICAL_REPAIRS_PER_PROJECT) {
+        await projectStore.update(refreshed.id, { status: "preview_ready", previewResult, generationJobId: job.id });
+        updateJob(job.id, {
+          status: "done",
+          step: `repair:page:${pageNumber}:repair-limit`,
+          result: { pageNumber, repaired: false, technicalDefect: true, repairLimitReached: true },
+        });
+        return;
+      }
+
       const pairedTextPage = refreshed.finalBlueprint.pages?.find((page) => page.spread_number === blueprintPage.spread_number && ["text", "opening_text", "closing_text"].includes(page.page_type));
       const pairedText = draftPages.find((page) => Number(page.page_number) === Number(pairedTextPage?.page_number))?.text || "";
       const referencePath = await downloadContinuityReference(refreshed, blueprintPage, temporaryDirectory);
@@ -129,6 +186,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         size: "1024x1024",
         quality: "low",
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
+        maximumAttempts: 2,
       });
       const persistedImage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localImageUrl });
 
@@ -145,8 +203,6 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         dpi: 150,
       });
       const persistedPage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localPreviewUrl });
-      const index = draftPages.findIndex((page) => Number(page.page_number) === pageNumber);
-      if (index < 0) throw new Error("Preview page not found");
       draftPages[index] = {
         ...draftPages[index],
         imageUrl: persistedImage.previewUrl,
@@ -155,9 +211,9 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         storageKey: persistedPage.storageKey,
         repairedAt: new Date().toISOString(),
       };
-      const previewResult = { ...refreshed.previewResult, draftPages };
+      previewResult = { ...refreshed.previewResult, draftPages };
       await projectStore.update(refreshed.id, { status: "preview_ready", previewResult, generationJobId: job.id });
-      updateJob(job.id, { status: "done", step: `repair:page:${pageNumber}:done`, result: { pageNumber } });
+      updateJob(job.id, { status: "done", step: `repair:page:${pageNumber}:done`, result: { pageNumber, repaired: true, technicalDefect: true } });
     } catch (error) {
       await projectStore.update(project.id, { status: "preview_ready" }).catch(() => null);
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
