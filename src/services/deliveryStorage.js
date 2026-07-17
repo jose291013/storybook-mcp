@@ -5,6 +5,13 @@ import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3
 
 const DEFAULT_LOCAL_DIR = path.resolve("data/private/ebooks");
 
+function contentTypeForKey(key) {
+  const extension = path.extname(String(key || "")).toLowerCase();
+  if (extension === ".png") return "image/png";
+  if ([".jpg", ".jpeg"].includes(extension)) return "image/jpeg";
+  return "application/pdf";
+}
+
 function safeLocalPath(root, key) {
   const normalized = String(key || "").replaceAll("\\", "/").replace(/^\/+/, "");
   const target = path.resolve(root, normalized);
@@ -23,7 +30,7 @@ export class LocalDeliveryStorage {
   async get(key) {
     const target = safeLocalPath(this.root, key);
     const stat = await fsPromises.stat(target);
-    return { body: fs.createReadStream(target), contentType: "application/pdf", byteSize: stat.size };
+    return { body: fs.createReadStream(target), contentType: contentTypeForKey(key), byteSize: stat.size };
   }
 }
 
