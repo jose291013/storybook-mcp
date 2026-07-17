@@ -1,6 +1,8 @@
 import express from "express";
 import { ensureDraftOwner, readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
+import { getDeliveryStorage } from "../services/deliveryStorage.js";
+import { previewAssetKey } from "../services/previewAssetStorage.js";
 
 const router = express.Router();
 
@@ -83,6 +85,28 @@ router.get("/projects/:id", async (req, res) => {
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.json({ project: publicProject(project) });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.get("/projects/:id/preview-assets/:filename", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).end();
+    const storageKey = previewAssetKey(project.id, req.params.filename);
+    const asset = await getDeliveryStorage().get(storageKey);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Type": asset.contentType || "image/png",
+      "X-Content-Type-Options": "nosniff",
+    });
+    if (asset.byteSize > 0) res.set("Content-Length", String(asset.byteSize));
+    if (Buffer.isBuffer(asset.body)) return res.end(asset.body);
+    asset.body.on("error", () => { if (!res.headersSent) res.status(502); res.end(); });
+    asset.body.pipe(res);
+  } catch (error) {
+    if (!res.headersSent) res.status(404);
+    res.end();
+  }
 });
 
 router.put("/projects/:id", async (req, res) => {

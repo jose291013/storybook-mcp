@@ -18,18 +18,20 @@ export async function createEbookPdfBuffer({
   title = "Personalized story",
   language = "FR",
   coverPreviewUrl,
+  coverStorageKey = "",
   pages = [],
   outputsDir = "data/outputs",
   onProgress,
+  loadAsset,
 }) {
   if (!coverPreviewUrl) throw new Error("createEbookPdf: missing cover");
 
   const orderedAssets = [
-    { previewUrl: coverPreviewUrl, pageType: "cover" },
+    { previewUrl: coverPreviewUrl, storageKey: coverStorageKey, pageType: "cover" },
     ...pages
       .filter((page) => page?.previewUrl)
       .sort((a, b) => a.page_number - b.page_number)
-      .map((page) => ({ previewUrl: page.previewUrl, pageType: page.page_type || "image", pageNumber: page.page_number })),
+      .map((page) => ({ previewUrl: page.previewUrl, storageKey: page.storageKey || "", pageType: page.page_type || "image", pageNumber: page.page_number })),
   ];
 
   const pdf = await PDFDocument.create();
@@ -41,7 +43,9 @@ export async function createEbookPdfBuffer({
   for (let index = 0; index < orderedAssets.length; index += 1) {
     const asset = orderedAssets[index];
     const quality = ["text", "opening_text", "closing_text"].includes(asset.pageType) ? 92 : 86;
-    const imageBytes = await sharp(localOutputPath(asset.previewUrl, outputsDir), { sequentialRead: true })
+    const loadedAsset = loadAsset ? await loadAsset(asset) : null;
+    const imageSource = loadedAsset || localOutputPath(asset.previewUrl, outputsDir);
+    const imageBytes = await sharp(imageSource, { sequentialRead: true })
       .flatten({ background: "#fff8ed" })
       .resize(1240, 1240, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality, chromaSubsampling: "4:4:4" })

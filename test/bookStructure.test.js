@@ -38,6 +38,7 @@ import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
 import { LocalDeliveryStorage } from "../src/services/deliveryStorage.js";
 import { signDeliveryToken, verifyDeliveryToken } from "../src/services/deliveryToken.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../src/services/ebookFulfillment.js";
+import { persistPreviewAsset, storageBodyToBuffer } from "../src/services/previewAssetStorage.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -367,13 +368,23 @@ test("paid and zero-total WooCommerce orders use the same signed ebook fulfillme
     const identity = { wooCustomerId: "42", email: "parent@example.com" };
     const projects = new JsonProjectStore(path.join(directory, "projects.json"));
     const customer = await projects.ensureCustomer(identity);
-    const project = await projects.create({
+    let project = await projects.create({
       customerId: customer.id, status: "preview_ready", title: "Noa et Luma", locale: "FR",
       finalBlueprint: { language: "FR", cover: { title: "Noa et Luma" } },
-      previewResult: { coverPreviewUrl: "/outputs/cover.png", draftPages: [{ page_number: 1, previewUrl: "/outputs/page-1.png" }] },
     });
     const orders = new JsonCommerceOrderStore(path.join(directory, "orders.json"));
     const storage = new LocalDeliveryStorage(path.join(directory, "private"));
+    const coverAsset = await persistPreviewAsset({ projectId: project.id, assetUrl: "/outputs/cover.png", outputsDir, storage });
+    const pageAsset = await persistPreviewAsset({ projectId: project.id, assetUrl: "/outputs/page-1.png", outputsDir, storage });
+    assert.equal((await storageBodyToBuffer((await storage.get(coverAsset.storageKey)).body)).length > 0, true);
+    project = await projects.update(project.id, {
+      previewResult: {
+        coverPreviewUrl: coverAsset.previewUrl,
+        coverStorageKey: coverAsset.storageKey,
+        draftPages: [{ page_number: 1, previewUrl: pageAsset.previewUrl, storageKey: pageAsset.storageKey }],
+      },
+    });
+    await fs.rm(outputsDir, { recursive: true, force: true });
     const options = { projectStore: projects, commerceOrderStore: orders, deliveryStorage: storage, outputsDir, deliveryUrlOptions: { baseUrl: "https://books.example", secret: "s".repeat(64), expiresInSeconds: 3600 } };
     const delivery = await fulfillPaidBookOrder({ orderId: "1001", projectId: project.id, productType: "ebook", pageCount: 24, orderTotalCents: 0, ...identity }, options);
     assert.equal(delivery.status, "ready");
@@ -410,6 +421,8 @@ test("ebook fulfillment claims prevent duplicate generation and allow stale reco
     await fs.writeFile(orderPath, JSON.stringify(persisted), "utf8");
     await orders.recordPaid(paidInput);
     assert.equal((await orders.claimDelivery(identity)).fulfillmentStatus, "generating");
+    await orders.updateDelivery(identity, { fulfillmentStatus: "failed", deliveryError: "Input file is missing: data/outputs/old.png" });
+    assert.equal((await freshEbookDeliveryLink(identity, { commerceOrderStore: orders })).errorCode, "preview_assets_missing");
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -427,7 +440,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.1/);
+  assert.match(plugin, /Version: 0\.5\.2/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -437,7 +450,8 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /woocommerce_account_calitiki-creations_endpoint/);
   assert.match(plugin, /delivery-link\|/);
   assert.match(plugin, /wp_strip_all_tags/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.1.zip");
+  assert.match(plugin, /preview_assets_missing/);
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.2.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });

@@ -5,6 +5,7 @@ import { getDeliveryStorage } from "./deliveryStorage.js";
 import { projectStore } from "./projectStore.js";
 import { normalizePageCount } from "../config/bookOptions.js";
 import { logMemory } from "./runtimeMemory.js";
+import { storageBodyToBuffer } from "./previewAssetStorage.js";
 
 function deliveryIdentity({ orderId, projectId, productType = "ebook", wooCustomerId = "" }) {
   return { orderId: String(orderId), projectId: String(projectId), productType, wooCustomerId: String(wooCustomerId) };
@@ -59,8 +60,14 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
       title: project.title || project.finalBlueprint?.cover?.title || "Calitiki",
       language: project.finalBlueprint?.language || project.questionnaire?.language || project.locale || "FR",
       coverPreviewUrl: project.previewResult.coverPreviewUrl,
+      coverStorageKey: project.previewResult.coverStorageKey || "",
       pages: project.previewResult.draftPages || [],
       outputsDir: dependencies.outputsDir || "data/outputs",
+      loadAsset: async (asset) => {
+        if (!asset.storageKey) return null;
+        const storedAsset = await storage.get(asset.storageKey);
+        return storageBodyToBuffer(storedAsset.body);
+      },
       onProgress: async ({ completed, total }) => {
         if (completed === 1 || completed === total || completed % 4 === 0) {
           await orders.updateDelivery(orderIdentity, { fulfillmentStatus: "generating" });
@@ -87,6 +94,13 @@ export async function freshEbookDeliveryLink(input, dependencies = {}) {
   const record = await orders.findForCustomer({
     orderId: String(input.orderId), projectId: String(input.projectId), wooCustomerId: String(input.wooCustomerId), productType: "ebook",
   });
-  if (!record || record.paymentStatus !== "paid" || record.fulfillmentStatus !== "ready" || !record.storageKey) return null;
-  return readyPayload(record, dependencies.deliveryUrlOptions);
+  if (!record || record.paymentStatus !== "paid") return null;
+  if (record.fulfillmentStatus === "ready" && record.storageKey) return readyPayload(record, dependencies.deliveryUrlOptions);
+  const sourceAssetsMissing = /Input file is missing|ENOENT|no such file/i.test(String(record.deliveryError || ""));
+  return {
+    status: record.fulfillmentStatus || "queued",
+    productType: record.productType,
+    retryAfterSeconds: 300,
+    errorCode: sourceAssetsMissing ? "preview_assets_missing" : "",
+  };
 }
