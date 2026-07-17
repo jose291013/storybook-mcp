@@ -66,7 +66,7 @@ Last updated: 2026-07-15
 - The external creator header provides a localized return to Calitiki. It remembers a trusted Calitiki referrer path without retaining query parameters or commerce authentication tokens, and otherwise falls back to the FR, ES or EN storefront home.
 - A paid personalized eBook order now creates one idempotent commerce record, generates the low-definition unwatermarked PDF, stores it in a private S3-compatible bucket and returns an expiring signed link. WooCommerce sends a separate localized “eBook ready” email and exposes a fresh link under **My creations Calitiki**. Processing/completed orders with a zero total after coupons follow the exact same paid flow; failed callbacks are retried with WP-Cron, and refunded deliveries are revoked.
 - New preview covers and composed pages are copied to the same private S3-compatible storage as soon as they are generated. The reader serves them through a customer-authenticated route, and paid eBook assembly reads those durable objects instead of relying on Render's ephemeral filesystem. Legacy previews created before this checkpoint must be rebuilt once if their local source files were lost.
-- Every new draft illustration passes a low-cost visual content check before it reaches the reader. Corrupted, blank, striped, unrelated or visibly incomplete outputs are regenerated automatically up to the configured attempt limit. Before purchase, the customer can also request a free technical repair of one illustration page; this replaces only that private preview asset, never consumes wallet credit, and never overwrites a purchased revision.
+- Every new draft illustration passes a low-cost technical file check before it reaches the reader. Only corrupted, blank, striped or visibly incomplete outputs are regenerated automatically, with two attempts by default; wardrobe, cast, composition and aesthetic preferences never trigger an automatic retry. Before purchase, the customer may report a suspected technical defect. The server inspects the existing private asset first and regenerates it only when an objective defect is confirmed. Each page can be checked once, at most three pages per project can be checked, and only one confirmed repair per project may launch image generation (maximum two attempts). Failed repairs are counted, no wallet credit is consumed, and purchased revisions are never overwritten. Aesthetic improvement remains a separate paid modification.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -89,7 +89,7 @@ Last updated: 2026-07-15
 - `SHARP_CONCURRENCY`, `SHARP_CACHE_MEMORY_MB`: cap native image-processing concurrency and cache usage on memory-constrained Render instances (defaults: 1 and 16 MB).
 - `IMAGE_CONTENT_QA_ENABLED`: enables visual content inspection of generated illustrations (default enabled; set to `false` only for local troubleshooting).
 - `IMAGE_QA_MODEL`: vision model used for the economical illustration check, default `gpt-4.1-mini`.
-- `IMAGE_GENERATION_ATTEMPTS`: maximum automatic attempts for a rejected illustration, default 3.
+- `IMAGE_GENERATION_ATTEMPTS`: maximum automatic attempts for a technically defective illustration, default 2.
 
 ## Resume prompt for a new Codex task
 

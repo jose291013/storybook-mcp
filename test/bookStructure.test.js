@@ -407,7 +407,7 @@ test("paid and zero-total WooCommerce orders use the same signed ebook fulfillme
   }
 });
 
-test("draft illustrations pass visual QA and can be repaired page by page without credits", async () => {
+test("technical image repair is validated, bounded and never spends customer credits", async () => {
   const [preview, repair, quality, app] = await Promise.all([
     fs.readFile("src/routes/preview.js", "utf8"),
     fs.readFile("src/routes/previewRepair.js", "utf8"),
@@ -417,12 +417,22 @@ test("draft illustrations pass visual QA and can be repaired page by page withou
   assert.equal(outputImagePath("/outputs/page-attempt1.png"), path.resolve("data/outputs/page-attempt1.png"));
   assert.match(preview, /generateQualityCheckedImage/);
   assert.match(preview, /imageStorageKey/);
-  assert.match(quality, /abstract-noise, repeated bands\/stripes/);
-  assert.match(quality, /IMAGE_GENERATION_ATTEMPTS/);
+  assert.match(quality, /abstract noise, repeated bands or stripes/);
+  assert.match(quality, /Never compare wardrobe, cast, likeness or narrative accuracy/);
+  assert.doesNotMatch(quality, /Expected visible named characters|essential action or setting/);
+  assert.match(quality, /IMAGE_GENERATION_ATTEMPTS \|\| "2"/);
   assert.match(repair, /project\.status === "purchased"/);
   assert.match(repair, /status: "preview_repairing"/);
+  assert.match(repair, /FREE_TECHNICAL_CHECKS_PER_PROJECT = 3/);
+  assert.match(repair, /FREE_TECHNICAL_REPAIRS_PER_PROJECT = 1/);
+  assert.match(repair, /technicalCheckAt/);
+  assert.match(repair, /inspectGeneratedIllustration[\s\S]+generateQualityCheckedImage/);
+  assert.match(repair, /maximumAttempts: 2/);
   assert.doesNotMatch(repair, /reservePreview|capturePreview/);
   assert.match(app, /repairCurrentIllustration/);
+  assert.match(app, /repairIllustrationNoDefect/);
+  assert.match(app, /repairIllustrationLimit/);
+  assert.match(app, /!repairPage\.technicalCheckAt/);
   assert.match(app, /preview-pages\/\$\{encodeURIComponent\(pageNumber\)\}\/repair/);
 });
 
