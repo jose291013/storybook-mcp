@@ -62,13 +62,14 @@ export class JsonCommerceOrderStore {
     store.orders[key] = { ...existing, ...patch, updatedAt: now() };
     this.write(store); return normalize(store.orders[key]);
   }
-  async claimDelivery(identity, { staleAfterMs = 4 * 60 * 1000 } = {}) {
+  async claimDelivery(identity, { staleAfterMs = 4 * 60 * 1000, allowReady = false } = {}) {
     const store = this.read(); const key = orderKey(identity); const existing = store.orders[key];
     if (!existing || String(existing.wooCustomerId) !== String(identity.wooCustomerId)) return null;
     const updatedAt = Date.parse(existing.updatedAt || existing.createdAt || "");
     const staleGenerating = existing.fulfillmentStatus === "generating"
       && Number.isFinite(updatedAt) && Date.now() - updatedAt >= staleAfterMs;
-    if (!["queued", "failed"].includes(existing.fulfillmentStatus) && !staleGenerating) return null;
+    const rebuildReady = allowReady && existing.fulfillmentStatus === "ready";
+    if (!["queued", "failed"].includes(existing.fulfillmentStatus) && !staleGenerating && !rebuildReady) return null;
     store.orders[key] = { ...existing, fulfillmentStatus: "generating", deliveryError: "", updatedAt: now() };
     this.write(store); return normalize(store.orders[key]);
   }
@@ -114,15 +115,16 @@ export class PostgresCommerceOrderStore {
     );
     return normalize({ ...rows[0], woo_customer_id: identity.wooCustomerId || "" });
   }
-  async claimDelivery(identity, { staleAfterMs = 4 * 60 * 1000 } = {}) {
+  async claimDelivery(identity, { staleAfterMs = 4 * 60 * 1000, allowReady = false } = {}) {
     const { rows } = await this.database.query(
       `UPDATE commerce_orders SET fulfillment_status='generating',delivery_error='',updated_at=now()
        FROM app_customers WHERE commerce_orders.customer_id=app_customers.id AND commerce_orders.woo_order_id=$1
        AND commerce_orders.project_id=$2 AND commerce_orders.product_type=$3 AND app_customers.woo_customer_id=$4
        AND (commerce_orders.fulfillment_status IN ('queued','failed')
-         OR (commerce_orders.fulfillment_status='generating' AND commerce_orders.updated_at < now() - ($5::bigint * interval '1 millisecond')))
+         OR (commerce_orders.fulfillment_status='generating' AND commerce_orders.updated_at < now() - ($5::bigint * interval '1 millisecond'))
+         OR ($6::boolean AND commerce_orders.fulfillment_status='ready'))
        RETURNING commerce_orders.*,app_customers.woo_customer_id`,
-      [identity.orderId, identity.projectId, identity.productType, identity.wooCustomerId, staleAfterMs]
+      [identity.orderId, identity.projectId, identity.productType, identity.wooCustomerId, staleAfterMs, allowReady]
     );
     return normalize(rows[0]);
   }

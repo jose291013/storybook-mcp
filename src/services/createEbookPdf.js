@@ -4,6 +4,44 @@ import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
 
 const PAGE_SIZE_PT = (210 / 25.4) * 72;
+const TEXT_PAGE_TYPES = new Set(["text", "opening_text", "closing_text"]);
+
+function numericPageNumber(page) {
+  return Number(page?.page_number || 0);
+}
+
+export function orderEbookPages(pages = []) {
+  const available = pages.filter((page) => page?.previewUrl);
+  if (!available.every((page) => page.page_type)) {
+    return [...available].sort((left, right) => numericPageNumber(left) - numericPageNumber(right));
+  }
+
+  const opening = available
+    .filter((page) => page.page_type === "opening_text")
+    .sort((left, right) => numericPageNumber(left) - numericPageNumber(right));
+  const closing = available
+    .filter((page) => page.page_type === "closing_text")
+    .sort((left, right) => numericPageNumber(left) - numericPageNumber(right));
+  const middle = available.filter((page) => !["opening_text", "closing_text"].includes(page.page_type));
+  const spreads = new Map();
+
+  for (const page of middle) {
+    const derivedSpread = Math.floor((Math.max(2, numericPageNumber(page)) - 2) / 2) + 1;
+    const spreadNumber = Number(page.spread_number || derivedSpread);
+    if (!spreads.has(spreadNumber)) spreads.set(spreadNumber, []);
+    spreads.get(spreadNumber).push(page);
+  }
+
+  const digitalSpreads = [...spreads.entries()]
+    .sort(([left], [right]) => left - right)
+    .flatMap(([, spreadPages]) => spreadPages.sort((left, right) => {
+      const leftPriority = TEXT_PAGE_TYPES.has(left.page_type) ? 0 : left.page_type === "image" ? 1 : 2;
+      const rightPriority = TEXT_PAGE_TYPES.has(right.page_type) ? 0 : right.page_type === "image" ? 1 : 2;
+      return leftPriority - rightPriority || numericPageNumber(left) - numericPageNumber(right);
+    }));
+
+  return [...opening, ...digitalSpreads, ...closing];
+}
 
 function localOutputPath(assetUrl, outputsDir) {
   const pathname = new URL(assetUrl, "http://localhost").pathname;
@@ -28,9 +66,7 @@ export async function createEbookPdfBuffer({
 
   const orderedAssets = [
     { previewUrl: coverPreviewUrl, storageKey: coverStorageKey, pageType: "cover" },
-    ...pages
-      .filter((page) => page?.previewUrl)
-      .sort((a, b) => a.page_number - b.page_number)
+    ...orderEbookPages(pages)
       .map((page) => ({ previewUrl: page.previewUrl, storageKey: page.storageKey || "", pageType: page.page_type || "image", pageNumber: page.page_number })),
   ];
 

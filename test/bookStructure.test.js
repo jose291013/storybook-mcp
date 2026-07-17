@@ -16,7 +16,7 @@ import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
 import { ALLOWED_PAGE_COUNTS, calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
-import { createEbookPdf, EBOOK_PAGE_SIZE_PT } from "../src/services/createEbookPdf.js";
+import { createEbookPdf, EBOOK_PAGE_SIZE_PT, orderEbookPages } from "../src/services/createEbookPdf.js";
 import { extractBlueprintCandidate } from "../src/services/extractBlueprintCandidate.js";
 import { PDFDocument } from "pdf-lib";
 import PhpParser from "php-parser";
@@ -37,7 +37,7 @@ import { signBookOrderWebhook, signCommercePayload, verifyBookOrderWebhook } fro
 import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
 import { LocalDeliveryStorage } from "../src/services/deliveryStorage.js";
 import { signDeliveryToken, verifyDeliveryToken } from "../src/services/deliveryToken.js";
-import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../src/services/ebookFulfillment.js";
+import { EBOOK_LAYOUT_ID, freshEbookDeliveryLink, fulfillPaidBookOrder } from "../src/services/ebookFulfillment.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../src/services/previewAssetStorage.js";
 import { outputImagePath } from "../src/services/imageQualityGate.js";
 
@@ -393,6 +393,7 @@ test("paid and zero-total WooCommerce orders use the same signed ebook fulfillme
     const record = await orders.findForCustomer({ orderId: "1001", projectId: project.id, wooCustomerId: "42", productType: "ebook" });
     assert.equal(record.orderTotalCents, 0);
     assert.equal(record.paymentStatus, "paid");
+    assert.match(record.storageKey, new RegExp(`book-${EBOOK_LAYOUT_ID}\\.pdf$`));
     assert.equal((await storage.get(record.storageKey)).contentType, "application/pdf");
     assert.equal((await freshEbookDeliveryLink({ orderId: "1001", projectId: project.id, wooCustomerId: "42" }, options)).status, "ready");
     await orders.recordStatus({ orderId: "1001", projectId: project.id, productType: "ebook", wooCustomerId: "42", status: "refunded" });
@@ -453,6 +454,8 @@ test("ebook fulfillment claims prevent duplicate generation and allow stale reco
     assert.equal((await orders.claimDelivery(identity)).fulfillmentStatus, "generating");
     await orders.updateDelivery(identity, { fulfillmentStatus: "failed", deliveryError: "Input file is missing: data/outputs/old.png" });
     assert.equal((await freshEbookDeliveryLink(identity, { commerceOrderStore: orders })).errorCode, "preview_assets_missing");
+    await orders.updateDelivery(identity, { fulfillmentStatus: "ready", storageKey: "ebooks/project-2/1002/book.pdf", deliveryError: "" });
+    assert.equal((await orders.claimDelivery(identity, { allowReady: true })).fulfillmentStatus, "generating");
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -470,18 +473,21 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.2/);
+  assert.match(plugin, /Version: 0\.5\.3/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
   assert.match(plugin, /send_ebook_ready_email/);
+  assert.match(plugin, /admin_post_calitiki_resend_ebook/);
+  assert.match(plugin, /Renvoyer l’e-mail/);
+  assert.match(plugin, /configuration SMTP/);
   assert.match(plugin, /WC\(\)->mailer\(\)/);
   assert.match(plugin, /calitiki_retry_book_order/);
   assert.match(plugin, /woocommerce_account_calitiki-creations_endpoint/);
   assert.match(plugin, /delivery-link\|/);
   assert.match(plugin, /wp_strip_all_tags/);
   assert.match(plugin, /preview_assets_missing/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.2.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.3.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
@@ -1073,6 +1079,19 @@ test("ebook PDF preserves square pages and includes cover plus interiors", async
   } finally {
     await fs.rm(outputsDir, { recursive: true, force: true });
   }
+});
+
+test("ebook reading order is text then illustration independently from print sides", () => {
+  const previewUrl = (page) => `/outputs/page-${page}.png`;
+  const pages = [
+    { page_number: 5, page_type: "text", spread_number: 2, previewUrl: previewUrl(5) },
+    { page_number: 4, page_type: "image", spread_number: 2, previewUrl: previewUrl(4) },
+    { page_number: 3, page_type: "image", spread_number: 1, previewUrl: previewUrl(3) },
+    { page_number: 2, page_type: "text", spread_number: 1, previewUrl: previewUrl(2) },
+    { page_number: 1, page_type: "opening_text", spread_number: null, previewUrl: previewUrl(1) },
+    { page_number: 6, page_type: "closing_text", spread_number: null, previewUrl: previewUrl(6) },
+  ];
+  assert.deepEqual(orderEbookPages(pages).map((page) => page.page_number), [1, 2, 3, 5, 4, 6]);
 });
 
 test("the closing moral is explicitly addressed to the child hero", async () => {
