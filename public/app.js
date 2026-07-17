@@ -49,7 +49,7 @@ const state = {
   selectedUniverse: "",
   fontStyle: "school_round",
   pageCount: 24,
-  productType: "print",
+  productType: "ebook",
   photos: [],
   jobId: "",
   projectId: "",
@@ -130,6 +130,8 @@ const tr = (key, params) => translate(state.locale, key, params);
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const formatPrice = (value) => new Intl.NumberFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { style: "currency", currency: "EUR" }).format(value);
 const selectedPageOption = () => state.config?.pageCountOptions?.find((option) => option.pageCount === state.pageCount);
+const isProductAvailable = (productType) => productType === "ebook" || state.config?.productAvailability?.[productType]?.enabled === true;
+const availableProductType = (productType) => isProductAvailable(productType) ? productType : "ebook";
 const selectedUnitPrice = () => state.productType === "ebook" ? state.config?.pricing?.ebookUnitPagePrice : state.config?.pricing?.printUnitPagePrice;
 const selectedProductPrice = () => {
   const option = selectedPageOption();
@@ -270,11 +272,16 @@ async function renderPreviewActionCenter({ locked = false } = {}) {
   elements.actionBuyCredits.hidden = !summary?.buyCreditsUrl;
   if (summary?.buyCreditsUrl) elements.actionBuyCredits.href = summary.buyCreditsUrl;
   elements.actionBuyEbook.disabled = locked;
-  elements.actionBuyPrint.disabled = locked;
+  elements.actionBuyPrint.disabled = locked || !isProductAvailable("print");
+  elements.actionBuyPrint.textContent = isProductAvailable("print") ? tr("buyPrint") : tr("printComingSoonAction");
 }
 
 async function openConfiguredCheckout(productType, button) {
   if (!state.projectId || !state.previewComplete) return;
+  if (!isProductAvailable(productType)) {
+    elements.previewRebateText.textContent = tr("printUnavailable");
+    return;
+  }
   const original = button.textContent;
   button.disabled = true; button.textContent = tr("checkoutPreparing");
   try {
@@ -420,11 +427,14 @@ function renderFonts() {
 
 function renderProductTypes() {
   const products = [
-    { id: "print", title: tr("printBook"), description: tr("printBookHelp") },
     { id: "ebook", title: tr("ebook"), description: tr("ebookHelp") },
+    { id: "print", title: tr("printBook"), description: isProductAvailable("print") ? tr("printBookHelp") : tr("printComingSoonHelp") },
   ];
-  elements.productTypeGrid.innerHTML = products.map((product) => `<button type="button" class="product-type-card ${product.id === state.productType ? "is-selected" : ""}" data-product-type="${product.id}" role="radio" aria-checked="${product.id === state.productType}"><strong>${escapeHtml(product.title)}</strong><small>${escapeHtml(product.description)}</small></button>`).join("");
-  elements.productTypeGrid.querySelectorAll("[data-product-type]").forEach((button) => button.addEventListener("click", () => { state.productType = button.dataset.productType; renderProductTypes(); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
+  elements.productTypeGrid.innerHTML = products.map((product) => {
+    const available = isProductAvailable(product.id);
+    return `<button type="button" class="product-type-card ${product.id === state.productType ? "is-selected" : ""} ${available ? "" : "is-coming-soon"}" data-product-type="${product.id}" role="radio" aria-checked="${product.id === state.productType}" ${available ? "" : "disabled aria-disabled=\"true\""}><strong>${escapeHtml(product.title)}</strong>${available ? "" : `<span class="availability-badge">${escapeHtml(tr("comingSoon"))}</span>`}<small>${escapeHtml(product.description)}</small></button>`;
+  }).join("");
+  elements.productTypeGrid.querySelectorAll("[data-product-type]:not(:disabled)").forEach((button) => button.addEventListener("click", () => { state.productType = availableProductType(button.dataset.productType); renderProductTypes(); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
 }
 
 function renderPageCounts() {
@@ -631,7 +641,7 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
       if (!requestAccepted) repairButton.textContent = tr("repairIllustration", { page: pageNumber });
       repairFeedback.textContent = tr("repairIllustrationError");
       elements.actionBuyEbook.disabled = false;
-      elements.actionBuyPrint.disabled = false;
+      elements.actionBuyPrint.disabled = !isProductAvailable("print");
     }
   });
   paintFrame();
@@ -743,7 +753,7 @@ function changeLocale(locale) {
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = saved?.productType || requestedProductType || state.productType; state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await refreshCreditSummary("").catch(() => null); const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected"; if (authCallback) await resumePreviewAfterLogin(); else await restoreCompletedPreview(); }
+  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = availableProductType(saved?.productType || requestedProductType || state.productType); state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await refreshCreditSummary("").catch(() => null); const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected"; if (authCallback) await resumePreviewAfterLogin(); else await restoreCompletedPreview(); }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 

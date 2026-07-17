@@ -15,6 +15,7 @@ import {
   TYPOGRAPHY_OPTIONS,
   UNIVERSE_OPTIONS,
 } from "../config/bookOptions.js";
+import { getProductAvailability } from "../config/productAvailability.js";
 
 const router = express.Router();
 
@@ -34,6 +35,7 @@ router.get("/questionnaire", (req, res) => {
       ebookUnitPagePrice: EBOOK_PAGE_PRICE_EUR,
     },
     productTypes: PRODUCT_TYPES,
+    productAvailability: getProductAvailability(),
     pageCountOptions: PAGE_COUNT_OPTIONS,
     typographyOptions: TYPOGRAPHY_OPTIONS,
     universeOptions: UNIVERSE_OPTIONS,

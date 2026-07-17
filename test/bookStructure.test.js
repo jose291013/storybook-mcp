@@ -15,6 +15,7 @@ import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
 import { ALLOWED_PAGE_COUNTS, calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
+import { getProductAvailability, isProductEnabled } from "../src/config/productAvailability.js";
 import { IMPROVABLE_QUESTION_IDS } from "../src/routes/improveAnswer.js";
 import { createEbookPdf, EBOOK_PAGE_SIZE_PT, orderEbookPages } from "../src/services/createEbookPdf.js";
 import { extractBlueprintCandidate } from "../src/services/extractBlueprintCandidate.js";
@@ -350,12 +351,23 @@ test("personalized checkout reserves one project rebate and requires a signed Wo
     assert.match(plugin, /Crédit d’aperçu déduit/);
     assert.match(route, /\/commerce\/checkout-link/);
     assert.match(route, /reserveProjectRebate/);
+    assert.match(route, /isProductEnabled\(productType\)/);
     assert.match(html, /id="actionBuyEbook"/);
+    assert.match(html, /id="actionBuyPrint" disabled aria-disabled="true"/);
     assert.match(app, /openConfiguredCheckout/);
+    assert.match(app, /is-coming-soon/);
   } finally {
     if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("printed books stay disabled until the production feature flag is enabled", () => {
+  assert.equal(isProductEnabled("ebook", {}), true);
+  assert.equal(isProductEnabled("print", {}), false);
+  assert.equal(getProductAvailability({}).print.status, "coming_soon");
+  assert.equal(isProductEnabled("print", { PRINT_BOOK_ENABLED: "true" }), true);
+  assert.equal(getProductAvailability({ PRINT_BOOK_ENABLED: "1" }).print.status, "available");
 });
 
 test("paid and zero-total WooCommerce orders use the same signed ebook fulfillment flow", async () => {
