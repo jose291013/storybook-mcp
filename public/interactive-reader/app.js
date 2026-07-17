@@ -134,6 +134,8 @@ function render() {
   elements.sceneImage.alt = scene.alt;
   elements.topBack.hidden = state.sceneIndex === 0;
   elements.previous.disabled = state.sceneIndex === 0;
+  elements.previous.classList.toggle("is-placeholder", state.sceneIndex === 0);
+  elements.previous.setAttribute("aria-hidden", String(state.sceneIndex === 0));
   elements.next.setAttribute(
     "aria-label",
     state.sceneIndex === state.sceneCount - 1 ? "Terminer la démonstration" : "Découvrir la scène suivante",

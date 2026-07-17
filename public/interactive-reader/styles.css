@@ -58,12 +58,14 @@ button.round-control { cursor: pointer; }
 .speaker-control { border: 0; background: var(--coral); }
 [data-listen].is-speaking { animation: speaking 1s ease-in-out infinite alternate; box-shadow: 0 0 0 6px rgba(239,188,98,.24); }
 .text-toggle { min-height: 48px; padding: 0 10px 0 0; display: flex; align-items: center; gap: 9px; border: 0; background: transparent; color: #fff; font-weight: 800; font-size: .76rem; }
-.collapsed-controls { position: absolute; z-index: 5; right: 20px; bottom: 96px; display: flex; align-items: center; gap: 10px; }
-.show-text-button { min-height: 50px; padding: 0 15px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--gold); border-radius: 999px; background: rgba(9,45,49,.78); color: #fff; backdrop-filter: blur(10px); font-weight: 900; }
+.collapsed-controls { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.show-text-button { min-height: 50px; padding: 0 13px; display: flex; align-items: center; gap: 7px; border: 1px solid var(--gold); border-radius: 999px; background: rgba(9,45,49,.78); color: #fff; backdrop-filter: blur(10px); font-weight: 900; font-size: .82rem; white-space: nowrap; }
 .collapsed-controls .speaker-control { width: 50px; height: 50px; box-shadow: 0 9px 22px rgba(0,0,0,.22); }
-.scene-navigation { position: absolute; z-index: 6; left: 18px; right: 18px; bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
-.scene-navigation button { width: 56px; height: 56px; border: 1px solid var(--gold); border-radius: 50%; background: rgba(9,45,49,.88); color: #fff; backdrop-filter: blur(10px); font-size: 1.65rem; }
+.scene-navigation { position: absolute; z-index: 6; left: 18px; right: 18px; bottom: 20px; display: grid; grid-template-columns: 56px minmax(0,1fr) 56px; align-items: center; gap: 8px; }
+.scene-navigation > button { width: 56px; height: 56px; border: 1px solid var(--gold); border-radius: 50%; background: rgba(9,45,49,.88); color: #fff; backdrop-filter: blur(10px); font-size: 1.65rem; }
+.scene-navigation > button:last-child { justify-self: end; }
 .scene-navigation button:disabled { opacity: .32; }
+.scene-navigation > button.is-placeholder { visibility: hidden; }
 
 .completion-view .eyebrow { color: var(--gold); font-size: .74rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .completion-view h1 { margin: 12px 0 18px; font: 700 2.25rem/1.05 Georgia, serif; }
@@ -82,6 +84,12 @@ button.round-control { cursor: pointer; }
   .reader { width: 100%; min-height: 100svh; border: 0; border-radius: 0; }
   .story-stage, .loading, .completion-view { min-height: 0; }
   .prototype-note { display: none; }
+}
+
+@media (max-width: 350px) {
+  .scene-navigation { left: 10px; right: 10px; gap: 4px; }
+  .show-text-button { padding-inline: 10px; font-size: .74rem; }
+  .collapsed-controls { gap: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
