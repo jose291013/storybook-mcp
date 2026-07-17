@@ -1,0 +1,22 @@
+{
+  "id": "calitiki-demo-forest-light",
+  "title": "Léo et la lumière de la forêt",
+  "language": "fr-FR",
+  "scenes": [
+    {
+      "text": "Dans la forêt silencieuse, Léo et Roux aperçurent une lumière qui semblait les appeler tout doucement. Ils s’arrêtèrent pour écouter le murmure des feuilles.",
+      "image": "../assets/examples/universes/enchanted_forest.webp",
+      "alt": "Un enfant et son ami renard découvrent une lumière dans une forêt enchantée"
+    },
+    {
+      "text": "Au bout du sentier, les nuages formaient un château merveilleux. Léo inspira profondément : il devait trouver le courage de traverser le pont de lumière.",
+      "image": "../assets/examples/universes/cloud_castle.webp",
+      "alt": "Un château merveilleux apparaît au-dessus des nuages"
+    },
+    {
+      "text": "Lorsqu’il posa le dernier pas, le ciel s’illumina de mille étoiles. Léo comprit alors que le courage ne fait pas disparaître la peur : il aide à avancer avec elle.",
+      "image": "../assets/examples/universes/starry_space.webp",
+      "alt": "Un ciel étoilé célèbre le courage de l’enfant"
+    }
+  ]
+}

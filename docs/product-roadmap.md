@@ -54,6 +54,7 @@ Last updated: 2026-07-17
 ## Current implementation checkpoint
 
 - The generator, low-definition preview, ebook PDF, print finalization, multilingual book output, visual styles, page counts, and book reader exist.
+- An isolated installable interactive-reader prototype now exists under `/interactive-reader/`. It uses only public demonstration assets and validates the gated **imagine → reveal → navigate** experience without changing PDF generation, customer entitlements or WooCommerce. Private books, purchased access and generated narration remain future product bricks.
 - Anonymous questionnaire choices are restored from browser storage, and a server-side project is created before preview generation.
 - The project store uses PostgreSQL when `DATABASE_URL` is configured and a local JSON fallback during development.
 - Anonymous projects can be claimed and listed through the signed WooCommerce customer-token contract.

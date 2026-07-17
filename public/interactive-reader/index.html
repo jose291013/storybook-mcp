@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#102f35" />
+    <meta name="description" content="Prototype de la liseuse interactive Calitiki" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Calitiki — Livre interactif</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="reader" aria-label="Livre interactif Calitiki">
+        <header class="reader-header">
+          <a class="brand" href="../" aria-label="Retour à Calitiki">
+            <span class="brand-mark" aria-hidden="true">✦</span>
+            <span><strong>Calitiki</strong><small>Livre interactif</small></span>
+          </a>
+          <button class="install-button" type="button" data-install hidden>Installer</button>
+        </header>
+
+        <section class="story-stage" data-stage aria-live="polite">
+          <div class="loading" data-loading>
+            <span class="loading-star" aria-hidden="true">✦</span>
+            <p>Ouverture du livre…</p>
+          </div>
+
+          <article class="anticipation-view" data-anticipation hidden>
+            <button class="top-back" type="button" data-top-back aria-label="Revenir à la scène précédente">←</button>
+            <div class="stars" aria-hidden="true"></div>
+            <p class="scene-progress" data-progress></p>
+            <div class="story-card">
+              <button class="listen-button" type="button" data-listen>
+                <span aria-hidden="true">🔊</span>
+                <span class="sr-only">Écouter le texte</span>
+              </button>
+              <p data-anticipation-text></p>
+              <small>Ferme les yeux et imagine la scène…</small>
+            </div>
+            <button class="reveal-button" type="button" data-reveal>
+              <span>Découvrir l’image</span><span aria-hidden="true">✦</span>
+            </button>
+          </article>
+
+          <article class="revealed-view" data-revealed hidden>
+            <img data-scene-image alt="" />
+            <div class="image-shade" aria-hidden="true"></div>
+            <p class="scene-progress scene-progress-on-image" data-image-progress></p>
+
+            <div class="text-overlay" data-text-overlay>
+              <p data-revealed-text></p>
+              <div class="overlay-controls">
+                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte">🔊</button>
+                <button class="text-toggle" type="button" data-text-toggle aria-expanded="true">
+                  <span class="round-control" aria-hidden="true">◉</span>
+                  <span data-toggle-label>Masquer le texte</span>
+                </button>
+              </div>
+            </div>
+
+            <button class="show-text-button" type="button" data-show-text hidden>
+              <span aria-hidden="true">◉</span><span>Voir le texte</span>
+            </button>
+
+            <nav class="scene-navigation" aria-label="Navigation entre les scènes">
+              <button type="button" data-previous aria-label="Scène précédente">←</button>
+              <button type="button" data-next aria-label="Scène suivante">→</button>
+            </nav>
+          </article>
+
+          <article class="completion-view" data-completion hidden>
+            <span class="completion-star" aria-hidden="true">✦</span>
+            <p class="eyebrow">Fin de la démonstration</p>
+            <h1>Une histoire à écouter, imaginer et découvrir.</h1>
+            <p>Dans la future bibliothèque Calitiki, chaque livre acheté apparaîtra ici automatiquement.</p>
+            <button class="reveal-button" type="button" data-restart>Relire la démonstration</button>
+          </article>
+        </section>
+
+        <div class="prototype-note">
+          <span>Prototype privé</span>
+          <p>La voix utilisée ici est celle du navigateur et ne représente pas encore la narration finale.</p>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" role="status" data-toast hidden></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
