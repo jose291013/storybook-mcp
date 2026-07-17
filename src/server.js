@@ -12,6 +12,7 @@ import creditsRouter from "./routes/credits.js";
 import commerceCreditsRouter from "./routes/commerceCredits.js";
 import commerceCheckoutRouter from "./routes/commerceCheckout.js";
 import deliveriesRouter from "./routes/deliveries.js";
+import previewRepairRouter from "./routes/previewRepair.js";
 import { projectStore } from "./services/projectStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
 
@@ -44,6 +45,7 @@ app.use("/api", creditsRouter);
 app.use("/api", commerceCreditsRouter);
 app.use("/api", commerceCheckoutRouter);
 app.use("/api", deliveriesRouter);
+app.use("/api", previewRepairRouter);
 
 const port = process.env.PORT || 3000;
 await projectStore.initialize();

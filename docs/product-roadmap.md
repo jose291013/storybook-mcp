@@ -66,6 +66,7 @@ Last updated: 2026-07-15
 - The external creator header provides a localized return to Calitiki. It remembers a trusted Calitiki referrer path without retaining query parameters or commerce authentication tokens, and otherwise falls back to the FR, ES or EN storefront home.
 - A paid personalized eBook order now creates one idempotent commerce record, generates the low-definition unwatermarked PDF, stores it in a private S3-compatible bucket and returns an expiring signed link. WooCommerce sends a separate localized “eBook ready” email and exposes a fresh link under **My creations Calitiki**. Processing/completed orders with a zero total after coupons follow the exact same paid flow; failed callbacks are retried with WP-Cron, and refunded deliveries are revoked.
 - New preview covers and composed pages are copied to the same private S3-compatible storage as soon as they are generated. The reader serves them through a customer-authenticated route, and paid eBook assembly reads those durable objects instead of relying on Render's ephemeral filesystem. Legacy previews created before this checkpoint must be rebuilt once if their local source files were lost.
+- Every new draft illustration passes a low-cost visual content check before it reaches the reader. Corrupted, blank, striped, unrelated or visibly incomplete outputs are regenerated automatically up to the configured attempt limit. Before purchase, the customer can also request a free technical repair of one illustration page; this replaces only that private preview asset, never consumes wallet credit, and never overwrites a purchased revision.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -86,6 +87,9 @@ Last updated: 2026-07-15
 - `DELIVERY_SIGNING_SECRET`: secret used for expiring eBook links; minimum 32 characters and preferably different from the WooCommerce bridge secret.
 - `EBOOK_LINK_DAYS`: emailed eBook link lifetime, default 7 days. Customers can request a fresh link from their account.
 - `SHARP_CONCURRENCY`, `SHARP_CACHE_MEMORY_MB`: cap native image-processing concurrency and cache usage on memory-constrained Render instances (defaults: 1 and 16 MB).
+- `IMAGE_CONTENT_QA_ENABLED`: enables visual content inspection of generated illustrations (default enabled; set to `false` only for local troubleshooting).
+- `IMAGE_QA_MODEL`: vision model used for the economical illustration check, default `gpt-4.1-mini`.
+- `IMAGE_GENERATION_ATTEMPTS`: maximum automatic attempts for a rejected illustration, default 3.
 
 ## Resume prompt for a new Codex task
 

@@ -205,6 +205,7 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 @keyframes readerHint { 50% { transform: translate(5px,-50%); } }
 .reader-controls { display: flex; align-items: center; justify-content: center; gap: 18px; }.reader-controls button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--ink); color: white; font-size: 18px; box-shadow: 0 8px 18px rgba(36,57,61,.18); }.reader-controls button:disabled { opacity: .28; cursor: default; }
 .reader-controls strong { min-width: 120px; color: var(--ink); font-size: 14px; }.reader-help { margin: 0; color: var(--muted); font-size: 13px; }
+.reader-repair { width: auto; max-width: min(520px, 100%); min-height: 42px; padding: 10px 18px; border: 1px solid var(--peach-dark); border-radius: 999px; background: #fffaf3; color: var(--peach-dark); font-weight: 800; box-shadow: 0 8px 20px rgba(90,63,52,.1); }.reader-repair:hover { background: #fff1e6; }.reader-repair:disabled { opacity: .55; cursor: wait; }.reader-repair-feedback { min-height: 20px; margin: -6px 0 0; color: var(--muted); font-size: 13px; }
 footer { max-width: 1180px; margin: auto; padding: 35px 24px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; color: var(--muted); } footer span { color: var(--ink); font-family: Georgia, serif; font-weight: 700; }
 
 @media (max-width: 900px) {

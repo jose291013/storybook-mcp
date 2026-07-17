@@ -263,14 +263,14 @@ async function redeemPromotion() {
   finally { elements.redeemPromoButton.disabled = false; }
 }
 
-async function renderPreviewActionCenter() {
+async function renderPreviewActionCenter({ locked = false } = {}) {
   const summary = await refreshCreditSummary().catch(() => null);
   elements.previewActionCenter.hidden = false;
   elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
   elements.actionBuyCredits.hidden = !summary?.buyCreditsUrl;
   if (summary?.buyCreditsUrl) elements.actionBuyCredits.href = summary.buyCreditsUrl;
-  elements.actionBuyEbook.disabled = false;
-  elements.actionBuyPrint.disabled = false;
+  elements.actionBuyEbook.disabled = locked;
+  elements.actionBuyPrint.disabled = locked;
 }
 
 async function openConfiguredCheckout(productType, button) {
@@ -515,7 +515,7 @@ async function pollJob(jobId) {
   for (;;) { const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`); const job = await response.json(); if (!response.ok) throw new Error(job.error || tr("pollError")); elements.generationBar.style.width = `${generationProgress(job.step)}%`; elements.generationStep.textContent = friendlyStep(job.step); if (job.status === "done") return job; if (job.status === "failed") throw new Error(job.error || tr("generationFailed")); await new Promise((resolve) => setTimeout(resolve, 2200)); }
 }
 
-function renderBook(job) {
+function renderBook(job, { initialPageNumber = 0 } = {}) {
   const { coverPreviewUrl, draftPages = [] } = job.result || {};
   const total = job.final_blueprint?.format?.interior_pages || state.pageCount;
   const orderedPages = draftPages.slice().sort((a, b) => a.page_number - b.page_number);
@@ -534,10 +534,10 @@ function renderBook(job) {
   };
   const pageMarkup = (page) => `<figure class="reader-page ${page.isCover ? "reader-cover" : ""}"><img src="${escapeHtml(page.previewUrl)}" alt="${escapeHtml(page.isCover ? tr("readerCover") : tr("readerPage", { page: page.page_number }))}" draggable="false" /><span>${page.isCover ? escapeHtml(tr("readerCover")) : escapeHtml(tr("readerPage", { page: page.page_number }))}</span><em>${escapeHtml(tr("previewWatermark"))}</em></figure>`;
 
-  elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div><div class="reader-curl" id="readerCurl" aria-hidden="true"><div class="reader-curl-face reader-curl-front" id="readerCurlFront"></div><div class="reader-curl-face reader-curl-back" id="readerCurlBack"></div></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
+  elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div><div class="reader-curl" id="readerCurl" aria-hidden="true"><div class="reader-curl-face reader-curl-front" id="readerCurlFront"></div><div class="reader-curl-face reader-curl-back" id="readerCurlBack"></div></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><button type="button" class="reader-repair" id="repairCurrentIllustration" hidden></button><p class="reader-repair-feedback" id="readerRepairFeedback" aria-live="polite"></p><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
 
   let frames = makeFrames();
-  let frameIndex = 0;
+  let frameIndex = initialPageNumber ? Math.max(0, frames.findIndex((frame) => frame.some((page) => Number(page.page_number) === Number(initialPageNumber)))) : 0;
   let turning = false;
   let touchStartX = 0;
   const readerBook = document.querySelector("#readerBook");
@@ -548,6 +548,9 @@ function renderBook(job) {
   const previousButton = document.querySelector("#readerPrevious");
   const nextButton = document.querySelector("#readerNext");
   const counter = document.querySelector("#readerCounter");
+  const repairButton = document.querySelector("#repairCurrentIllustration");
+  const repairFeedback = document.querySelector("#readerRepairFeedback");
+  let repairPage = null;
 
   const paintFrame = () => {
     const frame = frames[frameIndex] || [];
@@ -557,6 +560,10 @@ function renderBook(job) {
     counter.textContent = tr("readerPosition", { current: frameIndex + 1, total: frames.length });
     previousButton.disabled = frameIndex === 0;
     nextButton.disabled = frameIndex === frames.length - 1;
+    repairPage = frame.find((page) => page.page_type === "image") || null;
+    const canRepair = Boolean(repairPage && state.projectId && [undefined, "preview_ready", "preview_repairing"].includes(job.projectStatus));
+    repairButton.hidden = !canRepair;
+    if (canRepair) repairButton.textContent = tr("repairIllustration", { page: repairPage.page_number });
   };
   const turn = (direction) => {
     const target = frameIndex + direction;
@@ -589,6 +596,33 @@ function renderBook(job) {
   readerBook.addEventListener("keydown", (event) => { if (event.key === "ArrowRight" || event.key === "Enter" || event.key === " ") { event.preventDefault(); turn(1); } if (event.key === "ArrowLeft") { event.preventDefault(); turn(-1); } });
   readerBook.addEventListener("touchstart", (event) => { touchStartX = event.changedTouches[0]?.clientX || 0; }, { passive: true });
   readerBook.addEventListener("touchend", (event) => { const distance = (event.changedTouches[0]?.clientX || 0) - touchStartX; if (Math.abs(distance) > 45) turn(distance < 0 ? 1 : -1); }, { passive: true });
+  repairButton.addEventListener("click", async () => {
+    if (!repairPage || repairButton.disabled) return;
+    const pageNumber = repairPage.page_number;
+    repairButton.disabled = true;
+    repairButton.textContent = tr("repairingIllustration", { page: pageNumber });
+    repairFeedback.textContent = "";
+    elements.actionBuyEbook.disabled = true;
+    elements.actionBuyPrint.disabled = true;
+    try {
+      const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-pages/${encodeURIComponent(pageNumber)}/repair`, { method: "POST" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || tr("repairIllustrationError"));
+      await pollJob(payload.jobId);
+      const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+      const projectPayload = await projectResponse.json();
+      if (!projectResponse.ok) throw new Error(projectPayload.error || tr("repairIllustrationError"));
+      showCompletedPreview({ result: projectPayload.project.previewResult, final_blueprint: projectPayload.project.finalBlueprint, projectStatus: projectPayload.project.status }, { scroll: false, initialPageNumber: pageNumber });
+      const refreshedFeedback = document.querySelector("#readerRepairFeedback");
+      if (refreshedFeedback) refreshedFeedback.textContent = tr("repairIllustrationDone", { page: pageNumber });
+    } catch (error) {
+      repairButton.disabled = false;
+      repairButton.textContent = tr("repairIllustration", { page: pageNumber });
+      repairFeedback.textContent = error.message || tr("repairIllustrationError");
+      elements.actionBuyEbook.disabled = false;
+      elements.actionBuyPrint.disabled = false;
+    }
+  });
   paintFrame();
 }
 
@@ -601,13 +635,13 @@ function showGenerationPanel() {
   elements.generationPanel.scrollIntoView({ behavior: "smooth" });
 }
 
-function showCompletedPreview(job, { scroll = true } = {}) {
+function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}) {
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
   elements.resultSection.hidden = false;
-  renderBook(job);
+  renderBook(job, { initialPageNumber });
   setPreviewComplete(true);
-  renderPreviewActionCenter();
+  renderPreviewActionCenter({ locked: job.projectStatus === "preview_repairing" });
   if (scroll) elements.resultSection.scrollIntoView({ behavior: "smooth" });
 }
 
@@ -632,8 +666,8 @@ async function restoreCompletedPreview() {
   if (!response.ok) return false;
   const payload = await response.json();
   const project = payload.project;
-  if (!["preview_ready", "purchased"].includes(project?.status) || !project.previewResult) return false;
-  showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint }, { scroll: false });
+  if (!["preview_ready", "preview_repairing", "purchased"].includes(project?.status) || !project.previewResult) return false;
+  showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint, projectStatus: project.status }, { scroll: false });
   return true;
 }
 
