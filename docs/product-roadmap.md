@@ -84,6 +84,7 @@ Last updated: 2026-07-15
 - `PRIVATE_STORAGE_ENDPOINT`, `PRIVATE_STORAGE_REGION`, `PRIVATE_STORAGE_BUCKET`, `PRIVATE_STORAGE_ACCESS_KEY_ID`, `PRIVATE_STORAGE_SECRET_ACCESS_KEY`, `PRIVATE_STORAGE_FORCE_PATH_STYLE`: credentials and compatibility options for the private S3-compatible bucket.
 - `DELIVERY_SIGNING_SECRET`: secret used for expiring eBook links; minimum 32 characters and preferably different from the WooCommerce bridge secret.
 - `EBOOK_LINK_DAYS`: emailed eBook link lifetime, default 7 days. Customers can request a fresh link from their account.
+- `SHARP_CONCURRENCY`, `SHARP_CACHE_MEMORY_MB`: cap native image-processing concurrency and cache usage on memory-constrained Render instances (defaults: 1 and 16 MB).
 
 ## Resume prompt for a new Codex task
 

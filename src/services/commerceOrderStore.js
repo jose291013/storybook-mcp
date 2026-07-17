@@ -51,7 +51,8 @@ export class JsonCommerceOrderStore {
       pageCount: Number(input.pageCount || 0), orderTotalCents: Number(input.orderTotalCents || 0), paymentStatus: "paid",
       fulfillmentStatus: existing?.fulfillmentStatus || (input.productType === "ebook" ? "queued" : "not_required"),
       storageKey: existing?.storageKey || "", downloadFilename: existing?.downloadFilename || "", deliveryError: existing?.deliveryError || "",
-      paidAt: existing?.paidAt || timestamp, readyAt: existing?.readyAt || null, createdAt: existing?.createdAt || timestamp, updatedAt: timestamp,
+      paidAt: existing?.paidAt || timestamp, readyAt: existing?.readyAt || null, createdAt: existing?.createdAt || timestamp,
+      updatedAt: existing?.fulfillmentStatus === "generating" ? existing.updatedAt : timestamp,
     };
     store.orders[key] = record; this.write(store); return normalize(record);
   }
@@ -59,6 +60,16 @@ export class JsonCommerceOrderStore {
     const store = this.read(); const key = orderKey(identity); const existing = store.orders[key];
     if (!existing) return null;
     store.orders[key] = { ...existing, ...patch, updatedAt: now() };
+    this.write(store); return normalize(store.orders[key]);
+  }
+  async claimDelivery(identity, { staleAfterMs = 4 * 60 * 1000 } = {}) {
+    const store = this.read(); const key = orderKey(identity); const existing = store.orders[key];
+    if (!existing || String(existing.wooCustomerId) !== String(identity.wooCustomerId)) return null;
+    const updatedAt = Date.parse(existing.updatedAt || existing.createdAt || "");
+    const staleGenerating = existing.fulfillmentStatus === "generating"
+      && Number.isFinite(updatedAt) && Date.now() - updatedAt >= staleAfterMs;
+    if (!["queued", "failed"].includes(existing.fulfillmentStatus) && !staleGenerating) return null;
+    store.orders[key] = { ...existing, fulfillmentStatus: "generating", deliveryError: "", updatedAt: now() };
     this.write(store); return normalize(store.orders[key]);
   }
   async findForCustomer({ orderId, projectId, wooCustomerId, productType = "ebook" }) {
@@ -80,7 +91,8 @@ export class PostgresCommerceOrderStore {
       `INSERT INTO commerce_orders (id,project_id,customer_id,woo_order_id,product_type,payment_status,page_count,order_total_cents,fulfillment_status,paid_at)
        VALUES ($1,$2,$3,$4,$5,'paid',$6,$7,$8,now())
        ON CONFLICT (woo_order_id,project_id,product_type) DO UPDATE SET payment_status='paid',page_count=EXCLUDED.page_count,
-         order_total_cents=EXCLUDED.order_total_cents,paid_at=COALESCE(commerce_orders.paid_at,now()),updated_at=now()
+         order_total_cents=EXCLUDED.order_total_cents,paid_at=COALESCE(commerce_orders.paid_at,now()),
+         updated_at=CASE WHEN commerce_orders.fulfillment_status='generating' THEN commerce_orders.updated_at ELSE now() END
        RETURNING *`,
       [crypto.randomUUID(), input.projectId, input.customerId, input.orderId, input.productType, input.pageCount, input.orderTotalCents,
         input.productType === "ebook" ? "queued" : "not_required"]
@@ -101,6 +113,18 @@ export class PostgresCommerceOrderStore {
       [identity.orderId, identity.projectId, identity.productType, ...values]
     );
     return normalize({ ...rows[0], woo_customer_id: identity.wooCustomerId || "" });
+  }
+  async claimDelivery(identity, { staleAfterMs = 4 * 60 * 1000 } = {}) {
+    const { rows } = await this.database.query(
+      `UPDATE commerce_orders SET fulfillment_status='generating',delivery_error='',updated_at=now()
+       FROM app_customers WHERE commerce_orders.customer_id=app_customers.id AND commerce_orders.woo_order_id=$1
+       AND commerce_orders.project_id=$2 AND commerce_orders.product_type=$3 AND app_customers.woo_customer_id=$4
+       AND (commerce_orders.fulfillment_status IN ('queued','failed')
+         OR (commerce_orders.fulfillment_status='generating' AND commerce_orders.updated_at < now() - ($5::bigint * interval '1 millisecond')))
+       RETURNING commerce_orders.*,app_customers.woo_customer_id`,
+      [identity.orderId, identity.projectId, identity.productType, identity.wooCustomerId, staleAfterMs]
+    );
+    return normalize(rows[0]);
   }
   async findForCustomer({ orderId, projectId, wooCustomerId, productType = "ebook" }) {
     const { rows } = await this.database.query(

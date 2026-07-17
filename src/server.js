@@ -13,8 +13,10 @@ import commerceCreditsRouter from "./routes/commerceCredits.js";
 import commerceCheckoutRouter from "./routes/commerceCheckout.js";
 import deliveriesRouter from "./routes/deliveries.js";
 import { projectStore } from "./services/projectStore.js";
+import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
 
 const app = express();
+const imageMemory = configureImageMemory();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static("public"));
@@ -46,5 +48,6 @@ app.use("/api", deliveriesRouter);
 const port = process.env.PORT || 3000;
 await projectStore.initialize();
 app.listen(port, () => {
+  logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
   console.log(`✅ Server listening on port ${port}`);
 });

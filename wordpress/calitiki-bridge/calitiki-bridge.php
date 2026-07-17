@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.5.0
+ * Version: 0.5.1
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -69,8 +69,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.5.0') {
-            update_option(self::VERSION_OPTION, '0.5.0');
+        if (get_option(self::VERSION_OPTION) !== '0.5.1') {
+            update_option(self::VERSION_OPTION, '0.5.1');
             flush_rewrite_rules(false);
         }
     }
@@ -186,7 +186,9 @@ final class Calitiki_Woo_Bridge {
                 $pages = absint($item->get_meta('_calitiki_page_count', true));
                 $download_url = $product_type === 'ebook' ? self::fresh_ebook_link($order->get_id(), $customer_id, $project_id) : '';
                 echo '<article class="calitiki-creation-card"><span>' . esc_html($product_type === 'ebook' ? __('eBook personnalisé', 'calitiki-bridge') : __('Livre imprimé personnalisé', 'calitiki-bridge')) . '</span>';
-                echo '<h3>' . esc_html($item->get_name()) . '</h3><p>' . esc_html(sprintf(__('Commande n°%1$s · %2$d pages', 'calitiki-bridge'), $order->get_order_number(), $pages)) . '</p>';
+                $item_name = html_entity_decode((string) $item->get_name(), ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+                $item_name = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($item_name, true)));
+                echo '<h3>' . esc_html($item_name) . '</h3><p>' . esc_html(sprintf(__('Commande n°%1$s · %2$d pages', 'calitiki-bridge'), $order->get_order_number(), $pages)) . '</p>';
                 if ($download_url) {
                     echo '<a class="button alt" href="' . esc_url($download_url) . '">' . esc_html__('Télécharger mon eBook', 'calitiki-bridge') . '</a>';
                 } elseif ($product_type === 'ebook') {
