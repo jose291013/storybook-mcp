@@ -35,8 +35,10 @@ test("interactive reader restores a previously discovered scene and completes af
 });
 
 test("interactive reader is an isolated installable PWA with the approved navigation", async () => {
-  const [html, manifest, worker, book] = await Promise.all([
+  const [html, app, styles, manifest, worker, book] = await Promise.all([
     fs.readFile("public/interactive-reader/index.html", "utf8"),
+    fs.readFile("public/interactive-reader/app.js", "utf8"),
+    fs.readFile("public/interactive-reader/styles.css", "utf8"),
     fs.readFile("public/interactive-reader/manifest.webmanifest", "utf8"),
     fs.readFile("public/interactive-reader/sw.js", "utf8"),
     fs.readFile("public/interactive-reader/demo-book.json", "utf8"),
@@ -46,7 +48,10 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(html, /data-reveal/);
   assert.match(html, /data-text-toggle/);
   assert.match(html, /scene-navigation/);
+  assert.match(app, /voiceschanged/);
+  assert.match(app, /Aucune voix française ne répond/);
+  assert.match(styles, /background: rgba\(9,45,49,\.6\)/);
   assert.equal(JSON.parse(manifest).display, "standalone");
-  assert.match(worker, /calitiki-interactive-demo-v1/);
+  assert.match(worker, /calitiki-interactive-demo-v2/);
   assert.equal(JSON.parse(book).scenes.length, 3);
 });

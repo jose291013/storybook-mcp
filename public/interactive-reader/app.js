@@ -24,6 +24,7 @@ const elements = {
   toggleLabel: document.querySelector("[data-toggle-label]"),
   install: document.querySelector("[data-install]"),
   toast: document.querySelector("[data-toast]"),
+  listenButtons: [...document.querySelectorAll("[data-listen]")],
 };
 
 let book;
@@ -40,21 +41,73 @@ function showToast(message) {
   }, 4200);
 }
 
-function stopSpeech() {
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+function setSpeechStatus(isSpeaking) {
+  elements.listenButtons.forEach((button) => {
+    button.classList.toggle("is-speaking", isSpeaking);
+    button.setAttribute("aria-pressed", String(isSpeaking));
+    const icon = button.querySelector("[data-speech-icon]");
+    if (icon) icon.textContent = isSpeaking ? "■" : "🔊";
+  });
 }
 
-function speakCurrentScene() {
+function stopSpeech() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  setSpeechStatus(false);
+}
+
+function waitForVoices() {
+  const speech = window.speechSynthesis;
+  const available = speech.getVoices();
+  if (available.length) return Promise.resolve(available);
+
+  return new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      speech.removeEventListener("voiceschanged", finish);
+      resolve(speech.getVoices());
+    };
+    speech.addEventListener("voiceschanged", finish);
+    window.setTimeout(finish, 1200);
+  });
+}
+
+async function speakCurrentScene() {
   if (!("speechSynthesis" in window)) {
     showToast("La voix de démonstration n’est pas disponible sur ce navigateur.");
     return;
   }
 
+  if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+    stopSpeech();
+    showToast("Lecture arrêtée.");
+    return;
+  }
+
   stopSpeech();
+  const voices = await waitForVoices();
   const utterance = new SpeechSynthesisUtterance(book.scenes[state.sceneIndex].text);
   utterance.lang = book.language || "fr-FR";
   utterance.rate = 0.88;
   utterance.pitch = 1.04;
+  utterance.volume = 1;
+  const language = utterance.lang.toLowerCase().split("-")[0];
+  utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === utterance.lang.toLowerCase())
+    || voices.find((voice) => voice.lang.toLowerCase().startsWith(language))
+    || null;
+  utterance.onstart = () => {
+    setSpeechStatus(true);
+    showToast("Lecture en cours… Touchez à nouveau le haut-parleur pour arrêter.");
+  };
+  utterance.onend = () => setSpeechStatus(false);
+  utterance.onerror = (event) => {
+    setSpeechStatus(false);
+    if (event.error !== "canceled" && event.error !== "interrupted") {
+      showToast("Aucune voix française ne répond. Vérifiez le volume ou les voix installées sur le téléphone.");
+    }
+  };
+  window.speechSynthesis.resume();
   window.speechSynthesis.speak(utterance);
 }
 
@@ -121,7 +174,7 @@ document.querySelector("[data-restart]").addEventListener("click", () => {
   state = createReaderState(book.scenes.length);
   render();
 });
-document.querySelectorAll("[data-listen]").forEach((button) => button.addEventListener("click", speakCurrentScene));
+elements.listenButtons.forEach((button) => button.addEventListener("click", speakCurrentScene));
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "ArrowLeft") previousScene();

@@ -32,8 +32,8 @@
             <div class="stars" aria-hidden="true"></div>
             <p class="scene-progress" data-progress></p>
             <div class="story-card">
-              <button class="listen-button" type="button" data-listen>
-                <span aria-hidden="true">🔊</span>
+              <button class="listen-button" type="button" data-listen aria-pressed="false">
+                <span data-speech-icon aria-hidden="true">🔊</span>
                 <span class="sr-only">Écouter le texte</span>
               </button>
               <p data-anticipation-text></p>
@@ -52,7 +52,7 @@
             <div class="text-overlay" data-text-overlay>
               <p data-revealed-text></p>
               <div class="overlay-controls">
-                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte">🔊</button>
+                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte" aria-pressed="false"><span data-speech-icon aria-hidden="true">🔊</span></button>
                 <button class="text-toggle" type="button" data-text-toggle aria-expanded="true">
                   <span class="round-control" aria-hidden="true">◉</span>
                   <span data-toggle-label>Masquer le texte</span>
