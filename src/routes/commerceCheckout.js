@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import express from "express";
 import { normalizePageCount } from "../config/bookOptions.js";
+import { isProductEnabled } from "../config/productAvailability.js";
 import { creditStore } from "../services/creditStore.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../services/ebookFulfillment.js";
@@ -21,6 +22,7 @@ router.post("/commerce/checkout-link", async (req, res) => {
   const projectId = String(req.body?.projectId || "");
   const productType = String(req.body?.productType || "").toLowerCase();
   if (!projectId || !["ebook", "print"].includes(productType)) return res.status(400).json({ error: "Invalid checkout selection" });
+  if (!isProductEnabled(productType)) return res.status(409).json({ error: "This product format is coming soon" });
   try {
     const project = await projectStore.getForCustomer(projectId, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });

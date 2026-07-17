@@ -143,6 +143,9 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .product-type-card { min-height: 112px; display: grid; align-content: center; gap: 7px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: #fffdf9; color: var(--ink); text-align: left; }
 .product-type-card strong { font-family: Georgia, serif; font-size: 19px; }.product-type-card small { color: var(--muted); line-height: 1.4; }
 .product-type-card.is-selected { border: 2px solid var(--sage); box-shadow: 0 0 0 4px rgba(125,168,156,.16); background: #f5fbf8; }
+.product-type-card.is-coming-soon { position: relative; cursor: not-allowed; border-style: dashed; background: #f5f1eb; color: #766d64; opacity: .86; }
+.product-type-card.is-coming-soon:hover { transform: none; box-shadow: none; }
+.availability-badge { justify-self: start; border-radius: 999px; padding: 4px 9px; background: #eee1d5; color: var(--peach-dark); font-size: 10px; font-weight: 850; letter-spacing: .07em; text-transform: uppercase; }
 .page-count-card { display: grid; gap: 3px; border: 1px solid var(--line); border-radius: 13px; padding: 13px 8px; background: white; color: var(--ink); }
 .page-count-card small { color: var(--muted); }.page-count-card.is-selected { color: white; background: var(--ink); border-color: var(--ink); }.page-count-card.is-selected small { color: rgba(255,255,255,.72); }
 .page-count-card em { margin-top: 5px; color: var(--peach-dark); font-size: 15px; font-style: normal; font-weight: 850; }.page-count-card.is-selected em { color: #ffe4aa; }

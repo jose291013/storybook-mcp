@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-15
+Last updated: 2026-07-17
 
 ## Product flow
 
@@ -79,6 +79,7 @@ Last updated: 2026-07-15
 - `WOOCOMMERCE_BRIDGE_SECRET`: shared secret used to verify short-lived customer identity tokens.
 - `WOOCOMMERCE_BRIDGE_URL`: public connection URL displayed in WooCommerce > Calitiki Bridge.
 - `WOOCOMMERCE_CHECKOUT_URL`: optional WooCommerce checkout bridge base URL. When empty, it is derived from `WOOCOMMERCE_BRIDGE_URL`.
+- `PRINT_BOOK_ENABLED`: feature flag for printed-book selection and checkout. It defaults to `false`, leaving the format visible as **Coming soon** while the eBook remains purchasable.
 - `CUSTOMER_SESSION_DAYS`: lifetime of the generator's HTTP-only customer session, default 7 days.
 - `PREVIEW_ENTITLEMENTS_ENABLED`: activates the preview wallet gate after promotion codes or paid credit fulfillment are configured.
 - `PREVIEW_PROMO_CODES`: comma-separated `CODE:AMOUNT_IN_EURO_CENTS` campaign codes; each code can be redeemed once per WooCommerce customer.
