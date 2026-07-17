@@ -13,7 +13,7 @@ export function createReaderState(sceneCount) {
 
 export function revealScene(state) {
   if (state.phase !== "anticipation") return state;
-  return { ...state, phase: "revealed", textVisible: true };
+  return { ...state, phase: "revealed", textVisible: false };
 }
 
 export function goToNextScene(state) {
@@ -36,7 +36,7 @@ export function goToPreviousScene(state) {
     ...state,
     sceneIndex: state.sceneIndex - 1,
     phase: "revealed",
-    textVisible: true,
+    textVisible: false,
   };
 }
 

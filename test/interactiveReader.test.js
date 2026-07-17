@@ -16,6 +16,7 @@ test("interactive reader requires illustration discovery before advancing", () =
 
   const revealed = revealScene(initial);
   assert.equal(revealed.phase, "revealed");
+  assert.equal(revealed.textVisible, false);
 
   const secondScene = goToNextScene(revealed);
   assert.equal(secondScene.sceneIndex, 1);
@@ -53,6 +54,6 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(app, /Aucune voix française ne répond/);
   assert.match(styles, /background: rgba\(9,45,49,\.6\)/);
   assert.equal(JSON.parse(manifest).display, "standalone");
-  assert.match(worker, /calitiki-interactive-demo-v4/);
+  assert.match(worker, /calitiki-interactive-demo-v5/);
   assert.equal(JSON.parse(book).scenes.length, 3);
 });

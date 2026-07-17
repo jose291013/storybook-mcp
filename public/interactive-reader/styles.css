@@ -63,7 +63,9 @@ button.round-control { cursor: pointer; }
 .collapsed-controls .speaker-control { width: 50px; height: 50px; box-shadow: 0 9px 22px rgba(0,0,0,.22); }
 .scene-navigation { position: absolute; z-index: 6; left: 18px; right: 18px; bottom: 20px; display: grid; grid-template-columns: 56px minmax(0,1fr) 56px; align-items: center; gap: 8px; }
 .scene-navigation > button { width: 56px; height: 56px; border: 1px solid var(--gold); border-radius: 50%; background: rgba(9,45,49,.88); color: #fff; backdrop-filter: blur(10px); font-size: 1.65rem; }
-.scene-navigation > button:last-child { justify-self: end; }
+.scene-navigation > button:first-child { grid-column: 1; }
+.scene-navigation .collapsed-controls { grid-column: 2; }
+.scene-navigation > button:last-child { grid-column: 3; justify-self: end; }
 .scene-navigation button:disabled { opacity: .32; }
 .scene-navigation > button.is-placeholder { visibility: hidden; }
 
