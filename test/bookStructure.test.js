@@ -39,6 +39,7 @@ import { LocalDeliveryStorage } from "../src/services/deliveryStorage.js";
 import { signDeliveryToken, verifyDeliveryToken } from "../src/services/deliveryToken.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../src/services/ebookFulfillment.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../src/services/previewAssetStorage.js";
+import { outputImagePath } from "../src/services/imageQualityGate.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -172,7 +173,7 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /refreshCustomerSession\(\)/);
   assert.match(app, /setPreviewComplete\(true\)/);
   assert.match(app, /!state\.previewComplete/);
-  assert.match(app, /\["preview_ready", "purchased"\]\.includes\(project\?\.status\)/);
+  assert.match(app, /\["preview_ready", "preview_repairing", "purchased"\]\.includes\(project\?\.status\)/);
   assert.match(app, /final_blueprint: project\.finalBlueprint/);
   assert.match(app, /else await restoreCompletedPreview\(\)/);
   assert.match(app, /pageCountOptions\?\.\[0\]\?\.ebookPriceEur/);
@@ -404,6 +405,25 @@ test("paid and zero-total WooCommerce orders use the same signed ebook fulfillme
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("draft illustrations pass visual QA and can be repaired page by page without credits", async () => {
+  const [preview, repair, quality, app] = await Promise.all([
+    fs.readFile("src/routes/preview.js", "utf8"),
+    fs.readFile("src/routes/previewRepair.js", "utf8"),
+    fs.readFile("src/services/imageQualityGate.js", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
+  ]);
+  assert.equal(outputImagePath("/outputs/page-attempt1.png"), path.resolve("data/outputs/page-attempt1.png"));
+  assert.match(preview, /generateQualityCheckedImage/);
+  assert.match(preview, /imageStorageKey/);
+  assert.match(quality, /abstract-noise, repeated bands\/stripes/);
+  assert.match(quality, /IMAGE_GENERATION_ATTEMPTS/);
+  assert.match(repair, /project\.status === "purchased"/);
+  assert.match(repair, /status: "preview_repairing"/);
+  assert.doesNotMatch(repair, /reservePreview|capturePreview/);
+  assert.match(app, /repairCurrentIllustration/);
+  assert.match(app, /preview-pages\/\$\{encodeURIComponent\(pageNumber\)\}\/repair/);
 });
 
 test("ebook fulfillment claims prevent duplicate generation and allow stale recovery", async () => {

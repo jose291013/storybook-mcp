@@ -1,7 +1,6 @@
 import express from "express";
-import path from "path";
 import { createJob, updateJob } from "../services/jobStore.js";
-import { generateImage } from "../services/imageRunner.js";
+import { generateQualityCheckedImage, outputImagePath } from "../services/imageQualityGate.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
@@ -221,9 +220,11 @@ router.post("/preview", async (req, res) => {
         castPresent: final_blueprint.cover.cast_present || [],
         scenePrompt: final_blueprint.cover.image_prompt,
       });
-      const coverImageUrl = await generateImage({
+      const localCoverImageUrl = await generateQualityCheckedImage({
         prompt: final_blueprint.cover.image_prompt,
         outName: `draft-cover-${job.id}`,
+        castPresent: final_blueprint.cover.cast_present || [],
+        pageLabel: "book cover illustration",
         ...coverContinuity,
         size: "1024x1024",
         quality: "low",
@@ -231,22 +232,27 @@ router.post("/preview", async (req, res) => {
       });
       const localCoverPreviewUrl = await composeBookPagePNG({
         baseUrl,
-        imageUrl: coverImageUrl,
+        imageUrl: localCoverImageUrl,
         title: final_blueprint.cover.title,
         outName: `draft-cover-page-${job.id}`,
         pageType: "cover",
         dpi: 150,
       });
+      const persistedCoverImage = await persistPreviewAsset({ projectId, assetUrl: localCoverImageUrl });
       const persistedCover = await persistPreviewAsset({ projectId, assetUrl: localCoverPreviewUrl });
+      const coverImageUrl = persistedCoverImage.previewUrl;
+      const coverImageStorageKey = persistedCoverImage.storageKey;
       const coverPreviewUrl = persistedCover.previewUrl;
       const coverStorageKey = persistedCover.storageKey;
 
       const draftPages = [];
-      const coverReferencePath = path.resolve(`data/outputs/draft-cover-${job.id}.png`);
+      const coverReferencePath = outputImagePath(localCoverImageUrl);
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
         let text = "";
         let imageUrl = "";
+        let imageStorageKey = "";
+        let localImageUrl = "";
 
         if (["text", "opening_text", "closing_text"].includes(page.page_type)) {
           text = draftTextByPage.get(page.page_number) || "";
@@ -265,19 +271,24 @@ router.post("/preview", async (req, res) => {
             continuityImagePath: coverReferencePath,
             pairedText,
           });
-          imageUrl = await generateImage({
+          localImageUrl = await generateQualityCheckedImage({
             prompt: page.image_prompt,
             outName: `draft-page${page.page_number}-${job.id}`,
+            castPresent: page.cast_present || [],
+            pageLabel: `interior illustration for page ${page.page_number}`,
             ...sceneContinuity,
             size: "1024x1024",
             quality: "low",
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
           });
+          const persistedImage = await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
+          imageUrl = persistedImage.previewUrl;
+          imageStorageKey = persistedImage.storageKey;
         }
 
         const localPreviewUrl = await composeBookPagePNG({
           baseUrl,
-          imageUrl,
+          imageUrl: localImageUrl,
           body: text,
           outName: `draft-page${page.page_number}-layout-${job.id}`,
           pageType: page.page_type,
@@ -294,10 +305,11 @@ router.post("/preview", async (req, res) => {
           story_role: page.story_role,
           text,
           imageUrl,
+          imageStorageKey,
           previewUrl: persistedPage.previewUrl,
           storageKey: persistedPage.storageKey,
         });
-        updateJob(job.id, { result: { coverImageUrl, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] } });
+        updateJob(job.id, { result: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] } });
       }
 
       updateJob(job.id, {
@@ -306,14 +318,15 @@ router.post("/preview", async (req, res) => {
         intake,
         storybrand,
         final_blueprint,
-        result: { coverImageUrl, coverPreviewUrl, coverStorageKey, draftPages },
+        result: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
       });
       if (job.projectId) {
         if (creditReservation?.id) await creditStore.capturePreview(creditReservation.id);
         await projectStore.update(job.projectId, {
           status: "preview_ready",
           finalBlueprint: final_blueprint,
-          previewResult: { coverImageUrl, coverPreviewUrl, coverStorageKey, draftPages },
+          continuitySnapshot: { characterCanons },
+          previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
           generationJobId: job.id,
         });
       }
