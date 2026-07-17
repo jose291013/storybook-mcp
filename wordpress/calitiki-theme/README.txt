@@ -4,7 +4,7 @@ Thème officiel Calitiki pour WordPress et WooCommerce.
 
 == Installation ==
 
-1. Créez l’archive calitiki-theme.zip depuis le dossier calitiki-theme, sans ajouter de dossier parent.
+1. L’archive doit contenir le dossier parent `calitiki-theme/`, exactement comme les archives officielles fournies, afin que WordPress remplace le thème stable avec tous ses sous-dossiers CSS, JavaScript et images.
 2. Dans WordPress : Apparence > Thèmes > Ajouter un thème > Téléverser un thème.
 3. Activez Calitiki.
 4. Ouvrez Apparence > Personnaliser > Liens Calitiki et vérifiez l’URL du créateur de livre.
@@ -12,6 +12,7 @@ Thème officiel Calitiki pour WordPress et WooCommerce.
 
 La page d’accueil est fournie par front-page.php et s’affiche automatiquement à la racine du site.
 Les pages Boutique, Produit, Panier, Commande et Mon compte sont habillées par le thème.
+La page d’accueil présente l’album imprimé comme prochainement disponible sans lien d’achat tant que le service de production n’est pas lancé.
 
 == Multilingue ==
 

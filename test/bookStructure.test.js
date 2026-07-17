@@ -204,6 +204,7 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
+  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.1\.3'/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
   assert.match(frontPage, /id="tous-les-univers" hidden/);
@@ -211,9 +212,11 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(frontPage, /dinosaur-valley\.webp/);
   assert.match(frontPage, /wonder-city\.webp/);
   assert.match(frontPage, /calitiki_product_url\('ebook'\)/);
-  assert.match(frontPage, /calitiki_product_url\('print'\)/);
+  assert.doesNotMatch(frontPage, /calitiki_product_url\('print'\)/);
   assert.match(frontPage, /À partir de 6,69 € · Découvrir/);
-  assert.match(frontPage, /À partir de 29,90 € · Découvrir/);
+  assert.match(frontPage, /Prochainement disponible/);
+  assert.match(frontPage, /Pas encore disponible à l’achat/);
+  assert.match(themeStyles, /\.format-card-coming-soon/);
   assert.match(themeScript, /data-universe-toggle/);
 });
 
