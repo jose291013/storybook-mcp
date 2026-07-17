@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.5.2
+Stable tag: 0.5.3
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -34,6 +34,7 @@ Le paiement capture la remise ; une annulation, un échec ou un remboursement la
 
 Une commande eBook payée, y compris une commande dont les coupons ramènent le total à 0 €, déclenche la création du PDF privé. WooCommerce envoie ensuite un e-mail « Votre eBook est prêt » avec un lien temporaire et affiche un nouveau lien dans « Mes créations Calitiki ».
 Si Render ou le stockage privé est momentanément indisponible, l’extension planifie une nouvelle tentative avec WP-Cron. Un remboursement révoque l’accès au fichier.
+Le client peut renvoyer le message depuis « Mes créations Calitiki ». Les anciens PDF sont reconstruits automatiquement dans l’ordre de lecture numérique, sans nouvelle génération d’illustrations.
 
 == Portefeuille client ==
 
