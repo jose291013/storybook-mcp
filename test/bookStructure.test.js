@@ -211,7 +211,7 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
-  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.1\.3'/);
+  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.1\.4'/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
   assert.match(frontPage, /id="tous-les-univers" hidden/);
@@ -225,6 +225,12 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(frontPage, /Pas encore disponible à l’achat/);
   assert.match(themeStyles, /\.format-card-coming-soon/);
   assert.match(themeScript, /data-universe-toggle/);
+  assert.match(themeFunctions, /data-calitiki-language-switcher/);
+  assert.match(themeScript, /navigator\.languages/);
+  assert.match(themeScript, /calitiki-language-preference/);
+  assert.match(themeScript, /woocommerce-MyAccount-content/);
+  assert.match(themeScript, /scrollIntoView/);
+  assert.match(themeStyles, /--calitiki-mobile-menu-top/);
 });
 
 test("preview prices follow the approved progressive 24-to-44-page schedule", () => {

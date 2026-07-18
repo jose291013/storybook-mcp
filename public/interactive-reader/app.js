@@ -27,7 +27,6 @@ const elements = {
   toast: document.querySelector("[data-toast]"),
   listenButtons: [...document.querySelectorAll("[data-listen]")],
   textRegions: [...document.querySelectorAll("[data-text-region]")],
-  readMoreButtons: [...document.querySelectorAll("[data-read-more]")],
   revealLabel: document.querySelector("[data-reveal-label]"),
   imaginationHint: document.querySelector("[data-imagination-hint]"),
 };
@@ -39,12 +38,6 @@ const BOOK_FONTS = {
   comic_bubble: "Comic Neue",
   storybook_bold: "Baloo 2",
   cursive_magic: "Borel",
-};
-
-const TEXT_EXPANSION_LABELS = {
-  fr: { more: "Lire la suite", less: "Réduire" },
-  es: { more: "Seguir leyendo", less: "Reducir" },
-  en: { more: "Read more", less: "Show less" },
 };
 
 const SECTION_ACTION_LABELS = {
@@ -59,11 +52,6 @@ let installPrompt;
 let toastTimer;
 let textMeasurementFrame;
 
-function textExpansionLabels() {
-  const language = String(book?.language || "fr").toLowerCase().split("-")[0];
-  return TEXT_EXPANSION_LABELS[language] || TEXT_EXPANSION_LABELS.fr;
-}
-
 function sectionActionLabels() {
   const language = String(book?.language || "fr").toLowerCase().split("-")[0];
   return SECTION_ACTION_LABELS[language] || SECTION_ACTION_LABELS.fr;
@@ -76,27 +64,17 @@ function applyBookTypography() {
 }
 
 function resetTextExpansion() {
-  const labels = textExpansionLabels();
   elements.textRegions.forEach((region) => {
-    region.classList.remove("is-expanded", "has-overflow");
+    region.classList.remove("has-overflow");
     region.scrollTop = 0;
-  });
-  elements.readMoreButtons.forEach((button) => {
-    button.setAttribute("aria-expanded", "false");
-    button.textContent = labels.more;
   });
 }
 
 function measureTextOverflow() {
-  const labels = textExpansionLabels();
-  elements.readMoreButtons.forEach((button) => {
-    const region = button.previousElementSibling;
-    if (!region?.matches("[data-text-region]") || region.offsetParent === null) return;
-    const expanded = region.classList.contains("is-expanded");
-    const overflowing = expanded || region.scrollHeight > region.clientHeight + 2;
+  elements.textRegions.forEach((region) => {
+    if (region.offsetParent === null) return;
+    const overflowing = region.scrollHeight > region.clientHeight + 2;
     region.classList.toggle("has-overflow", overflowing);
-    button.hidden = !overflowing;
-    button.textContent = expanded ? labels.less : labels.more;
   });
 }
 
@@ -274,15 +252,6 @@ document.querySelector("[data-restart]").addEventListener("click", () => {
   render();
 });
 elements.listenButtons.forEach((button) => button.addEventListener("click", speakCurrentScene));
-elements.readMoreButtons.forEach((button) => button.addEventListener("click", () => {
-  const region = button.previousElementSibling;
-  const expanded = !region.classList.contains("is-expanded");
-  region.classList.toggle("is-expanded", expanded);
-  region.scrollTop = 0;
-  button.setAttribute("aria-expanded", String(expanded));
-  button.textContent = expanded ? textExpansionLabels().less : textExpansionLabels().more;
-}));
-
 window.addEventListener("resize", queueTextMeasurement);
 
 window.addEventListener("keydown", (event) => {
