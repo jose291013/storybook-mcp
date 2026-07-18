@@ -17,9 +17,9 @@
     <main class="app-shell">
       <section class="reader" aria-label="Livre interactif Calitiki">
         <header class="reader-header">
-          <a class="brand" href="../" aria-label="Retour à Calitiki">
-            <span class="brand-mark" aria-hidden="true">✦</span>
-            <span><strong>Calitiki</strong><small>Livre interactif</small></span>
+          <a class="brand reader-brand" href="../" aria-label="Retour à Calitiki">
+            <span class="brand-logo-frame" aria-hidden="true"><img class="brand-logo" src="../assets/brand/calitiki-logo-transparent.png" alt="" /></span>
+            <span class="sr-only">Calitiki — Livre interactif</span>
           </a>
           <button class="install-button" type="button" data-install hidden>Installer</button>
         </header>
@@ -36,10 +36,10 @@
             <p class="scene-progress" data-progress></p>
             <div class="story-card">
               <button class="listen-button" type="button" data-listen aria-pressed="false">
-                <span data-speech-icon aria-hidden="true">🔊</span>
+                <span class="speech-icon" data-speech-icon aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" stroke="none"/><path d="M16.5 9.2a4 4 0 0 1 0 5.6M19 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span>
                 <span class="sr-only">Écouter le texte</span>
               </button>
-              <div class="story-text-region story-text-anticipation" data-text-region>
+              <div class="story-text-region story-text-anticipation" data-text-region role="region" aria-label="Texte de la scène" tabindex="0">
                 <p data-anticipation-text></p>
               </div>
               <small data-imagination-hint>Ferme les yeux et imagine la scène…</small>
@@ -55,11 +55,11 @@
             <p class="scene-progress scene-progress-on-image" data-image-progress></p>
 
             <div class="text-overlay" data-text-overlay>
-              <div class="story-text-region story-text-revealed" data-text-region>
+              <div class="story-text-region story-text-revealed" data-text-region role="region" aria-label="Texte de la scène" tabindex="0">
                 <p data-revealed-text></p>
               </div>
               <div class="overlay-controls">
-                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte" aria-pressed="false"><span data-speech-icon aria-hidden="true">🔊</span></button>
+                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte" aria-pressed="false"><span class="speech-icon" data-speech-icon aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" stroke="none"/><path d="M16.5 9.2a4 4 0 0 1 0 5.6M19 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span></button>
                 <button class="text-toggle" type="button" data-text-toggle aria-expanded="true">
                   <span class="round-control" aria-hidden="true">◉</span>
                   <span data-toggle-label>Masquer le texte</span>
@@ -70,7 +70,7 @@
             <nav class="scene-navigation" aria-label="Navigation entre les scènes">
               <button type="button" data-previous aria-label="Scène précédente">←</button>
               <div class="collapsed-controls" data-collapsed-controls hidden>
-                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte" aria-pressed="false"><span data-speech-icon aria-hidden="true">🔊</span></button>
+                <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte" aria-pressed="false"><span class="speech-icon" data-speech-icon aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" stroke="none"/><path d="M16.5 9.2a4 4 0 0 1 0 5.6M19 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span></button>
                 <button class="show-text-button" type="button" data-show-text>
                   <span aria-hidden="true">◉</span><span>Voir le texte</span>
                 </button>

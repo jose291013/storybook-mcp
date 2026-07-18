@@ -1,4 +1,4 @@
-const CACHE_NAME = "calitiki-interactive-demo-v13";
+const CACHE_NAME = "calitiki-interactive-demo-v14";
 const APP_ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const APP_ASSETS = [
   "./icon.svg",
   "./icon-192.png",
   "./icon-512.png",
+  "../assets/brand/calitiki-logo-transparent.png",
   "../assets/examples/universes/enchanted_forest.webp",
   "../assets/examples/universes/cloud_castle.webp",
   "../assets/examples/universes/starry_space.webp"

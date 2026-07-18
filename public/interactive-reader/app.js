@@ -227,9 +227,17 @@ function setSpeechStatus(isSpeaking) {
   elements.listenButtons.forEach((button) => {
     button.classList.toggle("is-speaking", isSpeaking);
     button.setAttribute("aria-pressed", String(isSpeaking));
-    const icon = button.querySelector("[data-speech-icon]");
-    if (icon) icon.textContent = isSpeaking ? "■" : "🔊";
   });
+}
+
+function scrollCardTextWithWheel(event) {
+  const region = event.currentTarget.querySelector("[data-text-region]");
+  if (!region || region.scrollHeight <= region.clientHeight + 2 || !event.deltaY) return;
+  const canScrollUp = event.deltaY < 0 && region.scrollTop > 0;
+  const canScrollDown = event.deltaY > 0 && region.scrollTop + region.clientHeight < region.scrollHeight - 1;
+  if (!canScrollUp && !canScrollDown) return;
+  region.scrollTop += event.deltaY;
+  event.preventDefault();
 }
 
 function stopSpeech() {
@@ -381,6 +389,9 @@ document.querySelector("[data-restart]").addEventListener("click", () => {
   render();
 });
 elements.listenButtons.forEach((button) => button.addEventListener("click", speakCurrentScene));
+document.querySelectorAll(".story-card, .text-overlay").forEach((container) => {
+  container.addEventListener("wheel", scrollCardTextWithWheel, { passive: false });
+});
 window.addEventListener("resize", queueTextMeasurement);
 
 window.addEventListener("keydown", (event) => {

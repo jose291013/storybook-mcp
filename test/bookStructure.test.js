@@ -183,6 +183,7 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /final_blueprint: project\.finalBlueprint/);
   assert.match(app, /else await restoreCompletedPreview\(\)/);
   assert.match(html, /id="actionReadInteractive"/);
+  assert.match(html, /assets\/brand\/calitiki-logo-transparent\.png/);
   assert.match(app, /\/interactive-reader\/\?project=/);
   assert.match(app, /pageCountOptions\?\.\[0\]\?\.ebookPriceEur/);
   assert.match(html, /À partir de 6,69 €/);

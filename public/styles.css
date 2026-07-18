@@ -28,7 +28,8 @@ button { cursor: pointer; }
 
 .site-header { height: 76px; padding: 0 max(24px, calc((100vw - 1180px) / 2)); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(90, 74, 57, 0.1); background: rgba(255, 253, 248, 0.86); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20; }
 .brand { display: flex; gap: 11px; align-items: center; color: var(--ink); text-decoration: none; font-family: Georgia, serif; font-weight: 700; font-size: 20px; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; color: white; background: var(--peach); box-shadow: 0 5px 14px rgba(201, 111, 87, 0.28); }
+.brand-logo-frame { display: block; width: 188px; height: 56px; overflow: hidden; }
+.brand-logo { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center; }
 .format-pill { padding: 8px 13px; border-radius: 999px; background: var(--sage-pale); color: #416c63; font-size: 13px; font-weight: 700; }
 .header-tools { display: flex; align-items: center; gap: 12px; }
 .storefront-return { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.82); color: var(--ink); text-decoration: none; font-size: 12px; font-weight: 750; white-space: nowrap; transition: border-color .2s, background .2s, transform .2s; }
@@ -217,7 +218,7 @@ footer { max-width: 1180px; margin: auto; padding: 35px 24px; border-top: 1px so
 }
 @media (max-width: 650px) {
   .credit-panel dl { grid-template-columns: 1fr; }.promo-code-row { grid-template-columns: 1fr; }.preview-confirmation { align-items: stretch; flex-direction: column; }.preview-confirmation .primary-button { width: 100%; min-width: 0; }
-  .site-header { height: 65px; }.format-pill { display: none; }.brand { font-size: 17px; }.storefront-return { width: 36px; padding: 0; justify-content: center; }.storefront-return__label { display: none; }
+  .site-header { height: 65px; }.format-pill { display: none; }.brand { font-size: 17px; }.brand-logo-frame { width: 124px; height: 38px; }.header-tools { gap: 6px; }.ui-language > span { display: none; }.storefront-return { width: 36px; padding: 0; justify-content: center; }.storefront-return__label { display: none; }
   .hero { padding: 45px 18px 30px; }.book-scene { min-height: 300px; }.book { width: 240px; }
   .creator-shell { padding: 0 12px; margin-bottom: 60px; }.form-card { padding: 30px 20px; border-radius: 21px; min-height: 620px; }
   .question-grid, .style-grid, .visual-choice-grid, .font-grid, .product-type-grid { grid-template-columns: 1fr; }.page-count-grid { grid-template-columns: repeat(2, 1fr); }.field.is-wide { grid-column: auto; }.field-heading { align-items: flex-start; }.improve-answer { max-width: 120px; white-space: normal; justify-content: center; }.photo-item { grid-template-columns: 60px 1fr auto; }.photo-item img { width: 60px; height: 60px; }.photo-meta { grid-template-columns: 1fr; }
