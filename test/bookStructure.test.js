@@ -525,6 +525,8 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const authRoute = await fs.readFile("src/routes/woocommerceAuth.js", "utf8");
   assert.match(authRoute, /projectStore\.getForCustomer\(state\.projectId, identity\)/);
   assert.match(authRoute, /\/interactive-reader\/\?\$\{params\.toString\(\)\}/);
+  assert.match(authRoute, /router\.get\("\/auth\/woocommerce\/reader"/);
+  assert.match(authRoute, /destination: "interactive_reader"/);
   const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.5.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);

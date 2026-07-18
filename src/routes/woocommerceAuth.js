@@ -32,6 +32,19 @@ router.get("/auth/session", (req, res) => {
   });
 });
 
+router.get("/auth/woocommerce/reader", (req, res) => {
+  const projectId = String(req.query.projectId || "").trim();
+  if (!/^[A-Za-z0-9_-]{6,128}$/.test(projectId)) return res.status(400).send("Invalid project id");
+  if (!process.env.WOOCOMMERCE_BRIDGE_URL || !process.env.WOOCOMMERCE_BRIDGE_SECRET) {
+    return res.status(503).send("WooCommerce authentication is not configured");
+  }
+  const state = createWooAuthState({ projectId, destination: "interactive_reader" });
+  const bridgeUrl = new URL(process.env.WOOCOMMERCE_BRIDGE_URL);
+  bridgeUrl.searchParams.set("state", state);
+  res.set("Cache-Control", "no-store");
+  return res.redirect(302, bridgeUrl.toString());
+});
+
 router.get("/auth/woocommerce/start", async (req, res) => {
   try {
     const projectId = String(req.query.projectId || "");

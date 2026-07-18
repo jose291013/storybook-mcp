@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#102f35" />
     <meta name="description" content="Prototype de la liseuse interactive Calitiki" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Calitiki" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
     <link rel="stylesheet" href="./styles.css" />
     <title>Calitiki — Livre interactif</title>
   </head>
@@ -93,6 +97,19 @@
     </main>
 
     <div class="toast" role="status" data-toast hidden></div>
+    <section class="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-guide-title" data-install-guide hidden>
+      <div class="install-guide-card">
+        <button class="install-guide-close" type="button" data-install-guide-close aria-label="Fermer">×</button>
+        <span class="install-guide-icon" aria-hidden="true">⇧</span>
+        <h2 id="install-guide-title" data-install-guide-title>Installer Calitiki sur cet iPhone</h2>
+        <ol>
+          <li data-install-guide-step-one>Touchez le bouton Partager de Safari : le carré avec une flèche vers le haut.</li>
+          <li data-install-guide-step-two>Faites défiler le menu, puis choisissez « Sur l’écran d’accueil ».</li>
+          <li data-install-guide-step-three>Touchez « Ajouter ». L’icône Calitiki ouvrira ensuite directement votre dernier livre.</li>
+        </ol>
+        <button class="install-guide-done" type="button" data-install-guide-done>J’ai compris</button>
+      </div>
+    </section>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
