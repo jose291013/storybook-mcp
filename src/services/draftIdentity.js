@@ -78,11 +78,13 @@ export function verifyWooCustomerToken(token, secret = process.env.WOOCOMMERCE_B
   return { wooCustomerId: String(data.sub), email: String(data.email || "") };
 }
 
-export function createWooAuthState({ projectId, expiresInSeconds = 600 }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
+export function createWooAuthState({ projectId, destination = "creator", expiresInSeconds = 600 }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
   if (!projectId) throw new Error("Missing project id");
+  const safeDestination = destination === "interactive_reader" ? destination : "creator";
   return createSignedPayload({
     type: "woocommerce_auth",
     projectId: String(projectId),
+    destination: safeDestination,
     nonce: crypto.randomBytes(18).toString("base64url"),
     exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
   }, secret);
@@ -92,7 +94,11 @@ export function verifyWooAuthState(token, secret = process.env.WOOCOMMERCE_BRIDG
   const data = verifySignedPayload(token, secret);
   if (!data || data.type !== "woocommerce_auth" || !data.projectId || !data.nonce) throw new Error("Invalid authentication state");
   if (!data.exp || data.exp <= Math.floor(Date.now() / 1000)) throw new Error("Expired authentication state");
-  return { projectId: String(data.projectId), nonce: String(data.nonce) };
+  return {
+    projectId: String(data.projectId),
+    nonce: String(data.nonce),
+    destination: data.destination === "interactive_reader" ? "interactive_reader" : "creator",
+  };
 }
 
 function cookieSecurity(req) {

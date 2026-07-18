@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.5.4
+Stable tag: 0.5.5
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -37,6 +37,8 @@ Si Render ou le stockage privé est momentanément indisponible, l’extension p
 Le client peut renvoyer le message depuis « Mes créations Calitiki ». Les anciens PDF sont reconstruits automatiquement dans l’ordre de lecture numérique, sans nouvelle génération d’illustrations.
 
 Le renvoi manuel ne dépend pas de la session de notifications de l’administration WordPress et toute erreur du moteur d’e-mail est journalisée sans interrompre le site.
+
+Dans Mes créations Calitiki, chaque livre personnalisé propose aussi le bouton Lire mon livre interactif. Le passage signé par WooCommerce renouvelle la session privée du générateur avant d’ouvrir le projet acheté dans la liseuse.
 
 == Portefeuille client ==
 

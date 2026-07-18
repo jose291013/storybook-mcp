@@ -17,8 +17,9 @@ function currentIdentity(req) {
   catch { return null; }
 }
 
-function safeReturnPath(projectId, status = "connected") {
+function safeReturnPath(projectId, status = "connected", destination = "creator") {
   const params = new URLSearchParams({ auth: status, project: projectId });
+  if (destination === "interactive_reader") return `/interactive-reader/?${params.toString()}`;
   return `/?${params.toString()}#creator`;
 }
 
@@ -69,12 +70,15 @@ router.get("/auth/woocommerce/callback", async (req, res) => {
     const identity = verifyWooCustomerToken(String(req.query.token || ""));
     if (!identity) throw new Error("Missing customer identity");
 
-    const owner = ensureDraftOwner(req, res);
-    const project = await projectStore.claim(state.projectId, owner.ownerHash, identity);
+    let project = await projectStore.getForCustomer(state.projectId, identity);
+    if (!project) {
+      const owner = ensureDraftOwner(req, res);
+      project = await projectStore.claim(state.projectId, owner.ownerHash, identity);
+    }
     if (!project) return res.status(403).send("Draft access denied");
 
     setWooCustomerSession(req, res, identity);
-    return res.redirect(302, safeReturnPath(state.projectId));
+    return res.redirect(302, safeReturnPath(state.projectId, "connected", state.destination));
   } catch (error) {
     return res.status(401).send(`Authentication failed: ${String(error?.message || error)}`);
   }
