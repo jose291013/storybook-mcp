@@ -72,7 +72,7 @@
               <div class="collapsed-controls" data-collapsed-controls hidden>
                 <button class="round-control speaker-control" type="button" data-listen aria-label="Écouter le texte" aria-pressed="false"><span class="speech-icon" data-speech-icon aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M4 9v6h4l5 4V5L8 9H4Z" fill="currentColor" stroke="none"/><path d="M16.5 9.2a4 4 0 0 1 0 5.6M19 6.8a7.4 7.4 0 0 1 0 10.4"/></svg></span></button>
                 <button class="show-text-button" type="button" data-show-text>
-                  <span aria-hidden="true">◉</span><span>Voir le texte</span>
+                  <span aria-hidden="true">◉</span><span data-show-text-label>Voir le texte</span>
                 </button>
               </div>
               <button type="button" data-next aria-label="Scène suivante">→</button>
@@ -81,16 +81,16 @@
 
           <article class="completion-view" data-completion hidden>
             <span class="completion-star" aria-hidden="true">✦</span>
-            <p class="eyebrow">Fin de la démonstration</p>
-            <h1>Une histoire à écouter, imaginer et découvrir.</h1>
-            <p>Dans la future bibliothèque Calitiki, chaque livre acheté apparaîtra ici automatiquement.</p>
-            <button class="reveal-button" type="button" data-restart>Relire la démonstration</button>
+            <p class="eyebrow" data-completion-eyebrow>Fin de la démonstration</p>
+            <h1 data-completion-title>Une histoire à écouter, imaginer et découvrir.</h1>
+            <p data-completion-message>Dans la future bibliothèque Calitiki, chaque livre acheté apparaîtra ici automatiquement.</p>
+            <button class="reveal-button" type="button" data-restart data-completion-restart>Relire la démonstration</button>
           </article>
         </section>
 
         <div class="prototype-note">
-          <span>Prototype privé</span>
-          <p>La voix utilisée ici est celle du navigateur et ne représente pas encore la narration finale.</p>
+          <span data-prototype-label>Prototype privé</span>
+          <p data-prototype-note>La voix utilisée ici est celle du navigateur et ne représente pas encore la narration finale.</p>
         </div>
       </section>
     </main>

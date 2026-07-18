@@ -72,7 +72,7 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.equal(JSON.parse(manifest).display, "standalone");
   assert.match(app, /\/interactive-book/);
   assert.match(app, /kind === "text_only"/);
-  assert.match(worker, /calitiki-interactive-demo-v14/);
+  assert.match(worker, /calitiki-interactive-demo-v17/);
   assert.doesNotMatch(html, /rel="manifest"/);
   assert.match(app, /document\.createElement\("link"\)/);
   assert.match(app, /updateInstallManifest\(projectId\)/);
@@ -85,8 +85,16 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(app, /registration\.update\(\)/);
   assert.equal(JSON.parse(manifest).start_url, "./?source=installed");
   assert.match(app, /classList\.toggle\("is-text-only", textOnly\)/);
+  assert.match(app, /Cierra los ojos e imagina la escena/);
+  assert.match(app, /showText: "Ver el texto"/);
+  assert.match(app, /hideText: "Ocultar el texto"/);
+  assert.match(app, /document\.documentElement\.lang = bookLanguage\(\)/);
+  assert.match(app, /if \(book\?\.language\) return bookLanguage\(\)/);
   assert.match(styles, /\.anticipation-view\.is-text-only \.story-card[^}]*min-height: 0/);
   assert.match(styles, /\.anticipation-view\.is-text-only \.story-text-anticipation[^}]*max-height: none/);
+  assert.match(styles, /\.anticipation-view\.is-text-only \.story-text-anticipation[^}]*padding: \.62em 8px \.38em 4px/);
+  assert.match(styles, /\.text-overlay[^}]*min-height: clamp\(230px, 38svh, 320px\)/);
+  assert.match(styles, /\.story-text-revealed[^}]*flex: 1 1 auto[^}]*max-height: none/);
   assert.match(app, /Impossible d’ouvrir votre livre interactif/);
   assert.match(app, /elements\.loading\.replaceChildren\(\.\.\.children\)/);
   assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
