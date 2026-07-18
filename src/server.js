@@ -15,11 +15,19 @@ import deliveriesRouter from "./routes/deliveries.js";
 import previewRepairRouter from "./routes/previewRepair.js";
 import { projectStore } from "./services/projectStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
+import { interactiveReaderInstallManifest } from "./services/interactiveReaderInstallManifest.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
 app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
+app.get("/interactive-reader/install-manifest.webmanifest", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.type("application/manifest+json").json(interactiveReaderInstallManifest({
+    projectId: req.query.project,
+    language: req.query.lang,
+  }));
+});
 app.use(express.static("public"));
 app.use("/fonts", express.static("assets/fonts"));
 
