@@ -214,6 +214,7 @@ function render({ preserveSpeech = false } = {}) {
   }
   const actions = sectionActionLabels();
   const textOnly = scene.kind === "text_only";
+  elements.anticipation.classList.toggle("is-text-only", textOnly);
   elements.revealLabel.textContent = textOnly
     ? (state.sceneIndex === state.sceneCount - 1 ? actions.finish : actions.continue)
     : actions.reveal;

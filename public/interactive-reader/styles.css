@@ -49,6 +49,9 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .top-back { position: absolute; z-index: 3; top: 22px; left: 20px; width: 48px; height: 48px; border: 1px solid rgba(239,188,98,.7); border-radius: 50%; background: rgba(13,47,53,.7); color: #fff; font-size: 1.55rem; }
 .scene-progress { z-index: 2; margin: 4px 0 28px; color: #f8e8ce; font-weight: 900; letter-spacing: .04em; }
 .story-card { z-index: 2; width: 100%; margin: auto 0; padding: 30px 25px 25px; border: 1px solid rgba(255,255,255,.65); border-radius: 30px; background: rgba(255,250,243,.97); color: var(--teal-deep); box-shadow: 0 20px 55px rgba(0,0,0,.22); text-align: center; }
+.anticipation-view.is-text-only .story-card { min-height: clamp(390px, 50svh, 440px); padding: 30px 25px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.anticipation-view.is-text-only .story-text-anticipation { width: 100%; max-height: 8.2em; margin: 17px 0 12px; padding: .24em 4px .14em; }
+.anticipation-view.is-text-only .story-text-anticipation.is-expanded { max-height: min(39svh, 350px); }
 .story-text-region { position: relative; overscroll-behavior: contain; touch-action: pan-y; scrollbar-width: thin; scrollbar-color: var(--gold) transparent; }
 .story-text-region::-webkit-scrollbar { width: 5px; }
 .story-text-region::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--gold); }
@@ -109,6 +112,11 @@ button.round-control { cursor: pointer; }
   .reader { width: 100%; min-height: 100svh; border: 0; border-radius: 0; }
   .story-stage, .loading, .completion-view { min-height: 0; }
   .prototype-note { display: none; }
+}
+
+@media (max-height: 760px) {
+  .anticipation-view.is-text-only .story-card { min-height: 340px; padding-block: 23px 20px; }
+  .anticipation-view.is-text-only .story-text-anticipation { max-height: 6.45em; margin-top: 12px; }
 }
 
 @media (max-width: 350px) {
