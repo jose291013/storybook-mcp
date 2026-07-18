@@ -24,6 +24,7 @@ const elements = {
   collapsedControls: document.querySelector("[data-collapsed-controls]"),
   toggleLabel: document.querySelector("[data-toggle-label]"),
   install: document.querySelector("[data-install]"),
+  installManifest: document.querySelector("[data-install-manifest]"),
   installGuide: document.querySelector("[data-install-guide]"),
   installGuideClose: document.querySelector("[data-install-guide-close]"),
   installGuideDone: document.querySelector("[data-install-guide-done]"),
@@ -102,6 +103,7 @@ let installPrompt;
 let toastTimer;
 let textMeasurementFrame;
 let reloadingForServiceWorker = false;
+let installProjectId = "";
 
 function browserLanguage() {
   return String(book?.language || navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
@@ -142,6 +144,30 @@ function isStandaloneApp() {
 
 function isIosDevice() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent) || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+}
+
+function updateInstallManifest(projectId = "") {
+  installProjectId = safeProjectId(projectId);
+  if (!installProjectId) {
+    elements.installManifest?.remove();
+    elements.installManifest = null;
+    return;
+  }
+  if (!elements.installManifest) {
+    elements.installManifest = document.createElement("link");
+    elements.installManifest.rel = "manifest";
+    elements.installManifest.dataset.installManifest = "";
+    document.head.append(elements.installManifest);
+  }
+  const params = new URLSearchParams();
+  params.set("project", installProjectId);
+  params.set("lang", browserLanguage());
+  elements.installManifest.href = `./install-manifest.webmanifest?${params.toString()}`;
+}
+
+function updateInstallVisibility() {
+  const supportedBrowser = isIosDevice() || Boolean(installPrompt);
+  elements.install.hidden = !installProjectId || isStandaloneApp() || !supportedBrowser;
 }
 
 function showInstallGuide() {
@@ -372,11 +398,12 @@ window.addEventListener("keydown", (event) => {
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   installPrompt = event;
-  elements.install.hidden = false;
+  updateInstallVisibility();
 });
 
 applyInstallLanguage();
-if (isIosDevice() && !isStandaloneApp()) elements.install.hidden = false;
+updateInstallManifest();
+updateInstallVisibility();
 
 elements.install.addEventListener("click", async () => {
   if (!installPrompt) {
@@ -417,7 +444,11 @@ async function start() {
     if (!Array.isArray(book.scenes) || book.scenes.length === 0) throw new Error("Livre vide");
     applyBookTypography();
     applyInstallLanguage();
-    if (projectId) rememberProject(projectId);
+    if (projectId) {
+      rememberProject(projectId);
+      updateInstallManifest(projectId);
+      updateInstallVisibility();
+    }
     state = createReaderState(book.scenes.length);
     render();
     document.fonts?.ready.then(queueTextMeasurement);

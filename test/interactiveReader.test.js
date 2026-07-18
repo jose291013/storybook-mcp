@@ -66,7 +66,12 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.equal(JSON.parse(manifest).display, "standalone");
   assert.match(app, /\/interactive-book/);
   assert.match(app, /kind === "text_only"/);
-  assert.match(worker, /calitiki-interactive-demo-v12/);
+  assert.match(worker, /calitiki-interactive-demo-v13/);
+  assert.doesNotMatch(html, /rel="manifest"/);
+  assert.match(app, /document\.createElement\("link"\)/);
+  assert.match(app, /updateInstallManifest\(projectId\)/);
+  assert.match(app, /!installProjectId/);
+  assert.match(worker, /install-manifest\.webmanifest/);
   assert.match(app, /calitiki-last-interactive-project/);
   assert.match(app, /requestedProjectId \|\| lastProjectId\(\)/);
   assert.match(app, /\/api\/auth\/woocommerce\/reader\?projectId=/);
