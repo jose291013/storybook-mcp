@@ -48,14 +48,15 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .scene-progress { z-index: 2; flex: 0 0 auto; margin: 4px 0 20px; color: #f8e8ce; font-weight: 900; letter-spacing: .04em; }
 .story-card { z-index: 2; width: 100%; flex: 1 1 auto; min-height: 0; margin: 0; padding: 30px 25px 25px; border: 1px solid rgba(255,255,255,.65); border-radius: 30px; background: rgba(255,250,243,.97); color: var(--teal-deep); box-shadow: 0 20px 55px rgba(0,0,0,.22); text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .anticipation-view.is-text-only .story-card { min-height: 0; padding: 30px 25px 24px; }
-.anticipation-view.is-text-only .story-text-anticipation { width: 100%; flex: 1 1 auto; min-height: 0; max-height: none; margin: 17px 0 12px; padding: .62em 8px .38em 4px; }
-.story-text-region { position: relative; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; scrollbar-gutter: stable; scrollbar-width: auto; scrollbar-color: var(--gold) rgba(23,63,64,.1); -webkit-overflow-scrolling: touch; }
-.story-text-region.has-overflow { padding-right: 7px; }
+.anticipation-view.is-text-only .story-text-anticipation { width: 100%; flex: 1 1 auto; min-height: 0; max-height: none; margin: 17px 0 12px; }
+.story-text-region { position: relative; overflow-x: hidden; overflow-y: hidden; overscroll-behavior: contain; touch-action: pan-y; scrollbar-gutter: auto; scrollbar-width: thin; scrollbar-color: var(--gold) rgba(23,63,64,.1); -webkit-overflow-scrolling: touch; }
+.story-text-region.has-overflow { overflow-y: auto; scrollbar-gutter: stable; padding-right: 7px; }
 .story-text-region::-webkit-scrollbar { width: 9px; }
+.story-text-region::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 .story-text-region::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--gold); }
 .story-text-region::-webkit-scrollbar-track { border-radius: 999px; background: rgba(23,63,64,.1); }
 .story-text-region > p { margin: 0; font-family: var(--book-font), Georgia, serif; }
-.story-text-anticipation { width: 100%; max-height: min(44svh, 15em); margin: 24px 0 8px; font-size: clamp(1.25rem, 5.5vw, 1.55rem); line-height: 1.46; }
+.story-text-anticipation { width: 100%; max-height: min(44svh, 15em); margin: 24px 0 8px; padding: .62em 8px .38em 4px; font-size: clamp(1.25rem, 5.5vw, 1.55rem); line-height: 1.46; }
 .story-text-anticipation > p { font-size: inherit; font-weight: 700; line-height: inherit; }
 .story-card small { color: var(--muted); font-weight: 700; }
 .listen-button { width: 62px; height: 62px; border: 0; border-radius: 50%; background: var(--coral); color: #fff; font-size: 1.6rem; box-shadow: 0 10px 24px rgba(223,118,91,.32); }
@@ -71,7 +72,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .image-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(4,18,26,.1), transparent 48%, rgba(4,18,26,.28)); pointer-events: none; }
 .scene-progress-on-image { position: absolute; z-index: 2; top: 18px; left: 50%; transform: translateX(-50%); margin: 0; padding: 7px 13px; border-radius: 999px; background: rgba(7,31,37,.65); backdrop-filter: blur(9px); white-space: nowrap; font-size: .75rem; }
 .text-overlay { position: absolute; z-index: 4; left: 18px; right: 18px; bottom: 92px; min-height: clamp(230px, 38svh, 320px); max-height: calc(100% - 150px); padding: 24px 20px 17px; border: 1px solid rgba(255,236,198,.68); border-radius: 24px; background: rgba(9,45,49,.6); color: #fff; backdrop-filter: blur(8px) saturate(.9); box-shadow: 0 18px 42px rgba(0,0,0,.2); display: flex; flex-direction: column; }
-.story-text-revealed { flex: 1 1 auto; min-height: 0; max-height: none; padding-block: .55em .35em; overflow-x: hidden; overflow-y: auto; font-size: clamp(1.04rem, 4.5vw, 1.22rem); line-height: 1.45; }
+.story-text-revealed { flex: 1 1 auto; min-height: 0; max-height: none; padding-block: .55em .35em; overflow-x: hidden; overflow-y: hidden; font-size: clamp(1.04rem, 4.5vw, 1.22rem); line-height: 1.45; }
 .story-text-revealed > p { text-align: center; font-size: inherit; font-weight: 700; line-height: inherit; text-shadow: 0 2px 5px rgba(0,0,0,.92); }
 .overlay-controls { flex: 0 0 auto; margin-top: 17px; display: flex; justify-content: center; align-items: center; gap: 12px; }
 .round-control { width: 46px; height: 46px; display: inline-grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; background: var(--teal); color: #fff; font-size: 1.18rem; }
