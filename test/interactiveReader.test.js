@@ -61,7 +61,10 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(styles, /touch-action: pan-y/);
   assert.match(styles, /story-text-region\.is-expanded/);
   assert.equal(JSON.parse(manifest).display, "standalone");
-  assert.match(worker, /calitiki-interactive-demo-v7/);
+  assert.match(app, /\/interactive-book/);
+  assert.match(app, /kind === "text_only"/);
+  assert.match(worker, /calitiki-interactive-demo-v8/);
+  assert.match(worker, /url\.pathname\.startsWith\("\/api\/"\)/);
   assert.equal(JSON.parse(book).scenes.length, 3);
   assert.equal(JSON.parse(book).fontStyle, "handwritten_story");
 });

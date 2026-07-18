@@ -3,6 +3,7 @@ import { ensureDraftOwner, readWooCustomer } from "../services/draftIdentity.js"
 import { projectStore } from "../services/projectStore.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { previewAssetKey } from "../services/previewAssetStorage.js";
+import { buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
 
 const router = express.Router();
 
@@ -85,6 +86,22 @@ router.get("/projects/:id", async (req, res) => {
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.json({ project: publicProject(project) });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.get("/projects/:id/interactive-book", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    const book = buildInteractiveBookManifest(project);
+    res.set("Cache-Control", "private, no-store");
+    res.json({ book });
+  } catch (error) {
+    if (error instanceof InteractiveBookUnavailableError) {
+      return res.status(409).json({ error: "Interactive book is not ready", issues: error.issues });
+    }
+    res.status(500).json({ error: String(error?.message || error) });
+  }
 });
 
 router.get("/projects/:id/preview-assets/:filename", async (req, res) => {

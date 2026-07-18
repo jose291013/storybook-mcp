@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-17
+Last updated: 2026-07-18
 
 ## Product flow
 
@@ -54,7 +54,7 @@ Last updated: 2026-07-17
 ## Current implementation checkpoint
 
 - The generator, low-definition preview, ebook PDF, print finalization, multilingual book output, visual styles, page counts, and book reader exist.
-- An isolated installable interactive-reader prototype now exists under `/interactive-reader/`. It uses only public demonstration assets and validates the gated **imagine → reveal → navigate** experience without changing PDF generation, customer entitlements or WooCommerce. Private books, purchased access and generated narration remain future product bricks.
+- The installable interactive reader under `/interactive-reader/` now accepts either its public demonstration manifest or an authenticated `?project=<id>` book. A completed preview is converted without AI calls into a private manifest containing its cover, opening text, correctly paired narrative spreads and closing moral. The manifest and every illustration remain customer-authenticated and `no-store`; the service worker never caches `/api/` responses. The creator exposes **Read the interactive version** after a completed preview. WooCommerce purchase entitlement and generated narration remain future product bricks.
 - Anonymous questionnaire choices are restored from browser storage, and a server-side project is created before preview generation.
 - The project store uses PostgreSQL when `DATABASE_URL` is configured and a local JSON fallback during development.
 - Anonymous projects can be claimed and listed through the signed WooCommerce customer-token contract.

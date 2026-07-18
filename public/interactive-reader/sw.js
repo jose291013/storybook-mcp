@@ -1,4 +1,4 @@
-const CACHE_NAME = "calitiki-interactive-demo-v7";
+const CACHE_NAME = "calitiki-interactive-demo-v8";
 const APP_ASSETS = [
   "./",
   "./index.html",
@@ -29,6 +29,11 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request, { cache: "no-store" }));
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
       const copy = response.clone();

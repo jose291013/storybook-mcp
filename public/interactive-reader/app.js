@@ -28,6 +28,8 @@ const elements = {
   listenButtons: [...document.querySelectorAll("[data-listen]")],
   textRegions: [...document.querySelectorAll("[data-text-region]")],
   readMoreButtons: [...document.querySelectorAll("[data-read-more]")],
+  revealLabel: document.querySelector("[data-reveal-label]"),
+  imaginationHint: document.querySelector("[data-imagination-hint]"),
 };
 
 const BOOK_FONTS = {
@@ -45,6 +47,12 @@ const TEXT_EXPANSION_LABELS = {
   en: { more: "Read more", less: "Show less" },
 };
 
+const SECTION_ACTION_LABELS = {
+  fr: { reveal: "Découvrir l’image", continue: "Commencer l’aventure", finish: "Terminer l’histoire" },
+  es: { reveal: "Descubrir la imagen", continue: "Comenzar la aventura", finish: "Terminar la historia" },
+  en: { reveal: "Discover the picture", continue: "Start the adventure", finish: "Finish the story" },
+};
+
 let book;
 let state;
 let installPrompt;
@@ -54,6 +62,11 @@ let textMeasurementFrame;
 function textExpansionLabels() {
   const language = String(book?.language || "fr").toLowerCase().split("-")[0];
   return TEXT_EXPANSION_LABELS[language] || TEXT_EXPANSION_LABELS.fr;
+}
+
+function sectionActionLabels() {
+  const language = String(book?.language || "fr").toLowerCase().split("-")[0];
+  return SECTION_ACTION_LABELS[language] || SECTION_ACTION_LABELS.fr;
 }
 
 function applyBookTypography() {
@@ -187,13 +200,24 @@ function render({ preserveSpeech = false } = {}) {
   if (state.phase === "complete") return;
 
   const scene = book.scenes[state.sceneIndex];
-  const progress = `Scène ${state.sceneIndex + 1} sur ${state.sceneCount}`;
+  const progress = scene.progressLabel || `Scène ${state.sceneIndex + 1} sur ${state.sceneCount}`;
   elements.progress.textContent = progress;
   elements.imageProgress.textContent = progress;
   elements.anticipationText.textContent = scene.text;
   elements.revealedText.textContent = scene.text;
-  elements.sceneImage.src = scene.image;
-  elements.sceneImage.alt = scene.alt;
+  if (scene.image) {
+    elements.sceneImage.src = scene.image;
+    elements.sceneImage.alt = scene.alt || "";
+  } else {
+    elements.sceneImage.removeAttribute("src");
+    elements.sceneImage.alt = "";
+  }
+  const actions = sectionActionLabels();
+  const textOnly = scene.kind === "text_only";
+  elements.revealLabel.textContent = textOnly
+    ? (state.sceneIndex === state.sceneCount - 1 ? actions.finish : actions.continue)
+    : actions.reveal;
+  elements.imaginationHint.hidden = textOnly;
   elements.topBack.hidden = state.sceneIndex === 0;
   elements.previous.disabled = state.sceneIndex === 0;
   elements.previous.classList.toggle("is-placeholder", state.sceneIndex === 0);
@@ -210,6 +234,11 @@ function render({ preserveSpeech = false } = {}) {
 }
 
 document.querySelector("[data-reveal]").addEventListener("click", () => {
+  if (book.scenes[state.sceneIndex].kind === "text_only") {
+    state = goToNextScene(revealScene(state));
+    render();
+    return;
+  }
   state = revealScene(state);
   render({ preserveSpeech: true });
 });
@@ -231,6 +260,9 @@ elements.next.addEventListener("click", () => {
 
 function previousScene() {
   state = goToPreviousScene(state);
+  if (book.scenes[state.sceneIndex].kind === "text_only" && state.phase === "revealed") {
+    state = { ...state, phase: "anticipation", textVisible: true };
+  }
   render();
 }
 
@@ -283,9 +315,14 @@ window.addEventListener("appinstalled", () => {
 
 async function start() {
   try {
-    const response = await fetch("./demo-book.json");
+    const projectId = new URLSearchParams(window.location.search).get("project");
+    const source = projectId
+      ? `/api/projects/${encodeURIComponent(projectId)}/interactive-book`
+      : "./demo-book.json";
+    const response = await fetch(source, { cache: "no-store" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    book = await response.json();
+    const payload = await response.json();
+    book = payload.book || payload;
     if (!Array.isArray(book.scenes) || book.scenes.length === 0) throw new Error("Livre vide");
     applyBookTypography();
     state = createReaderState(book.scenes.length);
