@@ -177,6 +177,8 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(app, /\["preview_ready", "preview_repairing", "purchased"\]\.includes\(project\?\.status\)/);
   assert.match(app, /final_blueprint: project\.finalBlueprint/);
   assert.match(app, /else await restoreCompletedPreview\(\)/);
+  assert.match(html, /id="actionReadInteractive"/);
+  assert.match(app, /\/interactive-reader\/\?project=/);
   assert.match(app, /pageCountOptions\?\.\[0\]\?\.ebookPriceEur/);
   assert.match(html, /À partir de 6,69 €/);
   assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
