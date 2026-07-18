@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.1.3');
+define('CALITIKI_THEME_VERSION', '1.1.4');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -47,8 +47,20 @@ function calitiki_creator_language() {
 }
 
 function calitiki_language_switcher() {
+    $language_options = array();
+    if (function_exists('trp_custom_language_switcher')) {
+        foreach ((array) trp_custom_language_switcher() as $language) {
+            $code = strtolower(substr((string) ($language['language_code'] ?? ''), 0, 2));
+            $url = (string) ($language['current_page_url'] ?? '');
+            if ($code && $url) {
+                $language_options[] = array('code' => $code, 'url' => esc_url_raw($url));
+            }
+        }
+    }
+    $language_options_json = esc_attr(wp_json_encode($language_options));
+
     if (shortcode_exists('language-switcher')) {
-        echo '<div class="calitiki-translatepress-switcher" data-no-translation>';
+        echo '<div class="calitiki-translatepress-switcher" data-calitiki-language-switcher data-calitiki-language-options="' . $language_options_json . '" data-no-translation>';
         echo do_shortcode('[language-switcher]');
         echo '</div>';
         return;
@@ -71,7 +83,7 @@ function calitiki_language_switcher() {
     }
     $current = $current ?: $languages[0];
     ?>
-    <details class="calitiki-language-switcher" data-no-translation>
+    <details class="calitiki-language-switcher" data-calitiki-language-switcher data-calitiki-language-options="<?php echo $language_options_json; ?>" data-no-translation>
         <summary aria-label="<?php esc_attr_e('Changer de langue', 'calitiki'); ?>">
             <?php if (!empty($current['flag_link'])) : ?><img src="<?php echo esc_url($current['flag_link']); ?>" alt="" width="24" height="16" /><?php endif; ?>
             <span aria-hidden="true"><?php echo esc_html(strtoupper(substr((string) ($current['short_language_name'] ?? $current['language_code']), 0, 2))); ?></span>

@@ -48,7 +48,7 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(html, /data-top-back/);
   assert.match(html, /data-reveal/);
   assert.match(html, /data-text-toggle/);
-  assert.equal((html.match(/data-read-more/g) || []).length, 2);
+  assert.equal((html.match(/data-read-more/g) || []).length, 0);
   assert.match(html, /scene-navigation[^]*data-previous[^]*data-collapsed-controls[^]*data-listen[^]*data-show-text[^]*data-next/);
   assert.match(html, /scene-navigation/);
   assert.match(app, /voiceschanged/);
@@ -59,11 +59,11 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(app, /handwritten_story: "Patrick Hand"/);
   assert.match(styles, /background: rgba\(9,45,49,\.6\)/);
   assert.match(styles, /touch-action: pan-y/);
-  assert.match(styles, /story-text-region\.is-expanded/);
+  assert.match(styles, /story-text-region\.has-overflow[^}]*overflow-y: auto/);
   assert.equal(JSON.parse(manifest).display, "standalone");
   assert.match(app, /\/interactive-book/);
   assert.match(app, /kind === "text_only"/);
-  assert.match(worker, /calitiki-interactive-demo-v10/);
+  assert.match(worker, /calitiki-interactive-demo-v11/);
   assert.match(app, /classList\.toggle\("is-text-only", textOnly\)/);
   assert.match(styles, /\.anticipation-view\.is-text-only \.story-card[^}]*min-height: clamp\(390px, 50svh, 440px\)/);
   assert.match(styles, /\.anticipation-view\.is-text-only \.story-text-anticipation[^}]*padding: \.24em 4px \.14em/);

@@ -51,19 +51,13 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .story-card { z-index: 2; width: 100%; margin: auto 0; padding: 30px 25px 25px; border: 1px solid rgba(255,255,255,.65); border-radius: 30px; background: rgba(255,250,243,.97); color: var(--teal-deep); box-shadow: 0 20px 55px rgba(0,0,0,.22); text-align: center; }
 .anticipation-view.is-text-only .story-card { min-height: clamp(390px, 50svh, 440px); padding: 30px 25px 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .anticipation-view.is-text-only .story-text-anticipation { width: 100%; max-height: 8.2em; margin: 17px 0 12px; padding: .24em 4px .14em; }
-.anticipation-view.is-text-only .story-text-anticipation.is-expanded { max-height: min(39svh, 350px); }
 .story-text-region { position: relative; overscroll-behavior: contain; touch-action: pan-y; scrollbar-width: thin; scrollbar-color: var(--gold) transparent; }
+.story-text-region.has-overflow { overflow-x: hidden; overflow-y: auto; padding-right: 7px; -webkit-overflow-scrolling: touch; }
 .story-text-region::-webkit-scrollbar { width: 5px; }
 .story-text-region::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--gold); }
 .story-text-region > p { margin: 0; font-family: var(--book-font), Georgia, serif; }
 .story-text-anticipation { max-height: 5.85em; margin: 24px 0 8px; overflow: hidden; font-size: clamp(1.25rem, 5.5vw, 1.55rem); line-height: 1.46; }
 .story-text-anticipation > p { font-size: inherit; font-weight: 700; line-height: inherit; }
-.story-text-anticipation.has-overflow:not(.is-expanded)::after,
-.story-text-revealed.has-overflow:not(.is-expanded)::after { content: ""; position: sticky; display: block; left: 0; right: 0; bottom: 0; height: 2.7em; margin-top: -2.7em; pointer-events: none; }
-.story-text-anticipation.has-overflow:not(.is-expanded)::after { background: linear-gradient(transparent, rgba(255,250,243,.98)); }
-.story-text-region.is-expanded { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.story-text-anticipation.is-expanded { max-height: min(32svh, 290px); padding-right: 7px; }
-.read-more-button { min-height: 36px; margin: 0 auto 12px; padding: 5px 14px; border: 1px solid rgba(201,93,69,.38); border-radius: 999px; background: #fff4e9; color: var(--coral-dark); font-weight: 900; font-size: .76rem; cursor: pointer; }
 .story-card small { color: var(--muted); font-weight: 700; }
 .listen-button { width: 62px; height: 62px; border: 0; border-radius: 50%; background: var(--coral); color: #fff; font-size: 1.6rem; box-shadow: 0 10px 24px rgba(223,118,91,.32); }
 .reveal-button { z-index: 2; width: 100%; min-height: 62px; margin-top: 30px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #ec8061, var(--coral-dark)); color: #fff; box-shadow: 0 14px 28px rgba(223,118,91,.3); font-weight: 900; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; gap: 12px; }
@@ -75,9 +69,6 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .text-overlay { position: absolute; z-index: 4; left: 18px; right: 18px; bottom: 92px; padding: 22px 20px 17px; border: 1px solid rgba(255,236,198,.68); border-radius: 24px; background: rgba(9,45,49,.6); color: #fff; backdrop-filter: blur(8px) saturate(.9); box-shadow: 0 18px 42px rgba(0,0,0,.2); }
 .story-text-revealed { max-height: 4.35em; overflow: hidden; font-size: clamp(1.04rem, 4.5vw, 1.22rem); line-height: 1.45; }
 .story-text-revealed > p { text-align: center; font-size: inherit; font-weight: 700; line-height: inherit; text-shadow: 0 2px 5px rgba(0,0,0,.92); }
-.story-text-revealed.has-overflow:not(.is-expanded)::after { background: linear-gradient(transparent, rgba(9,45,49,.96)); }
-.story-text-revealed.is-expanded { max-height: min(34svh, 310px); padding-right: 7px; }
-.read-more-on-image { display: block; margin: 9px auto 0; border-color: rgba(255,236,198,.6); background: rgba(6,31,35,.72); color: #fff4df; }
 .overlay-controls { margin-top: 17px; display: flex; justify-content: center; align-items: center; gap: 12px; }
 .round-control { width: 46px; height: 46px; display: inline-grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; background: var(--teal); color: #fff; font-size: 1.18rem; }
 button.round-control { cursor: pointer; }
