@@ -1,9 +1,10 @@
 {
   "name": "Calitiki — Livres interactifs",
   "short_name": "Calitiki",
+  "id": "./",
   "description": "Écouter, imaginer et découvrir les histoires Calitiki.",
   "lang": "fr",
-  "start_url": "./",
+  "start_url": "./?source=installed",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

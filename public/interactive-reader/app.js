@@ -24,6 +24,15 @@ const elements = {
   collapsedControls: document.querySelector("[data-collapsed-controls]"),
   toggleLabel: document.querySelector("[data-toggle-label]"),
   install: document.querySelector("[data-install]"),
+  installGuide: document.querySelector("[data-install-guide]"),
+  installGuideClose: document.querySelector("[data-install-guide-close]"),
+  installGuideDone: document.querySelector("[data-install-guide-done]"),
+  installGuideTitle: document.querySelector("[data-install-guide-title]"),
+  installGuideSteps: [
+    document.querySelector("[data-install-guide-step-one]"),
+    document.querySelector("[data-install-guide-step-two]"),
+    document.querySelector("[data-install-guide-step-three]"),
+  ],
   toast: document.querySelector("[data-toast]"),
   listenButtons: [...document.querySelectorAll("[data-listen]")],
   textRegions: [...document.querySelectorAll("[data-text-region]")],
@@ -46,11 +55,105 @@ const SECTION_ACTION_LABELS = {
   en: { reveal: "Discover the picture", continue: "Start the adventure", finish: "Finish the story" },
 };
 
+const INSTALL_LABELS = {
+  fr: {
+    button: "Installer",
+    title: "Installer Calitiki sur cet iPhone",
+    steps: [
+      "Touchez le bouton Partager de Safari : le carré avec une flèche vers le haut.",
+      "Faites défiler le menu, puis choisissez « Sur l’écran d’accueil ».",
+      "Touchez « Ajouter ». L’icône Calitiki ouvrira ensuite directement votre dernier livre.",
+    ],
+    done: "J’ai compris",
+    expired: "Votre session a expiré. Reconnectez-vous à Calitiki pour rouvrir ce livre.",
+    reconnect: "Se reconnecter à Calitiki",
+  },
+  es: {
+    button: "Instalar",
+    title: "Instalar Calitiki en este iPhone",
+    steps: [
+      "Toca el botón Compartir de Safari: el cuadrado con una flecha hacia arriba.",
+      "Desplázate por el menú y elige «Añadir a pantalla de inicio».",
+      "Toca «Añadir». El icono de Calitiki abrirá directamente tu último libro.",
+    ],
+    done: "Entendido",
+    expired: "Tu sesión ha caducado. Vuelve a conectarte a Calitiki para abrir este libro.",
+    reconnect: "Volver a conectarme",
+  },
+  en: {
+    button: "Install",
+    title: "Install Calitiki on this iPhone",
+    steps: [
+      "Tap Safari’s Share button: the square with an upward arrow.",
+      "Scroll through the menu and choose “Add to Home Screen”.",
+      "Tap “Add”. The Calitiki icon will then open your latest book directly.",
+    ],
+    done: "Got it",
+    expired: "Your session has expired. Sign in to Calitiki again to reopen this book.",
+    reconnect: "Sign in to Calitiki",
+  },
+};
+
+const LAST_PROJECT_KEY = "calitiki-last-interactive-project";
+
 let book;
 let state;
 let installPrompt;
 let toastTimer;
 let textMeasurementFrame;
+let reloadingForServiceWorker = false;
+
+function browserLanguage() {
+  return String(book?.language || navigator.languages?.[0] || navigator.language || "fr").toLowerCase().split("-")[0];
+}
+
+function applyInstallLanguage() {
+  const labels = INSTALL_LABELS[browserLanguage()] || INSTALL_LABELS.fr;
+  elements.install.textContent = labels.button;
+  elements.installGuideTitle.textContent = labels.title;
+  elements.installGuideSteps.forEach((element, index) => { element.textContent = labels.steps[index]; });
+  elements.installGuideDone.textContent = labels.done;
+}
+
+function safeProjectId(value) {
+  const projectId = String(value || "").trim();
+  return /^[A-Za-z0-9_-]{6,128}$/.test(projectId) ? projectId : "";
+}
+
+function lastProjectId() {
+  try { return safeProjectId(window.localStorage.getItem(LAST_PROJECT_KEY)); }
+  catch { return ""; }
+}
+
+function rememberProject(projectId) {
+  try { window.localStorage.setItem(LAST_PROJECT_KEY, projectId); }
+  catch { /* Private browsing may disable local storage. */ }
+}
+
+function forgetProject(projectId) {
+  try {
+    if (lastProjectId() === projectId) window.localStorage.removeItem(LAST_PROJECT_KEY);
+  } catch { /* Nothing to clear. */ }
+}
+
+function isStandaloneApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
+
+function isIosDevice() {
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent) || (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+}
+
+function showInstallGuide() {
+  applyInstallLanguage();
+  elements.installGuide.hidden = false;
+  elements.installGuideClose.focus();
+}
+
+function hideInstallGuide() {
+  elements.installGuide.hidden = true;
+  elements.install.focus();
+}
 
 function sectionActionLabels() {
   const language = String(book?.language || "fr").toLowerCase().split("-")[0];
@@ -255,6 +358,10 @@ elements.listenButtons.forEach((button) => button.addEventListener("click", spea
 window.addEventListener("resize", queueTextMeasurement);
 
 window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !elements.installGuide.hidden) {
+    hideInstallGuide();
+    return;
+  }
   if (event.key === "ArrowLeft") previousScene();
   if (event.key === "ArrowRight" && state.phase === "revealed") {
     state = goToNextScene(state);
@@ -268,14 +375,22 @@ window.addEventListener("beforeinstallprompt", (event) => {
   elements.install.hidden = false;
 });
 
+applyInstallLanguage();
+if (isIosDevice() && !isStandaloneApp()) elements.install.hidden = false;
+
 elements.install.addEventListener("click", async () => {
   if (!installPrompt) {
-    showToast("Sur iPhone : touchez Partager, puis Sur l’écran d’accueil.");
+    showInstallGuide();
     return;
   }
   await installPrompt.prompt();
   installPrompt = undefined;
   elements.install.hidden = true;
+});
+elements.installGuideClose.addEventListener("click", hideInstallGuide);
+elements.installGuideDone.addEventListener("click", hideInstallGuide);
+elements.installGuide.addEventListener("click", (event) => {
+  if (event.target === elements.installGuide) hideInstallGuide();
 });
 
 window.addEventListener("appinstalled", () => {
@@ -284,7 +399,8 @@ window.addEventListener("appinstalled", () => {
 });
 
 async function start() {
-  const projectId = new URLSearchParams(window.location.search).get("project");
+  const requestedProjectId = safeProjectId(new URLSearchParams(window.location.search).get("project"));
+  const projectId = requestedProjectId || lastProjectId();
   try {
     const source = projectId
       ? `/api/projects/${encodeURIComponent(projectId)}/interactive-book`
@@ -300,26 +416,46 @@ async function start() {
     book = payload.book || payload;
     if (!Array.isArray(book.scenes) || book.scenes.length === 0) throw new Error("Livre vide");
     applyBookTypography();
+    applyInstallLanguage();
+    if (projectId) rememberProject(projectId);
     state = createReaderState(book.scenes.length);
     render();
     document.fonts?.ready.then(queueTextMeasurement);
   } catch (error) {
+    if (projectId && [403, 404].includes(error.status)) forgetProject(projectId);
+    const readerLabels = INSTALL_LABELS[browserLanguage()] || INSTALL_LABELS.fr;
     const message = !projectId
       ? "Impossible d’ouvrir le livre de démonstration."
       : error.status === 401
-        ? "Votre session a expiré. Revenez à Mes créations Calitiki pour rouvrir ce livre."
+        ? readerLabels.expired
         : error.status === 409
           ? "Certaines pages privées de ce livre ne sont pas encore disponibles dans la liseuse."
           : "Impossible d’ouvrir votre livre interactif pour le moment.";
     const paragraph = document.createElement("p");
     paragraph.textContent = message;
-    elements.loading.replaceChildren(paragraph);
+    const children = [paragraph];
+    if (projectId && error.status === 401) {
+      const reconnect = document.createElement("a");
+      reconnect.className = "reader-error-action";
+      reconnect.href = `/api/auth/woocommerce/reader?projectId=${encodeURIComponent(projectId)}`;
+      reconnect.textContent = readerLabels.reconnect;
+      children.push(reconnect);
+    }
+    elements.loading.replaceChildren(...children);
     console.error(error);
   }
 }
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js"));
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloadingForServiceWorker) return;
+    reloadingForServiceWorker = true;
+    window.location.reload();
+  });
+  window.addEventListener("load", async () => {
+    const registration = await navigator.serviceWorker.register("./sw.js");
+    await registration.update();
+  });
 }
 
 start();
