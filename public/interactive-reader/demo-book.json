@@ -2,6 +2,7 @@
   "id": "calitiki-demo-forest-light",
   "title": "Léo et la lumière de la forêt",
   "language": "fr-FR",
+  "fontStyle": "handwritten_story",
   "scenes": [
     {
       "text": "Dans la forêt silencieuse, Léo et Roux aperçurent une lumière qui semblait les appeler tout doucement. Ils s’arrêtèrent pour écouter le murmure des feuilles.",

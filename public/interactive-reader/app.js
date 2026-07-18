@@ -26,12 +26,73 @@ const elements = {
   install: document.querySelector("[data-install]"),
   toast: document.querySelector("[data-toast]"),
   listenButtons: [...document.querySelectorAll("[data-listen]")],
+  textRegions: [...document.querySelectorAll("[data-text-region]")],
+  readMoreButtons: [...document.querySelectorAll("[data-read-more]")],
+};
+
+const BOOK_FONTS = {
+  school_round: "Andika",
+  handwritten_story: "Patrick Hand",
+  rounded_playful: "Fredoka",
+  comic_bubble: "Comic Neue",
+  storybook_bold: "Baloo 2",
+  cursive_magic: "Borel",
+};
+
+const TEXT_EXPANSION_LABELS = {
+  fr: { more: "Lire la suite", less: "Réduire" },
+  es: { more: "Seguir leyendo", less: "Reducir" },
+  en: { more: "Read more", less: "Show less" },
 };
 
 let book;
 let state;
 let installPrompt;
 let toastTimer;
+let textMeasurementFrame;
+
+function textExpansionLabels() {
+  const language = String(book?.language || "fr").toLowerCase().split("-")[0];
+  return TEXT_EXPANSION_LABELS[language] || TEXT_EXPANSION_LABELS.fr;
+}
+
+function applyBookTypography() {
+  const fontStyle = book?.fontStyle || book?.font_style || book?.typography?.id || "school_round";
+  const fontFamily = BOOK_FONTS[fontStyle] || BOOK_FONTS.school_round;
+  document.documentElement.style.setProperty("--book-font", `"${fontFamily}"`);
+}
+
+function resetTextExpansion() {
+  const labels = textExpansionLabels();
+  elements.textRegions.forEach((region) => {
+    region.classList.remove("is-expanded", "has-overflow");
+    region.scrollTop = 0;
+  });
+  elements.readMoreButtons.forEach((button) => {
+    button.setAttribute("aria-expanded", "false");
+    button.textContent = labels.more;
+  });
+}
+
+function measureTextOverflow() {
+  const labels = textExpansionLabels();
+  elements.readMoreButtons.forEach((button) => {
+    const region = button.previousElementSibling;
+    if (!region?.matches("[data-text-region]") || region.offsetParent === null) return;
+    const expanded = region.classList.contains("is-expanded");
+    const overflowing = expanded || region.scrollHeight > region.clientHeight + 2;
+    region.classList.toggle("has-overflow", overflowing);
+    button.hidden = !overflowing;
+    button.textContent = expanded ? labels.less : labels.more;
+  });
+}
+
+function queueTextMeasurement() {
+  window.cancelAnimationFrame(textMeasurementFrame);
+  textMeasurementFrame = window.requestAnimationFrame(() => {
+    textMeasurementFrame = window.requestAnimationFrame(measureTextOverflow);
+  });
+}
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -121,6 +182,7 @@ function setViewVisibility(activeView) {
 
 function render({ preserveSpeech = false } = {}) {
   if (!preserveSpeech) stopSpeech();
+  if (!preserveSpeech) resetTextExpansion();
   setViewVisibility(state.phase);
   if (state.phase === "complete") return;
 
@@ -144,6 +206,7 @@ function render({ preserveSpeech = false } = {}) {
   elements.textOverlay.hidden = !state.textVisible;
   elements.collapsedControls.hidden = state.textVisible;
   elements.toggleLabel.textContent = state.textVisible ? "Masquer le texte" : "Voir le texte";
+  queueTextMeasurement();
 }
 
 document.querySelector("[data-reveal]").addEventListener("click", () => {
@@ -178,6 +241,16 @@ document.querySelector("[data-restart]").addEventListener("click", () => {
   render();
 });
 elements.listenButtons.forEach((button) => button.addEventListener("click", speakCurrentScene));
+elements.readMoreButtons.forEach((button) => button.addEventListener("click", () => {
+  const region = button.previousElementSibling;
+  const expanded = !region.classList.contains("is-expanded");
+  region.classList.toggle("is-expanded", expanded);
+  region.scrollTop = 0;
+  button.setAttribute("aria-expanded", String(expanded));
+  button.textContent = expanded ? textExpansionLabels().less : textExpansionLabels().more;
+}));
+
+window.addEventListener("resize", queueTextMeasurement);
 
 window.addEventListener("keydown", (event) => {
   if (event.key === "ArrowLeft") previousScene();
@@ -214,8 +287,10 @@ async function start() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     book = await response.json();
     if (!Array.isArray(book.scenes) || book.scenes.length === 0) throw new Error("Livre vide");
+    applyBookTypography();
     state = createReaderState(book.scenes.length);
     render();
+    document.fonts?.ready.then(queueTextMeasurement);
   } catch (error) {
     elements.loading.innerHTML = "<p>Impossible d’ouvrir le livre de démonstration.</p>";
     console.error(error);

@@ -1,3 +1,10 @@
+@font-face { font-family: "Andika"; src: url("/fonts/Andika-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Patrick Hand"; src: url("/fonts/PatrickHand-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Fredoka"; src: url("/fonts/Fredoka-Variable.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Comic Neue"; src: url("/fonts/ComicNeue-Regular.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Baloo 2"; src: url("/fonts/Baloo2-Variable.ttf") format("truetype"); font-display: swap; }
+@font-face { font-family: "Borel"; src: url("/fonts/Borel-Regular.ttf") format("truetype"); font-display: swap; }
+
 :root {
   color-scheme: light;
   --cream: #fbf5eb;
@@ -9,6 +16,7 @@
   --gold: #efbc62;
   --muted: #6d807e;
   --shadow: 0 28px 80px rgba(13, 37, 41, 0.24);
+  --book-font: "Andika";
   font-family: Inter, ui-rounded, "Segoe UI", sans-serif;
 }
 
@@ -41,7 +49,18 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .top-back { position: absolute; z-index: 3; top: 22px; left: 20px; width: 48px; height: 48px; border: 1px solid rgba(239,188,98,.7); border-radius: 50%; background: rgba(13,47,53,.7); color: #fff; font-size: 1.55rem; }
 .scene-progress { z-index: 2; margin: 4px 0 28px; color: #f8e8ce; font-weight: 900; letter-spacing: .04em; }
 .story-card { z-index: 2; width: 100%; margin: auto 0; padding: 30px 25px 25px; border: 1px solid rgba(255,255,255,.65); border-radius: 30px; background: rgba(255,250,243,.97); color: var(--teal-deep); box-shadow: 0 20px 55px rgba(0,0,0,.22); text-align: center; }
-.story-card p { margin: 24px 0 20px; font: 700 clamp(1.25rem, 5.5vw, 1.55rem)/1.46 Georgia, serif; }
+.story-text-region { position: relative; overscroll-behavior: contain; touch-action: pan-y; scrollbar-width: thin; scrollbar-color: var(--gold) transparent; }
+.story-text-region::-webkit-scrollbar { width: 5px; }
+.story-text-region::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--gold); }
+.story-text-region > p { margin: 0; font-family: var(--book-font), Georgia, serif; }
+.story-text-anticipation { max-height: 5.85em; margin: 24px 0 8px; overflow: hidden; font-size: clamp(1.25rem, 5.5vw, 1.55rem); line-height: 1.46; }
+.story-text-anticipation > p { font-size: inherit; font-weight: 700; line-height: inherit; }
+.story-text-anticipation.has-overflow:not(.is-expanded)::after,
+.story-text-revealed.has-overflow:not(.is-expanded)::after { content: ""; position: sticky; display: block; left: 0; right: 0; bottom: 0; height: 2.7em; margin-top: -2.7em; pointer-events: none; }
+.story-text-anticipation.has-overflow:not(.is-expanded)::after { background: linear-gradient(transparent, rgba(255,250,243,.98)); }
+.story-text-region.is-expanded { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.story-text-anticipation.is-expanded { max-height: min(32svh, 290px); padding-right: 7px; }
+.read-more-button { min-height: 36px; margin: 0 auto 12px; padding: 5px 14px; border: 1px solid rgba(201,93,69,.38); border-radius: 999px; background: #fff4e9; color: var(--coral-dark); font-weight: 900; font-size: .76rem; cursor: pointer; }
 .story-card small { color: var(--muted); font-weight: 700; }
 .listen-button { width: 62px; height: 62px; border: 0; border-radius: 50%; background: var(--coral); color: #fff; font-size: 1.6rem; box-shadow: 0 10px 24px rgba(223,118,91,.32); }
 .reveal-button { z-index: 2; width: 100%; min-height: 62px; margin-top: 30px; border: 0; border-radius: 999px; background: linear-gradient(135deg, #ec8061, var(--coral-dark)); color: #fff; box-shadow: 0 14px 28px rgba(223,118,91,.3); font-weight: 900; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; gap: 12px; }
@@ -51,7 +70,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-
 .image-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(4,18,26,.1), transparent 48%, rgba(4,18,26,.28)); pointer-events: none; }
 .scene-progress-on-image { position: absolute; z-index: 2; top: 18px; left: 50%; transform: translateX(-50%); margin: 0; padding: 7px 13px; border-radius: 999px; background: rgba(7,31,37,.65); backdrop-filter: blur(9px); white-space: nowrap; font-size: .75rem; }
 .text-overlay { position: absolute; z-index: 4; left: 18px; right: 18px; bottom: 92px; padding: 22px 20px 17px; border: 1px solid rgba(255,236,198,.68); border-radius: 24px; background: rgba(9,45,49,.6); color: #fff; backdrop-filter: blur(8px) saturate(.9); box-shadow: 0 18px 42px rgba(0,0,0,.2); }
-.text-overlay > p { margin: 0; text-align: center; font: 700 clamp(1.04rem, 4.5vw, 1.22rem)/1.45 Georgia, serif; text-shadow: 0 2px 5px rgba(0,0,0,.92); }
+.story-text-revealed { max-height: 4.35em; overflow: hidden; font-size: clamp(1.04rem, 4.5vw, 1.22rem); line-height: 1.45; }
+.story-text-revealed > p { text-align: center; font-size: inherit; font-weight: 700; line-height: inherit; text-shadow: 0 2px 5px rgba(0,0,0,.92); }
+.story-text-revealed.has-overflow:not(.is-expanded)::after { background: linear-gradient(transparent, rgba(9,45,49,.96)); }
+.story-text-revealed.is-expanded { max-height: min(34svh, 310px); padding-right: 7px; }
+.read-more-on-image { display: block; margin: 9px auto 0; border-color: rgba(255,236,198,.6); background: rgba(6,31,35,.72); color: #fff4df; }
 .overlay-controls { margin-top: 17px; display: flex; justify-content: center; align-items: center; gap: 12px; }
 .round-control { width: 46px; height: 46px; display: inline-grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; background: var(--teal); color: #fff; font-size: 1.18rem; }
 button.round-control { cursor: pointer; }
