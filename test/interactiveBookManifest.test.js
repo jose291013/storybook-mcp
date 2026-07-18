@@ -26,6 +26,8 @@ function completeProject(pageCount = 24) {
         text: page.page_type.includes("text") ? `Texto definitivo de la página ${page.page_number}` : "",
         imageUrl: page.page_type === "image" ? `/api/projects/${id}/preview-assets/image-${page.page_number}.png` : "",
         imageStorageKey: page.page_type === "image" ? `ebooks/previews/${id}/image-${page.page_number}.png` : "",
+        previewUrl: `/api/projects/${id}/preview-assets/layout-${page.page_number}.png`,
+        storageKey: `ebooks/previews/${id}/layout-${page.page_number}.png`,
       })),
     },
   };
@@ -49,6 +51,17 @@ test("the interactive manifest rejects an incomplete spread instead of showing a
   const project = completeProject();
   project.previewResult.draftPages = project.previewResult.draftPages.filter((page) => page.page_number !== 3);
   assert.throws(() => buildInteractiveBookManifest(project), InteractiveBookUnavailableError);
+});
+
+test("legacy paid books reuse their private composed illustration pages without regeneration", () => {
+  const project = completeProject();
+  project.previewResult.draftPages.forEach((page) => {
+    if (page.page_type !== "image") return;
+    page.imageUrl = "/outputs/legacy-image.png";
+    page.imageStorageKey = "";
+  });
+  const book = buildInteractiveBookManifest(project);
+  assert.match(book.scenes[2].image, /\/preview-assets\/layout-3\.png$/);
 });
 
 test("every sellable page count produces all of its interactive narrative scenes", () => {

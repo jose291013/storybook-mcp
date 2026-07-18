@@ -314,14 +314,19 @@ window.addEventListener("appinstalled", () => {
 });
 
 async function start() {
+  const projectId = new URLSearchParams(window.location.search).get("project");
   try {
-    const projectId = new URLSearchParams(window.location.search).get("project");
     const source = projectId
       ? `/api/projects/${encodeURIComponent(projectId)}/interactive-book`
       : "./demo-book.json";
     const response = await fetch(source, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const payload = await response.json();
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      const error = new Error(payload?.error || `HTTP ${response.status}`);
+      error.status = response.status;
+      error.issues = Array.isArray(payload?.issues) ? payload.issues : [];
+      throw error;
+    }
     book = payload.book || payload;
     if (!Array.isArray(book.scenes) || book.scenes.length === 0) throw new Error("Livre vide");
     applyBookTypography();
@@ -329,7 +334,16 @@ async function start() {
     render();
     document.fonts?.ready.then(queueTextMeasurement);
   } catch (error) {
-    elements.loading.innerHTML = "<p>Impossible d’ouvrir le livre de démonstration.</p>";
+    const message = !projectId
+      ? "Impossible d’ouvrir le livre de démonstration."
+      : error.status === 401
+        ? "Votre session a expiré. Revenez à Mes créations Calitiki pour rouvrir ce livre."
+        : error.status === 409
+          ? "Certaines pages privées de ce livre ne sont pas encore disponibles dans la liseuse."
+          : "Impossible d’ouvrir votre livre interactif pour le moment.";
+    const paragraph = document.createElement("p");
+    paragraph.textContent = message;
+    elements.loading.replaceChildren(paragraph);
     console.error(error);
   }
 }

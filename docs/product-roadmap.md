@@ -55,6 +55,7 @@ Last updated: 2026-07-18
 
 - The generator, low-definition preview, ebook PDF, print finalization, multilingual book output, visual styles, page counts, and book reader exist.
 - The installable interactive reader under `/interactive-reader/` now accepts either its public demonstration manifest or an authenticated `?project=<id>` book. A completed preview is converted without AI calls into a private manifest containing its cover, opening text, correctly paired narrative spreads and closing moral. The manifest and every illustration remain customer-authenticated and `no-store`; the service worker never caches `/api/` responses. The creator exposes **Read the interactive version** after a completed preview, and each paid creation in WooCommerce has a signed **Read my interactive book** link that renews the private Render session before opening the owned project. Generated narration remains a future product brick.
+- Paid books created before raw illustration assets were stored privately can reuse their already-private composed illustration pages in the interactive reader. This compatibility path never calls image generation and never spends credits.
 - Anonymous questionnaire choices are restored from browser storage, and a server-side project is created before preview generation.
 - The project store uses PostgreSQL when `DATABASE_URL` is configured and a local JSON fallback during development.
 - Anonymous projects can be claimed and listed through the signed WooCommerce customer-token contract.
