@@ -119,8 +119,8 @@ function setViewVisibility(activeView) {
   elements.completion.hidden = activeView !== "complete";
 }
 
-function render() {
-  stopSpeech();
+function render({ preserveSpeech = false } = {}) {
+  if (!preserveSpeech) stopSpeech();
   setViewVisibility(state.phase);
   if (state.phase === "complete") return;
 
@@ -148,17 +148,17 @@ function render() {
 
 document.querySelector("[data-reveal]").addEventListener("click", () => {
   state = revealScene(state);
-  render();
+  render({ preserveSpeech: true });
 });
 
 document.querySelector("[data-text-toggle]").addEventListener("click", () => {
   state = setTextVisibility(state, false);
-  render();
+  render({ preserveSpeech: true });
 });
 
 elements.showText.addEventListener("click", () => {
   state = setTextVisibility(state, true);
-  render();
+  render({ preserveSpeech: true });
 });
 
 elements.next.addEventListener("click", () => {
