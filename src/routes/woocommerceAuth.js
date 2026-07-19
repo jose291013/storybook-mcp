@@ -20,6 +20,7 @@ function currentIdentity(req) {
 function safeReturnPath(projectId, status = "connected", destination = "creator") {
   const params = new URLSearchParams({ auth: status, project: projectId });
   if (destination === "interactive_reader") return `/interactive-reader/?${params.toString()}`;
+  if (destination === "family_share") return `/share-family/?${params.toString()}`;
   return `/?${params.toString()}#creator`;
 }
 

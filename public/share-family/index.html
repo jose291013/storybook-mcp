@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Calitiki — Partage familial</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a href="https://calitiki.com/" aria-label="Calitiki"><img src="../assets/brand/calitiki-logo-transparent.png" alt="Calitiki" /></a>
+      <a class="back-link" href="https://calitiki.com/mon-compte/calitiki-creations/" data-back>Retour à mes créations</a>
+    </header>
+    <main>
+      <section class="hero">
+        <p class="eyebrow" data-eyebrow>PARTAGE FAMILIAL PRIVÉ</p>
+        <h1 data-title>Invitez vos proches à découvrir ce livre</h1>
+        <p data-intro>Ils ouvriront directement la liseuse, sans créer de compte. Le lien reste privé, temporaire et révocable.</p>
+      </section>
+
+      <section class="share-card" data-app hidden>
+        <div class="privacy-note">
+          <span aria-hidden="true">◇</span>
+          <p data-privacy>Une invitation donne accès à ce livre uniquement. Les photos et les autres créations restent privées.</p>
+        </div>
+        <div class="creator-row">
+          <label for="expiry" data-duration>Durée du lien</label>
+          <select id="expiry" data-expiry>
+            <option value="7" data-seven>7 jours</option>
+            <option value="30" selected data-thirty>30 jours</option>
+          </select>
+          <button type="button" data-create>Créer un lien familial</button>
+        </div>
+
+        <div class="fresh-link" data-fresh-link hidden>
+          <strong data-ready>Votre lien privé est prêt</strong>
+          <p data-once>Copiez-le maintenant : pour votre sécurité, il ne sera pas réaffiché.</p>
+          <div class="link-row">
+            <input type="text" readonly data-share-url aria-label="Lien familial privé" />
+            <button type="button" data-copy>Copier</button>
+          </div>
+          <button class="secondary" type="button" data-native-share hidden>Partager avec mon téléphone</button>
+        </div>
+
+        <div class="status" role="status" data-status></div>
+        <div class="list-heading">
+          <h2 data-active-title>Invitations créées</h2>
+          <small data-limit>Jusqu’à 3 invitations actives par livre.</small>
+        </div>
+        <div class="share-list" data-list></div>
+      </section>
+
+      <section class="loading" data-loading>Ouverture de votre bibliothèque privée…</section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -13,7 +13,9 @@ import commerceCreditsRouter from "./routes/commerceCredits.js";
 import commerceCheckoutRouter from "./routes/commerceCheckout.js";
 import deliveriesRouter from "./routes/deliveries.js";
 import previewRepairRouter from "./routes/previewRepair.js";
+import familySharesRouter from "./routes/familyShares.js";
 import { projectStore } from "./services/projectStore.js";
+import { familyShareStore } from "./services/familyShareStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
 import { interactiveReaderInstallManifest } from "./services/interactiveReaderInstallManifest.js";
 
@@ -53,9 +55,11 @@ app.use("/api", commerceCreditsRouter);
 app.use("/api", commerceCheckoutRouter);
 app.use("/api", deliveriesRouter);
 app.use("/api", previewRepairRouter);
+app.use(familySharesRouter);
 
 const port = process.env.PORT || 3000;
 await projectStore.initialize();
+await familyShareStore.initialize();
 app.listen(port, () => {
   logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
   console.log(`✅ Server listening on port ${port}`);

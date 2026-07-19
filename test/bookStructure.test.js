@@ -587,7 +587,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.7/);
+  assert.match(plugin, /Version: 0\.5\.8/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -611,6 +611,9 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Lire mon livre interactif/);
   assert.match(plugin, /'destination' => 'interactive_reader'/);
   assert.match(plugin, /interactive_reader_bridge_url/);
+  assert.match(plugin, /Partager avec la famille/);
+  assert.match(plugin, /'destination' => 'family_share'/);
+  assert.match(plugin, /family_share_bridge_url/);
   assert.match(plugin, /PRINT_BOOK_ENABLED_OPTION/);
   assert.match(plugin, /woocommerce_product_is_purchasable/);
   assert.match(plugin, /calitiki-coming-soon-button/);
@@ -621,7 +624,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(authRoute, /\/interactive-reader\/\?\$\{params\.toString\(\)\}/);
   assert.match(authRoute, /router\.get\("\/auth\/woocommerce\/reader"/);
   assert.match(authRoute, /destination: "interactive_reader"/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.7.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.8.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });

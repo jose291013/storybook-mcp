@@ -102,6 +102,7 @@ const INSTALL_LABELS = {
     done: "J’ai compris",
     expired: "Votre session a expiré. Reconnectez-vous à Calitiki pour rouvrir ce livre.",
     reconnect: "Se reconnecter à Calitiki",
+    familyExpired: "Cette invitation familiale a expiré ou a été désactivée par son propriétaire.",
   },
   es: {
     button: "Instalar",
@@ -114,6 +115,7 @@ const INSTALL_LABELS = {
     done: "Entendido",
     expired: "Tu sesión ha caducado. Vuelve a conectarte a Calitiki para abrir este libro.",
     reconnect: "Volver a conectarme",
+    familyExpired: "Esta invitación familiar ha caducado o ha sido desactivada por su propietario.",
   },
   en: {
     button: "Install",
@@ -126,6 +128,7 @@ const INSTALL_LABELS = {
     done: "Got it",
     expired: "Your session has expired. Sign in to Calitiki again to reopen this book.",
     reconnect: "Sign in to Calitiki",
+    familyExpired: "This family invitation has expired or was disabled by its owner.",
   },
 };
 
@@ -162,6 +165,11 @@ function applyInstallLanguage() {
 function safeProjectId(value) {
   const projectId = String(value || "").trim();
   return /^[A-Za-z0-9_-]{6,128}$/.test(projectId) ? projectId : "";
+}
+
+function safeShareId(value) {
+  const shareId = String(value || "").trim();
+  return /^[A-Za-z0-9-]{6,128}$/.test(shareId) ? shareId : "";
 }
 
 function lastProjectId() {
@@ -493,10 +501,14 @@ window.addEventListener("appinstalled", () => {
 });
 
 async function start() {
-  const requestedProjectId = safeProjectId(new URLSearchParams(window.location.search).get("project"));
-  const projectId = requestedProjectId || lastProjectId();
+  const parameters = new URLSearchParams(window.location.search);
+  const shareId = safeShareId(parameters.get("share"));
+  const requestedProjectId = shareId ? "" : safeProjectId(parameters.get("project"));
+  const projectId = shareId ? "" : (requestedProjectId || lastProjectId());
   try {
-    const source = projectId
+    const source = shareId
+      ? `/api/shared-books/${encodeURIComponent(shareId)}/interactive-book`
+      : projectId
       ? `/api/projects/${encodeURIComponent(projectId)}/interactive-book`
       : "./demo-book.json";
     const response = await fetch(source, { cache: "no-store" });
@@ -522,7 +534,9 @@ async function start() {
   } catch (error) {
     if (projectId && [403, 404].includes(error.status)) forgetProject(projectId);
     const readerLabels = INSTALL_LABELS[browserLanguage()] || INSTALL_LABELS.fr;
-    const message = !projectId
+    const message = shareId && [401, 410].includes(error.status)
+      ? readerLabels.familyExpired
+      : !projectId && !shareId
       ? "Impossible d’ouvrir le livre de démonstration."
       : error.status === 401
         ? readerLabels.expired

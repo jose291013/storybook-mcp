@@ -77,6 +77,14 @@ export class JsonCommerceOrderStore {
     const record = this.read().orders[orderKey({ orderId, projectId, productType })];
     return record && String(record.wooCustomerId) === String(wooCustomerId) ? normalize(record) : null;
   }
+  async hasPaidEbookPurchase({ projectId, customerId }) {
+    return Object.values(this.read().orders).some((record) => (
+      record.projectId === projectId
+      && record.customerId === customerId
+      && record.productType === "ebook"
+      && record.paymentStatus === "paid"
+    ));
+  }
   async recordStatus({ orderId, projectId, productType, wooCustomerId, status }) {
     const store = this.read(); const key = orderKey({ orderId, projectId, productType }); const existing = store.orders[key];
     if (!existing || String(existing.wooCustomerId) !== String(wooCustomerId)) return null;
@@ -136,6 +144,15 @@ export class PostgresCommerceOrderStore {
       [orderId, projectId, productType, wooCustomerId]
     );
     return normalize(rows[0]);
+  }
+  async hasPaidEbookPurchase({ projectId, customerId }) {
+    const { rowCount } = await this.database.query(
+      `SELECT 1 FROM commerce_orders
+       WHERE project_id=$1 AND customer_id=$2 AND product_type='ebook' AND payment_status='paid'
+       LIMIT 1`,
+      [projectId, customerId]
+    );
+    return rowCount > 0;
   }
   async recordStatus({ orderId, projectId, productType, wooCustomerId, status }) {
     const { rows } = await this.database.query(
