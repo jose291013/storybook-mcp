@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.5.5
+ * Version: 0.5.6
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -18,6 +18,7 @@ final class Calitiki_Woo_Bridge {
     const GENERATOR_URL_OPTION = 'calitiki_generator_url';
     const SHARED_SECRET_OPTION = 'calitiki_bridge_secret';
     const VERSION_OPTION = 'calitiki_bridge_version';
+    const PRINT_BOOK_ENABLED_OPTION = 'calitiki_print_book_enabled';
     const STATE_COOKIE = 'calitiki_bridge_state';
     const EBOOK_SLUG = 'livre-enfant-personnalise-ebook';
     const PRINT_SLUG = 'livre-enfant-personnalise-imprime';
@@ -37,7 +38,10 @@ final class Calitiki_Woo_Bridge {
         add_action('woocommerce_order_status_processing', array(__CLASS__, 'grant_order_credits'));
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'grant_order_credits'));
         add_action('wp', array(__CLASS__, 'replace_personalized_add_to_cart'));
+        add_action('woocommerce_before_shop_loop_item_title', array(__CLASS__, 'catalog_product_badge'), 8);
         add_filter('woocommerce_loop_add_to_cart_link', array(__CLASS__, 'personalized_loop_link'), 10, 3);
+        add_filter('woocommerce_product_is_purchasable', array(__CLASS__, 'product_is_purchasable'), 10, 2);
+        add_filter('woocommerce_variation_is_purchasable', array(__CLASS__, 'product_is_purchasable'), 10, 2);
         add_filter('woocommerce_add_to_cart_validation', array(__CLASS__, 'validate_personalized_add_to_cart'), 10, 6);
         add_action('woocommerce_before_calculate_totals', array(__CLASS__, 'apply_preview_rebate'));
         add_filter('woocommerce_get_item_data', array(__CLASS__, 'personalized_cart_item_data'), 10, 2);
@@ -63,6 +67,7 @@ final class Calitiki_Woo_Bridge {
         if (!get_option(self::SHARED_SECRET_OPTION)) {
             update_option(self::SHARED_SECRET_OPTION, wp_generate_password(64, false, false));
         }
+        add_option(self::PRINT_BOOK_ENABLED_OPTION, 'no');
         self::register_account_endpoint();
         flush_rewrite_rules();
     }
@@ -70,8 +75,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.5.5') {
-            update_option(self::VERSION_OPTION, '0.5.5');
+        if (get_option(self::VERSION_OPTION) !== '0.5.6') {
+            update_option(self::VERSION_OPTION, '0.5.6');
             flush_rewrite_rules(false);
         }
     }
@@ -194,7 +199,7 @@ final class Calitiki_Woo_Bridge {
                     self::send_ebook_ready_email($order, $item, $delivery);
                 }
                 $email_sent_at = (string) $item->get_meta('_calitiki_ebook_email_sent', true);
-                echo '<article class="calitiki-creation-card"><span>' . esc_html($product_type === 'ebook' ? __('eBook personnalisé', 'calitiki-bridge') : __('Livre imprimé personnalisé', 'calitiki-bridge')) . '</span>';
+                echo '<article class="calitiki-creation-card"><span>' . esc_html($product_type === 'ebook' ? __('Pack numérique personnalisé', 'calitiki-bridge') : __('Livre imprimé personnalisé', 'calitiki-bridge')) . '</span>';
                 $item_name = html_entity_decode((string) $item->get_name(), ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
                 $item_name = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($item_name, true)));
                 echo '<h3>' . esc_html($item_name) . '</h3><p>' . esc_html(sprintf(__('Commande n°%1$s · %2$d pages', 'calitiki-bridge'), $order->get_order_number(), $pages)) . '</p>';
@@ -225,11 +230,10 @@ final class Calitiki_Woo_Bridge {
                 echo '</article>';
             }
         }
-        echo '<style>.calitiki-reader-button{display:table;margin:0 0 10px}</style>';
         if (!$found) {
             echo '<p>' . esc_html__('Aucune création achetée pour le moment.', 'calitiki-bridge') . '</p>';
         }
-        echo '</div><style>.calitiki-creation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.calitiki-creation-card{padding:22px;border:1px solid #ead8c8;border-radius:18px;background:#fffaf4}.calitiki-creation-card>span{font-size:12px;font-weight:800;color:#c96f57;text-transform:uppercase;letter-spacing:.08em}.calitiki-creation-card h3{margin:8px 0}.calitiki-delivery-pending,.calitiki-delivery-email{color:#667a7c}.calitiki-delivery-warning{color:#934b3d;font-weight:600}.calitiki-email-resend{margin-top:10px}@media(max-width:700px){.calitiki-creation-grid{grid-template-columns:1fr}}</style></div>';
+        echo '</div><style>.calitiki-creation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.calitiki-creation-card{padding:22px;border:1px solid #ead8c8;border-radius:18px;background:#fffaf4}.calitiki-creation-card>span{font-size:12px;font-weight:800;color:#c96f57;text-transform:uppercase;letter-spacing:.08em}.calitiki-creation-card h3{margin:8px 0}.calitiki-creation-card>a.button,.calitiki-creation-card .calitiki-email-resend .button{display:block;width:100%;margin:0 0 12px;text-align:center}.calitiki-delivery-pending,.calitiki-delivery-email{color:#667a7c}.calitiki-delivery-warning{color:#934b3d;font-weight:600}.calitiki-email-resend{margin:14px 0 0}.calitiki-email-resend .button{margin-bottom:0!important}@media(max-width:700px){.calitiki-creation-grid{grid-template-columns:1fr}}</style></div>';
     }
 
     public static function resend_ebook_email() {
@@ -330,6 +334,7 @@ final class Calitiki_Woo_Bridge {
             check_admin_referer('calitiki_bridge_settings');
             $generator_url = isset($_POST['calitiki_generator_url']) ? esc_url_raw(wp_unslash($_POST['calitiki_generator_url'])) : '';
             $secret = isset($_POST['calitiki_bridge_secret']) ? sanitize_text_field(wp_unslash($_POST['calitiki_bridge_secret'])) : '';
+            $print_book_enabled = !empty($_POST['calitiki_print_book_enabled']) ? 'yes' : 'no';
             if ($generator_url) {
                 update_option(self::GENERATOR_URL_OPTION, untrailingslashit($generator_url));
             }
@@ -339,11 +344,13 @@ final class Calitiki_Woo_Bridge {
             if (strlen($secret) >= 32) {
                 update_option(self::SHARED_SECRET_OPTION, $secret);
             }
+            update_option(self::PRINT_BOOK_ENABLED_OPTION, $print_book_enabled);
             echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__('Réglages enregistrés.', 'calitiki-bridge') . '</p></div>';
         }
 
         $generator_url = get_option(self::GENERATOR_URL_OPTION, 'https://storybook-mcp.onrender.com');
         $secret = get_option(self::SHARED_SECRET_OPTION, '');
+        $print_book_enabled = self::print_book_enabled();
         ?>
         <div class="wrap">
             <h1>Calitiki Bridge</h1>
@@ -373,6 +380,13 @@ final class Calitiki_Woo_Bridge {
                         <td>
                             <code><?php echo esc_html(self::bridge_url()); ?></code>
                             <p class="description">Copiez cette URL dans la variable Render <code>WOOCOMMERCE_BRIDGE_URL</code>.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th scope="row">Livre imprimé</th>
+                        <td>
+                            <label><input type="checkbox" name="calitiki_print_book_enabled" value="1" <?php checked($print_book_enabled); ?> /> Activer la vente et la personnalisation du livre imprimé</label>
+                            <p class="description">Laissez cette option décochée tant que le fournisseur d’impression n’est pas prêt. Le produit reste visible dans la boutique avec la mention « Prochainement disponible », mais il ne peut pas être acheté.</p>
                         </td>
                     </tr>
                 </table>
@@ -518,6 +532,24 @@ final class Calitiki_Woo_Bridge {
         return '';
     }
 
+    private static function print_book_enabled() {
+        return get_option(self::PRINT_BOOK_ENABLED_OPTION, 'no') === 'yes';
+    }
+
+    public static function product_is_purchasable($purchasable, $product) {
+        return self::personalized_format($product) === 'print' && !self::print_book_enabled() ? false : $purchasable;
+    }
+
+    public static function catalog_product_badge() {
+        global $product;
+        $format = self::personalized_format($product);
+        if ($format === 'ebook') {
+            echo '<span class="calitiki-product-badge calitiki-digital-pack-badge">' . esc_html__('eBook + livre interactif inclus', 'calitiki-bridge') . '</span>';
+        } elseif ($format === 'print' && !self::print_book_enabled()) {
+            echo '<span class="calitiki-product-badge calitiki-coming-soon-badge">' . esc_html__('Prochainement disponible', 'calitiki-bridge') . '</span>';
+        }
+    }
+
     private static function product_for_format($format) {
         $slug = $format === 'ebook' ? self::EBOOK_SLUG : self::PRINT_SLUG;
         $post = get_page_by_path($slug, OBJECT, 'product');
@@ -565,23 +597,40 @@ final class Calitiki_Woo_Bridge {
         if (!$format) {
             return;
         }
-        $label = $format === 'ebook' ? __('Personnaliser votre eBook', 'calitiki-bridge') : __('Personnaliser votre livre imprimé', 'calitiki-bridge');
+        if ($format === 'print' && !self::print_book_enabled()) {
+            echo '<div class="calitiki-personalize-cta calitiki-coming-soon-notice">';
+            echo '<strong>' . esc_html__('Prochainement disponible', 'calitiki-bridge') . '</strong>';
+            echo '<p>' . esc_html__('Nous finalisons notre service d’impression et de livraison. Ce produit ne peut pas encore être personnalisé ni commandé.', 'calitiki-bridge') . '</p>';
+            echo '<span class="button disabled" aria-disabled="true">' . esc_html__('Bientôt disponible', 'calitiki-bridge') . '</span>';
+            echo '</div>';
+            return;
+        }
+        $label = $format === 'ebook' ? __('Personnaliser mon pack numérique', 'calitiki-bridge') : __('Personnaliser votre livre imprimé', 'calitiki-bridge');
         echo '<div class="calitiki-personalize-cta">';
-        echo '<p>' . esc_html__('Ce livre est créé sur mesure. Personnalisez et prévisualisez votre histoire avant de l’ajouter au panier.', 'calitiki-bridge') . '</p>';
+        echo '<p>' . esc_html($format === 'ebook' ? __('Le pack numérique comprend le PDF à télécharger et le livre interactif à lire en ligne. Personnalisez et prévisualisez votre histoire avant de l’ajouter au panier.', 'calitiki-bridge') : __('Ce livre est créé sur mesure. Personnalisez et prévisualisez votre histoire avant de l’ajouter au panier.', 'calitiki-bridge')) . '</p>';
         echo '<a class="button alt" href="' . esc_url(self::generator_personalize_url($format)) . '">' . esc_html($label) . ' &rarr;</a>';
         echo '</div>';
     }
 
     public static function personalized_loop_link($html, $product, $args) {
-        if (!self::personalized_format($product)) {
+        $format = self::personalized_format($product);
+        if (!$format) {
             return $html;
+        }
+        if ($format === 'print' && !self::print_book_enabled()) {
+            return '<span class="button disabled calitiki-coming-soon-button" aria-disabled="true">' . esc_html__('Prochainement disponible', 'calitiki-bridge') . '</span>';
         }
         return sprintf('<a href="%s" class="button product_type_variable">%s</a>', esc_url(get_permalink($product->get_id())), esc_html__('Découvrir et personnaliser', 'calitiki-bridge'));
     }
 
     public static function validate_personalized_add_to_cart($passed, $product_id, $quantity, $variation_id = 0, $variations = array(), $cart_item_data = array()) {
-        if (!self::personalized_format($variation_id ?: $product_id)) {
+        $format = self::personalized_format($variation_id ?: $product_id);
+        if (!$format) {
             return $passed;
+        }
+        if ($format === 'print' && !self::print_book_enabled()) {
+            wc_add_notice(__('Le livre imprimé sera prochainement disponible. Il ne peut pas encore être ajouté au panier.', 'calitiki-bridge'), 'notice');
+            return false;
         }
         if (!empty($cart_item_data['_calitiki_authorized']) && !empty($cart_item_data['calitiki_project_id'])) {
             return $passed;
@@ -614,6 +663,9 @@ final class Calitiki_Woo_Bridge {
         $project_id = sanitize_text_field($payload['projectId'] ?? '');
         if (!in_array($format, array('ebook', 'print'), true) || !in_array($pages, array(24, 28, 32, 36, 40, 44), true) || !$project_id) {
             wp_die(esc_html__('La configuration du livre est invalide.', 'calitiki-bridge'), 'Calitiki', array('response' => 400));
+        }
+        if ($format === 'print' && !self::print_book_enabled()) {
+            wp_die(esc_html__('Le livre imprimé sera prochainement disponible. Aucun achat ne peut encore être créé pour ce format.', 'calitiki-bridge'), 'Calitiki', array('response' => 409));
         }
         $product = self::product_for_format($format);
         $variation = self::variation_for_pages($product, $pages);

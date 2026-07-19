@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.1.4');
+define('CALITIKI_THEME_VERSION', '1.1.5');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');

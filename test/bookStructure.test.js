@@ -212,9 +212,10 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
-  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.1\.4'/);
+  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.1\.5'/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
+  assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Address-title h3\{[^}]*word-break:normal/);
   assert.match(frontPage, /id="tous-les-univers" hidden/);
   assert.match(frontPage, /cloud-castle\.webp/);
   assert.match(frontPage, /dinosaur-valley\.webp/);
@@ -224,6 +225,8 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(frontPage, /À partir de 6,69 € · Découvrir/);
   assert.match(frontPage, /Prochainement disponible/);
   assert.match(frontPage, /Pas encore disponible à l’achat/);
+  assert.match(frontPage, /Pack numérique/);
+  assert.match(frontPage, /Deux expériences incluses/);
   assert.match(themeStyles, /\.format-card-coming-soon/);
   assert.match(themeScript, /data-universe-toggle/);
   assert.match(themeFunctions, /data-calitiki-language-switcher/);
@@ -502,7 +505,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.5/);
+  assert.match(plugin, /Version: 0\.5\.6/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -523,12 +526,17 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Lire mon livre interactif/);
   assert.match(plugin, /'destination' => 'interactive_reader'/);
   assert.match(plugin, /interactive_reader_bridge_url/);
+  assert.match(plugin, /PRINT_BOOK_ENABLED_OPTION/);
+  assert.match(plugin, /woocommerce_product_is_purchasable/);
+  assert.match(plugin, /calitiki-coming-soon-button/);
+  assert.match(plugin, /eBook \+ livre interactif inclus/);
+  assert.match(plugin, /Pack numérique personnalisé/);
   const authRoute = await fs.readFile("src/routes/woocommerceAuth.js", "utf8");
   assert.match(authRoute, /projectStore\.getForCustomer\(state\.projectId, identity\)/);
   assert.match(authRoute, /\/interactive-reader\/\?\$\{params\.toString\(\)\}/);
   assert.match(authRoute, /router\.get\("\/auth\/woocommerce\/reader"/);
   assert.match(authRoute, /destination: "interactive_reader"/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.5.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.6.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
