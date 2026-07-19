@@ -1,26 +1,27 @@
 // src/services/openai.js
 import { createOpenAIClient } from "./openaiClient.js";
+import { parseJsonSafe } from "./parseJsonSafe.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "request" });
 }
 
-export async function chatJson({ system, user }) {
+export async function chatJson({ system, user, temperature = 0.2 }) {
   const resp = await getClient().chat.completions.create({
     model: process.env.TEXT_MODEL || "gpt-4.1-mini",
     messages: [
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    temperature: 0.4,
+    // JSON mode prevents Markdown fences and most malformed/truncated structures.
+    response_format: { type: "json_object" },
+    temperature,
   });
 
   const raw = resp.choices?.[0]?.message?.content?.trim() || "";
-
-  try {
-    const data = JSON.parse(raw);
+  const data = parseJsonSafe(raw);
+  if (data && typeof data === "object" && !Array.isArray(data)) {
     return { __json_ok: true, data, raw };
-  } catch {
-    return { __json_ok: false, raw };
   }
+  return { __json_ok: false, raw, finishReason: resp.choices?.[0]?.finish_reason || "" };
 }

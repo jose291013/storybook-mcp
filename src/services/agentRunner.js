@@ -2,15 +2,17 @@
 import { chatJson } from "./openai.js";
 
 export async function runAgent({ name, system, user, input }) {
-  // 1) tentative normale
-  const out1 = await chatJson({ system, user: user(input) });
+  const originalUser = user(input);
+  const out1 = await chatJson({ system, user: originalUser });
 
   if (out1?.__json_ok) return out1.data;
 
-  // 2) repair
+  // Recreate the complete result with its original context. Repairing the malformed
+  // fragment alone can lose required fields when the first response was truncated.
   const out2 = await chatJson({
-    system: "You fix JSON only. Return ONLY valid JSON. No commentary.",
-    user: out1.raw || JSON.stringify(out1, null, 2),
+    system: `${system}\n\nThe previous response was invalid or incomplete JSON. Recreate the complete object in the exact requested schema. Return ONLY valid JSON.`,
+    user: `${originalUser}\n\nINVALID_PREVIOUS_OUTPUT:\n${String(out1.raw || "").slice(0, 12000)}\n\nReturn the complete corrected JSON object.`,
+    temperature: 0,
   });
 
   if (!out2?.__json_ok) {

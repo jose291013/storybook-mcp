@@ -43,6 +43,27 @@ import { persistPreviewAsset, storageBodyToBuffer } from "../src/services/previe
 import { outputImagePath } from "../src/services/imageQualityGate.js";
 import { loadReferencePhotoAssets, persistReferencePhoto } from "../src/services/referencePhotoStorage.js";
 import { referencePhotoRecoveryAvailable } from "../src/services/referencePhotoRecovery.js";
+import { parseJsonSafe } from "../src/services/parseJsonSafe.js";
+
+test("agent JSON parsing accepts fenced output and extracts one balanced object safely", () => {
+  assert.deepEqual(parseJsonSafe('```json\n{"storybrand":{"hero":"Noa"}}\n```'), {
+    storybrand: { hero: "Noa" },
+  });
+  assert.deepEqual(parseJsonSafe('Result: {"storybrand":{"guide_name":"Luma"}} trailing text'), {
+    storybrand: { guide_name: "Luma" },
+  });
+  assert.deepEqual(parseJsonSafe('{"first":1} {"second":2}'), { first: 1 });
+});
+
+test("OpenAI agent runner enforces JSON mode and retries with the original context", async () => {
+  const [openaiSource, runnerSource] = await Promise.all([
+    fs.readFile("src/services/openai.js", "utf8"),
+    fs.readFile("src/services/agentRunner.js", "utf8"),
+  ]);
+  assert.match(openaiSource, /response_format:\s*\{\s*type:\s*["']json_object["']/);
+  assert.match(runnerSource, /const originalUser = user\(input\)/);
+  assert.match(runnerSource, /INVALID_PREVIOUS_OUTPUT/);
+});
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
