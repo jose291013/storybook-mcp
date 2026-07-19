@@ -74,6 +74,7 @@ Last updated: 2026-07-18
 - eBook assembly is distinct from print imposition: after the cover and opening, every narrative spread is ordered **text then illustration**, followed by the closing moral. Existing paid PDFs with the legacy print-side alternation are detected from their storage key and rebuilt in the background from the same private preview assets, without regenerating illustrations. **My creations Calitiki** automatically retries a ready-message that was never recorded and provides an authenticated **Resend email** action with an explicit SMTP failure notice.
 - New preview covers and composed pages are copied to the same private S3-compatible storage as soon as they are generated. The reader serves them through a customer-authenticated route, and paid eBook assembly reads those durable objects instead of relying on Render's ephemeral filesystem. Legacy previews created before this checkpoint must be rebuilt once if their local source files were lost.
 - Every new draft illustration passes a low-cost technical file check before it reaches the reader. Only corrupted, blank, striped or visibly incomplete outputs are regenerated automatically, with two attempts by default; wardrobe, cast, composition and aesthetic preferences never trigger an automatic retry. Before purchase, the customer may report a suspected technical defect. The server inspects the existing private asset first and regenerates it only when an objective defect is confirmed. Each page can be checked once, at most three pages per project can be checked, and only one confirmed repair per project may launch image generation (maximum two attempts). Failed repairs are counted, no wallet credit is consumed, and purchased revisions are never overwritten. Aesthetic improvement remains a separate paid modification.
+- OpenAI calls now have explicit bounded timeouts and no hidden SDK retries by default. Image attempts are logged with the job and page number. After a deployment or a generation with no progress, the same customer project can recover its abandoned job: every still-reserved preview credit is released idempotently before the technical retry, so the customer is never charged twice.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -98,6 +99,9 @@ Last updated: 2026-07-18
 - `IMAGE_CONTENT_QA_ENABLED`: enables visual content inspection of generated illustrations (default enabled; set to `false` only for local troubleshooting).
 - `IMAGE_QA_MODEL`: vision model used for the economical illustration check, default `gpt-4.1-mini`.
 - `IMAGE_GENERATION_ATTEMPTS`: maximum automatic attempts for a technically defective illustration, default 2.
+- `OPENAI_REQUEST_TIMEOUT_MS`, `OPENAI_IMAGE_TIMEOUT_MS`, `OPENAI_QA_TIMEOUT_MS`: maximum duration of general, image and technical-QA calls (defaults 180000, 180000 and 60000 ms).
+- `OPENAI_REQUEST_MAX_RETRIES`, `OPENAI_IMAGE_MAX_RETRIES`, `OPENAI_QA_MAX_RETRIES`: SDK-level retries for the corresponding calls (default 0; the product-level idempotent retry remains authoritative).
+- `PREVIEW_STALE_MINUTES`: no-progress period after which a preview job can be recovered, default 15 minutes.
 
 ## Resume prompt for a new Codex task
 

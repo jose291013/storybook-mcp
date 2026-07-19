@@ -1,11 +1,10 @@
 // src/agents/textWriter.js
-import OpenAI from "openai";
 import { loadPrompt } from "../services/loadPrompt.js";
 import { bookLanguageInstruction, normalizeBookLanguage } from "../config/bookLanguages.js";
+import { createOpenAIClient } from "../services/openaiClient.js";
 
 function getClient() {
-  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return createOpenAIClient({ kind: "request" });
 }
 
 function extractText(res) {

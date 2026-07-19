@@ -1,5 +1,5 @@
 import express from "express";
-import { createJob, updateJob } from "../services/jobStore.js";
+import { createJob, getJob, updateJob } from "../services/jobStore.js";
 import { generateQualityCheckedImage, outputImagePath } from "../services/imageQualityGate.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
@@ -25,6 +25,43 @@ import { previewEntitlementsEnabled, previewPriceCents } from "../config/preview
 import { persistPreviewAsset } from "../services/previewAssetStorage.js";
 
 const router = express.Router();
+
+function previewStaleAfterMs() {
+  const minutes = Number.parseInt(process.env.PREVIEW_STALE_MINUTES || "15", 10) || 15;
+  return Math.max(5, Math.min(60, minutes)) * 60000;
+}
+
+function isActivePreviewJob(job) {
+  if (!job || !["queued", "running"].includes(job.status)) return false;
+  const updatedAt = Date.parse(job.updatedAt || job.createdAt || "");
+  return Number.isFinite(updatedAt) && Date.now() - updatedAt < previewStaleAfterMs();
+}
+
+function reportImageAttempt(jobId, stepPrefix) {
+  return ({ phase, attempt, maximumAttempts, error = "", issues = [] }) => {
+    const step = `${stepPrefix}:attempt:${attempt}/${maximumAttempts}:${phase}`;
+    updateJob(jobId, { step });
+    console.info("[preview] image", JSON.stringify({ jobId, step, error: error || undefined, issues: issues.length ? issues : undefined }));
+  };
+}
+
+async function recoverAbandonedPreview({ project, identity }) {
+  const existingJob = project.generationJobId ? getJob(project.generationJobId) : null;
+  if (existingJob && !["done", "failed"].includes(existingJob.status)) {
+    updateJob(existingJob.id, { status: "failed", step: "preview:abandoned", error: "Preview generation became unresponsive" });
+  }
+  const released = await creditStore.releasePreviewForProject(identity, { projectId: project.id });
+  const recovered = await projectStore.updateForCustomer(project.id, identity, {
+    status: "preview_failed",
+    generationJobId: null,
+  });
+  console.warn("[preview] recovered abandoned generation", JSON.stringify({
+    projectId: project.id,
+    previousJobId: project.generationJobId || null,
+    releasedReservations: released?.releasedCount || 0,
+  }));
+  return recovered || project;
+}
 
 async function describeReferences({ photos, answers, baseUrl, jobId }) {
   const canons = [];
@@ -65,10 +102,18 @@ router.post("/preview", async (req, res) => {
 
   const projectId = String(req.body?.projectId || "");
   if (!projectId) return res.status(400).json({ error: "A saved project is required" });
-  const project = await projectStore.getForCustomer(projectId, identity);
+  let project = await projectStore.getForCustomer(projectId, identity);
   if (!project) return res.status(404).json({ error: "Project not found" });
   if (project.status === "preview_generating") {
-    return res.status(409).json({ error: "Preview generation is already in progress" });
+    const existingJob = project.generationJobId ? getJob(project.generationJobId) : null;
+    if (isActivePreviewJob(existingJob)) {
+      return res.json({ jobId: existingJob.id, resumed: true });
+    }
+    try {
+      project = await recoverAbandonedPreview({ project, identity });
+    } catch (error) {
+      return res.status(500).json({ error: `Unable to recover the interrupted preview: ${String(error?.message || error)}` });
+    }
   }
   if (project.status === "preview_ready" && project.previewResult) {
     return res.status(409).json({ error: "This draft has already been generated" });
@@ -105,6 +150,7 @@ router.post("/preview", async (req, res) => {
   const job = createJob({
     status: "running",
     kind: "draft_book",
+    creditReservationId: creditReservation?.id || null,
     referencePhotos: normalized.photos,
     projectId,
     productConfiguration: {
@@ -120,6 +166,7 @@ router.post("/preview", async (req, res) => {
     },
   });
   await projectStore.updateForCustomer(projectId, identity, { status: "preview_generating", generationJobId: job.id });
+  console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
   res.json({ jobId: job.id });
 
   (async () => {
@@ -225,6 +272,7 @@ router.post("/preview", async (req, res) => {
         outName: `draft-cover-${job.id}`,
         castPresent: final_blueprint.cover.cast_present || [],
         pageLabel: "book cover illustration",
+        onAttempt: reportImageAttempt(job.id, "draft:cover"),
         ...coverContinuity,
         size: "1024x1024",
         quality: "low",
@@ -276,6 +324,7 @@ router.post("/preview", async (req, res) => {
             outName: `draft-page${page.page_number}-${job.id}`,
             castPresent: page.cast_present || [],
             pageLabel: `interior illustration for page ${page.page_number}`,
+            onAttempt: reportImageAttempt(job.id, `draft:page:${page.page_number}`),
             ...sceneContinuity,
             size: "1024x1024",
             quality: "low",
@@ -330,8 +379,10 @@ router.post("/preview", async (req, res) => {
           generationJobId: job.id,
         });
       }
+      console.info("[preview] completed", JSON.stringify({ jobId: job.id, projectId, pageCount: draftPages.length }));
     } catch (error) {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+      console.error("[preview] failed", JSON.stringify({ jobId: job.id, projectId, error: String(error?.message || error) }));
       if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
       if (job.projectId) await projectStore.update(job.projectId, { status: "preview_failed", generationJobId: job.id });
     }

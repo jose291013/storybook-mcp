@@ -265,6 +265,11 @@ test("promotion credit is redeemable once per customer and successful preview sp
     const released = await store.reservePreview(identity, { projectId: "project-1", amountCents: 500, idempotencyKey: "preview-2" });
     await store.releasePreview(released.id);
     assert.equal((await store.summary(identity, "project-1")).balanceCents, 500);
+    await store.reservePreview(identity, { projectId: "project-1", amountCents: 250, idempotencyKey: "preview-abandoned" });
+    assert.equal((await store.summary(identity, "project-1")).balanceCents, 250);
+    assert.deepEqual(await store.releasePreviewForProject(identity, { projectId: "project-1" }), { projectId: "project-1", releasedCount: 1 });
+    assert.deepEqual(await store.releasePreviewForProject(identity, { projectId: "project-1" }), { projectId: "project-1", releasedCount: 0 });
+    assert.equal((await store.summary(identity, "project-1")).balanceCents, 500);
     await store.grantPaidOrder(identity, { amountCents: 250, orderId: "woo-1001" });
     await store.grantPaidOrder(identity, { amountCents: 250, orderId: "woo-1001" });
     assert.equal((await store.summary(identity, "project-1")).balanceCents, 750);
@@ -304,6 +309,9 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(previewSource, /creditStore\.reservePreview/);
   assert.match(previewSource, /creditStore\.capturePreview/);
   assert.match(previewSource, /creditStore\.releasePreview/);
+  assert.match(previewSource, /creditStore\.releasePreviewForProject/);
+  assert.match(previewSource, /isActivePreviewJob/);
+  assert.match(previewSource, /resumed: true/);
   assert.match(previewSource, /status\(402\)/);
   assert.match(creditsRoute, /\/credits\/redeem/);
   assert.match(html, /id="creditPanel"/);
@@ -312,6 +320,8 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(html, /id="headerCreditBalance"/);
   assert.match(html, /id="storefrontReturnLink"/);
   assert.match(app, /preparePreviewAuthorization/);
+  assert.match(app, /project\?\.status === "preview_generating"/);
+  assert.match(app, /await generatePreviewForProject\(project\.id\)/);
   assert.match(app, /confirmPreviewAuthorization/);
   assert.doesNotMatch(app, /hasPreviewEntitlement/);
   assert.match(app, /confirmPreviewButton\.addEventListener\("click", confirmPreviewAuthorization\)/);

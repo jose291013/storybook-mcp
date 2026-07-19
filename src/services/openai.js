@@ -1,9 +1,8 @@
 // src/services/openai.js
-import OpenAI from "openai";
+import { createOpenAIClient } from "./openaiClient.js";
 
 function getClient() {
-  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return createOpenAIClient({ kind: "request" });
 }
 
 export async function chatJson({ system, user }) {

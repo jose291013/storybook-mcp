@@ -1,12 +1,11 @@
 import fs from "fs/promises";
 import path from "path";
-import OpenAI from "openai";
 import sharp from "sharp";
 import { generateImage } from "./imageRunner.js";
+import { createOpenAIClient } from "./openaiClient.js";
 
 function getClient() {
-  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return createOpenAIClient({ kind: "qa" });
 }
 
 function extractText(response) {
@@ -73,24 +72,36 @@ export async function generateQualityCheckedImage({
   castPresent = [],
   pageLabel = "illustration",
   maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "2", 10) || 2),
+  onAttempt = null,
   ...generationOptions
 }) {
   let previousIssues = [];
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
+    onAttempt?.({ phase: "started", attempt, maximumAttempts, pageLabel });
     const repairNote = previousIssues.length
       ? `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
       : "";
-    const imageUrl = await generateImage({
-      ...generationOptions,
-      prompt: `${prompt}${repairNote}`,
-      outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
-    });
-    const inspection = await inspectGeneratedIllustration({
-      imagePath: outputImagePath(imageUrl),
-      pageLabel,
-    });
-    if (inspection.approved) return imageUrl;
-    previousIssues = inspection.issues;
+    try {
+      const imageUrl = await generateImage({
+        ...generationOptions,
+        prompt: `${prompt}${repairNote}`,
+        outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
+      });
+      onAttempt?.({ phase: "generated", attempt, maximumAttempts, pageLabel });
+      const inspection = await inspectGeneratedIllustration({
+        imagePath: outputImagePath(imageUrl),
+        pageLabel,
+      });
+      if (inspection.approved) {
+        onAttempt?.({ phase: "approved", attempt, maximumAttempts, pageLabel });
+        return imageUrl;
+      }
+      previousIssues = inspection.issues;
+      onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
+    } catch (error) {
+      onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });
+      throw error;
+    }
   }
   throw new Error(`Illustration rejected after ${maximumAttempts} attempts: ${previousIssues.join(" | ") || "visual quality failure"}`);
 }

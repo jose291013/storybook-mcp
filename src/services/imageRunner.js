@@ -1,12 +1,12 @@
 import path from "path";
 import fs from "fs/promises";
-import OpenAI, { toFile } from "openai";
+import { toFile } from "openai";
 import sharp from "sharp";
 import { saveBase64Png } from "./storageLocal.js";
+import { createOpenAIClient } from "./openaiClient.js";
 
 function getClient() {
-  if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return createOpenAIClient({ kind: "image" });
 }
 
 export function buildFinalPrompt({

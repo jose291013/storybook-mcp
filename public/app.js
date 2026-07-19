@@ -244,6 +244,10 @@ async function confirmPreviewAuthorization() {
     await generatePreviewForProject(state.projectId);
   } catch (error) {
     state.awaitingPreviewConfirmation = true;
+    document.querySelector("#creator").hidden = false;
+    elements.generationPanel.hidden = true;
+    showStep(4, false);
+    await refreshCreditSummary(state.projectId).catch(() => null);
     elements.confirmPreviewButton.disabled = false;
     elements.confirmPreviewButton.textContent = original;
     elements.formError.textContent = error.message;
@@ -688,6 +692,29 @@ async function restoreCompletedPreview() {
   if (!response.ok) return false;
   const payload = await response.json();
   const project = payload.project;
+  if (project?.status === "preview_generating" && project.generationJobId) {
+    showGenerationPanel();
+    try {
+      const jobResponse = await fetch(`/api/jobs/${encodeURIComponent(project.generationJobId)}`, { cache: "no-store" });
+      if (jobResponse.ok) {
+        const job = await pollJob(project.generationJobId);
+        elements.generationBar.style.width = "100%";
+        showCompletedPreview(job, { scroll: false });
+      } else {
+        await generatePreviewForProject(project.id);
+      }
+    } catch (error) {
+      document.querySelector("#creator").hidden = false;
+      elements.generationPanel.hidden = true;
+      await preparePreviewAuthorization(project.id).catch(() => null);
+      elements.formError.textContent = error.message || tr("generationFailed");
+    }
+    return true;
+  }
+  if (project?.status === "preview_failed") {
+    await preparePreviewAuthorization(project.id);
+    return true;
+  }
   if (!["preview_ready", "preview_repairing", "purchased"].includes(project?.status) || !project.previewResult) return false;
   showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint, projectStatus: project.status }, { scroll: false });
   return true;
