@@ -4,6 +4,7 @@ import { creditStore } from "../services/creditStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
+import { technicalPreviewRetryAvailable } from "../services/previewGenerationCheckpoint.js";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get("/credits/summary", async (req, res) => {
     if (projectId && !project) return res.status(404).json({ error: "Project not found" });
     const pageCount = project?.questionnaire?.page_count || project?.productConfiguration?.pageCount || 24;
     const summary = await creditStore.summary(identity, projectId || null);
-    const technicalRetry = technicalReferenceRetryAvailable(project);
+    const technicalRetry = technicalReferenceRetryAvailable(project) || technicalPreviewRetryAvailable(project);
     const requiredCents = technicalRetry ? 0 : previewPriceCents(pageCount);
     res.set("Cache-Control", "no-store");
     res.json({

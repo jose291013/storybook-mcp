@@ -28,6 +28,14 @@ import {
   MissingReferencePhotoError,
   referencePhotoDataUrl,
 } from "../services/referencePhotoStorage.js";
+import {
+  generationCheckpoint,
+  isReusableDraftPage,
+  mergeGenerationCheckpoint,
+  previewRequestFingerprint,
+  technicalPreviewRetryAvailable,
+} from "../services/previewGenerationCheckpoint.js";
+import { notifyPreviewReady } from "../services/previewNotification.js";
 
 const router = express.Router();
 
@@ -57,9 +65,17 @@ async function recoverAbandonedPreview({ project, identity }) {
   }
   const released = await creditStore.releasePreviewForProject(identity, { projectId: project.id });
   const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
-  const continuitySnapshot = referenceRecovery?.consumedAt && !referenceRecovery?.completedAt
+  let continuitySnapshot = referenceRecovery?.consumedAt && !referenceRecovery?.completedAt
     ? { ...project.continuitySnapshot, referenceRecovery: { ...referenceRecovery, available: true, consumedAt: null } }
     : project.continuitySnapshot;
+  const checkpoint = generationCheckpoint(project);
+  continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
+    ...(checkpoint || {}),
+    retryAvailable: checkpoint?.retryConsumedAt ? false : true,
+    retryExhausted: Boolean(checkpoint?.retryConsumedAt),
+    failureReason: "preview_interrupted",
+    failedAt: new Date().toISOString(),
+  });
   const recovered = await projectStore.updateForCustomer(project.id, identity, {
     status: "preview_failed",
     generationJobId: null,
@@ -72,6 +88,24 @@ async function recoverAbandonedPreview({ project, identity }) {
   }));
   return recovered || project;
 }
+
+router.post("/projects/:id/preview-recover", async (req, res) => {
+  let identity;
+  try { identity = readWooCustomer(req); }
+  catch (error) { return res.status(401).json({ error: String(error?.message || error) }); }
+  if (!identity) return res.status(401).json({ error: "Authentication required" });
+  const project = await projectStore.getForCustomer(String(req.params.id || ""), identity);
+  if (!project) return res.status(404).json({ error: "Project not found" });
+  if (project.status !== "preview_generating") {
+    return res.json({ recovered: false, status: project.status, retryAvailable: technicalPreviewRetryAvailable(project) });
+  }
+  try {
+    const recovered = await recoverAbandonedPreview({ project, identity });
+    return res.json({ recovered: true, status: recovered.status, retryAvailable: true });
+  } catch (error) {
+    return res.status(500).json({ error: `Unable to recover the interrupted preview: ${String(error?.message || error)}` });
+  }
+});
 
 async function describeReferences({ photos, answers, referenceAssets, jobId }) {
   const canons = [];
@@ -120,11 +154,10 @@ router.post("/preview", async (req, res) => {
     if (isActivePreviewJob(existingJob)) {
       return res.json({ jobId: existingJob.id, resumed: true });
     }
-    try {
-      project = await recoverAbandonedPreview({ project, identity });
-    } catch (error) {
-      return res.status(500).json({ error: `Unable to recover the interrupted preview: ${String(error?.message || error)}` });
-    }
+    return res.status(409).json({
+      error: "Preview generation was interrupted. Confirm the free technical retry before continuing.",
+      code: "preview_interrupted",
+    });
   }
   if (project.status === "preview_ready" && project.previewResult) {
     return res.status(409).json({ error: "This draft has already been generated" });
@@ -153,9 +186,13 @@ router.post("/preview", async (req, res) => {
 
   const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
   const isTechnicalReferenceRecovery = referenceRecovery?.available === true;
+  const fingerprint = previewRequestFingerprint(normalized);
+  const existingCheckpoint = generationCheckpoint(project, fingerprint);
+  const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
+  const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
 
   let creditReservation = null;
-  if (previewEntitlementsEnabled() && !isTechnicalReferenceRecovery) {
+  if (previewEntitlementsEnabled() && !isTechnicalRetry) {
     const requiredCents = previewPriceCents(normalized.answers.page_count);
     try {
       creditReservation = await creditStore.reservePreview(identity, {
@@ -175,15 +212,22 @@ router.post("/preview", async (req, res) => {
     }
   }
 
-  if (isTechnicalReferenceRecovery) {
-    const continuitySnapshot = {
+  if (isTechnicalReferenceRecovery || isTechnicalGenerationRetry) {
+    let continuitySnapshot = {
       ...project.continuitySnapshot,
-      referenceRecovery: {
+      ...(isTechnicalReferenceRecovery ? { referenceRecovery: {
         ...referenceRecovery,
         available: false,
         consumedAt: new Date().toISOString(),
-      },
+      } } : {}),
     };
+    if (isTechnicalGenerationRetry) {
+      continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
+        ...existingCheckpoint,
+        retryAvailable: false,
+        retryConsumedAt: new Date().toISOString(),
+      });
+    }
     project = await projectStore.updateForCustomer(projectId, identity, { continuitySnapshot }) || project;
   }
 
@@ -205,7 +249,22 @@ router.post("/preview", async (req, res) => {
       woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
     },
   });
-  await projectStore.updateForCustomer(projectId, identity, { status: "preview_generating", generationJobId: job.id });
+  const initialCheckpoint = existingCheckpoint || { fingerprint };
+  const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = project.continuitySnapshot || {};
+  const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? project.continuitySnapshot : continuityWithoutOldCheckpoint, {
+    ...initialCheckpoint,
+    fingerprint,
+    phase: "started",
+    failureReason: null,
+    failedAt: null,
+  });
+  await projectStore.updateForCustomer(projectId, identity, {
+    status: "preview_generating",
+    generationJobId: job.id,
+    continuitySnapshot: initialSnapshot,
+    previewResult: existingCheckpoint ? project.previewResult : null,
+    finalBlueprint: existingCheckpoint ? project.finalBlueprint : null,
+  });
   console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
   res.json({ jobId: job.id });
 
@@ -214,24 +273,40 @@ router.post("/preview", async (req, res) => {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const { answers, photos } = normalized;
 
-      updateJob(job.id, { step: "intake" });
-      const intake = await intakeAgent(answers);
+      let checkpoint = existingCheckpoint || { fingerprint };
+      const persistCheckpoint = async (patch, projectPatch = {}) => {
+        const latest = await projectStore.get(job.projectId);
+        checkpoint = { ...checkpoint, ...patch, fingerprint };
+        return projectStore.update(job.projectId, {
+          ...projectPatch,
+          continuitySnapshot: mergeGenerationCheckpoint(latest?.continuitySnapshot || project.continuitySnapshot, checkpoint),
+        });
+      };
 
-      const characterCanons = await describeReferences({ photos, answers, referenceAssets, jobId: job.id });
+      updateJob(job.id, { step: "intake" });
+      const intake = checkpoint.intake || await intakeAgent(answers);
+      if (!checkpoint.intake) await persistCheckpoint({ intake, phase: "intake" });
+
+      const characterCanons = checkpoint.characterCanons || await describeReferences({ photos, answers, referenceAssets, jobId: job.id });
       updateJob(job.id, { characterCanons });
+      if (!checkpoint.characterCanons) await persistCheckpoint({ characterCanons, phase: "references" });
 
       updateJob(job.id, { step: "heroClassifier" });
-      const hero_profile = await heroClassifierAgent(intake);
+      const hero_profile = checkpoint.heroProfile || await heroClassifierAgent(intake);
+      if (!checkpoint.heroProfile) await persistCheckpoint({ heroProfile: hero_profile, phase: "hero" });
       updateJob(job.id, { step: "storybrand" });
-      const storybrand = await storybrandAgent({ intake, hero_profile });
+      const storybrand = checkpoint.storybrand || await storybrandAgent({ intake, hero_profile });
+      if (!checkpoint.storybrand) await persistCheckpoint({ storybrand, phase: "storybrand" });
       updateJob(job.id, { step: "worldBuilder" });
-      const world = await worldBuilderAgent(intake);
+      const world = checkpoint.world || await worldBuilderAgent(intake);
+      if (!checkpoint.world) await persistCheckpoint({ world, phase: "world" });
       updateJob(job.id, { step: "style" });
-      const style = await styleAgent(intake);
+      const style = checkpoint.style || await styleAgent(intake);
+      if (!checkpoint.style) await persistCheckpoint({ style, phase: "style" });
 
       updateJob(job.id, { step: "blueprint" });
       const childCanon = characterCanons.find((canon) => canon.role === "child");
-      let final_blueprint = await blueprintFillerAgent({
+      let final_blueprint = checkpoint.finalBlueprint || await blueprintFillerAgent({
         intake,
         hero_profile,
         storybrand,
@@ -244,7 +319,7 @@ router.post("/preview", async (req, res) => {
       });
 
       updateJob(job.id, { step: "qa", final_blueprint });
-      let qa = await qaAgent(final_blueprint);
+      let qa = checkpoint.finalBlueprint ? { qa: { status: "approved", issues: [] } } : await qaAgent(final_blueprint);
       const maximumRepairAttempts = 3;
       for (let repairAttempt = 1; qa?.qa?.status !== "approved" && repairAttempt <= maximumRepairAttempts; repairAttempt += 1) {
         updateJob(job.id, {
@@ -277,13 +352,18 @@ router.post("/preview", async (req, res) => {
         });
         throw new Error(qa?.qa?.issues?.join(" | ") || "Blueprint QA failed");
       }
+      if (!checkpoint.finalBlueprint) await persistCheckpoint({ finalBlueprint: final_blueprint, phase: "blueprint" }, { finalBlueprint: final_blueprint });
 
       const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
-      const draftTextByPage = new Map();
+      const draftTextByPage = new Map(Object.entries(checkpoint.draftTexts || {}).map(([page, text]) => [Number(page), text]));
       let previousText = "";
       for (const textPage of final_blueprint.pages.filter((page) => (
         ["text", "opening_text", "closing_text"].includes(page.page_type)
       ))) {
+        if (draftTextByPage.has(textPage.page_number)) {
+          previousText = draftTextByPage.get(textPage.page_number);
+          continue;
+        }
         updateJob(job.id, { step: `draft:text:page:${textPage.page_number}` });
         const written = await textWriterAgent({
           language: final_blueprint.language,
@@ -298,46 +378,64 @@ router.post("/preview", async (req, res) => {
         const text = written.page_text.text;
         draftTextByPage.set(textPage.page_number, text);
         previousText = text;
+        await persistCheckpoint({ draftTexts: Object.fromEntries(draftTextByPage), phase: `text:${textPage.page_number}` });
       }
 
       updateJob(job.id, { step: "draft:cover" });
-      const coverContinuity = buildSceneContinuity({
-        blueprint: final_blueprint,
-        characterCanons,
-        castPresent: final_blueprint.cover.cast_present || [],
-        scenePrompt: final_blueprint.cover.image_prompt,
-        referenceAssets,
-      });
-      const localCoverImageUrl = await generateQualityCheckedImage({
-        prompt: final_blueprint.cover.image_prompt,
-        outName: `draft-cover-${job.id}`,
-        castPresent: final_blueprint.cover.cast_present || [],
-        pageLabel: "book cover illustration",
-        onAttempt: reportImageAttempt(job.id, "draft:cover"),
-        ...coverContinuity,
-        size: "1024x1024",
-        quality: "low",
-        model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
-      });
-      const localCoverPreviewUrl = await composeBookPagePNG({
-        baseUrl,
-        imageUrl: localCoverImageUrl,
-        title: final_blueprint.cover.title,
-        outName: `draft-cover-page-${job.id}`,
-        pageType: "cover",
-        dpi: 150,
-      });
-      const persistedCoverImage = await persistPreviewAsset({ projectId, assetUrl: localCoverImageUrl });
-      const persistedCover = await persistPreviewAsset({ projectId, assetUrl: localCoverPreviewUrl });
-      const coverImageUrl = persistedCoverImage.previewUrl;
-      const coverImageStorageKey = persistedCoverImage.storageKey;
-      const coverPreviewUrl = persistedCover.previewUrl;
-      const coverStorageKey = persistedCover.storageKey;
+      const storedProject = await projectStore.get(job.projectId);
+      const priorResult = existingCheckpoint ? (storedProject?.previewResult || {}) : {};
+      let localCoverImageUrl = "";
+      let coverImageUrl = priorResult.coverImageUrl || "";
+      let coverImageStorageKey = priorResult.coverImageStorageKey || "";
+      let coverPreviewUrl = priorResult.coverPreviewUrl || "";
+      let coverStorageKey = priorResult.coverStorageKey || "";
+      if (!coverImageStorageKey || !coverStorageKey || !coverPreviewUrl) {
+        const coverContinuity = buildSceneContinuity({
+          blueprint: final_blueprint,
+          characterCanons,
+          castPresent: final_blueprint.cover.cast_present || [],
+          scenePrompt: final_blueprint.cover.image_prompt,
+          referenceAssets,
+        });
+        localCoverImageUrl = await generateQualityCheckedImage({
+          prompt: final_blueprint.cover.image_prompt,
+          outName: `draft-cover-${job.id}`,
+          castPresent: final_blueprint.cover.cast_present || [],
+          pageLabel: "book cover illustration",
+          onAttempt: reportImageAttempt(job.id, "draft:cover"),
+          ...coverContinuity,
+          size: "1024x1024",
+          quality: "low",
+          model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
+        });
+        const localCoverPreviewUrl = await composeBookPagePNG({
+          baseUrl,
+          imageUrl: localCoverImageUrl,
+          title: final_blueprint.cover.title,
+          outName: `draft-cover-page-${job.id}`,
+          pageType: "cover",
+          dpi: 150,
+        });
+        const persistedCoverImage = await persistPreviewAsset({ projectId, assetUrl: localCoverImageUrl });
+        const persistedCover = await persistPreviewAsset({ projectId, assetUrl: localCoverPreviewUrl });
+        coverImageUrl = persistedCoverImage.previewUrl;
+        coverImageStorageKey = persistedCoverImage.storageKey;
+        coverPreviewUrl = persistedCover.previewUrl;
+        coverStorageKey = persistedCover.storageKey;
+        await persistCheckpoint({ phase: "cover" }, {
+          previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: priorResult.draftPages || [] },
+        });
+      }
 
-      const draftPages = [];
-      const coverReferencePath = outputImagePath(localCoverImageUrl);
+      const draftPages = (priorResult.draftPages || []).filter(isReusableDraftPage);
+      const completedPageNumbers = new Set(draftPages.map((page) => Number(page.page_number)));
+      const coverReferencePath = localCoverImageUrl ? outputImagePath(localCoverImageUrl) : "";
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
+        if (completedPageNumbers.has(Number(page.page_number))) {
+          updateJob(job.id, { result: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] } });
+          continue;
+        }
         let text = "";
         let imageUrl = "";
         let imageStorageKey = "";
@@ -357,7 +455,7 @@ router.post("/preview", async (req, res) => {
             castPresent: page.cast_present || [],
             scenePrompt: page.image_prompt,
             visualState: page.visual_state || {},
-            continuityImagePath: coverReferencePath,
+            ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
             pairedText,
             referenceAssets,
           });
@@ -400,7 +498,11 @@ router.post("/preview", async (req, res) => {
           previewUrl: persistedPage.previewUrl,
           storageKey: persistedPage.storageKey,
         });
-        updateJob(job.id, { result: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] } });
+        draftPages.sort((left, right) => Number(left.page_number) - Number(right.page_number));
+        completedPageNumbers.add(Number(page.page_number));
+        const partialResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+        updateJob(job.id, { result: partialResult });
+        await persistCheckpoint({ phase: `page:${page.page_number}` }, { previewResult: partialResult, finalBlueprint: final_blueprint });
       }
 
       updateJob(job.id, {
@@ -413,10 +515,12 @@ router.post("/preview", async (req, res) => {
       });
       if (job.projectId) {
         if (creditReservation?.id) await creditStore.capturePreview(creditReservation.id);
-        await projectStore.update(job.projectId, {
+        const latest = await projectStore.get(job.projectId);
+        const readyProject = await projectStore.update(job.projectId, {
           status: "preview_ready",
           finalBlueprint: final_blueprint,
-          continuitySnapshot: {
+          continuitySnapshot: mergeGenerationCheckpoint({
+            ...(latest?.continuitySnapshot || project.continuitySnapshot),
             characterCanons,
             ...(isTechnicalReferenceRecovery ? {
               referenceRecovery: {
@@ -425,10 +529,27 @@ router.post("/preview", async (req, res) => {
                 completedAt: new Date().toISOString(),
               },
             } : {}),
-          },
+          }, { ...checkpoint, phase: "done", retryAvailable: false, retryExhausted: false, completedAt: new Date().toISOString() }),
           previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
           generationJobId: job.id,
         });
+        if (readyProject?.continuitySnapshot?.previewNotification?.emailRequested) {
+          try {
+            await notifyPreviewReady({ project: readyProject, identity });
+            const refreshed = await projectStore.get(job.projectId);
+            await projectStore.update(job.projectId, {
+              continuitySnapshot: {
+                ...refreshed.continuitySnapshot,
+                previewNotification: {
+                  ...refreshed.continuitySnapshot.previewNotification,
+                  sentAt: new Date().toISOString(),
+                },
+              },
+            });
+          } catch (notificationError) {
+            console.warn("[preview] ready email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
+          }
+        }
       }
       console.info("[preview] completed", JSON.stringify({ jobId: job.id, projectId, pageCount: draftPages.length }));
     } catch (error) {
@@ -436,12 +557,23 @@ router.post("/preview", async (req, res) => {
       console.error("[preview] failed", JSON.stringify({ jobId: job.id, projectId, error: String(error?.message || error) }));
       if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
       if (job.projectId) {
-        const continuitySnapshot = isTechnicalReferenceRecovery
-          ? {
-            ...project.continuitySnapshot,
+        const latest = await projectStore.get(job.projectId);
+        const priorCheckpoint = generationCheckpoint(latest, fingerprint) || checkpoint;
+        const retryWasConsumed = Boolean(priorCheckpoint?.retryConsumedAt || isTechnicalGenerationRetry);
+        let continuitySnapshot = {
+          ...(latest?.continuitySnapshot || project.continuitySnapshot),
+          ...(isTechnicalReferenceRecovery ? {
             referenceRecovery: { ...referenceRecovery, available: true, consumedAt: null },
-          }
-          : project.continuitySnapshot;
+          } : {}),
+        };
+        continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
+          ...priorCheckpoint,
+          fingerprint,
+          retryAvailable: !retryWasConsumed,
+          retryExhausted: retryWasConsumed,
+          failureReason: "preview_generation_failed",
+          failedAt: new Date().toISOString(),
+        });
         await projectStore.update(job.projectId, {
           status: "preview_failed",
           generationJobId: job.id,

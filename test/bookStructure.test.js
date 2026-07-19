@@ -389,7 +389,11 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(html, /id="storefrontReturnLink"/);
   assert.match(app, /preparePreviewAuthorization/);
   assert.match(app, /project\?\.status === "preview_generating"/);
-  assert.match(app, /await generatePreviewForProject\(project\.id\)/);
+  assert.doesNotMatch(app, /await generatePreviewForProject\(project\.id\)/);
+  assert.match(app, /preview-recover/);
+  assert.match(app, /retryPreviewFree/);
+  assert.match(previewSource, /mergeGenerationCheckpoint/);
+  assert.match(previewSource, /completedPageNumbers/);
   assert.match(app, /confirmPreviewAuthorization/);
   assert.doesNotMatch(app, /hasPreviewEntitlement/);
   assert.match(app, /confirmPreviewButton\.addEventListener\("click", confirmPreviewAuthorization\)/);
@@ -583,7 +587,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.6/);
+  assert.match(plugin, /Version: 0\.5\.7/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -592,6 +596,9 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Renvoyer l’e-mail/);
   assert.match(plugin, /configuration SMTP/);
   assert.match(plugin, /WC\(\)->mailer\(\)/);
+  assert.match(plugin, /maybe_send_preview_ready_email/);
+  assert.match(plugin, /hash_equals\(\$expected_signature, \$provided_signature\)/);
+  assert.match(plugin, /wp_mail\(\$user->user_email/);
   assert.match(plugin, /store_ebook_resend_notice/);
   assert.match(plugin, /catch \(Throwable \$error\)/);
   const resendHandler = plugin.slice(plugin.indexOf("public static function resend_ebook_email"), plugin.indexOf("public static function settings_link"));
@@ -614,7 +621,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(authRoute, /\/interactive-reader\/\?\$\{params\.toString\(\)\}/);
   assert.match(authRoute, /router\.get\("\/auth\/woocommerce\/reader"/);
   assert.match(authRoute, /destination: "interactive_reader"/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.6.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.7.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });

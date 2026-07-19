@@ -7,6 +7,10 @@ import { buildInteractiveBookManifest, InteractiveBookUnavailableError } from ".
 import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
 import { loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
 import { referencePhotoRecoveryAvailable, technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
+import {
+  technicalPreviewRetryAvailable,
+  technicalPreviewRetryExhausted,
+} from "../services/previewGenerationCheckpoint.js";
 
 const router = express.Router();
 
@@ -17,8 +21,29 @@ function publicProject(project) {
     ...safe,
     referenceRecoveryAvailable: referencePhotoRecoveryAvailable(project),
     technicalReferenceRetryAvailable: technicalReferenceRetryAvailable(project),
+    technicalPreviewRetryAvailable: technicalPreviewRetryAvailable(project),
+    technicalPreviewRetryExhausted: technicalPreviewRetryExhausted(project),
   };
 }
+
+router.post("/projects/:id/preview-notification", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    const current = project.continuitySnapshot?.previewNotification || {};
+    const continuitySnapshot = {
+      ...project.continuitySnapshot,
+      previewNotification: {
+        ...current,
+        emailRequested: req.body?.email === true,
+        requestedAt: new Date().toISOString(),
+      },
+    };
+    const updated = await projectStore.updateForCustomer(project.id, identity, { continuitySnapshot });
+    res.json({ notification: updated.continuitySnapshot.previewNotification });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
 
 function requireIdentity(req, res) {
   try {

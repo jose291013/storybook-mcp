@@ -83,11 +83,16 @@ const elements = {
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
+  notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
 };
+
+class TechnicalGenerationError extends Error {
+  constructor(message, code = "preview_generation_failed") { super(message); this.code = code; this.technical = true; }
+}
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
 
@@ -245,6 +250,12 @@ async function confirmPreviewAuthorization() {
     state.awaitingPreviewConfirmation = false;
     await generatePreviewForProject(state.projectId);
   } catch (error) {
+    if (error?.technical) {
+      elements.confirmPreviewButton.disabled = false;
+      elements.confirmPreviewButton.textContent = original;
+      await showGenerationFailure();
+      return;
+    }
     state.awaitingPreviewConfirmation = true;
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;
@@ -562,7 +573,7 @@ function generationProgress(step = "") { const match = step.match(/page:(\d+)/);
 function friendlyStep(step = "") { if (step.includes("photo")) return tr("progressPhoto"); if (step.includes("storybrand")) return tr("progressStory"); if (step.includes("blueprint")) return tr("progressBlueprint"); if (step.includes("cover")) return tr("progressCover"); const match = step.match(/page:(\d+)/); return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing"); }
 
 async function pollJob(jobId) {
-  for (;;) { const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`); const job = await response.json(); if (!response.ok) throw new Error(job.error || tr("pollError")); elements.generationBar.style.width = `${generationProgress(job.step)}%`; elements.generationStep.textContent = friendlyStep(job.step); if (job.status === "done") return job; if (job.status === "failed") throw new Error(job.error || tr("generationFailed")); await new Promise((resolve) => setTimeout(resolve, 2200)); }
+  for (;;) { const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`); const job = await response.json(); if (!response.ok) throw new TechnicalGenerationError(tr("generationFailed"), "preview_interrupted"); elements.generationBar.style.width = `${generationProgress(job.step)}%`; elements.generationStep.textContent = friendlyStep(job.step); if (job.status === "done") return job; if (job.status === "failed") throw new TechnicalGenerationError(tr("generationFailed")); await new Promise((resolve) => setTimeout(resolve, 2200)); }
 }
 
 function renderBook(job, { initialPageNumber = 0 } = {}) {
@@ -690,15 +701,67 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
 function showGenerationPanel() {
   document.querySelector("#creator").hidden = true;
   elements.resultSection.hidden = true;
+  elements.generationFailurePanel.hidden = true;
   elements.generationPanel.hidden = false;
   elements.generationBar.style.width = "5%";
   elements.generationStep.textContent = friendlyStep("preparing");
   elements.generationPanel.scrollIntoView({ behavior: "smooth" });
 }
 
+async function savePreviewNotificationPreference() {
+  if (!state.projectId || !state.customerSession?.authenticated) return;
+  const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-notification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: elements.notifyPreviewEmail.checked }),
+  });
+  if (!response.ok) elements.generationStep.textContent = tr("notifyPreviewEmailError");
+}
+
+async function showGenerationFailure(project = null) {
+  if (!project && state.projectId) {
+    const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+    if (response.ok) project = (await response.json()).project;
+  }
+  if (project?.status === "preview_generating") {
+    await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-recover`, { method: "POST" }).catch(() => null);
+    const refreshed = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" }).catch(() => null);
+    if (refreshed?.ok) project = (await refreshed.json()).project;
+  }
+  document.querySelector("#creator").hidden = true;
+  elements.generationPanel.hidden = true;
+  elements.resultSection.hidden = true;
+  elements.generationFailurePanel.hidden = false;
+  const exhausted = project?.technicalPreviewRetryExhausted === true;
+  elements.retryPreviewButton.hidden = exhausted;
+  elements.generationFailureSupport.textContent = exhausted ? tr("generationFailureExhausted") : tr("generationFailureSupport");
+  elements.generationFailurePanel.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function retryPreviewFree() {
+  if (!state.projectId || elements.retryPreviewButton.disabled) return;
+  elements.retryPreviewButton.disabled = true;
+  elements.retryPreviewButton.textContent = tr("retryingPreview");
+  try {
+    const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+    const project = projectResponse.ok ? (await projectResponse.json()).project : null;
+    if (project?.status === "preview_generating") {
+      const recovery = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-recover`, { method: "POST" });
+      if (!recovery.ok) throw new TechnicalGenerationError(tr("generationFailed"));
+    }
+    await generatePreviewForProject(state.projectId);
+  } catch (error) {
+    await showGenerationFailure();
+  } finally {
+    elements.retryPreviewButton.disabled = false;
+    elements.retryPreviewButton.textContent = tr("retryPreviewFree");
+  }
+}
+
 function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}) {
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
+  elements.generationFailurePanel.hidden = true;
   elements.resultSection.hidden = false;
   state.referenceRecoveryAvailable = Boolean(job.referenceRecoveryAvailable);
   renderBook(job, { initialPageNumber });
@@ -714,7 +777,7 @@ async function generatePreviewForProject(projectId) {
     body: JSON.stringify({ projectId }),
   });
   const payload = await response.json();
-  if (!response.ok) { if (payload.code === "insufficient_credit") await refreshCreditSummary(projectId); throw new Error(payload.error || tr("startError")); }
+  if (!response.ok) { if (payload.code === "insufficient_credit") await refreshCreditSummary(projectId); if (payload.code === "preview_interrupted") throw new TechnicalGenerationError(tr("generationFailed"), payload.code); throw new Error(payload.error || tr("startError")); }
   showGenerationPanel();
   state.jobId = payload.jobId;
   const job = await pollJob(payload.jobId);
@@ -728,6 +791,7 @@ async function restoreCompletedPreview() {
   if (!response.ok) return false;
   const payload = await response.json();
   const project = payload.project;
+  elements.notifyPreviewEmail.checked = project?.continuitySnapshot?.previewNotification?.emailRequested === true;
   if (project?.status === "preview_generating" && project.generationJobId) {
     showGenerationPanel();
     try {
@@ -737,18 +801,16 @@ async function restoreCompletedPreview() {
         elements.generationBar.style.width = "100%";
         showCompletedPreview(job, { scroll: false });
       } else {
-        await generatePreviewForProject(project.id);
+        await fetch(`/api/projects/${encodeURIComponent(project.id)}/preview-recover`, { method: "POST" });
+        await showGenerationFailure();
       }
     } catch (error) {
-      document.querySelector("#creator").hidden = false;
-      elements.generationPanel.hidden = true;
-      await preparePreviewAuthorization(project.id).catch(() => null);
-      elements.formError.textContent = error.message || tr("generationFailed");
+      await showGenerationFailure();
     }
     return true;
   }
   if (project?.status === "preview_failed") {
-    await preparePreviewAuthorization(project.id);
+    await showGenerationFailure(project);
     return true;
   }
   if (project?.technicalReferenceRetryAvailable) {
@@ -854,6 +916,8 @@ elements.newBookButton.addEventListener("click", startNewBook);
 elements.resultNewBookButton.addEventListener("click", startNewBook);
 elements.redeemPromoButton.addEventListener("click", redeemPromotion);
 elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
+elements.retryPreviewButton.addEventListener("click", retryPreviewFree);
+elements.notifyPreviewEmail.addEventListener("change", () => { savePreviewNotificationPreference().catch(() => null); });
 elements.actionBuyEbook.addEventListener("click", () => openConfiguredCheckout("ebook", elements.actionBuyEbook));
 elements.actionBuyPrint.addEventListener("click", () => openConfiguredCheckout("print", elements.actionBuyPrint));
 elements.actionRecoverReferences.addEventListener("click", beginReferenceRecovery);
