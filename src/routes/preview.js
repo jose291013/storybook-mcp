@@ -23,6 +23,11 @@ import { readWooCustomer } from "../services/draftIdentity.js";
 import { creditStore, InsufficientCreditError } from "../services/creditStore.js";
 import { previewEntitlementsEnabled, previewPriceCents } from "../config/previewPricing.js";
 import { persistPreviewAsset } from "../services/previewAssetStorage.js";
+import {
+  loadReferencePhotoAssets,
+  MissingReferencePhotoError,
+  referencePhotoDataUrl,
+} from "../services/referencePhotoStorage.js";
 
 const router = express.Router();
 
@@ -51,9 +56,14 @@ async function recoverAbandonedPreview({ project, identity }) {
     updateJob(existingJob.id, { status: "failed", step: "preview:abandoned", error: "Preview generation became unresponsive" });
   }
   const released = await creditStore.releasePreviewForProject(identity, { projectId: project.id });
+  const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
+  const continuitySnapshot = referenceRecovery?.consumedAt && !referenceRecovery?.completedAt
+    ? { ...project.continuitySnapshot, referenceRecovery: { ...referenceRecovery, available: true, consumedAt: null } }
+    : project.continuitySnapshot;
   const recovered = await projectStore.updateForCustomer(project.id, identity, {
     status: "preview_failed",
     generationJobId: null,
+    continuitySnapshot,
   });
   console.warn("[preview] recovered abandoned generation", JSON.stringify({
     projectId: project.id,
@@ -63,14 +73,15 @@ async function recoverAbandonedPreview({ project, identity }) {
   return recovered || project;
 }
 
-async function describeReferences({ photos, answers, baseUrl, jobId }) {
+async function describeReferences({ photos, answers, referenceAssets, jobId }) {
   const canons = [];
   for (let index = 0; index < photos.length; index += 1) {
     const photo = photos[index];
     updateJob(jobId, { step: `photo:${index + 1}/${photos.length}` });
     const isChild = photo.role === "child";
     const name = photo.name || (isChild ? answers.hero_name : `${photo.role}-${index + 1}`);
-    const photoUrl = `${baseUrl}/uploads/${photo.id}`;
+    const asset = referenceAssets.get(String(photo.id));
+    const photoUrl = referencePhotoDataUrl(asset);
     const result = await photoDescriptorAgent({
       subject_name: name,
       role: photo.role,
@@ -83,7 +94,7 @@ async function describeReferences({ photos, answers, baseUrl, jobId }) {
     });
     canons.push({
       photoId: photo.id,
-      photoUrl,
+      storageKey: photo.storageKey || asset?.storageKey || "",
       name,
       role: photo.role,
       story_role: photo.story_role,
@@ -126,8 +137,25 @@ router.post("/preview", async (req, res) => {
     return res.status(400).json({ error: String(error?.message || error) });
   }
 
+  let referenceAssets;
+  try {
+    referenceAssets = await loadReferencePhotoAssets(normalized.photos);
+  } catch (error) {
+    if (error instanceof MissingReferencePhotoError) {
+      return res.status(409).json({
+        error: error.message,
+        code: error.code,
+        missingPhotoIds: error.missingPhotoIds,
+      });
+    }
+    return res.status(500).json({ error: String(error?.message || error) });
+  }
+
+  const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
+  const isTechnicalReferenceRecovery = referenceRecovery?.available === true;
+
   let creditReservation = null;
-  if (previewEntitlementsEnabled()) {
+  if (previewEntitlementsEnabled() && !isTechnicalReferenceRecovery) {
     const requiredCents = previewPriceCents(normalized.answers.page_count);
     try {
       creditReservation = await creditStore.reservePreview(identity, {
@@ -145,6 +173,18 @@ router.post("/preview", async (req, res) => {
       }
       return res.status(500).json({ error: String(error?.message || error) });
     }
+  }
+
+  if (isTechnicalReferenceRecovery) {
+    const continuitySnapshot = {
+      ...project.continuitySnapshot,
+      referenceRecovery: {
+        ...referenceRecovery,
+        available: false,
+        consumedAt: new Date().toISOString(),
+      },
+    };
+    project = await projectStore.updateForCustomer(projectId, identity, { continuitySnapshot }) || project;
   }
 
   const job = createJob({
@@ -177,7 +217,7 @@ router.post("/preview", async (req, res) => {
       updateJob(job.id, { step: "intake" });
       const intake = await intakeAgent(answers);
 
-      const characterCanons = await describeReferences({ photos, answers, baseUrl, jobId: job.id });
+      const characterCanons = await describeReferences({ photos, answers, referenceAssets, jobId: job.id });
       updateJob(job.id, { characterCanons });
 
       updateJob(job.id, { step: "heroClassifier" });
@@ -266,6 +306,7 @@ router.post("/preview", async (req, res) => {
         characterCanons,
         castPresent: final_blueprint.cover.cast_present || [],
         scenePrompt: final_blueprint.cover.image_prompt,
+        referenceAssets,
       });
       const localCoverImageUrl = await generateQualityCheckedImage({
         prompt: final_blueprint.cover.image_prompt,
@@ -318,6 +359,7 @@ router.post("/preview", async (req, res) => {
             visualState: page.visual_state || {},
             continuityImagePath: coverReferencePath,
             pairedText,
+            referenceAssets,
           });
           localImageUrl = await generateQualityCheckedImage({
             prompt: page.image_prompt,
@@ -374,7 +416,16 @@ router.post("/preview", async (req, res) => {
         await projectStore.update(job.projectId, {
           status: "preview_ready",
           finalBlueprint: final_blueprint,
-          continuitySnapshot: { characterCanons },
+          continuitySnapshot: {
+            characterCanons,
+            ...(isTechnicalReferenceRecovery ? {
+              referenceRecovery: {
+                ...referenceRecovery,
+                available: false,
+                completedAt: new Date().toISOString(),
+              },
+            } : {}),
+          },
           previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
           generationJobId: job.id,
         });
@@ -384,7 +435,19 @@ router.post("/preview", async (req, res) => {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
       console.error("[preview] failed", JSON.stringify({ jobId: job.id, projectId, error: String(error?.message || error) }));
       if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
-      if (job.projectId) await projectStore.update(job.projectId, { status: "preview_failed", generationJobId: job.id });
+      if (job.projectId) {
+        const continuitySnapshot = isTechnicalReferenceRecovery
+          ? {
+            ...project.continuitySnapshot,
+            referenceRecovery: { ...referenceRecovery, available: true, consumedAt: null },
+          }
+          : project.continuitySnapshot;
+        await projectStore.update(job.projectId, {
+          status: "preview_failed",
+          generationJobId: job.id,
+          continuitySnapshot,
+        });
+      }
     }
   })();
 });

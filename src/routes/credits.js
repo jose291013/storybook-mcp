@@ -3,6 +3,7 @@ import { previewEntitlementsEnabled, previewPriceCents } from "../config/preview
 import { creditStore } from "../services/creditStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
+import { technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
 
 const router = express.Router();
 
@@ -26,10 +27,11 @@ router.get("/credits/summary", async (req, res) => {
     if (projectId && !project) return res.status(404).json({ error: "Project not found" });
     const pageCount = project?.questionnaire?.page_count || project?.productConfiguration?.pageCount || 24;
     const summary = await creditStore.summary(identity, projectId || null);
-    const requiredCents = previewPriceCents(pageCount);
+    const technicalRetry = technicalReferenceRetryAvailable(project);
+    const requiredCents = technicalRetry ? 0 : previewPriceCents(pageCount);
     res.set("Cache-Control", "no-store");
     res.json({
-      enabled: previewEntitlementsEnabled(), pageCount: Number(pageCount), requiredCents,
+      enabled: previewEntitlementsEnabled(), pageCount: Number(pageCount), requiredCents, technicalRetry,
       ...summary, missingCents: Math.max(0, requiredCents - summary.balanceCents),
       buyCreditsUrl: process.env.WOOCOMMERCE_CREDITS_URL || "",
     });

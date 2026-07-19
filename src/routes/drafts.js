@@ -4,13 +4,20 @@ import { projectStore } from "../services/projectStore.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { previewAssetKey } from "../services/previewAssetStorage.js";
 import { buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
+import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
+import { loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
+import { referencePhotoRecoveryAvailable, technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
 
 const router = express.Router();
 
 function publicProject(project) {
   if (!project) return null;
   const { anonymousOwnerHash, customerId, ...safe } = project;
-  return safe;
+  return {
+    ...safe,
+    referenceRecoveryAvailable: referencePhotoRecoveryAvailable(project),
+    technicalReferenceRetryAvailable: technicalReferenceRetryAvailable(project),
+  };
 }
 
 function requireIdentity(req, res) {
@@ -86,6 +93,43 @@ router.get("/projects/:id", async (req, res) => {
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.json({ project: publicProject(project) });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.post("/projects/:id/reference-recovery", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    if (!referencePhotoRecoveryAvailable(project)) {
+      return res.status(409).json({ error: "This project is not eligible for the legacy reference-photo recovery" });
+    }
+    const photos = normalizeReferencePhotos({ photos: req.body?.photos || [] });
+    if (!photos.length) return res.status(400).json({ error: "At least one replacement reference photo is required" });
+    await loadReferencePhotoAssets(photos);
+    const requestedAt = new Date().toISOString();
+    const continuitySnapshot = {
+      ...project.continuitySnapshot,
+      referenceRecovery: {
+        available: true,
+        requestedAt,
+        reason: "legacy_ephemeral_reference_photos",
+        previousGenerationJobId: project.generationJobId || null,
+        previousReferenceCount: Array.isArray(project.photoRefs) ? project.photoRefs.length : 0,
+      },
+    };
+    const updated = await projectStore.updateForCustomer(project.id, identity, {
+      status: "ready_for_preview",
+      photoRefs: photos,
+      continuitySnapshot,
+      generationJobId: null,
+    });
+    res.json({ project: publicProject(updated), retryIsFree: true });
+  } catch (error) {
+    if (error instanceof MissingReferencePhotoError) {
+      return res.status(409).json({ error: error.message, code: error.code, missingPhotoIds: error.missingPhotoIds });
+    }
+    res.status(400).json({ error: String(error?.message || error) });
+  }
 });
 
 router.get("/projects/:id/interactive-book", async (req, res) => {

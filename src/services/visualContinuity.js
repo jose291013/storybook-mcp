@@ -62,6 +62,7 @@ export function buildSceneContinuity({
   visualState = {},
   continuityImagePath = "",
   pairedText = "",
+  referenceAssets = new Map(),
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
   const characterFingerprints = [];
@@ -83,8 +84,13 @@ export function buildSceneContinuity({
     characterFingerprints.push(rules.join(" "));
 
     if (photoCanon?.photoId) {
+      const privateAsset = referenceAssets.get(String(photoCanon.photoId));
       referenceImages.push({
-        path: uploadedPhotoPath(photoCanon.photoId),
+        ...(privateAsset?.buffer
+          ? { buffer: privateAsset.buffer }
+          : photoCanon.storageKey
+            ? { storageKey: photoCanon.storageKey }
+            : { path: uploadedPhotoPath(photoCanon.photoId) }),
         label: `${character.name}, ${role}: primary identity reference; preserve face or animal traits faithfully`,
       });
     }

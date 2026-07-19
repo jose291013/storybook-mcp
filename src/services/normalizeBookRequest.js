@@ -43,7 +43,20 @@ export function normalizeReferencePhotos(body = {}) {
     if (!PHOTO_STORY_ROLES.includes(storyRole)) throw new Error(`Unsupported photo story role: ${storyRole}`);
     if (role !== "child" && storyRole === "hero") throw new Error("Only the child can have the hero story role");
 
-    return { id, role, story_role: storyRole, name: clean(photo?.name), relationship: clean(photo?.relationship) };
+    const storageKey = clean(photo?.storageKey || photo?.storage_key);
+    if (storageKey && !/^reference-photos\/[a-zA-Z0-9._-]+$/.test(storageKey)) {
+      throw new Error(`Reference photo ${index + 1} has an invalid storage key`);
+    }
+    return {
+      id,
+      storageKey,
+      mimeType: clean(photo?.mimeType || photo?.mime_type),
+      size: Number(photo?.size || 0) || 0,
+      role,
+      story_role: storyRole,
+      name: clean(photo?.name),
+      relationship: clean(photo?.relationship),
+    };
   });
 
   if (photos.filter((photo) => photo.role === "child").length > 1) {

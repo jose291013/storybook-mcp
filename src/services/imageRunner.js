@@ -4,6 +4,8 @@ import { toFile } from "openai";
 import sharp from "sharp";
 import { saveBase64Png } from "./storageLocal.js";
 import { createOpenAIClient } from "./openaiClient.js";
+import { getDeliveryStorage } from "./deliveryStorage.js";
+import { storageBodyToBuffer } from "./previewAssetStorage.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "image" });
@@ -47,7 +49,12 @@ async function loadReferenceFiles(referenceImages) {
   const files = [];
   for (let index = 0; index < referenceImages.length; index += 1) {
     const reference = referenceImages[index];
-    const source = await fs.readFile(reference.path);
+    let source;
+    if (Buffer.isBuffer(reference.buffer)) source = reference.buffer;
+    else if (reference.storageKey) {
+      const asset = await getDeliveryStorage().get(reference.storageKey);
+      source = await storageBodyToBuffer(asset.body);
+    } else source = await fs.readFile(reference.path);
     const normalized = await sharp(source)
       .rotate()
       .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
@@ -72,7 +79,7 @@ export async function generateImage({
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
   if (!prompt || typeof prompt !== "string") throw new Error("Missing or invalid prompt");
 
-  const usableReferences = referenceImages.filter((item) => item?.path).slice(0, 8);
+  const usableReferences = referenceImages.filter((item) => item?.path || item?.storageKey || Buffer.isBuffer(item?.buffer)).slice(0, 8);
   const finalPrompt = buildFinalPrompt({
     prompt,
     characterFingerprint,

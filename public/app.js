@@ -55,6 +55,8 @@ const state = {
   projectId: "",
   previewComplete: false,
   awaitingPreviewConfirmation: false,
+  referenceRecoveryMode: false,
+  referenceRecoveryAvailable: false,
   customerSession: { authenticated: false, customer: null },
 };
 
@@ -84,7 +86,7 @@ const elements = {
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
-  creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
+  creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
 };
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
@@ -273,12 +275,45 @@ async function renderPreviewActionCenter({ locked = false } = {}) {
   const summary = await refreshCreditSummary().catch(() => null);
   elements.previewActionCenter.hidden = false;
   elements.actionReadInteractive.href = `/interactive-reader/?project=${encodeURIComponent(state.projectId)}`;
+  elements.actionRecoverReferences.hidden = !state.referenceRecoveryAvailable;
   elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
   elements.actionBuyCredits.hidden = !summary?.buyCreditsUrl;
   if (summary?.buyCreditsUrl) elements.actionBuyCredits.href = summary.buyCreditsUrl;
   elements.actionBuyEbook.disabled = locked;
   elements.actionBuyPrint.disabled = locked || !isProductAvailable("print");
   elements.actionBuyPrint.textContent = isProductAvailable("print") ? tr("buyPrint") : tr("printComingSoonAction");
+}
+
+async function beginReferenceRecovery() {
+  if (!state.projectId || !state.referenceRecoveryAvailable) return;
+  if (!window.confirm(tr("recoverReferencesConfirm"))) return;
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || tr("recoverReferencesError"));
+    const project = payload.project;
+    const questionnaire = project.questionnaire || {};
+    state.pageCount = Number(questionnaire.page_count || project.productConfiguration?.page_count || state.pageCount);
+    state.selectedStyle = questionnaire.style_id || project.productConfiguration?.style_id || state.selectedStyle;
+    state.selectedUniverse = questionnaire.universe_id || project.productConfiguration?.universe_id || state.selectedUniverse;
+    state.fontStyle = questionnaire.font_style || project.productConfiguration?.font_style || state.fontStyle;
+    state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
+    renderQuestions(questionnaire);
+    restoreValues(questionnaire);
+    renderUniverses(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
+    state.photos.forEach((photo) => URL.revokeObjectURL(photo.url));
+    state.photos = [];
+    state.referenceRecoveryMode = true;
+    state.referenceRecoveryAvailable = false;
+    renderPhotos();
+    setPreviewComplete(false);
+    elements.resultSection.hidden = true;
+    document.querySelector("#creator").hidden = false;
+    showStep(3);
+    elements.formError.textContent = tr("recoverReferencesInstructions");
+  } catch (error) {
+    elements.previewRebateText.textContent = error.message || tr("recoverReferencesError");
+  }
 }
 
 async function openConfiguredCheckout(productType, button) {
@@ -520,7 +555,7 @@ async function uploadPhotos() {
   const formData = new FormData(); state.photos.forEach((photo) => formData.append("photos", photo.file));
   const response = await fetch("/api/upload", { method: "POST", body: formData }); const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || tr("uploadError"));
-  return payload.photos.map((uploaded, index) => ({ id: uploaded.id, role: state.photos[index].role, story_role: state.photos[index].storyRole, name: state.photos[index].name.trim(), relationship: state.photos[index].relationship }));
+  return payload.photos.map((uploaded, index) => ({ id: uploaded.id, storageKey: uploaded.storageKey, mimeType: uploaded.mimeType, size: uploaded.size, role: state.photos[index].role, story_role: state.photos[index].storyRole, name: state.photos[index].name.trim(), relationship: state.photos[index].relationship }));
 }
 
 function generationProgress(step = "") { const match = step.match(/page:(\d+)/); if (match) return Math.min(96, 18 + Number(match[1]) * (78 / state.pageCount)); if (step.includes("photo")) return 8; if (step.includes("storybrand")) return 13; if (step.includes("blueprint")) return 17; if (step.includes("cover")) return 21; if (step.includes("done")) return 100; return 5; }
@@ -665,6 +700,7 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
   elements.resultSection.hidden = false;
+  state.referenceRecoveryAvailable = Boolean(job.referenceRecoveryAvailable);
   renderBook(job, { initialPageNumber });
   setPreviewComplete(true);
   renderPreviewActionCenter({ locked: job.projectStatus === "preview_repairing" });
@@ -715,8 +751,13 @@ async function restoreCompletedPreview() {
     await preparePreviewAuthorization(project.id);
     return true;
   }
+  if (project?.technicalReferenceRetryAvailable) {
+    await preparePreviewAuthorization(project.id);
+    elements.creditFeedback.textContent = tr("recoverReferencesReady");
+    return true;
+  }
   if (!["preview_ready", "preview_repairing", "purchased"].includes(project?.status) || !project.previewResult) return false;
-  showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint, projectStatus: project.status }, { scroll: false });
+  showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint, projectStatus: project.status, referenceRecoveryAvailable: project.referenceRecoveryAvailable }, { scroll: false });
   return true;
 }
 
@@ -751,6 +792,20 @@ async function startGeneration(event) {
   let leavingForLogin = false;
   try {
     const uploadedPhotos = await uploadPhotos();
+    if (state.referenceRecoveryMode) {
+      if (!uploadedPhotos.length) throw new Error(tr("recoverReferencesInstructions"));
+      const recoveryResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/reference-recovery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photos: uploadedPhotos }),
+      });
+      const recoveryPayload = await recoveryResponse.json();
+      if (!recoveryResponse.ok) throw new Error(recoveryPayload.error || tr("recoverReferencesError"));
+      state.referenceRecoveryMode = false;
+      await preparePreviewAuthorization(state.projectId);
+      elements.creditFeedback.textContent = tr("recoverReferencesReady");
+      return;
+    }
     const questionnaire = { ...formValues(), ...productConfiguration(), universe_details: document.querySelector("#universe_details").value };
     const project = await saveServerDraft(questionnaire, uploadedPhotos);
     const session = await readCustomerSession();
@@ -801,6 +856,7 @@ elements.redeemPromoButton.addEventListener("click", redeemPromotion);
 elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
 elements.actionBuyEbook.addEventListener("click", () => openConfiguredCheckout("ebook", elements.actionBuyEbook));
 elements.actionBuyPrint.addEventListener("click", () => openConfiguredCheckout("print", elements.actionBuyPrint));
+elements.actionRecoverReferences.addEventListener("click", beginReferenceRecovery);
 elements.logoutButton.addEventListener("click", () => { logoutCustomer().catch((error) => { elements.formError.textContent = error.message; }); });
 
 init();

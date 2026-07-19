@@ -34,9 +34,8 @@ app.use("/fonts", express.static("assets/fonts"));
 // Serve generated images
 app.use("/outputs", express.static("data/outputs"));
 
-// Uploads
+// Reference photos are written to private object storage. They are never exposed as static files.
 app.use("/api", uploadRouter);
-app.use("/uploads", express.static("data/uploads"));
 
 // Health check (Render)
 app.get("/health", (req, res) => res.json({ ok: true }));

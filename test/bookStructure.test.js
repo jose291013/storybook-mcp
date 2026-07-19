@@ -41,6 +41,8 @@ import { signDeliveryToken, verifyDeliveryToken } from "../src/services/delivery
 import { EBOOK_LAYOUT_ID, freshEbookDeliveryLink, fulfillPaidBookOrder } from "../src/services/ebookFulfillment.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../src/services/previewAssetStorage.js";
 import { outputImagePath } from "../src/services/imageQualityGate.js";
+import { loadReferencePhotoAssets, persistReferencePhoto } from "../src/services/referencePhotoStorage.js";
+import { referencePhotoRecoveryAvailable } from "../src/services/referencePhotoRecovery.js";
 
 test("questionnaire contains ten simple questions", () => {
   assert.equal(BOOK_QUESTIONS.length, 10);
@@ -57,6 +59,51 @@ test("questionnaire contains ten simple questions", () => {
     "important_people",
     "universe",
   ]);
+});
+
+test("reference photos are normalized into private durable storage before generation", async () => {
+  const privateDir = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-reference-private-"));
+  try {
+    const storage = new LocalDeliveryStorage(privateDir);
+    const source = await sharp({ create: { width: 80, height: 60, channels: 3, background: "#c9865c" } }).png().toBuffer();
+    const stored = await persistReferencePhoto({ body: source, storage });
+    assert.match(stored.id, /^[a-f0-9-]{36}$/);
+    assert.match(stored.storageKey, /^reference-photos\/[a-f0-9-]{36}\.jpg$/);
+    const assets = await loadReferencePhotoAssets([{ id: stored.id, storageKey: stored.storageKey }], { storage });
+    const metadata = await sharp(assets.get(stored.id).buffer).metadata();
+    assert.equal(metadata.format, "jpeg");
+    assert.ok(metadata.width <= 1600 && metadata.height <= 1600);
+  } finally {
+    await fs.rm(privateDir, { recursive: true, force: true });
+  }
+});
+
+test("preview validates every private reference before reserving credit and never exposes uploads publicly", async () => {
+  const [previewSource, serverSource] = await Promise.all([
+    fs.readFile("src/routes/preview.js", "utf8"),
+    fs.readFile("src/server.js", "utf8"),
+  ]);
+  assert.ok(previewSource.indexOf("loadReferencePhotoAssets(normalized.photos)") < previewSource.indexOf("creditStore.reservePreview"));
+  assert.doesNotMatch(serverSource, /express\.static\(["']data\/uploads/);
+});
+
+test("only legacy previews missing character references receive the one-time free rebuild", () => {
+  const legacy = {
+    status: "preview_ready",
+    createdAt: "2026-07-19T12:00:00.000Z",
+    previewResult: { coverPreviewUrl: "/cover.png" },
+    photoRefs: [{ id: "legacy-child.jpg", role: "child" }],
+    continuitySnapshot: { characterCanons: [] },
+  };
+  assert.equal(referencePhotoRecoveryAvailable(legacy), true);
+  assert.equal(referencePhotoRecoveryAvailable({
+    ...legacy,
+    continuitySnapshot: { referenceRecovery: { requestedAt: "2026-07-19T12:30:00.000Z" } },
+  }), false);
+  assert.equal(referencePhotoRecoveryAvailable({
+    ...legacy,
+    createdAt: "2026-07-20T12:00:00.000Z",
+  }), false);
 });
 
 test("repair envelopes prefer the populated final blueprint over an empty page plan", () => {

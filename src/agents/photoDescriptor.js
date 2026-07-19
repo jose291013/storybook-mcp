@@ -57,7 +57,7 @@ export async function photoDescriptorAgent({
     .replaceAll("{age}", age || "")
     .replaceAll("{gender}", gender || "")
     .replaceAll("{language}", language || "")
-    .replaceAll("{photo_url}", photo_url || "");
+    .replaceAll("{photo_url}", String(photo_url || "").startsWith("data:") ? "[private reference image attached]" : (photo_url || ""));
 
   const model = process.env.VISION_MODEL || process.env.TEXT_MODEL || "gpt-4.1-mini";
 
