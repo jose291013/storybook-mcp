@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.5.6
+ * Version: 0.5.7
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -27,6 +27,7 @@ final class Calitiki_Woo_Bridge {
         add_action('init', array(__CLASS__, 'register_account_endpoint'));
         add_action('admin_menu', array(__CLASS__, 'admin_menu'));
         add_action('template_redirect', array(__CLASS__, 'maybe_connect_customer'));
+        add_action('template_redirect', array(__CLASS__, 'maybe_send_preview_ready_email'), 1);
         add_action('template_redirect', array(__CLASS__, 'maybe_add_personalized_checkout'));
         add_filter('woocommerce_login_redirect', array(__CLASS__, 'login_redirect'), 10, 2);
         add_filter('woocommerce_registration_redirect', array(__CLASS__, 'registration_redirect'));
@@ -75,10 +76,57 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.5.6') {
-            update_option(self::VERSION_OPTION, '0.5.6');
+        if (get_option(self::VERSION_OPTION) !== '0.5.7') {
+            update_option(self::VERSION_OPTION, '0.5.7');
             flush_rewrite_rules(false);
         }
+    }
+
+    public static function maybe_send_preview_ready_email() {
+        if (!isset($_GET['calitiki_preview_ready'])) {
+            return;
+        }
+        if (strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST') {
+            wp_send_json_error(array('error' => 'Method not allowed'), 405);
+        }
+        $raw_body = file_get_contents('php://input');
+        $provided_signature = isset($_SERVER['HTTP_X_CALITIKI_SIGNATURE']) ? (string) $_SERVER['HTTP_X_CALITIKI_SIGNATURE'] : '';
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        $expected_signature = hash_hmac('sha256', $raw_body, $secret);
+        if (!$secret || !$provided_signature || !hash_equals($expected_signature, $provided_signature)) {
+            wp_send_json_error(array('error' => 'Invalid signature'), 401);
+        }
+        $payload = json_decode($raw_body, true);
+        $customer_id = isset($payload['wooCustomerId']) ? absint($payload['wooCustomerId']) : 0;
+        $project_id = isset($payload['projectId']) ? sanitize_text_field($payload['projectId']) : '';
+        $generation_id = isset($payload['generationId']) ? sanitize_text_field($payload['generationId']) : '';
+        $ready_url = isset($payload['readyUrl']) ? esc_url_raw($payload['readyUrl']) : '';
+        $user = $customer_id ? get_user_by('id', $customer_id) : false;
+        if (!$user || !$project_id || !$ready_url) {
+            wp_send_json_error(array('error' => 'Invalid notification payload'), 400);
+        }
+        $dedupe_key = 'calitiki_preview_' . md5($project_id . '|' . $generation_id);
+        if (get_transient($dedupe_key)) {
+            wp_send_json_success(array('sent' => true, 'duplicate' => true));
+        }
+        $locale = strtoupper(isset($payload['locale']) ? sanitize_text_field($payload['locale']) : 'FR');
+        $title = isset($payload['title']) ? sanitize_text_field($payload['title']) : 'Calitiki';
+        if ($locale === 'ES') {
+            $subject = 'Tu libro Calitiki está listo';
+            $message = "¡Buenas noticias! La vista previa de «{$title}» está lista.\n\nAbrir mi libro: {$ready_url}\n\nTus fotos y tu libro permanecen privados.";
+        } elseif ($locale === 'EN') {
+            $subject = 'Your Calitiki book is ready';
+            $message = "Good news! The preview of “{$title}” is ready.\n\nOpen my book: {$ready_url}\n\nYour photos and book remain private.";
+        } else {
+            $subject = 'Votre livre Calitiki est prêt';
+            $message = "Bonne nouvelle ! L’aperçu de « {$title} » est prêt.\n\nOuvrir mon livre : {$ready_url}\n\nVos photos et votre livre restent privés.";
+        }
+        $sent = wp_mail($user->user_email, $subject, $message);
+        if (!$sent) {
+            wp_send_json_error(array('error' => 'Email delivery failed'), 502);
+        }
+        set_transient($dedupe_key, '1', 30 * DAY_IN_SECONDS);
+        wp_send_json_success(array('sent' => true));
     }
 
     public static function account_menu_items($items) {
