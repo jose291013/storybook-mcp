@@ -400,6 +400,7 @@ function render({ preserveSpeech = false } = {}) {
 
   elements.textOverlay.hidden = !state.textVisible;
   elements.collapsedControls.hidden = state.textVisible;
+  elements.revealed.classList.toggle("is-text-collapsed", !state.textVisible);
   elements.toggleLabel.textContent = state.textVisible ? actions.hideText : actions.showText;
   queueTextMeasurement();
 }

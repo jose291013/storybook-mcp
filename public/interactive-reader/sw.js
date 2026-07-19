@@ -1,4 +1,4 @@
-const CACHE_NAME = "calitiki-interactive-demo-v18";
+const CACHE_NAME = "calitiki-interactive-demo-v19";
 const APP_ASSETS = [
   "./",
   "./index.html",

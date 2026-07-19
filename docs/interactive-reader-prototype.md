@@ -17,6 +17,14 @@ Ce prototype autonome valide le rythme narratif **écouter ou lire → imaginer 
 - Le texte superposé peut être masqué puis restauré.
 - Le haut-parleur utilise uniquement la synthèse vocale locale du navigateur. Aucun appel d’API audio n’est effectué.
 
+## Mise en page adaptative
+
+- Sur mobile, la liseuse occupe tout l’écran et conserve une lecture verticale immersive.
+- Sur tablette, le cadre de lecture et le texte superposé s’élargissent sans masquer toute l’illustration.
+- Sur ordinateur et grande tablette en paysage, l’illustration reste visible à gauche tandis que le texte, l’audio et la navigation sont regroupés dans un panneau à droite.
+- Lorsque le texte est masqué sur grand écran, l’illustration reprend toute la largeur disponible.
+- Les textes trop longs restent défilables au toucher, à la molette et au clavier.
+
 ## Hors périmètre
 
 - authentification WooCommerce ;

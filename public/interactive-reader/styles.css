@@ -119,6 +119,104 @@ button.round-control { cursor: pointer; }
   .prototype-note { display: none; }
 }
 
+/* Tablet: keep the immersive portrait rhythm while using the available canvas. */
+@media (min-width: 521px) and (max-width: 979px) {
+  .app-shell { padding: 16px; }
+  .reader {
+    width: min(100%, 820px);
+    height: min(960px, calc(100svh - 32px));
+    min-height: min(700px, calc(100svh - 32px));
+    border-radius: 36px;
+  }
+  .reader-header { padding-inline: 24px; }
+  .story-stage, .loading, .completion-view { min-height: 0; }
+  .anticipation-view { padding: 32px clamp(32px, 7vw, 72px); }
+  .story-card, .reveal-button { width: min(100%, 620px); }
+  .story-card { padding-inline: clamp(34px, 7vw, 62px); }
+  .story-text-anticipation {
+    max-height: min(48svh, 18em);
+    font-size: clamp(1.35rem, 3.4vw, 1.75rem);
+  }
+  .text-overlay {
+    left: 50%;
+    right: auto;
+    width: min(calc(100% - 56px), 620px);
+    min-height: clamp(260px, 42svh, 390px);
+    transform: translateX(-50%);
+  }
+  .story-text-revealed { font-size: clamp(1.12rem, 2.7vw, 1.38rem); }
+  .scene-navigation {
+    left: 50%;
+    right: auto;
+    width: min(calc(100% - 56px), 680px);
+    transform: translateX(-50%);
+  }
+}
+
+/* Desktop and large landscape tablets: illustration and reading panel coexist. */
+@media (min-width: 980px) {
+  .app-shell { padding: 20px; }
+  .reader {
+    width: min(1240px, calc(100vw - 40px));
+    height: min(860px, calc(100svh - 40px));
+    min-height: min(680px, calc(100svh - 40px));
+    border-radius: 34px;
+  }
+  .reader-header { min-height: 78px; padding-inline: 28px; }
+  .brand-logo-frame { width: 190px; height: 56px; }
+  .install-button { padding: 10px 18px; font-size: .82rem; }
+  .story-stage, .loading, .completion-view { min-height: 0; }
+  .anticipation-view { padding: 34px 72px; }
+  .top-back { top: 28px; left: 30px; }
+  .scene-progress { margin-bottom: 22px; }
+  .story-card, .reveal-button { width: min(100%, 720px); }
+  .story-card { padding: 36px clamp(52px, 6vw, 88px) 30px; }
+  .story-text-anticipation {
+    max-height: min(46svh, 17em);
+    font-size: clamp(1.4rem, 2vw, 1.8rem);
+  }
+  .reveal-button { min-height: 64px; }
+
+  .revealed-view { background: linear-gradient(135deg, #071b25 0 58%, #0c3438 58% 100%); }
+  .revealed-view > img { left: 0; top: 0; width: 58%; height: 100%; transition: width .35s ease; }
+  .image-shade {
+    right: 42%;
+    background: linear-gradient(180deg, rgba(4,18,26,.08), transparent 55%, rgba(4,18,26,.34));
+    transition: right .35s ease;
+  }
+  .scene-progress-on-image { left: 29%; }
+  .text-overlay {
+    top: 72px;
+    right: 28px;
+    bottom: 104px;
+    left: auto;
+    width: calc(42% - 56px);
+    min-height: 0;
+    max-height: none;
+    padding: 30px clamp(24px, 2.5vw, 38px) 22px;
+    background: rgba(9,45,49,.76);
+  }
+  .story-text-revealed { font-size: clamp(1.08rem, 1.42vw, 1.38rem); }
+  .scene-navigation {
+    right: 28px;
+    bottom: 24px;
+    left: auto;
+    width: calc(42% - 56px);
+  }
+  .revealed-view.is-text-collapsed > img { width: 100%; }
+  .revealed-view.is-text-collapsed .image-shade { right: 0; }
+  .revealed-view.is-text-collapsed .scene-progress-on-image { left: 50%; }
+  .revealed-view.is-text-collapsed .scene-navigation {
+    right: 28px;
+    left: 28px;
+    width: auto;
+  }
+  .completion-view { padding-inline: 20%; }
+  .completion-view h1 { font-size: clamp(2.4rem, 4vw, 3.7rem); }
+  .completion-view > p:not(.eyebrow) { font-size: 1.08rem; }
+  .toast { width: min(90%, 560px); }
+}
+
 @media (max-height: 760px) {
   .anticipation-view { padding-top: 22px; padding-bottom: 22px; }
   .scene-progress { margin-bottom: 14px; }
@@ -126,6 +224,13 @@ button.round-control { cursor: pointer; }
   .anticipation-view.is-text-only .story-text-anticipation { max-height: none; margin-top: 12px; }
   .reveal-button { min-height: 56px; margin-top: 14px; }
   .text-overlay { min-height: clamp(210px, 36svh, 280px); }
+}
+
+@media (min-width: 980px) and (max-height: 760px) {
+  .reader { min-height: min(620px, calc(100svh - 24px)); height: calc(100svh - 24px); }
+  .text-overlay { top: 54px; bottom: 92px; min-height: 0; }
+  .scene-navigation { bottom: 18px; }
+  .story-text-revealed { font-size: clamp(1rem, 1.25vw, 1.22rem); }
 }
 
 @media (max-width: 350px) {
