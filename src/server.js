@@ -14,6 +14,7 @@ import commerceCheckoutRouter from "./routes/commerceCheckout.js";
 import deliveriesRouter from "./routes/deliveries.js";
 import previewRepairRouter from "./routes/previewRepair.js";
 import familySharesRouter from "./routes/familyShares.js";
+import narrationRouter from "./routes/narration.js";
 import { projectStore } from "./services/projectStore.js";
 import { familyShareStore } from "./services/familyShareStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
@@ -55,6 +56,7 @@ app.use("/api", commerceCreditsRouter);
 app.use("/api", commerceCheckoutRouter);
 app.use("/api", deliveriesRouter);
 app.use("/api", previewRepairRouter);
+app.use("/api", narrationRouter);
 app.use(familySharesRouter);
 
 const port = process.env.PORT || 3000;

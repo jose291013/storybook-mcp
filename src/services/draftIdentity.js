@@ -80,7 +80,7 @@ export function verifyWooCustomerToken(token, secret = process.env.WOOCOMMERCE_B
 
 export function createWooAuthState({ projectId, destination = "creator", expiresInSeconds = 600 }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
   if (!projectId) throw new Error("Missing project id");
-  const safeDestination = ["interactive_reader", "family_share"].includes(destination) ? destination : "creator";
+  const safeDestination = ["interactive_reader", "family_share", "narration"].includes(destination) ? destination : "creator";
   return createSignedPayload({
     type: "woocommerce_auth",
     projectId: String(projectId),
@@ -97,7 +97,7 @@ export function verifyWooAuthState(token, secret = process.env.WOOCOMMERCE_BRIDG
   return {
     projectId: String(data.projectId),
     nonce: String(data.nonce),
-    destination: ["interactive_reader", "family_share"].includes(data.destination) ? data.destination : "creator",
+    destination: ["interactive_reader", "family_share", "narration"].includes(data.destination) ? data.destination : "creator",
   };
 }
 

@@ -74,7 +74,9 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.equal(JSON.parse(manifest).display, "standalone");
   assert.match(app, /\/interactive-book/);
   assert.match(app, /kind === "text_only"/);
-  assert.match(worker, /calitiki-interactive-demo-v20/);
+  assert.match(worker, /calitiki-interactive-demo-v21/);
+  assert.match(app, /scene\.audio/);
+  assert.match(app, /Narration IA/);
   assert.doesNotMatch(html, /rel="manifest"/);
   assert.match(app, /document\.createElement\("link"\)/);
   assert.match(app, /updateInstallManifest\(projectId\)/);

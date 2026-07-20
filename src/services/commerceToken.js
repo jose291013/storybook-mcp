@@ -16,8 +16,14 @@ export function verifyCommerceWebhookSignature({ orderId, customerId, reservatio
   return supplied.length === expected.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
 }
 
-export function bookOrderSignatureValue({ orderId, customerId, projectId, reservationId = "", productType, pageCount, orderTotalCents = 0, status }) {
-  return [orderId, customerId, projectId, reservationId, productType, pageCount, orderTotalCents, status].map((value) => String(value ?? "")).join("|");
+export function bookOrderSignatureValue({
+  orderId, customerId, projectId, reservationId = "", productType, pageCount,
+  orderTotalCents = 0, status, narrationVoiceId = "", narrationStyleId = "",
+}) {
+  return [
+    orderId, customerId, projectId, reservationId, productType, pageCount,
+    orderTotalCents, status, narrationVoiceId, narrationStyleId,
+  ].map((value) => String(value ?? "")).join("|");
 }
 
 export function signBookOrderWebhook(payload, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET || "") {
@@ -28,7 +34,17 @@ export function signBookOrderWebhook(payload, secret = process.env.WOOCOMMERCE_B
 export function verifyBookOrderWebhook({ signature, ...payload }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET || "") {
   if (!signature || String(secret).length < 32) return false;
   const expected = signBookOrderWebhook(payload, secret);
-  return String(signature).length === expected.length && crypto.timingSafeEqual(Buffer.from(String(signature)), Buffer.from(expected));
+  const supplied = String(signature);
+  if (supplied.length === expected.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return true;
+  // Rolling-deploy compatibility for Bridge <= 0.5.8. Narration itself always
+  // requires the new signature that binds its paid voice and style choices.
+  if (payload.productType === "narration" || payload.narrationVoiceId || payload.narrationStyleId) return false;
+  const legacyValue = [
+    payload.orderId, payload.customerId, payload.projectId, payload.reservationId || "",
+    payload.productType, payload.pageCount, payload.orderTotalCents || 0, payload.status,
+  ].map((value) => String(value ?? "")).join("|");
+  const legacy = crypto.createHmac("sha256", secret).update(legacyValue).digest("hex");
+  return supplied.length === legacy.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(legacy));
 }
 
 export function verifyDeliveryLinkRequest({ orderId, customerId, projectId, timestamp, signature }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET || "", now = Date.now()) {

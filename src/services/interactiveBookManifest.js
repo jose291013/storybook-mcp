@@ -136,3 +136,21 @@ export function buildInteractiveBookManifest(project) {
     scenes: sections,
   };
 }
+
+export function attachNarrationToManifest(book, narrationRecord, audioUrlForFilename) {
+  if (!book || narrationRecord?.fulfillmentStatus !== "ready" || !Array.isArray(narrationRecord?.deliveryManifest?.scenes)) return book;
+  const bySceneId = new Map(narrationRecord.deliveryManifest.scenes.map((scene) => [String(scene.sceneId || ""), scene]));
+  return {
+    ...book,
+    narration: {
+      synthetic: true,
+      voiceId: String(narrationRecord.configuration?.voiceId || ""),
+      styleId: String(narrationRecord.configuration?.styleId || ""),
+    },
+    scenes: book.scenes.map((scene) => {
+      const narration = bySceneId.get(String(scene.id || ""));
+      if (!narration?.filename) return scene;
+      return { ...scene, audio: audioUrlForFilename(String(narration.filename)) };
+    }),
+  };
+}
