@@ -98,6 +98,7 @@ export class JsonCommerceOrderStore {
   async findLatestNarration({ projectId, customerId }) {
     const records = Object.values(this.read().orders).filter((record) => (
       record.projectId === projectId && record.customerId === customerId && record.productType === "narration"
+      && record.paymentStatus === "paid"
     )).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
     return normalize(records[0]);
   }
@@ -187,6 +188,7 @@ export class PostgresCommerceOrderStore {
       `SELECT commerce_orders.*,app_customers.woo_customer_id FROM commerce_orders
        JOIN app_customers ON app_customers.id=commerce_orders.customer_id
        WHERE commerce_orders.project_id=$1 AND commerce_orders.customer_id=$2 AND commerce_orders.product_type='narration'
+       AND commerce_orders.payment_status='paid'
        ORDER BY commerce_orders.updated_at DESC LIMIT 1`,
       [projectId, customerId]
     );

@@ -12,7 +12,18 @@ import {
 import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
 import { attachNarrationToManifest } from "../src/services/interactiveBookManifest.js";
 import { generateNarrationAudio } from "../src/services/narrationFulfillment.js";
+import { narrationCheckoutAllowed, narrationNextAction } from "../src/services/narrationLifecycle.js";
 import { verifyBookOrderWebhook } from "../src/services/commerceToken.js";
+
+test("narration lifecycle allows replacement but prevents duplicate generation", () => {
+  assert.equal(narrationNextAction(null), "purchase");
+  assert.equal(narrationNextAction({ paymentStatus: "paid", fulfillmentStatus: "ready" }), "replace");
+  assert.equal(narrationCheckoutAllowed({ paymentStatus: "paid", fulfillmentStatus: "ready" }), true);
+  assert.equal(narrationNextAction({ paymentStatus: "paid", fulfillmentStatus: "generating" }), "wait");
+  assert.equal(narrationCheckoutAllowed({ paymentStatus: "paid", fulfillmentStatus: "generating" }), false);
+  assert.equal(narrationNextAction({ paymentStatus: "paid", fulfillmentStatus: "failed" }), "retry");
+  assert.equal(narrationCheckoutAllowed({ paymentStatus: "paid", fulfillmentStatus: "failed" }), false);
+});
 
 test("AI narration exposes four voices and four independent narration styles", () => {
   const catalog = localizedNarrationCatalog("es-ES");
@@ -85,6 +96,36 @@ test("a paid narration order is checkpointed and attached only when ready", asyn
     assert.equal(book.narration.synthetic, true);
     assert.equal(book.scenes[0].audio, "/audio/01-opening.mp3");
     assert.equal(book.scenes[1].audio, undefined);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("a replacement narration keeps the previous ready version active until completion", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-narration-replacement-"));
+  try {
+    const orders = new JsonCommerceOrderStore(path.join(directory, "orders.json"));
+    await orders.recordPaid({
+      orderId: "old", projectId: "project-audio", customerId: "customer-1", wooCustomerId: "42",
+      productType: "narration", pageCount: 24, orderTotalCents: 599,
+      configuration: { voiceId: "marin", styleId: "adventure" },
+    });
+    await orders.updateDelivery({ orderId: "old", projectId: "project-audio", productType: "narration", wooCustomerId: "42" }, {
+      fulfillmentStatus: "ready", deliveryManifest: { scenes: [{ sceneId: "opening", filename: "old.mp3", storageKey: "old.mp3" }] },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await orders.recordPaid({
+      orderId: "new", projectId: "project-audio", customerId: "customer-1", wooCustomerId: "42",
+      productType: "narration", pageCount: 24, orderTotalCents: 0,
+      configuration: { voiceId: "coral", styleId: "gentle" },
+    });
+    assert.equal((await orders.findLatestNarration({ projectId: "project-audio", customerId: "customer-1" })).orderId, "new");
+    assert.equal((await orders.findReadyNarration({ projectId: "project-audio", customerId: "customer-1" })).orderId, "old");
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await orders.updateDelivery({ orderId: "new", projectId: "project-audio", productType: "narration", wooCustomerId: "42" }, {
+      fulfillmentStatus: "ready", deliveryManifest: { scenes: [{ sceneId: "opening", filename: "new.mp3", storageKey: "new.mp3" }] },
+    });
+    assert.equal((await orders.findReadyNarration({ projectId: "project-audio", customerId: "customer-1" })).orderId, "new");
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

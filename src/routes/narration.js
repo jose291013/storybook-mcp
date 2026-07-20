@@ -5,6 +5,7 @@ import { readWooCustomer } from "../services/draftIdentity.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { generateNarrationAudio, generatePaidNarration, narrationAsset } from "../services/narrationFulfillment.js";
+import { NARRATION_ACTION, narrationCheckoutAllowed, narrationNextAction } from "../services/narrationLifecycle.js";
 import { projectStore } from "../services/projectStore.js";
 import { signCommercePayload, woocommerceCheckoutBridgeUrl } from "../services/commerceToken.js";
 
@@ -66,12 +67,16 @@ router.get("/projects/:id/narration", async (req, res) => {
     const owned = await ownedPaidProject(req, res); if (!owned) return;
     const language = languageFor(owned.project);
     const record = await commerceOrderStore.findLatestNarration({ projectId: owned.project.id, customerId: owned.project.customerId });
-    if (record?.paymentStatus === "paid" && ["queued", "failed", "generating"].includes(record.fulfillmentStatus)) {
+    const active = await commerceOrderStore.findReadyNarration({ projectId: owned.project.id, customerId: owned.project.customerId });
+    const nextAction = narrationNextAction(record);
+    if (record?.paymentStatus === "paid" && ["queued", "generating"].includes(record.fulfillmentStatus)) {
       setImmediate(() => generatePaidNarration({ orderId: record.orderId, projectId: record.projectId, wooCustomerId: record.wooCustomerId, pageCount: record.pageCount }).catch(() => null));
     }
     res.set("Cache-Control", "private, no-store").json({
       project: { id: owned.project.id, title: owned.project.title || owned.project.finalBlueprint?.cover?.title || "Calitiki", pageCount: normalizePageCount(owned.project.questionnaire?.page_count || owned.project.productConfiguration?.page_count || 24), language },
       freeDeviceVoice: true,
+      nextAction,
+      hasActiveNarration: Boolean(active),
       aiNarration: record ? { status: record.fulfillmentStatus, paymentStatus: record.paymentStatus, voiceId: record.configuration?.voiceId, styleId: record.configuration?.styleId, error: record.fulfillmentStatus === "failed" ? record.deliveryError : "" } : null,
       catalog: localizedNarrationCatalog(language),
       disclosure: "La voix proposée est générée par une intelligence artificielle.",
@@ -95,8 +100,14 @@ router.post("/projects/:id/narration-checkout-link", async (req, res) => {
   try {
     const owned = await ownedPaidProject(req, res); if (!owned) return;
     const existing = await commerceOrderStore.findLatestNarration({ projectId: owned.project.id, customerId: owned.project.customerId });
-    if (existing?.paymentStatus === "paid" && ["queued", "generating", "failed", "ready"].includes(existing.fulfillmentStatus)) {
-      return res.status(409).json({ error: "AI narration is already purchased for this book", code: "narration_already_purchased" });
+    if (!narrationCheckoutAllowed(existing)) {
+      const nextAction = narrationNextAction(existing);
+      return res.status(409).json({
+        error: nextAction === NARRATION_ACTION.RETRY
+          ? "Retry the paid narration without another purchase"
+          : "AI narration generation is already in progress for this book",
+        code: nextAction === NARRATION_ACTION.RETRY ? "narration_retry_available" : "narration_generation_in_progress",
+      });
     }
     const voiceId = String(req.body?.voiceId || ""); const styleId = String(req.body?.styleId || "");
     if (!narrationChoice(voiceId, styleId)) return res.status(400).json({ error: "Invalid narration choice" });
@@ -108,6 +119,30 @@ router.post("/projects/:id/narration-checkout-link", async (req, res) => {
       exp: Math.floor(Date.now() / 1000) + 10 * 60,
     };
     res.set("Cache-Control", "no-store").json({ checkoutUrl: woocommerceCheckoutBridgeUrl(signCommercePayload(payload)), pageCount, rebateCents: 0 });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.post("/projects/:id/narration-retry", async (req, res) => {
+  try {
+    const owned = await ownedPaidProject(req, res); if (!owned) return;
+    const existing = await commerceOrderStore.findLatestNarration({ projectId: owned.project.id, customerId: owned.project.customerId });
+    if (narrationNextAction(existing) !== NARRATION_ACTION.RETRY) {
+      return res.status(409).json({ error: "This narration is not awaiting a technical retry", code: "narration_retry_not_available" });
+    }
+    const identity = {
+      orderId: existing.orderId,
+      projectId: existing.projectId,
+      productType: "narration",
+      wooCustomerId: existing.wooCustomerId,
+    };
+    await commerceOrderStore.updateDelivery(identity, { fulfillmentStatus: "queued", deliveryError: "" });
+    setImmediate(() => generatePaidNarration({
+      orderId: existing.orderId,
+      projectId: existing.projectId,
+      wooCustomerId: existing.wooCustomerId,
+      pageCount: existing.pageCount,
+    }).catch(() => null));
+    res.set("Cache-Control", "no-store").status(202).json({ ok: true, status: "generating" });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });
 
