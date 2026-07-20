@@ -21,6 +21,7 @@ function safeReturnPath(projectId, status = "connected", destination = "creator"
   const params = new URLSearchParams({ auth: status, project: projectId });
   if (destination === "interactive_reader") return `/interactive-reader/?${params.toString()}`;
   if (destination === "family_share") return `/share-family/?${params.toString()}`;
+  if (destination === "narration") return `/narration/?${params.toString()}`;
   return `/?${params.toString()}#creator`;
 }
 
@@ -53,6 +54,17 @@ router.get("/auth/woocommerce/project", (req, res) => {
     return res.status(503).send("WooCommerce authentication is not configured");
   }
   const state = createWooAuthState({ projectId, destination: "creator" });
+  const bridgeUrl = new URL(process.env.WOOCOMMERCE_BRIDGE_URL);
+  bridgeUrl.searchParams.set("state", state);
+  res.set("Cache-Control", "no-store");
+  return res.redirect(302, bridgeUrl.toString());
+});
+
+router.get("/auth/woocommerce/narration", (req, res) => {
+  const projectId = String(req.query.projectId || "").trim();
+  if (!/^[A-Za-z0-9_-]{6,128}$/.test(projectId)) return res.status(400).send("Invalid project id");
+  if (!process.env.WOOCOMMERCE_BRIDGE_URL || !process.env.WOOCOMMERCE_BRIDGE_SECRET) return res.status(503).send("WooCommerce authentication is not configured");
+  const state = createWooAuthState({ projectId, destination: "narration" });
   const bridgeUrl = new URL(process.env.WOOCOMMERCE_BRIDGE_URL);
   bridgeUrl.searchParams.set("state", state);
   res.set("Cache-Control", "no-store");

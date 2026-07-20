@@ -3,7 +3,8 @@ import { ensureDraftOwner, readWooCustomer } from "../services/draftIdentity.js"
 import { projectStore } from "../services/projectStore.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { previewAssetKey } from "../services/previewAssetStorage.js";
-import { buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
+import { attachNarrationToManifest, buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
+import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
 import { loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
 import { referencePhotoRecoveryAvailable, technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
@@ -162,7 +163,12 @@ router.get("/projects/:id/interactive-book", async (req, res) => {
   try {
     const project = await projectStore.getForCustomer(req.params.id, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
-    const book = buildInteractiveBookManifest(project);
+    const narration = await commerceOrderStore.findReadyNarration({ projectId: project.id, customerId: project.customerId });
+    const book = attachNarrationToManifest(
+      buildInteractiveBookManifest(project),
+      narration,
+      (filename) => `/api/projects/${encodeURIComponent(project.id)}/narration-assets/${encodeURIComponent(filename)}`,
+    );
     res.set("Cache-Control", "private, no-store");
     res.json({ book });
   } catch (error) {

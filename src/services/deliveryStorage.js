@@ -9,6 +9,7 @@ function contentTypeForKey(key) {
   const extension = path.extname(String(key || "")).toLowerCase();
   if (extension === ".png") return "image/png";
   if ([".jpg", ".jpeg"].includes(extension)) return "image/jpeg";
+  if (extension === ".mp3") return "audio/mpeg";
   return "application/pdf";
 }
 

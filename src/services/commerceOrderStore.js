@@ -23,6 +23,8 @@ function normalize(record) {
     storageKey: record.storageKey ?? record.storage_key ?? "",
     downloadFilename: record.downloadFilename ?? record.download_filename ?? "",
     deliveryError: record.deliveryError ?? record.delivery_error ?? "",
+    configuration: record.configuration || {},
+    deliveryManifest: record.deliveryManifest ?? record.delivery_manifest ?? {},
     paidAt: record.paidAt ?? record.paid_at?.toISOString?.() ?? record.paid_at ?? null,
     readyAt: record.readyAt ?? record.ready_at?.toISOString?.() ?? record.ready_at ?? null,
     createdAt: record.createdAt ?? record.created_at?.toISOString?.() ?? record.created_at ?? null,
@@ -49,8 +51,9 @@ export class JsonCommerceOrderStore {
       id: existing?.id || crypto.randomUUID(), orderId: String(input.orderId), projectId: input.projectId,
       customerId: input.customerId, wooCustomerId: String(input.wooCustomerId), productType: input.productType,
       pageCount: Number(input.pageCount || 0), orderTotalCents: Number(input.orderTotalCents || 0), paymentStatus: "paid",
-      fulfillmentStatus: existing?.fulfillmentStatus || (input.productType === "ebook" ? "queued" : "not_required"),
+      fulfillmentStatus: existing?.fulfillmentStatus || (["ebook", "narration"].includes(input.productType) ? "queued" : "not_required"),
       storageKey: existing?.storageKey || "", downloadFilename: existing?.downloadFilename || "", deliveryError: existing?.deliveryError || "",
+      configuration: input.configuration || existing?.configuration || {}, deliveryManifest: existing?.deliveryManifest || {},
       paidAt: existing?.paidAt || timestamp, readyAt: existing?.readyAt || null, createdAt: existing?.createdAt || timestamp,
       updatedAt: existing?.fulfillmentStatus === "generating" ? existing.updatedAt : timestamp,
     };
@@ -85,10 +88,23 @@ export class JsonCommerceOrderStore {
       && record.paymentStatus === "paid"
     ));
   }
+  async findReadyNarration({ projectId, customerId }) {
+    const records = Object.values(this.read().orders).filter((record) => (
+      record.projectId === projectId && record.customerId === customerId && record.productType === "narration"
+      && record.paymentStatus === "paid" && record.fulfillmentStatus === "ready"
+    )).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+    return normalize(records[0]);
+  }
+  async findLatestNarration({ projectId, customerId }) {
+    const records = Object.values(this.read().orders).filter((record) => (
+      record.projectId === projectId && record.customerId === customerId && record.productType === "narration"
+    )).sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
+    return normalize(records[0]);
+  }
   async recordStatus({ orderId, projectId, productType, wooCustomerId, status }) {
     const store = this.read(); const key = orderKey({ orderId, projectId, productType }); const existing = store.orders[key];
     if (!existing || String(existing.wooCustomerId) !== String(wooCustomerId)) return null;
-    store.orders[key] = { ...existing, paymentStatus: status, fulfillmentStatus: productType === "ebook" ? "revoked" : existing.fulfillmentStatus, updatedAt: now() };
+    store.orders[key] = { ...existing, paymentStatus: status, fulfillmentStatus: ["ebook", "narration"].includes(productType) ? "revoked" : existing.fulfillmentStatus, updatedAt: now() };
     this.write(store); return normalize(store.orders[key]);
   }
 }
@@ -97,26 +113,27 @@ export class PostgresCommerceOrderStore {
   constructor(database = getDatabasePool()) { this.database = database; }
   async recordPaid(input) {
     const { rows } = await this.database.query(
-      `INSERT INTO commerce_orders (id,project_id,customer_id,woo_order_id,product_type,payment_status,page_count,order_total_cents,fulfillment_status,paid_at)
-       VALUES ($1,$2,$3,$4,$5,'paid',$6,$7,$8,now())
+      `INSERT INTO commerce_orders (id,project_id,customer_id,woo_order_id,product_type,payment_status,page_count,order_total_cents,fulfillment_status,configuration,paid_at)
+       VALUES ($1,$2,$3,$4,$5,'paid',$6,$7,$8,$9,now())
        ON CONFLICT (woo_order_id,project_id,product_type) DO UPDATE SET payment_status='paid',page_count=EXCLUDED.page_count,
-         order_total_cents=EXCLUDED.order_total_cents,paid_at=COALESCE(commerce_orders.paid_at,now()),
+         order_total_cents=EXCLUDED.order_total_cents,configuration=CASE WHEN commerce_orders.fulfillment_status='ready' THEN commerce_orders.configuration ELSE EXCLUDED.configuration END,
+         paid_at=COALESCE(commerce_orders.paid_at,now()),
          updated_at=CASE WHEN commerce_orders.fulfillment_status='generating' THEN commerce_orders.updated_at ELSE now() END
        RETURNING *`,
       [crypto.randomUUID(), input.projectId, input.customerId, input.orderId, input.productType, input.pageCount, input.orderTotalCents,
-        input.productType === "ebook" ? "queued" : "not_required"]
+        ["ebook", "narration"].includes(input.productType) ? "queued" : "not_required", JSON.stringify(input.configuration || {})]
     );
     return normalize({ ...rows[0], woo_customer_id: input.wooCustomerId });
   }
   async updateDelivery(identity, patch) {
     const allowed = {
       fulfillmentStatus: "fulfillment_status", storageKey: "storage_key", downloadFilename: "download_filename",
-      deliveryError: "delivery_error", readyAt: "ready_at",
+      deliveryError: "delivery_error", readyAt: "ready_at", deliveryManifest: "delivery_manifest",
     };
     const entries = Object.entries(patch).filter(([key, value]) => allowed[key] && value !== undefined);
     if (!entries.length) return this.findForCustomer({ ...identity, wooCustomerId: identity.wooCustomerId || "" });
     const assignments = entries.map(([key], index) => `${allowed[key]}=$${index + 4}`);
-    const values = entries.map(([, value]) => value);
+    const values = entries.map(([key, value]) => key === "deliveryManifest" ? JSON.stringify(value || {}) : value);
     const { rows } = await this.database.query(
       `UPDATE commerce_orders SET ${assignments.join(",")},updated_at=now() WHERE woo_order_id=$1 AND project_id=$2 AND product_type=$3 RETURNING *`,
       [identity.orderId, identity.projectId, identity.productType, ...values]
@@ -154,9 +171,30 @@ export class PostgresCommerceOrderStore {
     );
     return rowCount > 0;
   }
+  async findReadyNarration({ projectId, customerId }) {
+    const { rows } = await this.database.query(
+      `SELECT commerce_orders.*,app_customers.woo_customer_id FROM commerce_orders
+       JOIN app_customers ON app_customers.id=commerce_orders.customer_id
+       WHERE commerce_orders.project_id=$1 AND commerce_orders.customer_id=$2 AND commerce_orders.product_type='narration'
+       AND commerce_orders.payment_status='paid' AND commerce_orders.fulfillment_status='ready'
+       ORDER BY commerce_orders.updated_at DESC LIMIT 1`,
+      [projectId, customerId]
+    );
+    return normalize(rows[0]);
+  }
+  async findLatestNarration({ projectId, customerId }) {
+    const { rows } = await this.database.query(
+      `SELECT commerce_orders.*,app_customers.woo_customer_id FROM commerce_orders
+       JOIN app_customers ON app_customers.id=commerce_orders.customer_id
+       WHERE commerce_orders.project_id=$1 AND commerce_orders.customer_id=$2 AND commerce_orders.product_type='narration'
+       ORDER BY commerce_orders.updated_at DESC LIMIT 1`,
+      [projectId, customerId]
+    );
+    return normalize(rows[0]);
+  }
   async recordStatus({ orderId, projectId, productType, wooCustomerId, status }) {
     const { rows } = await this.database.query(
-      `UPDATE commerce_orders SET payment_status=$5,fulfillment_status=CASE WHEN product_type='ebook' THEN 'revoked' ELSE fulfillment_status END,updated_at=now()
+      `UPDATE commerce_orders SET payment_status=$5,fulfillment_status=CASE WHEN product_type IN ('ebook','narration') THEN 'revoked' ELSE fulfillment_status END,updated_at=now()
        FROM app_customers WHERE commerce_orders.customer_id=app_customers.id AND commerce_orders.woo_order_id=$1
        AND commerce_orders.project_id=$2 AND commerce_orders.product_type=$3 AND app_customers.woo_customer_id=$4 RETURNING commerce_orders.*`,
       [orderId, projectId, productType, wooCustomerId, status]

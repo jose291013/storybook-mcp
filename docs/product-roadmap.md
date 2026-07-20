@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-18
+Last updated: 2026-07-20
 
 ## Product flow
 
@@ -9,7 +9,7 @@ Last updated: 2026-07-18
 3. An authenticated customer sees the exact preview price, may apply a single-use access code, and explicitly confirms the displayed wallet debit. A sufficient balance never starts generation automatically.
 4. A credit is reserved at generation start, captured on success, and released after a technical failure. A redeemed code grants an idempotent retry for the same project after a technical failure.
 5. The customer receives a low-definition, watermarked preview stored in **My creations**.
-6. The customer may purchase an ebook, a printed book, or a future bundle.
+6. The customer may purchase an ebook, a printed book, or a future bundle. After buying an eBook, the customer may separately purchase AI narration with a chosen voice and narration style.
 7. After ebook payment, the unwatermarked PDF is available in the customer library and by a secure email link.
 8. After print payment, high-definition production starts. The production range and shipping range are shown before payment and snapshotted on the order.
 
@@ -54,7 +54,7 @@ Last updated: 2026-07-18
 ## Current implementation checkpoint
 
 - The generator, low-definition preview, ebook PDF, print finalization, multilingual book output, visual styles, page counts, and book reader exist.
-- The installable interactive reader under `/interactive-reader/` now accepts either its public demonstration manifest or an authenticated `?project=<id>` book. A completed preview is converted without AI calls into a private manifest containing its cover, opening text, correctly paired narrative spreads and closing moral. The manifest and every illustration remain customer-authenticated and `no-store`; the service worker never caches `/api/` responses. The creator exposes **Read the interactive version** after a completed preview, and each paid creation in WooCommerce has a signed **Read my interactive book** link that renews the private Render session before opening the owned project. Generated narration remains a future product brick.
+- The installable interactive reader under `/interactive-reader/` now accepts either its public demonstration manifest or an authenticated `?project=<id>` book. A completed preview is converted without AI calls into a private manifest containing its cover, opening text, correctly paired narrative spreads and closing moral. The manifest, every illustration and every purchased narration file remain authenticated and `no-store`; the service worker never caches `/api/` responses. Without the paid option, the reader keeps using the free voice installed on the customer device.
 - Paid books created before raw illustration assets were stored privately can reuse their already-private composed illustration pages in the interactive reader. This compatibility path never calls image generation and never spends credits.
 - Anonymous questionnaire choices are restored from browser storage, and a server-side project is created before preview generation.
 - The project store uses PostgreSQL when `DATABASE_URL` is configured and a local JSON fallback during development.
@@ -77,7 +77,8 @@ Last updated: 2026-07-18
 - Every new draft illustration passes a low-cost technical file check before it reaches the reader. Only corrupted, blank, striped or visibly incomplete outputs are regenerated automatically, with two attempts by default; wardrobe, cast, composition and aesthetic preferences never trigger an automatic retry. Before purchase, the customer may report a suspected technical defect. The server inspects the existing private asset first and regenerates it only when an objective defect is confirmed. Each page can be checked once, at most three pages per project can be checked, and only one confirmed repair per project may launch image generation (maximum two attempts). Failed repairs are counted, no wallet credit is consumed, and purchased revisions are never overwritten. Aesthetic improvement remains a separate paid modification.
 - OpenAI calls now have explicit bounded timeouts and no hidden SDK retries by default. Text agents require JSON mode, accept a safely extracted balanced object if a model adds formatting, and rebuild an invalid response once with the original task context and schema. Image attempts are logged with the job and page number. After a deployment or a generation with no progress, the same customer project can recover its abandoned job: every still-reserved preview credit is released idempotently before the technical retry, so the customer is never charged twice.
 - Preview generation now checkpoints the narrative agents, character canons, approved blueprint, written page text, cover and every completed page in PostgreSQL/private storage. Losing an ephemeral Render job never restarts generation automatically: the customer sees a reassuring failure state and may explicitly use one free technical retry, which resumes at the first missing step. A failed second technical attempt is stopped for manual support so it cannot create an unbounded API bill. During generation, an authenticated customer may opt into a WooCommerce transactional email when the preview is ready; WhatsApp remains a later channel requiring explicit opt-in and a configured Business provider.
-- A purchased digital creation can issue up to three simultaneous private family invitations. Each invitation uses a 256-bit unguessable token stored only as a hash, expires after 7 or 30 days, is revocable immediately and exchanges into a read-only HTTP-only guest session for exactly one interactive book. Guest manifests and assets remain private, `no-store` and non-indexable; the secret invitation disappears from the browser address after exchange. The raw link is shown to the owner only once. Natural generated narration remains a separate paid product brick.
+- A purchased digital creation can issue up to three simultaneous private family invitations. Each invitation uses a 256-bit unguessable token stored only as a hash, expires after 7 or 30 days, is revocable immediately and exchanges into a read-only HTTP-only guest session for exactly one interactive book. Guest manifests and assets remain private, `no-store` and non-indexable; the secret invitation disappears from the browser address after exchange. The raw link is shown to the owner only once. If AI narration was purchased, the same protected family reader may play it without exposing the S3 object.
+- Paid AI narration is a separate WooCommerce variable product (`narration-ia-calitiki`, SKU `CAL-NARRATION`) available only from a paid eBook creation. The customer selects one of four voices and one of four narration styles, hears an explicitly requested cached sample, acknowledges that the voice is synthetic, and then checks out. No narration API call for the full book occurs before payment. This line never receives or consumes the preview rebate. Render generates one private MP3 per interactive scene, checkpoints the delivery manifest after every scene, and resumes from the first missing scene after interruption without a second purchase or duplicate API spend.
 - `data/jobs.json` remains a local development store and must not be committed.
 
 ## New environment variables
@@ -107,6 +108,7 @@ Last updated: 2026-07-18
 - `OPENAI_REQUEST_MAX_RETRIES`, `OPENAI_IMAGE_MAX_RETRIES`, `OPENAI_QA_MAX_RETRIES`: SDK-level retries for the corresponding calls (default 0; the product-level idempotent retry remains authoritative).
 - `PREVIEW_STALE_MINUTES`: no-progress period after which a preview job can be recovered, default 15 minutes.
 - `REFERENCE_PHOTO_RECOVERY_CUTOFF`: optional ISO timestamp limiting the one-time free rebuild to legacy previews created before durable reference-photo storage was deployed.
+- `NARRATION_MODEL`: model used only for paid narration generation and cached voice samples; defaults to `gpt-audio-1.5`.
 
 ## Resume prompt for a new Codex task
 

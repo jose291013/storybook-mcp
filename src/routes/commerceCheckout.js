@@ -5,6 +5,8 @@ import { isProductEnabled } from "../config/productAvailability.js";
 import { creditStore } from "../services/creditStore.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../services/ebookFulfillment.js";
+import { narrationChoice } from "../config/narrationOptions.js";
+import { registerPaidNarration } from "../services/narrationFulfillment.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { signCommercePayload, verifyBookOrderWebhook, verifyDeliveryLinkRequest, woocommerceCheckoutBridgeUrl } from "../services/commerceToken.js";
@@ -46,14 +48,33 @@ router.post("/commerce/book-order-status", async (req, res) => {
   const projectId = String(req.body?.projectId || ""); const reservationId = String(req.body?.reservationId || "");
   const productType = String(req.body?.productType || "").toLowerCase(); const pageCount = Number(req.body?.pageCount || 0);
   const orderTotalCents = Number(req.body?.orderTotalCents || 0); const status = String(req.body?.status || "").toLowerCase();
-  const signaturePayload = { orderId, customerId, projectId, reservationId, productType, pageCount, orderTotalCents, status, signature: req.get("X-Calitiki-Signature") };
-  if (!orderId || !customerId || !projectId || !["ebook", "print"].includes(productType) || !["paid", "cancelled", "failed", "refunded"].includes(status)) return res.status(400).json({ error: "Invalid book order status" });
+  const narrationVoiceId = String(req.body?.narrationVoiceId || "");
+  const narrationStyleId = String(req.body?.narrationStyleId || "");
+  const signaturePayload = {
+    orderId, customerId, projectId, reservationId, productType, pageCount, orderTotalCents, status,
+    narrationVoiceId, narrationStyleId, signature: req.get("X-Calitiki-Signature"),
+  };
+  if (!orderId || !customerId || !projectId || !["ebook", "print", "narration"].includes(productType) || !["paid", "cancelled", "failed", "refunded"].includes(status)) return res.status(400).json({ error: "Invalid book order status" });
+  if (productType === "narration" && !narrationChoice(narrationVoiceId, narrationStyleId)) return res.status(400).json({ error: "Invalid narration choice" });
   if (!verifyBookOrderWebhook(signaturePayload)) return res.status(401).json({ error: "Invalid signature" });
   try {
-    const reservation = status === "paid" ? await creditStore.captureCheckout(reservationId, orderId) : await creditStore.releaseCheckout(reservationId, orderId);
+    // AI narration is an independent, non-refundable generation option. It never
+    // consumes or releases the preview-credit reservation used by book products.
+    const reservation = productType === "narration"
+      ? null
+      : status === "paid"
+        ? await creditStore.captureCheckout(reservationId, orderId)
+        : await creditStore.releaseCheckout(reservationId, orderId);
     if (status !== "paid") {
       await commerceOrderStore.recordStatus({ orderId, projectId, productType, wooCustomerId: customerId, status }).catch(() => null);
       return res.json({ ok: true, reservationStatus: reservation?.status || "none", fulfillment: { status: "revoked", productType } });
+    }
+    if (productType === "narration") {
+      const fulfillment = await registerPaidNarration({
+        orderId, projectId, pageCount, orderTotalCents, wooCustomerId: customerId,
+        voiceId: narrationVoiceId, styleId: narrationStyleId,
+      });
+      return res.json({ ok: true, reservationStatus: "not_applicable", fulfillment });
     }
     const fulfillment = await fulfillPaidBookOrder({
       orderId, projectId, productType, pageCount, orderTotalCents, wooCustomerId: customerId, email: String(req.body?.email || ""),
