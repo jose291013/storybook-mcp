@@ -20,7 +20,9 @@ test("AI narration exposes four voices and four independent narration styles", (
   assert.equal(catalog.styles.length, 4);
   assert.equal(narrationChoice("marin", "bedtime").style.id, "bedtime");
   assert.equal(narrationChoice("unknown", "bedtime"), null);
-  assert.match(narrationInstruction("adventure", "fr-FR"), /Read the supplied text exactly/);
+  assert.match(narrationInstruction("adventure", "fr-FR"), /Read only the exact input text/);
+  assert.match(narrationInstruction("gentle", "es-ES"), /European Spanish from Spain/);
+  assert.match(narrationInstruction("gentle", "es-ES"), /Do not use a Latin American accent/);
 });
 
 test("narration audio requests the paid voice and style without rewriting the story", async () => {
@@ -29,16 +31,37 @@ test("narration audio requests the paid voice and style without rewriting the st
     text: "Noa ouvrit la porte.", language: "fr-FR", voiceId: "coral", styleId: "gentle",
   }, {
     model: "audio-test",
-    openai: { chat: { completions: { create: async (value) => {
+    openai: { audio: { speech: { create: async (value) => {
       request = value;
-      return { choices: [{ message: { audio: { data: Buffer.from("mp3").toString("base64") } } }] };
+      return { arrayBuffer: async () => Uint8Array.from(Buffer.from("mp3")).buffer };
     } } } },
   });
   assert.equal(audio.toString(), "mp3");
   assert.equal(request.model, "audio-test");
-  assert.deepEqual(request.modalities, ["text", "audio"]);
-  assert.deepEqual(request.audio, { voice: "coral", format: "mp3" });
-  assert.equal(request.messages[1].content, "Noa ouvrit la porte.");
+  assert.equal(request.voice, "coral");
+  assert.equal(request.input, "Noa ouvrit la porte.");
+  assert.equal(request.response_format, "mp3");
+  assert.match(request.instructions, /Read only the exact input text/);
+  assert.equal(request.messages, undefined);
+});
+
+test("Spanish narration requests Castilian delivery while preserving the exact page text", async () => {
+  let request;
+  await generateNarrationAudio({
+    text: "Noa cruzo el cielo azul. ¿Que encontraria alli?",
+    language: "es-ES",
+    voiceId: "marin",
+    styleId: "adventure",
+  }, {
+    model: "audio-test",
+    openai: { audio: { speech: { create: async (value) => {
+      request = value;
+      return { arrayBuffer: async () => Uint8Array.of(1, 2, 3).buffer };
+    } } } },
+  });
+  assert.equal(request.input, "Noa cruzo el cielo azul. ¿Que encontraria alli?");
+  assert.match(request.instructions, /European Spanish from Spain \(es-ES\)/);
+  assert.match(request.instructions, /without answering it/);
 });
 
 test("a paid narration order is checkpointed and attached only when ready", async () => {

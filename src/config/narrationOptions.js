@@ -1,4 +1,4 @@
-export const NARRATION_CATALOG_VERSION = "v1";
+export const NARRATION_CATALOG_VERSION = "v2";
 
 export const NARRATION_VOICES = Object.freeze([
   { id: "marin", labels: { fr: "Chaleureuse", es: "Cálida", en: "Warm" }, description: { fr: "Ronde et naturelle", es: "Redonda y natural", en: "Rounded and natural" } },
@@ -28,9 +28,13 @@ export function narrationChoice(voiceId, styleId) {
 }
 
 export function narrationInstruction(styleId, language) {
-  const languageName = String(language || "fr-FR").toLowerCase().startsWith("es") ? "Spanish"
-    : String(language || "fr-FR").toLowerCase().startsWith("en") ? "English" : "French";
-  return `Narrate in ${languageName}. ${STYLE_INSTRUCTIONS[styleId] || STYLE_INSTRUCTIONS.gentle} Read the supplied text exactly, without adding, removing, translating or paraphrasing any word.`;
+  const locale = String(language || "fr-FR").toLowerCase();
+  const languageInstruction = locale.startsWith("es")
+    ? "Speak in neutral European Spanish from Spain (es-ES), with natural Castilian pronunciation and peninsular intonation. Use distincion when pronouncing z and c before e or i. Do not use a Latin American accent."
+    : locale.startsWith("en")
+      ? "Speak in clear, neutral English."
+      : "Speak in neutral Metropolitan French from France (fr-FR).";
+  return `${languageInstruction} ${STYLE_INSTRUCTIONS[styleId] || STYLE_INSTRUCTIONS.gentle} Read only the exact input text. Do not add any preface, explanation, commentary, question, interpretation or closing words. Do not remove, translate, paraphrase or repeat any word. If the input itself contains a question, read it normally without answering it.`;
 }
 
 export function localizedNarrationCatalog(language = "fr") {

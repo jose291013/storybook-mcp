@@ -4,10 +4,10 @@ import { commerceOrderStore } from "./commerceOrderStore.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { projectStore } from "./projectStore.js";
 import { buildInteractiveBookManifest } from "./interactiveBookManifest.js";
-import { narrationChoice, narrationInstruction } from "../config/narrationOptions.js";
+import { NARRATION_CATALOG_VERSION, narrationChoice, narrationInstruction } from "../config/narrationOptions.js";
 import { logMemory } from "./runtimeMemory.js";
 
-const MODEL = () => String(process.env.NARRATION_MODEL || "gpt-audio-1.5");
+const MODEL = () => String(process.env.NARRATION_TTS_MODEL || "gpt-4o-mini-tts");
 const FORMAT = "mp3";
 
 function safeSceneFilename(sceneId, index) {
@@ -18,18 +18,16 @@ function safeSceneFilename(sceneId, index) {
 export async function generateNarrationAudio({ text, language, voiceId, styleId }, dependencies = {}) {
   if (!narrationChoice(voiceId, styleId)) throw new Error("Invalid narration choice");
   const client = dependencies.openai || createOpenAIClient({ kind: "narration" });
-  const response = await client.chat.completions.create({
+  const response = await client.audio.speech.create({
     model: dependencies.model || MODEL(),
-    modalities: ["text", "audio"],
-    audio: { voice: voiceId, format: FORMAT },
-    messages: [
-      { role: "system", content: narrationInstruction(styleId, language) },
-      { role: "user", content: String(text || "").trim() },
-    ],
+    voice: voiceId,
+    input: String(text || "").trim(),
+    instructions: narrationInstruction(styleId, language),
+    response_format: FORMAT,
   });
-  const encoded = response?.choices?.[0]?.message?.audio?.data;
-  if (!encoded) throw new Error("The narration model returned no audio");
-  return Buffer.from(encoded, "base64");
+  const encoded = await response.arrayBuffer();
+  if (!encoded?.byteLength) throw new Error("The narration model returned no audio");
+  return Buffer.from(encoded);
 }
 
 function orderIdentity(input) {
@@ -50,10 +48,13 @@ export async function generatePaidNarration(input, dependencies = {}) {
   const book = buildInteractiveBookManifest(project);
   const model = dependencies.model || MODEL();
   const previous = claimed.deliveryManifest || {};
-  const compatibleCheckpoint = previous.model === model && previous.voiceId === choice.voice.id && previous.styleId === choice.style.id;
+  const compatibleCheckpoint = previous.catalogVersion === NARRATION_CATALOG_VERSION
+    && previous.model === model
+    && previous.voiceId === choice.voice.id
+    && previous.styleId === choice.style.id;
   const manifest = compatibleCheckpoint
     ? { ...previous, scenes: Array.isArray(previous.scenes) ? [...previous.scenes] : [] }
-    : { version: 1, model, voiceId: choice.voice.id, styleId: choice.style.id, format: FORMAT, scenes: [] };
+    : { version: 1, catalogVersion: NARRATION_CATALOG_VERSION, model, voiceId: choice.voice.id, styleId: choice.style.id, format: FORMAT, scenes: [] };
   logMemory("narration.start", { orderId: identity.orderId, sceneCount: book.scenes.length });
   try {
     for (const [index, scene] of book.scenes.entries()) {
