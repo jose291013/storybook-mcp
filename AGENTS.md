@@ -1,5 +1,12 @@
 # Storybook MCP working agreement
 
+## Project memory
+
+- Read `docs/current-status.md` at the start of every task to recover the current Git checkpoint, active component versions, known operational constraints, and the next verification target.
+- Keep `docs/current-status.md` concise and operational. Update it when a product brick is completed, deployed, or handed to another task.
+- Update `docs/product-roadmap.md` when product behavior, architecture, commerce rules, environment variables, or delivery phases change.
+- When the two documents differ, treat `docs/product-roadmap.md` as the product-direction authority and verify the live deployment before changing the checkpoint recorded in `docs/current-status.md`.
+
 ## Durable product direction
 
 - Read `docs/product-roadmap.md` before changing persistence, accounts, commerce, credits, delivery, or series behavior.
