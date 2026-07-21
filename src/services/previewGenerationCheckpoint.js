@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
 const VERSION = 1;
+export const PREVIEW_RETRY_POLICY_VERSION = 2;
 
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
@@ -43,11 +44,16 @@ export function mergeGenerationCheckpoint(snapshot = {}, checkpoint = {}) {
 }
 
 export function technicalPreviewRetryAvailable(project) {
-  return generationCheckpoint(project)?.retryAvailable === true;
+  const checkpoint = generationCheckpoint(project);
+  if (!checkpoint) return false;
+  if (checkpoint.retryAvailable === true) return true;
+  return checkpoint.retryExhausted === true
+    && Number(checkpoint.retryPolicyVersion || 1) < PREVIEW_RETRY_POLICY_VERSION;
 }
 
 export function technicalPreviewRetryExhausted(project) {
-  return generationCheckpoint(project)?.retryExhausted === true;
+  const checkpoint = generationCheckpoint(project);
+  return checkpoint?.retryExhausted === true && !technicalPreviewRetryAvailable(project);
 }
 
 export function isReusableDraftPage(page) {

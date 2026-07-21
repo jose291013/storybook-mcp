@@ -28,6 +28,18 @@ function parseJson(text) {
   }
 }
 
+const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|no coherent|no recognizable|unrecognizable scene|broken pixels|pixel corruption)/iu;
+
+export function objectiveTechnicalIssues(issues = []) {
+  return (Array.isArray(issues) ? issues : [])
+    .map(String)
+    .filter((issue) => OBJECTIVE_DEFECT_PATTERN.test(issue));
+}
+
+export function isImageSafetyRejection(error) {
+  return /(rejected by the safety system|safety system|safety rejection)/iu.test(String(error?.message || error || ""));
+}
+
 export function outputImagePath(imageUrl, outputsDir = "data/outputs") {
   const pathname = new URL(String(imageUrl || ""), "http://localhost").pathname;
   if (!pathname.startsWith("/outputs/")) throw new Error("Generated image URL is invalid");
@@ -62,9 +74,13 @@ Return only JSON in this exact form: {"approved":true,"issues":[]} or {"approved
     max_output_tokens: 300,
   });
   const result = parseJson(extractText(response));
-  const approved = result?.approved === true;
-  const issues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 5) : [];
-  return { approved, issues: approved ? [] : (issues.length ? issues : ["The image failed technical quality control."]) };
+  const reportedIssues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 5) : [];
+  const issues = objectiveTechnicalIssues(reportedIssues);
+  // The vision check is deliberately technical, not artistic. A coherent image
+  // must not be regenerated merely because it is photorealistic or differs from
+  // a preferred illustration style.
+  const approved = result?.approved === true || issues.length === 0;
+  return { approved, issues: approved ? [] : issues };
 }
 
 export async function generateQualityCheckedImage({
@@ -76,6 +92,7 @@ export async function generateQualityCheckedImage({
   ...generationOptions
 }) {
   let previousIssues = [];
+  let omitReferenceImages = false;
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     onAttempt?.({ phase: "started", attempt, maximumAttempts, pageLabel });
     const repairNote = previousIssues.length
@@ -84,6 +101,7 @@ export async function generateQualityCheckedImage({
     try {
       const imageUrl = await generateImage({
         ...generationOptions,
+        referenceImages: omitReferenceImages ? [] : generationOptions.referenceImages,
         prompt: `${prompt}${repairNote}`,
         outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
       });
@@ -100,6 +118,14 @@ export async function generateQualityCheckedImage({
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });
+      if (isImageSafetyRejection(error) && !omitReferenceImages && generationOptions.referenceImages?.length && attempt < maximumAttempts) {
+        // Do not retry the rejected input unchanged. Keep the textual identity
+        // canon, but omit source pixels that may contain a logo or protected
+        // character. This makes the next request safer without bypassing policy.
+        omitReferenceImages = true;
+        previousIssues = ["a supplied reference contained material the safety system could not process; use only the generic non-branded identity description"];
+        continue;
+      }
       throw error;
     }
   }

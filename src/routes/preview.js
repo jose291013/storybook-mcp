@@ -32,6 +32,7 @@ import {
   generationCheckpoint,
   isReusableDraftPage,
   mergeGenerationCheckpoint,
+  PREVIEW_RETRY_POLICY_VERSION,
   previewRequestFingerprint,
   technicalPreviewRetryAvailable,
 } from "../services/previewGenerationCheckpoint.js";
@@ -225,6 +226,7 @@ router.post("/preview", async (req, res) => {
       continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
         ...existingCheckpoint,
         retryAvailable: false,
+        retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
         retryConsumedAt: new Date().toISOString(),
       });
     }
@@ -249,7 +251,7 @@ router.post("/preview", async (req, res) => {
       woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
     },
   });
-  const initialCheckpoint = existingCheckpoint || { fingerprint };
+  const initialCheckpoint = existingCheckpoint || { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION };
   const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = project.continuitySnapshot || {};
   const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? project.continuitySnapshot : continuityWithoutOldCheckpoint, {
     ...initialCheckpoint,
@@ -529,7 +531,7 @@ router.post("/preview", async (req, res) => {
                 completedAt: new Date().toISOString(),
               },
             } : {}),
-          }, { ...checkpoint, phase: "done", retryAvailable: false, retryExhausted: false, completedAt: new Date().toISOString() }),
+          }, { ...checkpoint, phase: "done", retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION, retryAvailable: false, retryExhausted: false, completedAt: new Date().toISOString() }),
           previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
           generationJobId: job.id,
         });
@@ -569,6 +571,7 @@ router.post("/preview", async (req, res) => {
         continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
           ...priorCheckpoint,
           fingerprint,
+          retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
           retryAvailable: !retryWasConsumed,
           retryExhausted: retryWasConsumed,
           failureReason: "preview_generation_failed",

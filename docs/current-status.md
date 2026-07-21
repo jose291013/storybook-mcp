@@ -8,8 +8,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/series-foundation`
-- Latest product-code checkpoint: `12830f0` — `Allow safe AI narration replacement` (the documentation-only memory commit may be newer)
+- Current branch: `codex/image-safety-recovery`
+- Latest deployed product-code checkpoint before this brick: `1eafea8` — `Add purchased-book series foundation`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -33,6 +33,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+Verify the image-safety recovery on project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a`: completed pages must be reused, a stylistic QA comment such as “photo-realistic style” must not reject a coherent image, and an OpenAI safety rejection caused by branded reference pixels must retry once using the non-branded textual identity canon. The legacy exhausted checkpoint receives one additional recovery under retry-policy version 2.
 
 Verify the series-foundation flow end to end after merge:
 

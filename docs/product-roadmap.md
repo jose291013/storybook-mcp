@@ -8,10 +8,11 @@ Last updated: 2026-07-21
 2. When the visitor requests an AI preview, the draft is preserved and WooCommerce authentication is required.
 3. An authenticated customer sees the exact preview price, may apply a single-use access code, and explicitly confirms the displayed wallet debit. A sufficient balance never starts generation automatically.
 4. A credit is reserved at generation start, captured on success, and released after a technical failure. A redeemed code grants an idempotent retry for the same project after a technical failure.
-5. The customer receives a low-definition, watermarked preview stored in **My creations**.
-6. The customer may purchase an ebook, a printed book, or a future bundle. After buying an eBook, the customer may separately purchase AI narration with a chosen voice and narration style.
-7. After ebook payment, the unwatermarked PDF is available in the customer library and by a secure email link.
-8. After print payment, high-definition production starts. The production range and shipping range are shown before payment and snapshotted on the order.
+5. Illustration QA rejects only objective production defects such as corruption, blank output, repeated bands or incomplete rendering; style preferences such as photorealism never trigger a paid regeneration. If OpenAI rejects reference pixels for safety, Calitiki retries once with the already-derived non-branded identity canon and without resubmitting those pixels.
+6. The customer receives a low-definition, watermarked preview stored in **My creations**.
+7. The customer may purchase an ebook, a printed book, or a future bundle. After buying an eBook, the customer may separately purchase AI narration with a chosen voice and narration style.
+8. After ebook payment, the unwatermarked PDF is available in the customer library and by a secure email link.
+9. After print payment, high-definition production starts. The production range and shipping range are shown before payment and snapshotted on the order.
 
 ## Ownership boundaries
 

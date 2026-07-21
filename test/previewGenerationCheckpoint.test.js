@@ -4,6 +4,7 @@ import {
   generationCheckpoint,
   isReusableDraftPage,
   mergeGenerationCheckpoint,
+  PREVIEW_RETRY_POLICY_VERSION,
   previewRequestFingerprint,
   technicalPreviewRetryAvailable,
   technicalPreviewRetryExhausted,
@@ -24,6 +25,31 @@ test("preview checkpoint fingerprints are stable and retain unrelated continuity
   assert.equal(project.continuitySnapshot.referenceRecovery.available, false);
   assert.equal(technicalPreviewRetryAvailable(project), true);
   assert.equal(technicalPreviewRetryExhausted(project), false);
+});
+
+test("an exhausted legacy preview gets one recovery under the safer image policy", () => {
+  const legacy = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "legacy-book",
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-21T18:00:00.000Z",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(legacy), true);
+  assert.equal(technicalPreviewRetryExhausted(legacy), false);
+
+  const current = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "current-book",
+      retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-21T19:00:00.000Z",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(current), false);
+  assert.equal(technicalPreviewRetryExhausted(current), true);
 });
 
 test("only fully persisted draft pages are reused after an interrupted Render job", () => {
