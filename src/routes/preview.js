@@ -546,11 +546,23 @@ router.post("/preview", async (req, res) => {
                 previewNotification: {
                   ...refreshed.continuitySnapshot.previewNotification,
                   sentAt: new Date().toISOString(),
+                  lastError: null,
                 },
               },
             });
           } catch (notificationError) {
             console.warn("[preview] ready email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
+            const refreshed = await projectStore.get(job.projectId);
+            await projectStore.update(job.projectId, {
+              continuitySnapshot: {
+                ...refreshed.continuitySnapshot,
+                previewNotification: {
+                  ...refreshed.continuitySnapshot?.previewNotification,
+                  lastAttemptAt: new Date().toISOString(),
+                  lastError: String(notificationError?.message || notificationError),
+                },
+              },
+            }).catch(() => null);
           }
         }
       }

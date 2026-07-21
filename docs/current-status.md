@@ -8,8 +8,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/repair-retry-diagnostics`
-- Latest deployed product-code checkpoint before this brick: `474c48a` — `Lock illustration style across preview pages`
+- Current branch: **codex/reliable-preview-email-photo-guidance**
+- Latest deployed product-code checkpoint before this brick: **b683272 — Preserve failed illustration repair retries**
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -33,6 +33,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+Verify the current new-book test with **Email me when my book is ready** enabled. The preference must remain stored during generation, WooCommerce must send the ready message once, and the sent timestamp must be recorded. If the completion-time callback fails, reopening the completed project must retry the same idempotent notification; Render logs **[preview-notification] sent** or **[preview-notification] failed**. The photo step now advises customers to avoid visible logos, brands and well-known characters before uploading.
 
 Verify project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` after deploying this branch: page 8 must become eligible again under technical-check policy version 3. If its repair fails, the free entitlement and retry button must remain available and Render must log `[preview-repair] failed` with its page, step and failure category. A successful repair must keep page 35's photographic rendering medium. Then verify pages 12 and 32 under the same bounded behavior.
 

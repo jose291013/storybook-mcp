@@ -605,6 +605,14 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /maybe_send_preview_ready_email/);
   assert.match(plugin, /hash_equals\(\$expected_signature, \$provided_signature\)/);
   assert.match(plugin, /wp_mail\(\$user->user_email/);
+  const draftsRoute = await fs.readFile("src/routes/drafts.js", "utf8");
+  const previewRoute = await fs.readFile("src/routes/preview.js", "utf8");
+  const creatorHtml = await fs.readFile("public/index.html", "utf8");
+  assert.match(draftsRoute, /notifyPreviewReady/);
+  assert.match(draftsRoute, /\["preview_ready", "purchased"\]/);
+  assert.match(draftsRoute, /\[preview-notification\] failed/);
+  assert.match(previewRoute, /lastAttemptAt/);
+  assert.match(creatorHtml, /photoBrandGuidance/);
   assert.match(plugin, /store_ebook_resend_notice/);
   assert.match(plugin, /catch \(Throwable \$error\)/);
   const resendHandler = plugin.slice(plugin.indexOf("public static function resend_ebook_email"), plugin.indexOf("public static function settings_link"));

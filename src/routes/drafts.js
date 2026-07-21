@@ -13,6 +13,7 @@ import {
   technicalPreviewRetryAvailable,
   technicalPreviewRetryExhausted,
 } from "../services/previewGenerationCheckpoint.js";
+import { notifyPreviewReady } from "../services/previewNotification.js";
 
 const router = express.Router();
 
@@ -42,7 +43,38 @@ router.post("/projects/:id/preview-notification", async (req, res) => {
         requestedAt: new Date().toISOString(),
       },
     };
-    const updated = await projectStore.updateForCustomer(project.id, identity, { continuitySnapshot });
+    let updated = await projectStore.updateForCustomer(project.id, identity, { continuitySnapshot });
+    if (req.body?.email === true && ["preview_ready", "purchased"].includes(updated.status) && !updated.continuitySnapshot?.previewNotification?.sentAt) {
+      try {
+        await notifyPreviewReady({ project: updated, identity });
+        const latest = await projectStore.getForCustomer(project.id, identity);
+        updated = await projectStore.updateForCustomer(project.id, identity, {
+          continuitySnapshot: {
+            ...latest.continuitySnapshot,
+            previewNotification: {
+              ...latest.continuitySnapshot?.previewNotification,
+              sentAt: new Date().toISOString(),
+              lastError: null,
+            },
+          },
+        });
+        console.info("[preview-notification] sent", JSON.stringify({ projectId: project.id, generationId: updated.generationJobId || "" }));
+      } catch (notificationError) {
+        const latest = await projectStore.getForCustomer(project.id, identity);
+        updated = await projectStore.updateForCustomer(project.id, identity, {
+          continuitySnapshot: {
+            ...latest.continuitySnapshot,
+            previewNotification: {
+              ...latest.continuitySnapshot?.previewNotification,
+              lastAttemptAt: new Date().toISOString(),
+              lastError: String(notificationError?.message || notificationError),
+            },
+          },
+        });
+        console.warn("[preview-notification] failed", JSON.stringify({ projectId: project.id, error: String(notificationError?.message || notificationError) }));
+        return res.status(502).json({ error: "Preview email delivery failed", notification: updated.continuitySnapshot.previewNotification });
+      }
+    }
     res.json({ notification: updated.continuitySnapshot.previewNotification });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });

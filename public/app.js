@@ -840,6 +840,9 @@ async function restoreCompletedPreview() {
     return true;
   }
   if (!["preview_ready", "preview_repairing", "purchased"].includes(project?.status) || !project.previewResult) return false;
+  if (project?.continuitySnapshot?.previewNotification?.emailRequested === true && !project.continuitySnapshot.previewNotification.sentAt) {
+    await savePreviewNotificationPreference().catch(() => null);
+  }
   showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint, projectStatus: project.status, referenceRecoveryAvailable: project.referenceRecoveryAvailable }, { scroll: false });
   return true;
 }
