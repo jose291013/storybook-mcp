@@ -62,9 +62,15 @@ export async function inspectStyleConsistency({ imagePath, styleReference, pageL
   ]);
   const instruction = `You are checking visual continuity inside one children's book.
 Image 1 is the newly generated ${pageLabel}. Image 2 is the locked visual-style reference for the same book.
-Judge only the rendering medium and finishing style: photographic realism, 3D render, watercolor, gouache, paper cut, pastel, ink, line treatment, texture and overall degree of realism.
+Classify both images into one broad rendering family:
+- realistic_dimensional: photographic-looking illustration, cinematic realism, detailed digital painting, realistic or semi-realistic 3D;
+- soft_painterly: watercolor, gouache or pastel;
+- flat_drawn: flat cartoon, manga, ink or line art;
+- crafted_collage: paper cut, felt, clay or collage.
+
+Images inside the same broad family are compatible. In particular, photographic-looking illustration, detailed realistic 3D, softer realistic 3D and detailed digital painting all belong to realistic_dimensional and MUST be approved together. Differences in texture detail, softness, lighting, color grading, depth of field or degree of polish are not a medium break.
 Ignore scene, cast, pose, framing, colors, lighting and background differences.
-Reject only an obvious medium/style break that would make the two pages look as if they came from different books, for example a photograph beside a flat cartoon or watercolor.
+Reject only a categorical change between two different broad families that would make the pages look as if they came from different books, for example realistic_dimensional beside flat_drawn or soft_painterly.
 Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short reason"]}.`;
   const response = await getClient().responses.create({
     model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
@@ -133,11 +139,14 @@ export async function generateQualityCheckedImage({
   ...generationOptions
 }) {
   let previousIssues = [];
+  let previousRejectionKind = "technical";
   let omitReferenceImages = false;
   for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
     onAttempt?.({ phase: "started", attempt, maximumAttempts, pageLabel });
     const repairNote = previousIssues.length
-      ? `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
+      ? previousRejectionKind === "style"
+        ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
+        : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
       : "";
     try {
       const imageUrl = await generateImage({
@@ -161,7 +170,21 @@ export async function generateQualityCheckedImage({
         onAttempt?.({ phase: "approved", attempt, maximumAttempts, pageLabel });
         return imageUrl;
       }
+      // Style comparison is bounded and advisory. It may request one stronger
+      // regeneration, but a second coherent image must not abort an entire
+      // preview because a vision model distinguishes subtle realism or polish.
+      if (inspection.approved && attempt === maximumAttempts) {
+        onAttempt?.({
+          phase: "approved-with-style-warning",
+          attempt,
+          maximumAttempts,
+          pageLabel,
+          issues: styleInspection.issues,
+        });
+        return imageUrl;
+      }
       previousIssues = inspection.approved ? styleInspection.issues : inspection.issues;
+      previousRejectionKind = inspection.approved ? "style" : "technical";
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });
@@ -170,6 +193,7 @@ export async function generateQualityCheckedImage({
         // canon, but omit source pixels that may contain a logo or protected
         // character. This makes the next request safer without bypassing policy.
         omitReferenceImages = true;
+        previousRejectionKind = "technical";
         previousIssues = ["a supplied reference contained material the safety system could not process; use only the generic non-branded identity description"];
         continue;
       }

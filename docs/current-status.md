@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-21
+Last updated: 2026-07-22
 
 This is the short operational memory for a new Codex task. Product rules and architecture remain authoritative in `docs/product-roadmap.md`; repository working rules remain authoritative in `AGENTS.md`.
 
@@ -8,7 +8,7 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/repair-retry-diagnostics`
+- Current branch: `codex/stable-style-continuity`
 - Latest deployed product-code checkpoint before this brick: `474c48a` — `Lock illustration style across preview pages`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
@@ -33,6 +33,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+Verify project `6760b75e-84d6-4c37-a545-32b798b3e771` after deploying `codex/stable-style-continuity`. Its exhausted checkpoint must receive exactly one recovery under retry-policy version 3 and resume from the first missing illustration. A first categorical style mismatch may cause one regeneration; a technically coherent second image must log `approved-with-style-warning`, persist, and let the remaining book finish without another wallet debit. Objective corrupt, blank or incomplete files remain blocking.
 
 Verify project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` after deploying this branch: page 8 must become eligible again under technical-check policy version 3. If its repair fails, the free entitlement and retry button must remain available and Render must log `[preview-repair] failed` with its page, step and failure category. A successful repair must keep page 35's photographic rendering medium. Then verify pages 12 and 32 under the same bounded behavior.
 

@@ -57,3 +57,7 @@ test("only fully persisted draft pages are reused after an interrupted Render jo
   assert.equal(isReusableDraftPage({ page_number: 12, previewUrl: "/api/p12.png" }), false);
   assert.equal(isReusableDraftPage(null), false);
 });
+
+test("the current style-stability policy is version three", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 3);
+});

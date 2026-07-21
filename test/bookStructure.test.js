@@ -536,6 +536,9 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(quality, /Never compare wardrobe, cast, likeness or narrative accuracy/);
   assert.doesNotMatch(quality, /Expected visible named characters|essential action or setting/);
   assert.match(quality, /IMAGE_GENERATION_ATTEMPTS \|\| "2"/);
+  assert.match(quality, /realistic_dimensional/);
+  assert.match(quality, /approved-with-style-warning/);
+  assert.match(quality, /attempt === maximumAttempts/);
   assert.match(repair, /project\.status === "purchased"/);
   assert.match(repair, /status: "preview_repairing"/);
   assert.match(repair, /FREE_TECHNICAL_CHECKS_PER_PROJECT = 3/);
