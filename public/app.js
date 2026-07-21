@@ -628,7 +628,7 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     repairPage = frame.find((page) => page.page_type === "image") || null;
     const canRepair = Boolean(
       repairPage
-      && !repairPage.technicalCheckAt
+      && (!repairPage.technicalCheckAt || Number(repairPage.technicalCheckPolicyVersion || 1) < 2)
       && !repairPage.repairedAt
       && state.projectId
       && [undefined, "preview_ready", "preview_repairing"].includes(job.projectStatus)

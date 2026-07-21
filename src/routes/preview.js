@@ -458,6 +458,7 @@ router.post("/preview", async (req, res) => {
             scenePrompt: page.image_prompt,
             visualState: page.visual_state || {},
             ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
+            ...(!coverReferencePath && coverImageStorageKey ? { continuityImageStorageKey: coverImageStorageKey } : {}),
             pairedText,
             referenceAssets,
           });

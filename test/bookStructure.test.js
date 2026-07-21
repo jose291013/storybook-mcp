@@ -539,7 +539,8 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(repair, /project\.status === "purchased"/);
   assert.match(repair, /status: "preview_repairing"/);
   assert.match(repair, /FREE_TECHNICAL_CHECKS_PER_PROJECT = 3/);
-  assert.match(repair, /FREE_TECHNICAL_REPAIRS_PER_PROJECT = 1/);
+  assert.match(repair, /FREE_TECHNICAL_REPAIRS_PER_PROJECT = 3/);
+  assert.match(repair, /inspectStyleConsistency/);
   assert.match(repair, /technicalCheckAt/);
   assert.match(repair, /inspectGeneratedIllustration[\s\S]+generateQualityCheckedImage/);
   assert.match(repair, /maximumAttempts: 2/);
@@ -547,7 +548,7 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(app, /repairCurrentIllustration/);
   assert.match(app, /repairIllustrationNoDefect/);
   assert.match(app, /repairIllustrationLimit/);
-  assert.match(app, /!repairPage\.technicalCheckAt/);
+  assert.match(app, /technicalCheckPolicyVersion/);
   assert.match(app, /preview-pages\/\$\{encodeURIComponent\(pageNumber\)\}\/repair/);
 });
 
@@ -897,6 +898,7 @@ test("scene continuity locks child outfit and mascot species while attaching the
   });
   assert.equal(continuity.referenceImages.length, 1);
   assert.match(continuity.referenceImages[0].path, /noa\.jpg$/);
+  assert.equal(continuity.referenceImages[0].kind, "identity");
   assert.match(continuity.characterFingerprints.join(" "), /FIXED OUTFIT.*blue sweater/i);
   assert.match(continuity.characterFingerprints.join(" "), /red fox.*SPECIES LOCK/i);
   assert.match(continuity.sceneContract, /AUTHORITATIVE FACING-PAGE PROSE/);
@@ -915,6 +917,16 @@ test("scene continuity locks child outfit and mascot species while attaching the
   assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): Noa, Pixel/);
   assert.match(prompt, /Do not omit, merge, replace or transform/i);
   assert.match(prompt, /Reference photos may contain printed words, labels or commercial logos/i);
+
+  const resumed = buildSceneContinuity({
+    blueprint,
+    characterCanons: [],
+    castPresent: ["Noa"],
+    scenePrompt: "Noa enters another room",
+    continuityImageStorageKey: "previews/project/cover-image.png",
+  });
+  assert.equal(resumed.referenceImages[0].storageKey, "previews/project/cover-image.png");
+  assert.equal(resumed.referenceImages[0].kind, "continuity");
 });
 
 test("world reality keeps physics by default and requires explicit visible fantasy exceptions", () => {

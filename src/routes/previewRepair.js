@@ -8,13 +8,14 @@ import { projectStore } from "../services/projectStore.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../services/previewAssetStorage.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
-import { generateQualityCheckedImage, inspectGeneratedIllustration } from "../services/imageQualityGate.js";
+import { generateQualityCheckedImage, inspectGeneratedIllustration, inspectStyleConsistency } from "../services/imageQualityGate.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
 const FREE_TECHNICAL_CHECKS_PER_PROJECT = 3;
-const FREE_TECHNICAL_REPAIRS_PER_PROJECT = 1;
+const FREE_TECHNICAL_REPAIRS_PER_PROJECT = 3;
+const TECHNICAL_CHECK_POLICY_VERSION = 2;
 
 function names(values = []) {
   return new Set(values.map((value) => String(value || "").trim().toLowerCase()).filter(Boolean));
@@ -51,7 +52,7 @@ async function usableCharacterCanons(project) {
 
 async function downloadContinuityReference(project, blueprintPage, temporaryDirectory) {
   const candidate = chooseReferencePage(project, blueprintPage);
-  const storageKey = candidate?.imageStorageKey || candidate?.storageKey || project.previewResult?.coverImageStorageKey || project.previewResult?.coverStorageKey;
+  const storageKey = project.previewResult?.coverImageStorageKey || project.previewResult?.coverStorageKey || candidate?.imageStorageKey || candidate?.storageKey;
   if (!storageKey) return "";
   const asset = await getDeliveryStorage().get(storageKey);
   const body = await storageBodyToBuffer(asset.body);
@@ -87,10 +88,12 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
   if (!blueprintPage || blueprintPage.page_type !== "image") return res.status(400).json({ error: "Only an illustration page can be repaired" });
   const existingDraftPage = project.previewResult.draftPages?.find((page) => Number(page.page_number) === pageNumber);
   if (!existingDraftPage) return res.status(404).json({ error: "Preview page not found" });
-  if (existingDraftPage.technicalCheckAt || existingDraftPage.repairedAt) {
+  if (existingDraftPage.repairedAt || (existingDraftPage.technicalCheckAt && Number(existingDraftPage.technicalCheckPolicyVersion || 1) >= TECHNICAL_CHECK_POLICY_VERSION)) {
     return res.status(409).json({ error: "This page has already received its one-time technical check" });
   }
-  const priorCheckCount = (project.previewResult.draftPages || []).filter((page) => page.technicalCheckAt || page.repairedAt).length;
+  const priorCheckCount = (project.previewResult.draftPages || []).filter((page) => (
+    page.repairedAt || (page.technicalCheckAt && Number(page.technicalCheckPolicyVersion || 1) >= TECHNICAL_CHECK_POLICY_VERSION)
+  )).length;
   if (priorCheckCount >= FREE_TECHNICAL_CHECKS_PER_PROJECT) {
     return res.status(409).json({ error: "The technical-check limit for this preview has been reached" });
   }
@@ -125,14 +128,24 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         existingStorageKey,
         path.join(temporaryDirectory, "existing-preview.png"),
       );
-      const technicalInspection = await inspectGeneratedIllustration({
+      const referencePath = await downloadContinuityReference(refreshed, blueprintPage, temporaryDirectory);
+      const fileInspection = await inspectGeneratedIllustration({
         imagePath: existingImagePath,
         pageLabel: `existing composed preview page ${pageNumber}; its small preview watermark and page-number badge are expected`,
       });
+      const styleInspection = fileInspection.approved
+        ? await inspectStyleConsistency({
+          imagePath: existingImagePath,
+          styleReference: referencePath ? { path: referencePath, kind: "continuity" } : null,
+          pageLabel: `existing preview illustration for page ${pageNumber}`,
+        })
+        : { approved: false, issues: [] };
+      const technicalInspection = fileInspection.approved ? styleInspection : fileInspection;
       const technicalCheckAt = new Date().toISOString();
       draftPages[index] = {
         ...draftPages[index],
         technicalCheckAt,
+        technicalCheckPolicyVersion: TECHNICAL_CHECK_POLICY_VERSION,
         technicalCheckResult: technicalInspection.approved ? "passed" : "defective",
         technicalCheckIssues: technicalInspection.issues,
       };
@@ -164,7 +177,6 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
 
       const pairedTextPage = refreshed.finalBlueprint.pages?.find((page) => page.spread_number === blueprintPage.spread_number && ["text", "opening_text", "closing_text"].includes(page.page_type));
       const pairedText = draftPages.find((page) => Number(page.page_number) === Number(pairedTextPage?.page_number))?.text || "";
-      const referencePath = await downloadContinuityReference(refreshed, blueprintPage, temporaryDirectory);
       const characterCanons = await usableCharacterCanons(refreshed);
       const continuity = buildSceneContinuity({
         blueprint: refreshed.finalBlueprint,
@@ -178,7 +190,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
 
       updateJob(job.id, { step: `repair:page:${pageNumber}:illustrating` });
       const localImageUrl = await generateQualityCheckedImage({
-        prompt: `${blueprintPage.image_prompt}\n\nTECHNICAL REPAIR: replace a corrupted preview illustration. Follow the scene contract exactly and create a complete coherent image.`,
+        prompt: `${blueprintPage.image_prompt}\n\nTECHNICAL REPAIR: replace an illustration with a production defect or a rendering style that broke the locked visual continuity. Follow the scene contract and the continuity reference exactly.`,
         outName: `repair-page${pageNumber}-${job.id}`,
         castPresent: blueprintPage.cast_present || [],
         pageLabel: `repaired interior illustration for page ${pageNumber}`,

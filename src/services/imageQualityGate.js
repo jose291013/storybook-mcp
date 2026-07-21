@@ -3,6 +3,8 @@ import path from "path";
 import sharp from "sharp";
 import { generateImage } from "./imageRunner.js";
 import { createOpenAIClient } from "./openaiClient.js";
+import { getDeliveryStorage } from "./deliveryStorage.js";
+import { storageBodyToBuffer } from "./previewAssetStorage.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "qa" });
@@ -38,6 +40,45 @@ export function objectiveTechnicalIssues(issues = []) {
 
 export function isImageSafetyRejection(error) {
   return /(rejected by the safety system|safety system|safety rejection)/iu.test(String(error?.message || error || ""));
+}
+
+async function referenceSource(reference) {
+  if (!reference) return null;
+  if (Buffer.isBuffer(reference.buffer)) return reference.buffer;
+  if (reference.storageKey) {
+    const asset = await getDeliveryStorage().get(reference.storageKey);
+    return storageBodyToBuffer(asset.body);
+  }
+  if (reference.path) return fs.readFile(reference.path);
+  return null;
+}
+
+export async function inspectStyleConsistency({ imagePath, styleReference, pageLabel = "illustration" }) {
+  const reference = await referenceSource(styleReference);
+  if (!reference) return { approved: true, issues: [] };
+  const [candidate, locked] = await Promise.all([
+    sharp(await fs.readFile(imagePath)).rotate().resize(512, 512, { fit: "inside" }).jpeg({ quality: 72 }).toBuffer(),
+    sharp(reference).rotate().resize(512, 512, { fit: "inside" }).jpeg({ quality: 72 }).toBuffer(),
+  ]);
+  const instruction = `You are checking visual continuity inside one children's book.
+Image 1 is the newly generated ${pageLabel}. Image 2 is the locked visual-style reference for the same book.
+Judge only the rendering medium and finishing style: photographic realism, 3D render, watercolor, gouache, paper cut, pastel, ink, line treatment, texture and overall degree of realism.
+Ignore scene, cast, pose, framing, colors, lighting and background differences.
+Reject only an obvious medium/style break that would make the two pages look as if they came from different books, for example a photograph beside a flat cartoon or watercolor.
+Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short reason"]}.`;
+  const response = await getClient().responses.create({
+    model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+    input: [{ role: "user", content: [
+      { type: "input_text", text: instruction },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${candidate.toString("base64")}`, detail: "low" },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${locked.toString("base64")}`, detail: "low" },
+    ] }],
+    max_output_tokens: 300,
+  });
+  const result = parseJson(extractText(response));
+  const approved = result?.approved === true;
+  const issues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 3) : [];
+  return { approved, issues: approved ? [] : (issues.length ? issues : ["The rendering style does not match the locked book reference."]) };
 }
 
 export function outputImagePath(imageUrl, outputsDir = "data/outputs") {
@@ -101,7 +142,9 @@ export async function generateQualityCheckedImage({
     try {
       const imageUrl = await generateImage({
         ...generationOptions,
-        referenceImages: omitReferenceImages ? [] : generationOptions.referenceImages,
+        referenceImages: omitReferenceImages
+          ? generationOptions.referenceImages?.filter((reference) => reference?.kind === "continuity")
+          : generationOptions.referenceImages,
         prompt: `${prompt}${repairNote}`,
         outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
       });
@@ -110,11 +153,15 @@ export async function generateQualityCheckedImage({
         imagePath: outputImagePath(imageUrl),
         pageLabel,
       });
-      if (inspection.approved) {
+      const styleReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "continuity");
+      const styleInspection = inspection.approved
+        ? await inspectStyleConsistency({ imagePath: outputImagePath(imageUrl), styleReference, pageLabel })
+        : { approved: false, issues: [] };
+      if (inspection.approved && styleInspection.approved) {
         onAttempt?.({ phase: "approved", attempt, maximumAttempts, pageLabel });
         return imageUrl;
       }
-      previousIssues = inspection.issues;
+      previousIssues = inspection.approved ? styleInspection.issues : inspection.issues;
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });

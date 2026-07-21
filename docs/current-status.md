@@ -8,8 +8,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/image-safety-recovery`
-- Latest deployed product-code checkpoint before this brick: `1eafea8` — `Add purchased-book series foundation`
+- Current branch: `codex/visual-style-lock`
+- Latest deployed product-code checkpoint before this brick: `b02afd8` — `Recover previews from image safety rejections`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -33,6 +33,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+Verify project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` after the visual-style-lock deployment: pages 8, 12 and 32 must be detected as style-continuity defects against the cover and may each receive one free repair under technical-check policy version 2. Page 35 is the expected photographic rendering reference. The repaired pages must keep the cover's rendering medium while branded identity pixels remain excluded from a safety fallback.
 
 Verify the image-safety recovery on project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a`: completed pages must be reused, a stylistic QA comment such as “photo-realistic style” must not reject a coherent image, and an OpenAI safety rejection caused by branded reference pixels must retry once using the non-branded textual identity canon. The legacy exhausted checkpoint receives one additional recovery under retry-policy version 2.
 

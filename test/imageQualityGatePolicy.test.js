@@ -11,7 +11,7 @@ test("image QA ignores artistic preferences and retains objective file defects",
   );
 });
 
-test("OpenAI safety rejections are identified for a safer reference-free retry", () => {
+test("OpenAI safety rejections are identified for a safer continuity-only retry", () => {
   assert.equal(isImageSafetyRejection(new Error("Your request was rejected by the safety system.")), true);
   assert.equal(isImageSafetyRejection(new Error("Network timeout")), false);
 });

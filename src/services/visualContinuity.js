@@ -61,6 +61,7 @@ export function buildSceneContinuity({
   scenePrompt = "",
   visualState = {},
   continuityImagePath = "",
+  continuityImageStorageKey = "",
   pairedText = "",
   referenceAssets = new Map(),
 }) {
@@ -92,14 +93,16 @@ export function buildSceneContinuity({
             ? { storageKey: photoCanon.storageKey }
             : { path: uploadedPhotoPath(photoCanon.photoId) }),
         label: `${character.name}, ${role}: primary identity reference; preserve face or animal traits faithfully`,
+        kind: "identity",
       });
     }
   }
 
-  if (continuityImagePath) {
+  if (continuityImagePath || continuityImageStorageKey) {
     referenceImages.push({
-      path: continuityImagePath,
+      ...(continuityImagePath ? { path: continuityImagePath } : { storageKey: continuityImageStorageKey }),
       label: "approved book continuity frame: preserve the established illustration style, character proportions, outfits and mascot design only",
+      kind: "continuity",
     });
   }
 
