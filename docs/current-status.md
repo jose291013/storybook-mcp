@@ -8,8 +8,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/visual-style-lock`
-- Latest deployed product-code checkpoint before this brick: `b02afd8` — `Recover previews from image safety rejections`
+- Current branch: `codex/repair-retry-diagnostics`
+- Latest deployed product-code checkpoint before this brick: `474c48a` — `Lock illustration style across preview pages`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -34,7 +34,7 @@ For the complete implementation checkpoint and all environment variables, read `
 
 ## Next verification target
 
-Verify project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` after the visual-style-lock deployment: pages 8, 12 and 32 must be detected as style-continuity defects against the cover and may each receive one free repair under technical-check policy version 2. Page 35 is the expected photographic rendering reference. The repaired pages must keep the cover's rendering medium while branded identity pixels remain excluded from a safety fallback.
+Verify project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` after deploying this branch: page 8 must become eligible again under technical-check policy version 3. If its repair fails, the free entitlement and retry button must remain available and Render must log `[preview-repair] failed` with its page, step and failure category. A successful repair must keep page 35's photographic rendering medium. Then verify pages 12 and 32 under the same bounded behavior.
 
 Verify the image-safety recovery on project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a`: completed pages must be reused, a stylistic QA comment such as “photo-realistic style” must not reject a coherent image, and an OpenAI safety rejection caused by branded reference pixels must retry once using the non-branded textual identity canon. The legacy exhausted checkpoint receives one additional recovery under retry-policy version 2.
 

@@ -15,7 +15,20 @@ const router = express.Router();
 const repairingProjects = new Set();
 const FREE_TECHNICAL_CHECKS_PER_PROJECT = 3;
 const FREE_TECHNICAL_REPAIRS_PER_PROJECT = 3;
-const TECHNICAL_CHECK_POLICY_VERSION = 2;
+const TECHNICAL_CHECK_POLICY_VERSION = 3;
+const MAX_FAILED_REPAIR_ATTEMPTS_PER_PAGE = 2;
+
+function repairFailureCode(error) {
+  const message = String(error?.message || error || "").toLowerCase();
+  if (message.includes("safety system") || message.includes("safety rejection")) return "image_safety_rejection";
+  if (message.includes("style consistency") || message.includes("rendering medium")) return "style_continuity_failed";
+  if (message.includes("timeout") || message.includes("timed out")) return "upstream_timeout";
+  return "technical_repair_failed";
+}
+
+function logRepair(event, details) {
+  console.log(`[preview-repair] ${event}`, JSON.stringify(details));
+}
 
 function names(values = []) {
   return new Set(values.map((value) => String(value || "").trim().toLowerCase()).filter(Boolean));
@@ -88,6 +101,9 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
   if (!blueprintPage || blueprintPage.page_type !== "image") return res.status(400).json({ error: "Only an illustration page can be repaired" });
   const existingDraftPage = project.previewResult.draftPages?.find((page) => Number(page.page_number) === pageNumber);
   if (!existingDraftPage) return res.status(404).json({ error: "Preview page not found" });
+  if (Number(existingDraftPage.technicalRepairFailureCount || 0) >= MAX_FAILED_REPAIR_ATTEMPTS_PER_PAGE) {
+    return res.status(409).json({ error: "The bounded repair attempts for this page have been exhausted" });
+  }
   if (existingDraftPage.repairedAt || (existingDraftPage.technicalCheckAt && Number(existingDraftPage.technicalCheckPolicyVersion || 1) >= TECHNICAL_CHECK_POLICY_VERSION)) {
     return res.status(409).json({ error: "This page has already received its one-time technical check" });
   }
@@ -116,6 +132,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
   (async () => {
     let temporaryDirectory = "";
     try {
+      logRepair("started", { jobId: job.id, projectId: project.id, pageNumber });
       temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-page-repair-"));
       const refreshed = await projectStore.get(project.id);
       const draftPages = [...(refreshed.previewResult?.draftPages || [])];
@@ -141,6 +158,14 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         })
         : { approved: false, issues: [] };
       const technicalInspection = fileInspection.approved ? styleInspection : fileInspection;
+      logRepair("inspected", {
+        jobId: job.id,
+        projectId: project.id,
+        pageNumber,
+        fileApproved: fileInspection.approved,
+        styleApproved: styleInspection.approved,
+        issues: technicalInspection.issues,
+      });
       const technicalCheckAt = new Date().toISOString();
       draftPages[index] = {
         ...draftPages[index],
@@ -159,6 +184,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
           step: `repair:page:${pageNumber}:no-defect`,
           result: { pageNumber, repaired: false, technicalDefect: false },
         });
+        logRepair("no-defect", { jobId: job.id, projectId: project.id, pageNumber });
         return;
       }
 
@@ -172,6 +198,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
           step: `repair:page:${pageNumber}:repair-limit`,
           result: { pageNumber, repaired: false, technicalDefect: true, repairLimitReached: true },
         });
+        logRepair("repair-limit", { jobId: job.id, projectId: project.id, pageNumber });
         return;
       }
 
@@ -226,9 +253,42 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
       previewResult = { ...refreshed.previewResult, draftPages };
       await projectStore.update(refreshed.id, { status: "preview_ready", previewResult, generationJobId: job.id });
       updateJob(job.id, { status: "done", step: `repair:page:${pageNumber}:done`, result: { pageNumber, repaired: true, technicalDefect: true } });
+      logRepair("done", { jobId: job.id, projectId: project.id, pageNumber });
     } catch (error) {
-      await projectStore.update(project.id, { status: "preview_ready" }).catch(() => null);
-      updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+      const errorMessage = String(error?.message || error);
+      const errorCode = repairFailureCode(error);
+      const latest = await projectStore.get(project.id).catch(() => null);
+      if (latest?.previewResult?.draftPages) {
+        const draftPages = latest.previewResult.draftPages.map((page) => {
+          if (Number(page.page_number) !== pageNumber || page.repairedAt) return page;
+          return {
+            ...page,
+            technicalCheckAt: null,
+            technicalCheckPolicyVersion: null,
+            technicalCheckResult: null,
+            technicalCheckIssues: [],
+            technicalRepairFailureAt: new Date().toISOString(),
+            technicalRepairFailureCount: Number(page.technicalRepairFailureCount || 0) + 1,
+            technicalRepairFailureCode: errorCode,
+          };
+        });
+        await projectStore.update(project.id, {
+          status: "preview_ready",
+          previewResult: { ...latest.previewResult, draftPages },
+          generationJobId: job.id,
+        }).catch(() => null);
+      } else {
+        await projectStore.update(project.id, { status: "preview_ready", generationJobId: job.id }).catch(() => null);
+      }
+      console.error("[preview-repair] failed", JSON.stringify({
+        jobId: job.id,
+        projectId: project.id,
+        pageNumber,
+        step: getJob(job.id)?.step,
+        errorCode,
+        error: errorMessage,
+      }));
+      updateJob(job.id, { status: "failed", error: errorMessage, errorCode });
     } finally {
       repairingProjects.delete(project.id);
       if (temporaryDirectory) await fs.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => null);

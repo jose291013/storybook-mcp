@@ -628,8 +628,9 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     repairPage = frame.find((page) => page.page_type === "image") || null;
     const canRepair = Boolean(
       repairPage
-      && (!repairPage.technicalCheckAt || Number(repairPage.technicalCheckPolicyVersion || 1) < 2)
+      && (!repairPage.technicalCheckAt || Number(repairPage.technicalCheckPolicyVersion || 1) < 3)
       && !repairPage.repairedAt
+      && Number(repairPage.technicalRepairFailureCount || 0) < 2
       && state.projectId
       && [undefined, "preview_ready", "preview_repairing"].includes(job.projectStatus)
     );
@@ -691,10 +692,26 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
         ? tr("repairIllustrationDone", { page: pageNumber })
         : (repairJob.result?.technicalDefect ? tr("repairIllustrationLimit") : tr("repairIllustrationNoDefect", { page: pageNumber }));
     } catch (error) {
-      repairButton.disabled = requestAccepted;
-      repairButton.hidden = requestAccepted;
-      if (!requestAccepted) repairButton.textContent = tr("repairIllustration", { page: pageNumber });
-      repairFeedback.textContent = tr("repairIllustrationError");
+      repairButton.disabled = false;
+      repairButton.hidden = false;
+      repairButton.textContent = tr("repairIllustrationRetry", { page: pageNumber });
+      repairFeedback.textContent = requestAccepted ? tr("repairIllustrationRetryError") : tr("repairIllustrationError");
+      if (requestAccepted) {
+        try {
+          const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+          const projectPayload = await projectResponse.json();
+          if (projectResponse.ok) {
+            showCompletedPreview({ result: projectPayload.project.previewResult, final_blueprint: projectPayload.project.finalBlueprint, projectStatus: projectPayload.project.status }, { scroll: false, initialPageNumber: pageNumber });
+            const refreshedFeedback = document.querySelector("#readerRepairFeedback");
+            const refreshedPage = projectPayload.project.previewResult?.draftPages?.find((page) => Number(page.page_number) === Number(pageNumber));
+            if (refreshedFeedback) refreshedFeedback.textContent = Number(refreshedPage?.technicalRepairFailureCount || 0) >= 2
+              ? tr("repairIllustrationExhausted")
+              : tr("repairIllustrationRetryError");
+          }
+        } catch {
+          // Keep the current preview and retry control visible if refreshing fails.
+        }
+      }
       elements.actionBuyEbook.disabled = false;
       elements.actionBuyPrint.disabled = !isProductAvailable("print");
     }

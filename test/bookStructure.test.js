@@ -540,6 +540,10 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(repair, /status: "preview_repairing"/);
   assert.match(repair, /FREE_TECHNICAL_CHECKS_PER_PROJECT = 3/);
   assert.match(repair, /FREE_TECHNICAL_REPAIRS_PER_PROJECT = 3/);
+  assert.match(repair, /TECHNICAL_CHECK_POLICY_VERSION = 3/);
+  assert.match(repair, /MAX_FAILED_REPAIR_ATTEMPTS_PER_PAGE = 2/);
+  assert.match(repair, /technicalCheckAt: null/);
+  assert.match(repair, /\[preview-repair\] failed/);
   assert.match(repair, /inspectStyleConsistency/);
   assert.match(repair, /technicalCheckAt/);
   assert.match(repair, /inspectGeneratedIllustration[\s\S]+generateQualityCheckedImage/);
@@ -548,6 +552,7 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(app, /repairCurrentIllustration/);
   assert.match(app, /repairIllustrationNoDefect/);
   assert.match(app, /repairIllustrationLimit/);
+  assert.match(app, /repairIllustrationRetryError/);
   assert.match(app, /technicalCheckPolicyVersion/);
   assert.match(app, /preview-pages\/\$\{encodeURIComponent\(pageNumber\)\}\/repair/);
 });
