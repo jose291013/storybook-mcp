@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.5.9
+ * Version: 0.6.0
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -77,8 +77,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.5.9') {
-            update_option(self::VERSION_OPTION, '0.5.9');
+        if (get_option(self::VERSION_OPTION) !== '0.6.0') {
+            update_option(self::VERSION_OPTION, '0.6.0');
             flush_rewrite_rules(false);
         }
     }
@@ -257,6 +257,10 @@ final class Calitiki_Woo_Bridge {
                     echo '<a class="button calitiki-reader-button" href="' . esc_url($reader_url) . '">' . esc_html__('Lire mon livre interactif', 'calitiki-bridge') . '</a>';
                 }
                 if ($product_type === 'ebook') {
+                    $next_adventure_url = self::new_adventure_bridge_url($project_id);
+                    if ($next_adventure_url) {
+                        echo '<a class="button calitiki-series-button" href="' . esc_url($next_adventure_url) . '">' . esc_html__('Créer une nouvelle aventure', 'calitiki-bridge') . '</a>';
+                    }
                     $narration_url = self::narration_bridge_url($project_id);
                     if ($narration_url) {
                         echo '<a class="button calitiki-narration-button" href="' . esc_url($narration_url) . '">' . esc_html__('Choisir une narration IA', 'calitiki-bridge') . '</a>';
@@ -540,6 +544,24 @@ final class Calitiki_Woo_Bridge {
             'type' => 'woocommerce_auth',
             'projectId' => $project_id,
             'destination' => 'narration',
+            'nonce' => wp_generate_password(24, false, false),
+            'exp' => time() + 10 * MINUTE_IN_SECONDS,
+        )));
+        $signature = self::base64url_encode(hash_hmac('sha256', $payload, $secret, true));
+        return add_query_arg(array('calitiki_connect' => '1', 'state' => $payload . '.' . $signature), home_url('/'));
+    }
+
+    private static function new_adventure_bridge_url($project_id) {
+        $project_id = sanitize_text_field((string) $project_id);
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
+        if (!$project_id || strlen($secret) < 32 || !$generator_url) {
+            return '';
+        }
+        $payload = self::base64url_encode(wp_json_encode(array(
+            'type' => 'woocommerce_auth',
+            'projectId' => $project_id,
+            'destination' => 'new_adventure',
             'nonce' => wp_generate_password(24, false, false),
             'exp' => time() + 10 * MINUTE_IN_SECONDS,
         )));

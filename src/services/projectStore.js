@@ -7,7 +7,7 @@ const DEFAULT_LOCAL_PATH = path.resolve("data/projects.json");
 const PATCH_FIELDS = new Set([
   "status", "title", "locale", "questionnaire", "photoRefs", "productConfiguration",
   "continuitySnapshot", "finalBlueprint", "previewResult", "generationJobId", "expiresAt",
-  "childProfileId", "seriesId", "episodeNumber",
+  "childProfileId", "seriesId", "episodeNumber", "sourceProjectId",
 ]);
 const now = () => new Date().toISOString();
 const safePatch = (patch = {}) => Object.fromEntries(Object.entries(patch).filter(([key, value]) => PATCH_FIELDS.has(key) && value !== undefined));
@@ -19,12 +19,13 @@ function createRecord(input = {}) {
   return {
     id: crypto.randomUUID(), customerId: input.customerId || null, anonymousOwnerHash: input.anonymousOwnerHash || null,
     childProfileId: input.childProfileId || null, seriesId: input.seriesId || null, episodeNumber: input.episodeNumber || null,
+    sourceProjectId: input.sourceProjectId || null,
     status: input.status || "draft", title: input.title || "", locale: input.locale || "FR",
     questionnaire: input.questionnaire || {}, photoRefs: Array.isArray(input.photoRefs) ? input.photoRefs : [],
     productConfiguration: input.productConfiguration || {}, continuitySnapshot: input.continuitySnapshot || {},
     finalBlueprint: input.finalBlueprint || null, previewResult: input.previewResult || null,
     generationJobId: input.generationJobId || null,
-    expiresAt: input.expiresAt || new Date(Date.now() + ttlDays * 86400000).toISOString(), createdAt, updatedAt: createdAt,
+    expiresAt: input.expiresAt === null ? null : (input.expiresAt || new Date(Date.now() + ttlDays * 86400000).toISOString()), createdAt, updatedAt: createdAt,
   };
 }
 
@@ -82,6 +83,16 @@ export class JsonProjectStore {
     const project = await this.getForCustomer(id, identity);
     return project ? this.update(id, patch) : null;
   }
+  async listForSeries(seriesId, customerId) {
+    return Object.values(this.read().projects).filter((project) => project.seriesId === seriesId && project.customerId === customerId)
+      .sort((left, right) => Number(left.episodeNumber || 0) - Number(right.episodeNumber || 0));
+  }
+  async findDerivedDraft(sourceProjectId, customerId) {
+    return Object.values(this.read().projects).find((project) => (
+      project.sourceProjectId === sourceProjectId && project.customerId === customerId
+      && !["purchased", "archived"].includes(project.status)
+    )) || null;
+  }
 }
 
 function fromRow(row) {
@@ -90,6 +101,7 @@ function fromRow(row) {
   return {
     id: row.id, customerId: row.customer_id, anonymousOwnerHash: row.anonymous_owner_hash,
     childProfileId: row.child_profile_id, seriesId: row.series_id, episodeNumber: row.episode_number,
+    sourceProjectId: row.source_project_id || null,
     status: row.status, title: row.title || "", locale: row.locale || "FR", questionnaire: row.questionnaire || {},
     photoRefs: row.photo_refs || [], productConfiguration: row.product_configuration || {},
     continuitySnapshot: row.continuity_snapshot || {}, finalBlueprint: row.final_blueprint,
@@ -112,10 +124,10 @@ export class PostgresProjectStore {
   async create(input) {
     const p = createRecord(input);
     const { rows } = await this.database.query(
-      `INSERT INTO book_projects (id,customer_id,anonymous_owner_hash,child_profile_id,series_id,episode_number,status,title,locale,
+      `INSERT INTO book_projects (id,customer_id,anonymous_owner_hash,child_profile_id,series_id,episode_number,source_project_id,status,title,locale,
        questionnaire,photo_refs,product_configuration,continuity_snapshot,final_blueprint,preview_result,generation_job_id,expires_at,created_at,updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
-      [p.id,p.customerId,p.anonymousOwnerHash,p.childProfileId,p.seriesId,p.episodeNumber,p.status,p.title,p.locale,jsonbParameter(p.questionnaire),
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20) RETURNING *`,
+      [p.id,p.customerId,p.anonymousOwnerHash,p.childProfileId,p.seriesId,p.episodeNumber,p.sourceProjectId,p.status,p.title,p.locale,jsonbParameter(p.questionnaire),
         jsonbParameter(p.photoRefs),jsonbParameter(p.productConfiguration),jsonbParameter(p.continuitySnapshot),jsonbParameter(p.finalBlueprint),jsonbParameter(p.previewResult),p.generationJobId,p.expiresAt,p.createdAt,p.updatedAt]
     ); return fromRow(rows[0]);
   }
@@ -125,9 +137,9 @@ export class PostgresProjectStore {
     const { rows } = await this.database.query(
       `UPDATE book_projects SET status=$2,title=$3,locale=$4,questionnaire=$5,photo_refs=$6,product_configuration=$7,
        continuity_snapshot=$8,final_blueprint=$9,preview_result=$10,generation_job_id=$11,expires_at=$12,child_profile_id=$13,
-       series_id=$14,episode_number=$15,updated_at=$16 WHERE id=$1 RETURNING *`,
+       series_id=$14,episode_number=$15,source_project_id=$16,updated_at=$17 WHERE id=$1 RETURNING *`,
       [id,p.status,p.title,p.locale,jsonbParameter(p.questionnaire),jsonbParameter(p.photoRefs),jsonbParameter(p.productConfiguration),jsonbParameter(p.continuitySnapshot),jsonbParameter(p.finalBlueprint),
-        jsonbParameter(p.previewResult),p.generationJobId,p.expiresAt,p.childProfileId,p.seriesId,p.episodeNumber,p.updatedAt]
+        jsonbParameter(p.previewResult),p.generationJobId,p.expiresAt,p.childProfileId,p.seriesId,p.episodeNumber,p.sourceProjectId,p.updatedAt]
     ); return fromRow(rows[0]);
   }
   async claim(id, ownerHash, identity) {
@@ -150,6 +162,20 @@ export class PostgresProjectStore {
   async updateForCustomer(id, identity, patch) {
     const project = await this.getForCustomer(id, identity);
     return project ? this.update(id, patch) : null;
+  }
+  async listForSeries(seriesId, customerId) {
+    const { rows } = await this.database.query(
+      "SELECT * FROM book_projects WHERE series_id=$1 AND customer_id=$2 ORDER BY episode_number ASC,created_at ASC",
+      [seriesId, customerId]
+    );
+    return rows.map(fromRow);
+  }
+  async findDerivedDraft(sourceProjectId, customerId) {
+    const { rows } = await this.database.query(
+      "SELECT * FROM book_projects WHERE source_project_id=$1 AND customer_id=$2 AND status NOT IN ('purchased','archived') ORDER BY created_at DESC LIMIT 1",
+      [sourceProjectId, customerId]
+    );
+    return fromRow(rows[0]);
   }
 }
 

@@ -8,9 +8,9 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `main`
+- Current branch: `codex/series-foundation`
 - Latest product-code checkpoint: `12830f0` — `Allow safe AI narration replacement` (the documentation-only memory commit may be newer)
-- WordPress Bridge source version: `0.5.9`
+- WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
@@ -18,6 +18,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and WordPress theme are synchronized. Confirm their displayed versions and deployed commit before diagnosing production behavior.
 
 ## Current product state
+
+- The first series brick is implemented on the current branch: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. It is not deployed until this branch is merged and Bridge 0.6.0 is installed.
 
 - The personalized eBook purchase includes the downloadable PDF and private interactive reader.
 - The printed book remains visible as **Coming soon** and must remain non-purchasable until the supplier and both feature flags are ready.
@@ -31,6 +33,19 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+Verify the series-foundation flow end to end after merge:
+
+1. Install Calitiki Bridge 0.6.0 and purge the WordPress cache.
+2. Open a paid eBook under **My creations Calitiki** and click **Create a new adventure**.
+3. Confirm that the creator opens at step 1 with all ten answers, choices and private reference photos restored.
+4. Change the obstacle, one role and one photo; confirm the source purchased book remains unchanged.
+5. Click the series action twice and confirm the unfinished episode is reopened rather than duplicated.
+6. Confirm that no preview begins and no credit is spent until the normal review and explicit debit confirmation.
+
+After that, choose whether the next focused brick is the series dashboard/episode planner or explicit canon approval before purchase.
+
+## Previous narration verification target
 
 Verify the narration-replacement flow end to end before starting another commerce brick:
 

@@ -88,6 +88,7 @@ const elements = {
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
+  seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -513,14 +514,14 @@ function addPhotos(files) {
 function renderPhotos() {
   const labels = ROLE_LABELS[state.locale];
   elements.photoCount.textContent = state.photos.length;
-  elements.photoList.innerHTML = state.photos.map((photo, index) => `<article class="photo-item" data-photo-index="${index}"><img src="${photo.url}" alt="${escapeHtml(tr("photoPreview", { name: photo.file.name }))}" /><div class="photo-meta"><select data-field="role">${["child", "mascot", "friend", "family", "other"].map((value) => `<option value="${value}" ${value === photo.role ? "selected" : ""}>${labels[value]}</option>`).join("")}</select><select data-field="storyRole">${["hero", "guide", "ally", "companion", "supporter", "guest"].map((value) => `<option value="${value}" ${value === photo.storyRole ? "selected" : ""} ${(photo.role === "child" && value !== "hero") || (photo.role !== "child" && value === "hero") ? "disabled" : ""}>${labels[value]}</option>`).join("")}</select><input data-field="name" value="${escapeHtml(photo.name)}" placeholder="${escapeHtml(tr("photoName"))}" /><input data-field="relationship" value="${escapeHtml(photo.relationship)}" placeholder="${escapeHtml(tr("relationship"))}" /></div><button type="button" class="remove-photo" aria-label="${escapeHtml(tr("removePhoto"))}">×</button></article>`).join("");
+  elements.photoList.innerHTML = state.photos.map((photo, index) => `<article class="photo-item" data-photo-index="${index}"><img src="${photo.url}" alt="${escapeHtml(tr("photoPreview", { name: photo.file?.name || photo.name || "" }))}" /><div class="photo-meta"><select data-field="role">${["child", "mascot", "friend", "family", "other"].map((value) => `<option value="${value}" ${value === photo.role ? "selected" : ""}>${labels[value]}</option>`).join("")}</select><select data-field="storyRole">${["hero", "guide", "ally", "companion", "supporter", "guest"].map((value) => `<option value="${value}" ${value === photo.storyRole ? "selected" : ""} ${(photo.role === "child" && value !== "hero") || (photo.role !== "child" && value === "hero") ? "disabled" : ""}>${labels[value]}</option>`).join("")}</select><input data-field="name" value="${escapeHtml(photo.name)}" placeholder="${escapeHtml(tr("photoName"))}" /><input data-field="relationship" value="${escapeHtml(photo.relationship)}" placeholder="${escapeHtml(tr("relationship"))}" /></div><button type="button" class="remove-photo" aria-label="${escapeHtml(tr("removePhoto"))}">×</button></article>`).join("");
   elements.photoList.querySelectorAll(".photo-item").forEach((item) => {
     const index = Number(item.dataset.photoIndex);
     item.querySelector('[data-field="role"]').addEventListener("change", (event) => { const previous = state.photos[index].role; state.photos[index].role = event.target.value; if (event.target.value === "child" || state.photos[index].storyRole === defaultStoryRole(previous)) state.photos[index].storyRole = defaultStoryRole(event.target.value); renderPhotos(); });
     item.querySelector('[data-field="storyRole"]').addEventListener("change", (event) => { state.photos[index].storyRole = event.target.value; });
     item.querySelector('[data-field="name"]').addEventListener("input", (event) => { state.photos[index].name = event.target.value; });
     item.querySelector('[data-field="relationship"]').addEventListener("input", (event) => { state.photos[index].relationship = event.target.value; });
-    item.querySelector(".remove-photo").addEventListener("click", () => { URL.revokeObjectURL(state.photos[index].url); state.photos.splice(index, 1); renderPhotos(); });
+    item.querySelector(".remove-photo").addEventListener("click", () => { if (state.photos[index].file) URL.revokeObjectURL(state.photos[index].url); state.photos.splice(index, 1); renderPhotos(); });
   });
 }
 
@@ -563,10 +564,13 @@ function emitWooConfiguration() { const detail = productConfiguration(); window.
 
 async function uploadPhotos() {
   if (!state.photos.length) return [];
-  const formData = new FormData(); state.photos.forEach((photo) => formData.append("photos", photo.file));
+  const inherited = state.photos.filter((photo) => photo.storedRef).map((photo) => ({ ...photo.storedRef, role: photo.role, story_role: photo.storyRole, name: photo.name.trim(), relationship: photo.relationship }));
+  const fresh = state.photos.filter((photo) => photo.file);
+  if (!fresh.length) return inherited;
+  const formData = new FormData(); fresh.forEach((photo) => formData.append("photos", photo.file));
   const response = await fetch("/api/upload", { method: "POST", body: formData }); const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || tr("uploadError"));
-  return payload.photos.map((uploaded, index) => ({ id: uploaded.id, storageKey: uploaded.storageKey, mimeType: uploaded.mimeType, size: uploaded.size, role: state.photos[index].role, story_role: state.photos[index].storyRole, name: state.photos[index].name.trim(), relationship: state.photos[index].relationship }));
+  return [...inherited, ...payload.photos.map((uploaded, index) => ({ id: uploaded.id, storageKey: uploaded.storageKey, mimeType: uploaded.mimeType, size: uploaded.size, role: fresh[index].role, story_role: fresh[index].storyRole, name: fresh[index].name.trim(), relationship: fresh[index].relationship }))];
 }
 
 function generationProgress(step = "") { const match = step.match(/page:(\d+)/); if (match) return Math.min(96, 18 + Number(match[1]) * (78 / state.pageCount)); if (step.includes("photo")) return 8; if (step.includes("storybrand")) return 13; if (step.includes("blueprint")) return 17; if (step.includes("cover")) return 21; if (step.includes("done")) return 100; return 5; }
@@ -827,6 +831,7 @@ async function resumePreviewAfterLogin() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("auth") !== "connected") return;
   const projectId = params.get("project") || localStorage.getItem(PENDING_PREVIEW_KEY) || "";
+  if (params.get("newAdventure") === "1") return resumeNextAdventure(projectId);
   window.history.replaceState({}, "", `${window.location.pathname}#creator`);
   localStorage.removeItem(PENDING_PREVIEW_KEY);
   if (!projectId) return;
@@ -840,6 +845,50 @@ async function resumePreviewAfterLogin() {
   } catch (error) {
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;
+    elements.formError.textContent = error.message;
+    elements.formError.scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+function loadSeriesDraft(project) {
+  const questionnaire = project.questionnaire || {};
+  const configuration = project.productConfiguration || {};
+  state.projectId = project.id;
+  state.pageCount = Number(questionnaire.page_count || configuration.page_count || state.pageCount);
+  state.selectedStyle = questionnaire.style_id || configuration.style_id || state.selectedStyle;
+  state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
+  state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
+  state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
+  renderQuestions(questionnaire);
+  restoreValues(questionnaire);
+  document.querySelector("#language").value = questionnaire.book_language || configuration.book_language || project.locale || "FR";
+  renderUniverses(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
+  state.photos.forEach((photo) => { if (photo.file) URL.revokeObjectURL(photo.url); });
+  state.photos = (project.photoRefs || []).map((photo) => ({
+    file: null, storedRef: photo,
+    url: `/api/projects/${encodeURIComponent(project.id)}/reference-photos/${encodeURIComponent(photo.id)}`,
+    role: photo.role || "other", storyRole: photo.storyRole || photo.story_role || defaultStoryRole(photo.role),
+    name: photo.name || "", relationship: photo.relationship || "",
+  }));
+  renderPhotos(); setPreviewComplete(false);
+  state.awaitingPreviewConfirmation = false;
+  elements.creditPanel.hidden = true; elements.resultSection.hidden = true;
+  elements.seriesDraftNotice.hidden = false;
+  persistLocalDraft(); showStep(0, false);
+  document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function resumeNextAdventure(sourceProjectId) {
+  window.history.replaceState({}, "", `${window.location.pathname}#creator`);
+  localStorage.removeItem(PENDING_PREVIEW_KEY);
+  if (!sourceProjectId) return;
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(sourceProjectId)}/next-adventure`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || tr("seriesDraftError"));
+    loadSeriesDraft(payload.project);
+  } catch (error) {
+    document.querySelector("#creator").hidden = false;
     elements.formError.textContent = error.message;
     elements.formError.scrollIntoView({ behavior: "smooth" });
   }

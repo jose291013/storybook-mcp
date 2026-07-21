@@ -6,7 +6,8 @@ import { previewAssetKey } from "../services/previewAssetStorage.js";
 import { attachNarrationToManifest, buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
-import { loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
+import { loadReferencePhoto, loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
+import { createNextAdventure, SeriesPurchaseRequiredError } from "../services/seriesService.js";
 import { referencePhotoRecoveryAvailable, technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
 import {
   technicalPreviewRetryAvailable,
@@ -119,6 +120,45 @@ router.get("/projects/:id", async (req, res) => {
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.json({ project: publicProject(project) });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.post("/projects/:id/next-adventure", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const sourceProject = await projectStore.getForCustomer(req.params.id, identity);
+    if (!sourceProject) return res.status(404).json({ error: "Project not found" });
+    const result = await createNextAdventure({ sourceProject });
+    res.status(result.reused ? 200 : 201).json({
+      project: publicProject(result.project),
+      reused: result.reused,
+      series: result.series ? { id: result.series.id, title: result.series.title } : null,
+    });
+  } catch (error) {
+    if (error instanceof SeriesPurchaseRequiredError) {
+      return res.status(403).json({ error: error.message, code: error.code });
+    }
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+router.get("/projects/:id/reference-photos/:photoId", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).end();
+    const photo = (project.photoRefs || []).find((item) => String(item.id) === String(req.params.photoId));
+    if (!photo) return res.status(404).end();
+    const asset = await loadReferencePhoto(photo);
+    res.set({
+      "Cache-Control": "private, no-store",
+      "Content-Type": asset.mimeType || "image/jpeg",
+      "Content-Length": String(asset.buffer.length),
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.end(asset.buffer);
+  } catch {
+    res.status(404).end();
+  }
 });
 
 router.post("/projects/:id/reference-recovery", async (req, res) => {

@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-20
+Last updated: 2026-07-21
 
 ## Product flow
 
@@ -27,6 +27,9 @@ Last updated: 2026-07-20
 - Every episode has its own beginning, obstacle, resolution, and moral.
 - A project stores a frozen continuity snapshot so later profile edits cannot change an old book.
 - A preview becomes series canon only after explicit validation or purchase.
+- A paid eBook creation exposes **Create a new adventure** in WooCommerce My Account. The action authenticates through the signed bridge and creates the next editable episode without an AI call or wallet debit.
+- The new episode copies the ten answers, configuration and private character-photo references. The customer may change the new obstacle, dream, roles, cast or photos before requesting a separately priced preview.
+- Repeating the action for the same source book is idempotent: it reopens the existing unfinished next episode instead of creating duplicates.
 
 ## Post-preview experience and credit wallet
 
@@ -48,10 +51,12 @@ Last updated: 2026-07-20
 3. Preview entitlements: credit ledger, per-customer promotion codes, reservation/capture/release, project purchase rebate, idempotent retry. **Core implementation present behind `PREVIEW_ENTITLEMENTS_ENABLED`; WooCommerce paid credit fulfillment remains phase 4.**
 4. WooCommerce checkout: credit products, configuration token, partial credit application, order metadata, signed webhooks, and payment-triggered finalization. **Paid credit products, signed wallet grants, project-bound eBook/print cart creation, preview-rebate reservation and paid/cancelled/refunded settlement are implemented. Applying unused wallet balance beyond the project preview rebate and production fulfillment remain.**
 5. Fulfillment: secure ebook links, print-ready files, editable production rules, delivery estimate snapshots. **Paid eBook fulfillment, private S3-compatible storage, expiring download links, retryable WooCommerce notification and the purchased eBook account view are implemented; production storage credentials must be configured. Print production remains.**
-6. Series experience: child profiles, approved memory, episode planner, new obstacle selection.
+6. Series experience: **foundation implemented** with purchased-book canon, child profiles, approved memory, private character reuse and an idempotent editable next-episode draft. A richer episode planner and series library remain.
 7. Subscription: recurring credits and family plans after the series value is visible.
 
 ## Current implementation checkpoint
+
+- Calitiki Bridge 0.6.0 adds **Create a new adventure** to every paid eBook in **My creations**. The Storybook service creates or reuses the series and child profile, marks the purchased source as episode 1, freezes its continuity memory, and opens episode 2 with the original ten answers, book choices and authenticated private reference photos. No generation begins until the customer edits the draft, reviews it and explicitly confirms a new preview debit.
 
 - The generator, low-definition preview, ebook PDF, print finalization, multilingual book output, visual styles, page counts, and book reader exist.
 - The installable interactive reader under `/interactive-reader/` now accepts either its public demonstration manifest or an authenticated `?project=<id>` book. A completed preview is converted without AI calls into a private manifest containing its cover, opening text, correctly paired narrative spreads and closing moral. The manifest, every illustration and every purchased narration file remain authenticated and `no-store`; the service worker never caches `/api/` responses. Without the paid option, the reader keeps using the free voice installed on the customer device.

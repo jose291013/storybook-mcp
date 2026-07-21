@@ -22,6 +22,10 @@ function safeReturnPath(projectId, status = "connected", destination = "creator"
   if (destination === "interactive_reader") return `/interactive-reader/?${params.toString()}`;
   if (destination === "family_share") return `/share-family/?${params.toString()}`;
   if (destination === "narration") return `/narration/?${params.toString()}`;
+  if (destination === "new_adventure") {
+    params.set("newAdventure", "1");
+    return `/?${params.toString()}#creator`;
+  }
   return `/?${params.toString()}#creator`;
 }
 

@@ -587,7 +587,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.5\.9/);
+  assert.match(plugin, /Version: 0\.6\.0/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -628,7 +628,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(authRoute, /\/interactive-reader\/\?\$\{params\.toString\(\)\}/);
   assert.match(authRoute, /router\.get\("\/auth\/woocommerce\/reader"/);
   assert.match(authRoute, /destination: "interactive_reader"/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.5.9.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.0.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
@@ -669,6 +669,7 @@ test("PostgreSQL stores photo reference arrays as JSONB during create and update
     child_profile_id: null,
     series_id: null,
     episode_number: null,
+    source_project_id: null,
     status: "draft",
     title: "Noa",
     locale: "FR",
@@ -687,7 +688,7 @@ test("PostgreSQL stores photo reference arrays as JSONB during create and update
     async query(sql, params = []) {
       queries.push({ sql, params });
       if (sql.startsWith("SELECT")) return { rows: [baseRow] };
-      if (sql.startsWith("INSERT")) return { rows: [{ ...baseRow, id: params[0], photo_refs: JSON.parse(params[10]) }] };
+      if (sql.startsWith("INSERT")) return { rows: [{ ...baseRow, id: params[0], photo_refs: JSON.parse(params[11]) }] };
       if (sql.startsWith("UPDATE")) return { rows: [{ ...baseRow, photo_refs: JSON.parse(params[5]) }] };
       return { rows: [] };
     },
@@ -697,8 +698,8 @@ test("PostgreSQL stores photo reference arrays as JSONB during create and update
 
   await store.create({ anonymousOwnerHash: "anonymous-owner", questionnaire: { hero_name: "Noa" }, photoRefs });
   const insert = queries.find(({ sql }) => sql.startsWith("INSERT"));
-  assert.equal(typeof insert.params[10], "string");
-  assert.deepEqual(JSON.parse(insert.params[10]), photoRefs);
+  assert.equal(typeof insert.params[11], "string");
+  assert.deepEqual(JSON.parse(insert.params[11]), photoRefs);
 
   queries.length = 0;
   await store.update(baseRow.id, { photoRefs });
