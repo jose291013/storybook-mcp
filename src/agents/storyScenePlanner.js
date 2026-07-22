@@ -110,6 +110,7 @@ export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCa
   }).filter(Boolean);
   const response = await runAgent({
     name: "storyScenePlanner",
+    clientKind: "story",
     system: loadPrompt("story_scene_planner.txt"),
     user: (input) => `COMPLETE_BOOK_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
     input: {

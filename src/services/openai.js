@@ -2,12 +2,8 @@
 import { createOpenAIClient } from "./openaiClient.js";
 import { parseJsonSafe } from "./parseJsonSafe.js";
 
-function getClient() {
-  return createOpenAIClient({ kind: "request" });
-}
-
-export async function chatJson({ system, user, temperature = 0.2 }) {
-  const resp = await getClient().chat.completions.create({
+export async function chatJson({ system, user, temperature = 0.2, clientKind = "request" }) {
+  const resp = await createOpenAIClient({ kind: clientKind }).chat.completions.create({
     model: process.env.TEXT_MODEL || "gpt-4.1-mini",
     messages: [
       { role: "system", content: system },

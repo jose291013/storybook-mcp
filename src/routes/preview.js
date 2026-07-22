@@ -385,11 +385,28 @@ router.post("/preview", async (req, res) => {
       }
 
       updateJob(job.id, { step: "story:coherence-and-scene-contracts" });
-      const storyScenePlan = checkpoint.storyScenePlan || await storyScenePlannerAgent({
-        blueprint: final_blueprint,
-        pageTexts: Object.fromEntries(draftTextByPage),
-        characterCanons,
-      });
+      let storyScenePlan = checkpoint.storyScenePlan;
+      if (!storyScenePlan) {
+        const storyScenePlanStartedAt = Date.now();
+        console.info("[preview] story scene plan started", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          pageCount: final_blueprint.pages.length,
+          spreadCount: final_blueprint.pages.filter((page) => page.page_type === "image").length,
+        }));
+        storyScenePlan = await storyScenePlannerAgent({
+          blueprint: final_blueprint,
+          pageTexts: Object.fromEntries(draftTextByPage),
+          characterCanons,
+        });
+        console.info("[preview] story scene plan completed", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          elapsedMs: Date.now() - storyScenePlanStartedAt,
+        }));
+      } else {
+        console.info("[preview] story scene plan reused", JSON.stringify({ jobId: job.id, projectId }));
+      }
       draftTextByPage.clear();
       Object.entries(storyScenePlan.pageTexts || {}).forEach(([pageNumber, text]) => {
         draftTextByPage.set(Number(pageNumber), String(text || ""));
@@ -415,7 +432,6 @@ router.post("/preview", async (req, res) => {
           phase: "scene-contracts",
         }, { finalBlueprint: final_blueprint });
       }
-
       updateJob(job.id, { step: "draft:cover" });
       const storedProject = await projectStore.get(job.projectId);
       const priorResult = existingCheckpoint ? (storedProject?.previewResult || {}) : {};
@@ -595,7 +611,14 @@ router.post("/preview", async (req, res) => {
       console.info("[preview] completed", JSON.stringify({ jobId: job.id, projectId, pageCount: draftPages.length }));
     } catch (error) {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
-      console.error("[preview] failed", JSON.stringify({ jobId: job.id, projectId, error: String(error?.message || error) }));
+      const failedJob = getJob(job.id);
+      console.error("[preview] failed", JSON.stringify({
+        jobId: job.id,
+        projectId,
+        step: failedJob?.step || checkpoint?.phase || "unknown",
+        checkpointPhase: checkpoint?.phase || null,
+        error: String(error?.message || error),
+      }));
       if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
       if (job.projectId) {
         const latest = await projectStore.get(job.projectId);
