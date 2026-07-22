@@ -10,7 +10,7 @@ This is the concise operational memory for a new Codex task. Product direction r
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/scenario-update-feedback`
 - Latest merged checkpoint on `main`: `c4c8bde` — `Add creator-approved story scenarios (#36)`
-- Current focused checkpoint: pending commit — scenario update feedback and deterministic presence-location normalization
+- Current focused checkpoint: `dd4fe75` — `Improve story scenario update feedback`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
