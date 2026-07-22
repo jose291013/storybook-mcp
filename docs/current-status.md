@@ -10,12 +10,14 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/visual-identity-proof`
 - Latest merged checkpoint on `main`: `33243c7` — `Add deterministic scenario presence editor (#39)`
+- Current focused checkpoint: `6cc111f` — `Add visual identity proof workflow`
+- Draft PR: `#40` — `https://github.com/jose291013/storybook-mcp/pull/40`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 39 is merged and its scenario presence editor is the current production base. The visual-identity branch is local work and is not merged or deployed. Never merge or trigger Render until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 39 is merged and its scenario presence editor is the current production base. Draft PR 40 contains the visual-identity workflow and is not merged or deployed. Never merge or trigger Render until the user explicitly confirms that no preview generation is running and authorizes the merge.
 
 ## Current product brick: visual identity proof
 
@@ -45,7 +47,7 @@ If a source identity image is rejected by the safety system before a cover refer
 
 ## Next verification target
 
-Before opening the PR, recheck the complete diff, stage only source/tests/docs and run the full suite once more. The PR must remain unmerged.
+Keep PR 40 in draft and unmerged until the user confirms that no preview generation is running and explicitly authorizes the merge.
 
 After explicit merge authorization and a confirmed idle generator, verify on Render with a fresh project:
 
