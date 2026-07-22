@@ -414,6 +414,9 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(app, /preview-recover/);
   assert.match(app, /retryPreviewFree/);
   assert.match(previewSource, /mergeGenerationCheckpoint/);
+  const checkpointDeclaration = previewSource.indexOf("let checkpoint = initialCheckpoint;");
+  const backgroundGeneration = previewSource.indexOf("(async () => {", checkpointDeclaration);
+  assert.ok(checkpointDeclaration > -1 && checkpointDeclaration < backgroundGeneration, "checkpoint must remain visible to the background catch handler");
   assert.match(previewSource, /completedPageNumbers/);
   assert.match(app, /confirmPreviewAuthorization/);
   assert.doesNotMatch(app, /hasPreviewEntitlement/);

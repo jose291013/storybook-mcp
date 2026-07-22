@@ -73,8 +73,8 @@ async function recoverAbandonedPreview({ project, identity }) {
   const checkpoint = generationCheckpoint(project);
   continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
     ...(checkpoint || {}),
-    retryAvailable: checkpoint?.retryConsumedAt ? false : true,
-    retryExhausted: Boolean(checkpoint?.retryConsumedAt),
+    retryAvailable: true,
+    retryExhausted: false,
     failureReason: "preview_interrupted",
     failedAt: new Date().toISOString(),
   });
@@ -253,6 +253,7 @@ router.post("/preview", async (req, res) => {
     },
   });
   const initialCheckpoint = existingCheckpoint || { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION };
+  let checkpoint = initialCheckpoint;
   const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = project.continuitySnapshot || {};
   const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? project.continuitySnapshot : continuityWithoutOldCheckpoint, {
     ...initialCheckpoint,
@@ -276,7 +277,6 @@ router.post("/preview", async (req, res) => {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const { answers, photos } = normalized;
 
-      let checkpoint = existingCheckpoint || { fingerprint };
       const persistCheckpoint = async (patch, projectPatch = {}) => {
         const latest = await projectStore.get(job.projectId);
         checkpoint = { ...checkpoint, ...patch, fingerprint };

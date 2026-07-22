@@ -52,6 +52,21 @@ test("an exhausted legacy preview gets one recovery under the safer image policy
   assert.equal(technicalPreviewRetryExhausted(current), true);
 });
 
+test("a Render interruption remains recoverable after a retry was already consumed", () => {
+  const interrupted = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "interrupted-book",
+      retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-22T08:30:00.000Z",
+      failureReason: "preview_interrupted",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(interrupted), true);
+  assert.equal(technicalPreviewRetryExhausted(interrupted), false);
+});
+
 test("only fully persisted draft pages are reused after an interrupted Render job", () => {
   assert.equal(isReusableDraftPage({ page_number: 12, storageKey: "previews/p12.png", previewUrl: "/api/p12.png" }), true);
   assert.equal(isReusableDraftPage({ page_number: 12, previewUrl: "/api/p12.png" }), false);

@@ -46,6 +46,7 @@ export function mergeGenerationCheckpoint(snapshot = {}, checkpoint = {}) {
 export function technicalPreviewRetryAvailable(project) {
   const checkpoint = generationCheckpoint(project);
   if (!checkpoint) return false;
+  if (checkpoint.failureReason === "preview_interrupted") return true;
   if (checkpoint.retryAvailable === true) return true;
   return checkpoint.retryExhausted === true
     && Number(checkpoint.retryPolicyVersion || 1) < PREVIEW_RETRY_POLICY_VERSION;

@@ -8,9 +8,9 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/customer-preview-library`
-- Latest merged product-code checkpoint: `0b1e17b` — `Extend whole-book scene planning timeout (#1)`
-- Current focused product-code checkpoint: `64d4468` — `Add customer preview library`
+- Current branch: `codex/preview-crash-recovery`
+- Latest merged product-code checkpoint: `8009f91` — `Add customer preview library (#34)`
+- Current focused product-code checkpoint: `7341026` — `Recover previews after Render restarts`
 - WordPress Bridge source version: `0.6.1`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -23,6 +23,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 - The scene-contract coherence brick and its dedicated 360-second whole-book timeout are merged into `main` at `0b1e17b`. Live project `66ca304a-4ee3-498e-b0f8-145216fb6874` has its 36 page texts checkpointed through `text:36` after the former 180-second limit failed at `story:coherence-and-scene-contracts`; its free retry must wait until Render serves `0b1e17b` or a later merge. The fix retains zero hidden SDK retries and adds start/completion timing plus exact failure-step logging.
 
 - Customer preview library brick `64d4468` fixes the preview-ready email deep link so it restores the persisted project state before offering any new debit. Calitiki Bridge 0.6.1 adds generating, interrupted and ready unpaid previews to **My creations Calitiki** beside purchased-order cards. WooCommerce receives only signed metadata; private answers, photos, prompts and asset URLs remain in the Storybook service.
+
+- Production job `0263d7bebfc3619f88ee047e` reached illustration page 27, then an exhausted image-quality attempt entered the background error handler. A block-scoped `checkpoint` variable caused `ReferenceError: checkpoint is not defined`, crashed the Node process and left the project interrupted. Branch `codex/preview-crash-recovery` moves that checkpoint into the error-handler scope and makes every lost Render background job eligible for a free idempotent resume, including when a previous technical retry had already started. This branch must not be merged until the user confirms that no preview is currently generating.
 
 - The first series brick is merged: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. Its live verification still requires the current Bridge installation.
 
@@ -38,6 +40,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+After the user confirms that no preview is generating, merge `codex/preview-crash-recovery` and wait for Render to serve its merge commit. Reopen the interrupted book from **My creations Calitiki**: the stale generating state must recover to an interrupted failure with **Reprendre mon projet** visible. Resume once and confirm the persisted pages through page 24 are reused, generation continues from the first missing illustration, no wallet amount is debited, and a later error is persisted as `preview_failed` instead of restarting Node. Do not merge or deploy while another preview is running.
 
 After merging `64d4468`, deploy Render first, then install `wordpress/calitiki-bridge-v0.6.1.zip` and purge the WordPress cache. In **My creations Calitiki**, confirm that project `66ca304a-4ee3-498e-b0f8-145216fb6874` appears as interrupted and that **Reprendre mon projet** reauthenticates into its preserved failure screen. Use its existing free technical retry only after Render serves the merge. Confirm it reuses every text through `text:36`, logs `[preview] story scene plan started` then `[preview] story scene plan completed`, persists `scene-contracts`, and continues without another wallet debit. Once ready, close the browser and use the email link on another browser or signed-out session; it must authenticate and open the finished reader directly, never the debit-confirmation screen. Confirm the same preview appears exactly once in **My creations Calitiki**, while purchased books retain their order, reader and PDF actions.
 
