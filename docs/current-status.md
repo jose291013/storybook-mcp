@@ -10,7 +10,7 @@ This is the concise operational memory for a new Codex task. Product direction r
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/story-scenario-approval`
 - Latest merged checkpoint on `main`: `6296c9a` — `Recover previews after Render restarts (#35)`
-- Current focused checkpoint: pending commit — creator-approved story scenario
+- Current focused checkpoint: `10e0f6b` — `Add creator-approved story scenarios`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
