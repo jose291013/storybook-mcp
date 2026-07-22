@@ -855,10 +855,8 @@ async function resumePreviewAfterLogin() {
   state.projectId = projectId;
   persistLocalDraft();
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`);
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || tr("startError"));
-    await preparePreviewAuthorization(projectId);
+    const restored = await restoreCompletedPreview();
+    if (!restored) await preparePreviewAuthorization(projectId);
   } catch (error) {
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;

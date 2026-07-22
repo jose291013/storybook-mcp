@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import express from "express";
 import { creditStore } from "../services/creditStore.js";
+import { listCustomerCreations } from "../services/customerCreationLibrary.js";
 
 const router = express.Router();
 
@@ -35,6 +36,20 @@ router.get("/commerce/wallet", async (req, res) => {
     const [summary, history] = await Promise.all([creditStore.summary(identity), creditStore.history(identity, 50)]);
     res.set("Cache-Control", "private, no-store");
     res.json({ ...summary, history, buyCreditsUrl: process.env.WOOCOMMERCE_CREDITS_URL || "" });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
+router.get("/commerce/creations", async (req, res) => {
+  const wooCustomerId = String(req.query?.wooCustomerId || "");
+  const timestamp = Number.parseInt(req.query?.timestamp, 10);
+  const secret = String(process.env.WOOCOMMERCE_BRIDGE_SECRET || "");
+  const expected = crypto.createHmac("sha256", secret).update(`creations|${wooCustomerId}|${timestamp}`).digest("hex");
+  if (secret.length < 32 || !safeEqual(req.get("x-calitiki-signature"), expected)) return res.status(401).json({ error: "Invalid creations signature" });
+  if (!wooCustomerId || !Number.isInteger(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) return res.status(400).json({ error: "Creations request has expired" });
+  try {
+    const projects = await listCustomerCreations({ wooCustomerId, email: "" });
+    res.set("Cache-Control", "private, no-store");
+    res.json({ projects });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });
 
