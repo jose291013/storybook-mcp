@@ -57,13 +57,30 @@ test("agent JSON parsing accepts fenced output and extracts one balanced object 
 });
 
 test("OpenAI agent runner enforces JSON mode and retries with the original context", async () => {
-  const [openaiSource, runnerSource] = await Promise.all([
+  const [openaiSource, runnerSource, scenePlannerSource] = await Promise.all([
     fs.readFile("src/services/openai.js", "utf8"),
     fs.readFile("src/services/agentRunner.js", "utf8"),
+    fs.readFile("src/agents/storyScenePlanner.js", "utf8"),
   ]);
   assert.match(openaiSource, /response_format:\s*\{\s*type:\s*["']json_object["']/);
   assert.match(runnerSource, /const originalUser = user\(input\)/);
   assert.match(runnerSource, /INVALID_PREVIOUS_OUTPUT/);
+  assert.match(runnerSource, /clientKind/);
+  assert.match(scenePlannerSource, /clientKind:\s*["']story["']/);
+});
+
+test("whole-book scene planning covers every spread in 36- and 44-page books", () => {
+  for (const pageCount of [36, 44]) {
+    const plan = createPagePlan(pageCount);
+    const textPages = plan.filter((page) => ["text", "opening_text", "closing_text"].includes(page.page_type));
+    const imagePages = plan.filter((page) => page.page_type === "image");
+    assert.equal(plan.length, pageCount);
+    assert.equal(textPages.length + imagePages.length, pageCount);
+    assert.equal(imagePages.length, (pageCount - 2) / 2);
+    assert.ok(imagePages.every((imagePage) => plan.some((page) => (
+      page.page_type === "text" && page.spread_number === imagePage.spread_number
+    ))));
+  }
 });
 
 test("questionnaire contains ten simple questions", () => {
