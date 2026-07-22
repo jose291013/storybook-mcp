@@ -159,6 +159,49 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
   return { approved, issues: approved ? [] : (issues.length ? issues : ["The illustration contradicts the structured scene contract."]) };
 }
 
+export async function inspectIdentityLikeness({
+  imagePath,
+  identityReferences = [],
+  renderingMode = "illustrated_faithful",
+  likenessGoal = "strong",
+  pageLabel = "illustration",
+}) {
+  if (!identityReferences.length || renderingMode === "cartoon" || process.env.IMAGE_LIKENESS_QA_ENABLED === "false") {
+    return { approved: true, issues: [] };
+  }
+  const candidate = await sharp(await fs.readFile(imagePath)).rotate().resize(640, 640, { fit: "inside" }).jpeg({ quality: 78 }).toBuffer();
+  const references = (await Promise.all(identityReferences.slice(0, 3).map(async (reference) => {
+    const source = await referenceSource(reference);
+    return source ? sharp(source).rotate().resize(640, 640, { fit: "inside" }).jpeg({ quality: 78 }).toBuffer() : null;
+  }))).filter(Boolean);
+  if (!references.length) return { approved: true, issues: [] };
+  const goal = renderingMode === "photorealistic"
+    ? "maximum likeness with natural, non-cartoon facial geometry"
+    : "strong recognizable likeness while changing only the artistic medium";
+  const instruction = `You are checking identity fidelity in one personalized children's-book ${pageLabel}.
+Image 1 is the generated result. The remaining images are private identity references for the visible named people or animals.
+Requested goal: ${goal}. Likeness level: ${likenessGoal}.
+
+Reject only a clear identity replacement or major visible mismatch in stable traits: face shape, eye shape and spacing, nose, mouth, ears, hair shape/color, distinctive markings, or animal species and coat pattern.
+For illustrated_faithful, allow brushwork, linework, paper texture and simplified surface detail, but do not allow generic cartoon proportions or enlarged eyes that replace natural geometry.
+For photorealistic, also reject doll-like skin, CGI/cartoon anatomy or a visibly different person.
+Ignore pose, expression, lighting, background, framing, removed brand marks and small wardrobe details. If a referenced subject is too small or not clearly visible in the generated scene, approve rather than guessing.
+Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short stable-trait mismatch"]}.`;
+  const response = await getClient().responses.create({
+    model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+    input: [{ role: "user", content: [
+      { type: "input_text", text: instruction },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${candidate.toString("base64")}`, detail: "low" },
+      ...references.map((reference) => ({ type: "input_image", image_url: `data:image/jpeg;base64,${reference.toString("base64")}`, detail: "low" })),
+    ] }],
+    max_output_tokens: 350,
+  });
+  const result = parseJson(extractText(response));
+  const approved = result?.approved === true;
+  const issues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 3) : [];
+  return { approved, issues: approved ? [] : (issues.length ? issues : ["The generated subject does not preserve the supplied identity."]) };
+}
+
 export async function generateQualityCheckedImage({
   prompt,
   castPresent = [],
@@ -176,6 +219,8 @@ export async function generateQualityCheckedImage({
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
+        : previousRejectionKind === "identity"
+          ? `\n\nIDENTITY FIDELITY REGENERATION: the previous output replaced or altered the referenced subject because ${previousIssues.join("; ")}. Treat the identity reference as authoritative. Preserve natural face geometry, eye shape and spacing, nose, mouth, ears, hair shape and distinctive visible details. Change the medium and scene, never the person's identity.`
         : previousRejectionKind === "scene"
           ? `\n\nSCENE FIDELITY REGENERATION: the previous output contradicted the authoritative scene contract because ${previousIssues.join("; ")}. Correct exactly who performs the main action and toward whom, keep generic people distinct from recurring named characters, and obey the required quantity, physical scale, spatial relationships and forbidden substitutions.`
           : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
@@ -203,13 +248,21 @@ export async function generateQualityCheckedImage({
           return { approved: true, issues: [], warning: String(error?.message || error) };
         }
       };
-      const [styleInspection, sceneInspection] = inspection.approved
+      const identityReferences = generationOptions.referenceImages?.filter((reference) => reference?.kind === "identity") || [];
+      const [styleInspection, sceneInspection, identityInspection] = inspection.approved
         ? await Promise.all([
           advisoryCheck(inspectStyleConsistency({ imagePath: outputImagePath(imageUrl), styleReference, pageLabel })),
           advisoryCheck(inspectSceneFidelity({ imagePath: outputImagePath(imageUrl), sceneContract: sceneFidelityContract, pageLabel })),
+          advisoryCheck(inspectIdentityLikeness({
+            imagePath: outputImagePath(imageUrl),
+            identityReferences,
+            renderingMode: generationOptions.renderingMode,
+            likenessGoal: generationOptions.likenessGoal,
+            pageLabel,
+          })),
         ])
-        : [{ approved: false, issues: [] }, { approved: false, issues: [] }];
-      if (inspection.approved && styleInspection.approved && sceneInspection.approved) {
+        : [{ approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }];
+      if (inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved) {
         onAttempt?.({ phase: "approved", attempt, maximumAttempts, pageLabel });
         return imageUrl;
       }
@@ -218,20 +271,26 @@ export async function generateQualityCheckedImage({
       // preview because a vision model distinguishes subtle realism or polish.
       if (inspection.approved && attempt === maximumAttempts) {
         onAttempt?.({
-          phase: sceneInspection.approved ? "approved-with-style-warning" : "approved-with-scene-warning",
+          phase: !identityInspection.approved ? "approved-with-identity-warning" : sceneInspection.approved ? "approved-with-style-warning" : "approved-with-scene-warning",
           attempt,
           maximumAttempts,
           pageLabel,
-          issues: [...styleInspection.issues, ...sceneInspection.issues],
+          issues: [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues],
         });
         return imageUrl;
       }
-      previousIssues = inspection.approved ? [...styleInspection.issues, ...sceneInspection.issues] : inspection.issues;
-      previousRejectionKind = inspection.approved ? (sceneInspection.approved ? "style" : "scene") : "technical";
+      previousIssues = inspection.approved ? [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues] : inspection.issues;
+      previousRejectionKind = inspection.approved
+        ? (!identityInspection.approved ? "identity" : sceneInspection.approved ? "style" : "scene")
+        : "technical";
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });
       if (isImageSafetyRejection(error) && !omitReferenceImages && generationOptions.referenceImages?.length && attempt < maximumAttempts) {
+        const continuityReferences = generationOptions.referenceImages.filter((reference) => reference?.kind === "continuity");
+        if (!continuityReferences.length) {
+          throw new Error("The identity reference could not be used safely. Upload a clear, non-branded portrait before regenerating the visual proof.");
+        }
         // Do not retry the rejected input unchanged. Keep the textual identity
         // canon, but omit source pixels that may contain a logo or protected
         // character. This makes the next request safer without bypassing policy.

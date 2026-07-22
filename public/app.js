@@ -88,6 +88,7 @@ const elements = {
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
+  visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
@@ -116,12 +117,31 @@ const QUESTION_TEXT = {
 };
 
 const STYLE_TEXT = {
-  soft_watercolor: { FR: ["Aquarelle douce", "Couleurs transparentes, papier texturé et lumière tendre."], ES: ["Acuarela suave", "Colores transparentes, textura de papel y luz delicada."], EN: ["Soft watercolor", "Transparent colors, paper texture and gentle light."] },
-  modern_gouache: { FR: ["Gouache moderne", "Aplats généreux et rendu éditorial chaleureux."], ES: ["Gouache moderno", "Colores mates y un acabado editorial cálido."], EN: ["Modern gouache", "Bold matte colors and a warm editorial finish."] },
-  paper_cut: { FR: ["Papier découpé", "Formes superposées, ombres légères et univers tactile."], ES: ["Papel recortado", "Capas de formas, sombras suaves y tacto artesanal."], EN: ["Paper cut", "Layered shapes, soft shadows and a tactile feel."] },
-  pastel_pencil: { FR: ["Crayons pastel", "Trait sensible et rassurant, proche du dessin à la main."], ES: ["Lápices pastel", "Un trazo sensible y acogedor, dibujado a mano."], EN: ["Pastel pencils", "A gentle, reassuring hand-drawn line."] },
-  gentle_3d: { FR: ["3D douce", "Volumes moelleux, personnages expressifs et lumière chaleureuse."], ES: ["3D suave", "Volúmenes redondeados, personajes expresivos y luz cálida."], EN: ["Gentle 3D", "Soft volumes, expressive characters and warm light."] },
-  enchanted_ink: { FR: ["Encre enchantée", "Lignes fines, détails merveilleux et touches lumineuses."], ES: ["Tinta encantada", "Líneas finas, detalles mágicos y toques luminosos."], EN: ["Enchanted ink", "Fine lines, magical detail and glowing accents."] },
+  photoreal_story: { FR: ["Conte photoréaliste", "Peau, visage et lumière naturels dans un monde magique crédible."], ES: ["Cuento fotorrealista", "Piel, rostro y luz naturales en un mundo mágico creíble."], EN: ["Photoreal story", "Natural skin, face and light in a believable magical world."] },
+  soft_watercolor: { FR: ["Aquarelle douce", "Pigments transparents et visage fidèle, peint avec délicatesse."], ES: ["Acuarela suave", "Pigmentos transparentes y un rostro fiel, pintado con delicadeza."], EN: ["Soft watercolor", "Transparent pigments and a faithful face, painted delicately."] },
+  modern_gouache: { FR: ["Gouache moderne", "Aplats mats et chaleureux sans remplacer les traits de l'enfant."], ES: ["Gouache moderno", "Colores mates y cálidos sin sustituir los rasgos del niño."], EN: ["Modern gouache", "Warm matte color without replacing the child's features."] },
+  paper_cut: { FR: ["Papier découpé", "Collage tactile qui simplifie volontairement le visage."], ES: ["Papel recortado", "Collage táctil que simplifica el rostro de forma intencionada."], EN: ["Paper cut", "A tactile collage that deliberately simplifies the face."] },
+  pastel_pencil: { FR: ["Crayons pastel", "Trait au grain visible, avec des caractéristiques reconnaissables."], ES: ["Lápices pastel", "Trazo de grano visible con rasgos reconocibles."], EN: ["Pastel pencils", "Visible pencil grain with recognizable features."] },
+  gentle_3d: { FR: ["3D cartoon douce", "Coiffure et signes distinctifs conservés, avec un visage volontairement stylisé."], ES: ["3D cartoon suave", "Conserva el peinado y los rasgos distintivos con un rostro estilizado."], EN: ["Soft cartoon 3D", "Keeps the hairstyle and key markers with a deliberately stylized face."] },
+  enchanted_ink: { FR: ["Encre enchantée", "Lignes fines et lavis lumineux qui respectent le visage."], ES: ["Tinta encantada", "Líneas finas y aguadas luminosas que respetan el rostro."], EN: ["Enchanted ink", "Fine lines and luminous washes that preserve the face."] },
+};
+
+const STYLE_MODE_TEXT = {
+  photorealistic: { FR: ["Ressemblance maximale", "Le choix le plus proche d'une vraie photo."], ES: ["Semejanza máxima", "La opción más cercana a una foto real."], EN: ["Maximum likeness", "The choice closest to a real photograph."] },
+  illustrated_faithful: { FR: ["Illustré et reconnaissable", "Recommandé · La technique change, pas l'identité."], ES: ["Ilustrado y reconocible", "Recomendado · Cambia la técnica, no la identidad."], EN: ["Illustrated and recognizable", "Recommended · The medium changes, not the identity."] },
+  cartoon: { FR: ["Cartoon assumé", "Une transformation artistique plus visible."], ES: ["Cartoon definido", "Una transformación artística más visible."], EN: ["Clearly cartoon", "A more visible artistic transformation."] },
+};
+
+const STYLE_UI_TEXT = {
+  FR: { lead: "Choisissez d'abord le niveau de réalisme, puis la technique. Survolez un exemple pour comparer avec la même photo fictive.", before: "PHOTO DE RÉFÉRENCE", after: "RENDU DU LIVRE", maximum: "Ressemblance maximale", strong: "Forte ressemblance", interpreted: "Traits interprétés", show: "Voir la photo de référence", hide: "Voir le rendu" },
+  ES: { lead: "Elige primero el nivel de realismo y después la técnica. Pasa sobre un ejemplo para compararlo con la misma foto ficticia.", before: "FOTO DE REFERENCIA", after: "RESULTADO DEL LIBRO", maximum: "Semejanza máxima", strong: "Gran semejanza", interpreted: "Rasgos interpretados", show: "Ver la foto de referencia", hide: "Ver el resultado" },
+  EN: { lead: "Choose the level of realism first, then the medium. Hover over an example to compare it with the same fictional photo.", before: "REFERENCE PHOTO", after: "BOOK RENDER", maximum: "Maximum likeness", strong: "Strong likeness", interpreted: "Interpreted features", show: "View reference photo", hide: "View book render" },
+};
+
+const VISUAL_PROOF_TEXT = {
+  FR: { kicker: "PREUVE VISUELLE", title: "Vérifiez le visage et le rendu avant les autres illustrations", lead: "Cette couverture utilise votre style et vos références. Le reste du livre ne sera illustré qu'après votre validation.", checks: ["Le personnage est-il reconnaissable ?", "Le niveau de réalisme correspond-il à votre choix ?", "La technique vous convient-elle pour tout le livre ?"], approve: "Valider et illustrer le livre", regenerate: "Réessayer cette couverture", note: "Un nouvel essai de couverture est inclus. Il ne consomme pas un second crédit.", limit: "Le nouvel essai inclus a été utilisé. Validez cette couverture ou contactez Calitiki avant de poursuivre.", working: "Calitiki prépare votre demande…", alt: "Couverture d'essai à valider" },
+  ES: { kicker: "PRUEBA VISUAL", title: "Comprueba el rostro y el acabado antes de las demás ilustraciones", lead: "Esta portada utiliza tu estilo y tus referencias. El resto del libro solo se ilustrará después de tu aprobación.", checks: ["¿El personaje es reconocible?", "¿El nivel de realismo corresponde a tu elección?", "¿Te gusta esta técnica para todo el libro?"], approve: "Aprobar e ilustrar el libro", regenerate: "Reintentar esta portada", note: "Se incluye un nuevo intento de portada. No consume un segundo crédito.", limit: "Ya se ha utilizado el nuevo intento incluido. Aprueba esta portada o contacta con Calitiki.", working: "Calitiki está preparando tu solicitud…", alt: "Portada de prueba para aprobar" },
+  EN: { kicker: "VISUAL PROOF", title: "Check the face and rendering before the remaining illustrations", lead: "This cover uses your selected style and references. The rest of the book will only be illustrated after your approval.", checks: ["Is the character recognizable?", "Does the realism level match your choice?", "Would you like this medium across the whole book?"], approve: "Approve and illustrate the book", regenerate: "Retry this cover", note: "One additional cover proof is included. It does not use a second credit.", limit: "The included retry has been used. Approve this cover or contact Calitiki before continuing.", working: "Calitiki is preparing your request…", alt: "Cover proof awaiting approval" },
 };
 
 const UNIVERSE_TEXT = {
@@ -668,13 +688,30 @@ function renderUniverses() {
 
 function renderStyles() {
   const styles = state.config.illustrationStyles;
-  state.selectedStyle ||= styles[0]?.id;
-  elements.styleGrid.innerHTML = styles.map((style) => {
-    const [name, description] = STYLE_TEXT[style.id]?.[state.locale] || [style.name, style.description];
-    return `<button type="button" class="style-card preview-${style.id} ${style.id === state.selectedStyle ? "is-selected" : ""}" data-style-id="${style.id}" role="radio" aria-checked="${style.id === state.selectedStyle}"><span class="style-preview" style="--c1:${style.palette[0]};--c2:${style.palette[1]};--c3:${style.palette[2]}">${style.previewImage ? `<img src="${escapeHtml(style.previewImage)}" alt="" loading="lazy" />` : ""}<i></i><b></b></span><span class="style-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span></button>`;
+  const modes = state.config.renderingModes || [];
+  const ui = STYLE_UI_TEXT[state.locale] || STYLE_UI_TEXT.FR;
+  const styleLead = document.querySelector('[data-i18n="styleLead"]');
+  if (styleLead) styleLead.textContent = ui.lead;
+  state.selectedStyle ||= styles.some((style) => style.id === "soft_watercolor") ? "soft_watercolor" : styles[0]?.id;
+  elements.styleGrid.innerHTML = modes.map((mode) => {
+    const [title, lead] = STYLE_MODE_TEXT[mode.id]?.[state.locale] || [mode.name, mode.description];
+    const modeStyles = styles.filter((style) => style.renderingMode === mode.id);
+    if (!modeStyles.length) return "";
+    return `<section class="style-group style-group-${mode.id}"><header><div><h4>${escapeHtml(title)}</h4><p>${escapeHtml(lead)}</p></div>${mode.recommended ? `<span class="style-recommended">${escapeHtml(state.locale === "ES" ? "RECOMENDADO" : state.locale === "EN" ? "RECOMMENDED" : "RECOMMANDÉ")}</span>` : ""}</header><div class="style-group-grid">${modeStyles.map((style) => {
+      const [name, description] = STYLE_TEXT[style.id]?.[state.locale] || [style.name, style.description];
+      const likeness = ui[style.likeness] || ui.strong;
+      return `<div class="style-card-wrap"><button type="button" class="style-card preview-${style.id} ${style.id === state.selectedStyle ? "is-selected" : ""}" data-style-id="${style.id}" role="radio" aria-checked="${style.id === state.selectedStyle}"><span class="style-preview" style="--c1:${style.palette[0]};--c2:${style.palette[1]};--c3:${style.palette[2]}">${style.previewImage ? `<img class="style-after" src="${escapeHtml(style.previewImage)}" alt="${escapeHtml(`${name} — ${ui.after.toLowerCase()}`)}" />` : ""}${style.referenceImage ? `<img class="style-before" src="${escapeHtml(style.referenceImage)}" alt="${escapeHtml(ui.before.toLowerCase())}" />` : ""}<span class="style-image-label style-after-label">${escapeHtml(ui.after)}</span><span class="style-image-label style-before-label">${escapeHtml(ui.before)}</span><span class="style-likeness-badge likeness-${style.likeness}">${escapeHtml(likeness)}</span></span><span class="style-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span></button><button type="button" class="style-reference-toggle" data-style-reference="${style.id}" aria-pressed="false">${escapeHtml(ui.show)}</button></div>`;
+    }).join("")}</div></section>`;
   }).join("");
   elements.styleGrid.querySelectorAll(".style-preview img").forEach((image) => image.addEventListener("error", () => image.remove()));
   elements.styleGrid.querySelectorAll("[data-style-id]").forEach((button) => button.addEventListener("click", () => { state.selectedStyle = button.dataset.styleId; renderStyles(); emitWooConfiguration(); }));
+  elements.styleGrid.querySelectorAll("[data-style-reference]").forEach((toggle) => toggle.addEventListener("click", () => {
+    const card = toggle.closest(".style-card-wrap").querySelector(".style-card");
+    const visible = !card.classList.contains("is-reference-visible");
+    card.classList.toggle("is-reference-visible", visible);
+    toggle.setAttribute("aria-pressed", String(visible));
+    toggle.textContent = visible ? ui.hide : ui.show;
+  }));
 }
 
 function renderFonts() {
@@ -765,7 +802,22 @@ function showStep(nextStep, shouldScroll = true) {
   if (state.step === 4) renderReview(); if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function productConfiguration() { return { page_count: state.pageCount, product_type: state.productType, font_style: state.fontStyle, style_id: state.selectedStyle, universe_id: state.selectedUniverse, book_language: document.querySelector("#language").value, price_eur: selectedProductPrice() || 0, unit_page_price_eur: selectedUnitPrice() || 0, woo_variation_key: `${state.productType}_pages_${state.pageCount}` }; }
+function productConfiguration() {
+  const selectedStyle = state.config?.illustrationStyles?.find((style) => style.id === state.selectedStyle);
+  return {
+    page_count: state.pageCount,
+    product_type: state.productType,
+    font_style: state.fontStyle,
+    style_id: state.selectedStyle,
+    rendering_mode: selectedStyle?.renderingMode || "illustrated_faithful",
+    likeness_goal: selectedStyle?.likeness || "strong",
+    universe_id: state.selectedUniverse,
+    book_language: document.querySelector("#language").value,
+    price_eur: selectedProductPrice() || 0,
+    unit_page_price_eur: selectedUnitPrice() || 0,
+    woo_variation_key: `${state.productType}_pages_${state.pageCount}`,
+  };
+}
 function emitWooConfiguration() { const detail = productConfiguration(); window.dispatchEvent(new CustomEvent("storybook:configuration", { detail })); document.documentElement.dataset.storybookVariation = detail.woo_variation_key; }
 
 async function uploadPhotos() {
@@ -783,7 +835,16 @@ function generationProgress(step = "") { const match = step.match(/page:(\d+)/);
 function friendlyStep(step = "") { if (step.includes("photo")) return tr("progressPhoto"); if (step.includes("storybrand")) return tr("progressStory"); if (step.includes("blueprint")) return tr("progressBlueprint"); if (step.includes("cover")) return tr("progressCover"); const match = step.match(/page:(\d+)/); return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing"); }
 
 async function pollJob(jobId) {
-  for (;;) { const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`); const job = await response.json(); if (!response.ok) throw new TechnicalGenerationError(tr("generationFailed"), "preview_interrupted"); elements.generationBar.style.width = `${generationProgress(job.step)}%`; elements.generationStep.textContent = friendlyStep(job.step); if (job.status === "done") return job; if (job.status === "failed") throw new TechnicalGenerationError(tr("generationFailed")); await new Promise((resolve) => setTimeout(resolve, 2200)); }
+  for (;;) {
+    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+    const job = await response.json();
+    if (!response.ok) throw new TechnicalGenerationError(tr("generationFailed"), "preview_interrupted");
+    elements.generationBar.style.width = `${generationProgress(job.step)}%`;
+    elements.generationStep.textContent = friendlyStep(job.step);
+    if (["done", "awaiting_visual_approval"].includes(job.status)) return job;
+    if (job.status === "failed") throw new TechnicalGenerationError(tr("generationFailed"));
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+  }
 }
 
 function renderBook(job, { initialPageNumber = 0 } = {}) {
@@ -929,6 +990,7 @@ function showGenerationPanel() {
   document.querySelector("#creator").hidden = true;
   elements.storyScenarioPanel.hidden = true;
   elements.resultSection.hidden = true;
+  elements.visualProofPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
   elements.generationPanel.hidden = false;
   elements.generationBar.style.width = "5%";
@@ -960,6 +1022,7 @@ async function showGenerationFailure(project = null) {
   elements.storyScenarioPanel.hidden = true;
   elements.generationPanel.hidden = true;
   elements.resultSection.hidden = true;
+  elements.visualProofPanel.hidden = true;
   elements.generationFailurePanel.hidden = false;
   const exhausted = project?.technicalPreviewRetryExhausted === true;
   elements.retryPreviewButton.hidden = exhausted;
@@ -992,6 +1055,7 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   elements.storyScenarioPanel.hidden = true;
   elements.generationPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
+  elements.visualProofPanel.hidden = true;
   elements.resultSection.hidden = false;
   state.referenceRecoveryAvailable = Boolean(job.referenceRecoveryAvailable);
   renderBook(job, { initialPageNumber });
@@ -1000,19 +1064,64 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   if (scroll) elements.resultSection.scrollIntoView({ behavior: "smooth" });
 }
 
-async function generatePreviewForProject(projectId) {
+function showVisualProof(job, { scroll = true, attempts = 1 } = {}) {
+  const copy = VISUAL_PROOF_TEXT[state.locale] || VISUAL_PROOF_TEXT.FR;
+  const result = job?.result || {};
+  document.querySelector("#creator").hidden = true;
+  elements.storyScenarioPanel.hidden = true;
+  elements.generationPanel.hidden = true;
+  elements.generationFailurePanel.hidden = true;
+  elements.resultSection.hidden = true;
+  elements.visualProofPanel.hidden = false;
+  elements.visualProofKicker.textContent = copy.kicker;
+  elements.visualProofTitle.textContent = copy.title;
+  elements.visualProofLead.textContent = copy.lead;
+  elements.visualProofChecklist.innerHTML = copy.checks.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  elements.visualProofImage.src = result.coverPreviewUrl || result.coverImageUrl || "";
+  elements.visualProofImage.alt = copy.alt;
+  elements.approveVisualProofButton.textContent = copy.approve;
+  elements.regenerateVisualProofButton.textContent = copy.regenerate;
+  elements.regenerateVisualProofButton.hidden = Number(attempts || 1) >= 2;
+  elements.visualProofNote.textContent = Number(attempts || 1) >= 2 ? copy.limit : copy.note;
+  elements.visualProofFeedback.textContent = "";
+  if (scroll) elements.visualProofPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function generatePreviewForProject(projectId, visualProofAction = "") {
   const response = await fetch("/api/preview", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ projectId }),
+    body: JSON.stringify({ projectId, ...(visualProofAction ? { visualProofAction } : {}) }),
   });
   const payload = await response.json();
   if (!response.ok) { if (payload.code === "insufficient_credit") await refreshCreditSummary(projectId); if (payload.code === "preview_interrupted") throw new TechnicalGenerationError(tr("generationFailed"), payload.code); throw new Error(payload.error || tr("startError")); }
   showGenerationPanel();
   state.jobId = payload.jobId;
   const job = await pollJob(payload.jobId);
+  if (job.status === "awaiting_visual_approval") {
+    showVisualProof(job, { attempts: job.visualProof?.attempts || 1 });
+    return;
+  }
   elements.generationBar.style.width = "100%";
   showCompletedPreview(job);
+}
+
+async function submitVisualProof(action) {
+  if (!state.projectId || elements.approveVisualProofButton.disabled) return;
+  const copy = VISUAL_PROOF_TEXT[state.locale] || VISUAL_PROOF_TEXT.FR;
+  elements.approveVisualProofButton.disabled = true;
+  elements.regenerateVisualProofButton.disabled = true;
+  elements.visualProofFeedback.textContent = copy.working;
+  try {
+    await generatePreviewForProject(state.projectId, action);
+  } catch (error) {
+    elements.visualProofPanel.hidden = false;
+    elements.generationPanel.hidden = true;
+    elements.visualProofFeedback.textContent = error.message || tr("generationFailed");
+  } finally {
+    elements.approveVisualProofButton.disabled = false;
+    elements.regenerateVisualProofButton.disabled = false;
+  }
 }
 
 async function restoreCompletedPreview() {
@@ -1026,6 +1135,11 @@ async function restoreCompletedPreview() {
   if (scenario && (["scenario_review", "scenario_needs_clarification"].includes(project?.status)
     || (project?.status === "ready_for_preview" && scenario?.status === "approved"))) {
     renderStoryScenario(scenario, { scroll: false });
+    return true;
+  }
+  const visualProof = project?.continuitySnapshot?.generationCheckpoint?.visualProof;
+  if (project?.status === "preview_generating" && visualProof?.status === "awaiting_approval" && project.previewResult) {
+    showVisualProof({ result: project.previewResult, final_blueprint: project.finalBlueprint }, { scroll: false, attempts: visualProof.attempts || 1 });
     return true;
   }
   if (project?.status === "preview_generating" && project.generationJobId) {
@@ -1223,6 +1337,8 @@ elements.scenarioActs.addEventListener("click", (event) => {
   toggle.textContent = tr(editor.hidden ? "scenarioEditPresences" : "scenarioHidePresences");
 });
 elements.retryPreviewButton.addEventListener("click", retryPreviewFree);
+elements.approveVisualProofButton.addEventListener("click", () => submitVisualProof("approve"));
+elements.regenerateVisualProofButton.addEventListener("click", () => submitVisualProof("regenerate"));
 elements.notifyPreviewEmail.addEventListener("change", () => { savePreviewNotificationPreference().catch(() => null); });
 elements.actionBuyEbook.addEventListener("click", () => openConfiguredCheckout("ebook", elements.actionBuyEbook));
 elements.actionBuyPrint.addEventListener("click", () => openConfiguredCheckout("print", elements.actionBuyPrint));

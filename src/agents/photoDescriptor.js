@@ -44,6 +44,8 @@ export async function photoDescriptorAgent({
   language,
   photo_url,
   hero_name,
+  rendering_mode = "illustrated_faithful",
+  likeness_goal = "strong",
 }) {
   const resolvedName = subject_name || hero_name || "";
   const template = loadPrompt("photo_descriptor.txt");
@@ -57,6 +59,8 @@ export async function photoDescriptorAgent({
     .replaceAll("{age}", age || "")
     .replaceAll("{gender}", gender || "")
     .replaceAll("{language}", language || "")
+    .replaceAll("{rendering_mode}", rendering_mode || "illustrated_faithful")
+    .replaceAll("{likeness_goal}", likeness_goal || "strong")
     .replaceAll("{photo_url}", String(photo_url || "").startsWith("data:") ? "[private reference image attached]" : (photo_url || ""));
 
   const model = process.env.VISION_MODEL || process.env.TEXT_MODEL || "gpt-4.1-mini";

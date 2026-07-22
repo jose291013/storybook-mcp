@@ -6,7 +6,7 @@ import {
   PHOTO_ROLES,
   PHOTO_STORY_ROLES,
 } from "../config/questionnaire.js";
-import { ILLUSTRATION_STYLES } from "../config/illustrationStyles.js";
+import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../config/illustrationStyles.js";
 import {
   EBOOK_PAGE_PRICE_EUR,
   PAGE_COUNT_OPTIONS,
@@ -39,12 +39,16 @@ router.get("/questionnaire", (req, res) => {
     pageCountOptions: PAGE_COUNT_OPTIONS,
     typographyOptions: TYPOGRAPHY_OPTIONS,
     universeOptions: UNIVERSE_OPTIONS,
-    illustrationStyles: ILLUSTRATION_STYLES.map(({ id, name, description, palette, previewImage }) => ({
+    renderingModes: RENDERING_MODES,
+    illustrationStyles: ILLUSTRATION_STYLES.map(({ id, renderingMode, likeness, name, description, palette, previewImage, referenceImage }) => ({
       id,
+      renderingMode,
+      likeness,
       name,
       description,
       palette,
       previewImage,
+      referenceImage,
     })),
   });
 });

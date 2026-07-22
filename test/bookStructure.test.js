@@ -8,7 +8,7 @@ import { BOOK_QUESTIONS, MAX_REFERENCE_PHOTOS } from "../src/config/questionnair
 import { applyPagePlan, createPagePlan } from "../src/config/bookStructure.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
 import { balanceCoverTitle, composeBookPagePNG, getBodyFontSize } from "../src/services/composeBookPagePNG.js";
-import { ILLUSTRATION_STYLES } from "../src/config/illustrationStyles.js";
+import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
@@ -562,6 +562,9 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(quality, /IMAGE_GENERATION_ATTEMPTS \|\| "2"/);
   assert.match(quality, /realistic_dimensional/);
   assert.match(quality, /approved-with-style-warning/);
+  assert.match(quality, /inspectIdentityLikeness/);
+  assert.match(quality, /approved-with-identity-warning/);
+  assert.match(quality, /IMAGE_LIKENESS_QA_ENABLED/);
   assert.match(quality, /attempt === maximumAttempts/);
   assert.match(repair, /project\.status === "purchased"/);
   assert.match(repair, /status: "preview_repairing"/);
@@ -751,10 +754,18 @@ test("PostgreSQL stores photo reference arrays as JSONB during create and update
   assert.deepEqual(JSON.parse(update.params[5]), photoRefs);
 });
 
-test("illustration catalog exposes six distinct print-ready directions", () => {
-  assert.equal(ILLUSTRATION_STYLES.length, 6);
-  assert.equal(new Set(ILLUSTRATION_STYLES.map((style) => style.id)).size, 6);
-  assert.ok(ILLUSTRATION_STYLES.every((style) => style.prompt && style.palette.length === 3));
+test("illustration catalog separates realism from medium with truthful comparison assets", async () => {
+  assert.equal(ILLUSTRATION_STYLES.length, 7);
+  assert.equal(new Set(ILLUSTRATION_STYLES.map((style) => style.id)).size, 7);
+  assert.deepEqual(RENDERING_MODES.map((mode) => mode.id), ["photorealistic", "illustrated_faithful", "cartoon"]);
+  assert.ok(ILLUSTRATION_STYLES.every((style) => style.prompt && style.palette.length === 3 && style.referenceImage));
+  assert.equal(ILLUSTRATION_STYLES.find((style) => style.id === "photoreal_story").likeness, "maximum");
+  assert.match(ILLUSTRATION_STYLES.find((style) => style.id === "gentle_3d").name, /cartoon/i);
+  assert.doesNotMatch(ILLUSTRATION_STYLES.find((style) => style.id === "photoreal_story").prompt, /sans photoréalisme/i);
+  for (const style of ILLUSTRATION_STYLES) {
+    assert.ok((await fs.stat(path.join("public", style.previewImage))).size > 30_000);
+    assert.ok((await fs.stat(path.join("public", style.referenceImage))).size > 30_000);
+  }
 });
 
 test("story pages use richer word targets while opening and closing stay concise", () => {
@@ -968,6 +979,15 @@ test("scene continuity locks child outfit and mascot species while attaching the
   assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): Noa, Pixel/);
   assert.match(prompt, /Do not omit, merge, replace or transform/i);
   assert.match(prompt, /Reference photos may contain printed words, labels or commercial logos/i);
+
+  const photorealPrompt = buildFinalPrompt({
+    prompt: "A magical forest portrait",
+    renderingMode: "photorealistic",
+    likenessGoal: "maximum",
+  });
+  assert.match(photorealPrompt, /Photorealistic fairy-tale photography/i);
+  assert.match(photorealPrompt, /never turn a person into a cartoon, doll, figurine or CGI/i);
+  assert.match(photorealPrompt, /Identity fidelity target: maximum/i);
 
   const resumed = buildSceneContinuity({
     blueprint,
@@ -1216,7 +1236,11 @@ test("deterministic QA accepts the required reversal between consecutive spreads
 });
 
 test("preview repairs a rejected blueprint before spending image credits", async () => {
-  const source = await fs.readFile("src/routes/preview.js", "utf8");
+  const [source, app, html] = await Promise.all([
+    fs.readFile("src/routes/preview.js", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
+    fs.readFile("public/index.html", "utf8"),
+  ]);
   const repairStep = source.indexOf('"qa:repair"');
   const coverStep = source.indexOf('step: "draft:cover"');
   assert.ok(repairStep >= 0);
@@ -1228,6 +1252,17 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.ok(textStep >= 0);
   assert.ok(textStep < coverStep);
   assert.match(source, /pairedText,/);
+  const proofStep = source.indexOf('status: "awaiting_visual_approval"');
+  const interiorLoop = source.indexOf("for (const page of final_blueprint.pages)");
+  assert.ok(proofStep > coverStep);
+  assert.ok(interiorLoop > proofStep);
+  assert.match(source, /visualProofAction === "approve"/);
+  assert.match(source, /visualProofAction === "regenerate"/);
+  assert.match(source, /quality: "medium"/);
+  assert.match(app, /awaiting_visual_approval/);
+  assert.match(app, /showVisualProof/);
+  assert.match(html, /id="visualProofPanel"/);
+  assert.match(html, /id="approveVisualProofButton"/);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

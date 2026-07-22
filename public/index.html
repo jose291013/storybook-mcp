@@ -208,6 +208,26 @@
         <label class="generation-notification"><input type="checkbox" id="notifyPreviewEmail" /> <span data-i18n="notifyPreviewEmail">M'envoyer un e-mail lorsque mon livre est prêt</span></label>
       </section>
 
+      <section class="visual-proof-panel" id="visualProofPanel" hidden>
+        <div class="visual-proof-copy">
+          <p class="section-kicker" id="visualProofKicker">PREUVE VISUELLE</p>
+          <h2 id="visualProofTitle">Vérifiez le visage et le rendu avant les autres illustrations</h2>
+          <p id="visualProofLead">Cette couverture utilise votre style et vos références. Le reste du livre ne sera illustré qu'après votre validation.</p>
+          <ul id="visualProofChecklist">
+            <li>Le personnage est-il reconnaissable ?</li>
+            <li>Le niveau de réalisme correspond-il à votre choix ?</li>
+            <li>La technique vous convient-elle pour tout le livre ?</li>
+          </ul>
+          <div class="visual-proof-actions">
+            <button type="button" class="toolbar-button" id="regenerateVisualProofButton">Réessayer cette couverture</button>
+            <button type="button" class="primary-button" id="approveVisualProofButton">Valider et illustrer le livre</button>
+          </div>
+          <p class="visual-proof-note" id="visualProofNote">Un nouvel essai de couverture est inclus. Il ne consomme pas un second crédit.</p>
+          <p class="visual-proof-feedback" id="visualProofFeedback" role="status" aria-live="polite"></p>
+        </div>
+        <figure class="visual-proof-cover"><img id="visualProofImage" alt="Couverture d'essai à valider" /></figure>
+      </section>
+
       <section class="generation-failure" id="generationFailurePanel" hidden>
         <p class="section-kicker" data-i18n="generationFailureKicker">PETIT CONTRETEMPS</p>
         <h2 data-i18n="generationFailureTitle">Votre création est bien conservée</h2>
