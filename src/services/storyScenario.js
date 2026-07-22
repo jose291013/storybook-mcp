@@ -124,9 +124,65 @@ export function normalizeStoryScenario(candidate = {}, { pagePlan = [], canonica
   };
 }
 
+export function applyCreatorStoryScenarioEdits(input = {}, { sceneEdits = [], addedCharacters = [] } = {}) {
+  const scenario = structuredClone(input);
+  scenario.characters ||= [];
+  for (const added of list(addedCharacters, 10)) {
+    const name = text(added?.name || added);
+    if (!name || canonicalName(name, scenario.characters)) continue;
+    scenario.characters.push({
+      name,
+      role: "story_character",
+      storyRole: "guest",
+      initialLocation: "",
+      defaultPresenceMode: "physical",
+    });
+  }
+
+  const editsByScene = new Map(list(sceneEdits, 24).map((edit) => [Number(edit?.scene_number), edit]));
+  for (const scene of list(scenario.scenes, 30)) {
+    const edit = editsByScene.get(Number(scene.sceneNumber));
+    if (!edit) continue;
+    if (Object.hasOwn(edit, "title")) scene.title = text(edit.title);
+    if (Object.hasOwn(edit, "action")) scene.action = text(edit.action);
+    if (Object.hasOwn(edit, "location")) {
+      const previousLocation = scene.locationAfter;
+      const location = text(edit.location);
+      if (location) {
+        scene.locationAfter = location;
+        if (scene.transition?.kind === "none" && key(scene.locationBefore) === key(previousLocation)) scene.locationBefore = location;
+      }
+    }
+    if (Array.isArray(edit.character_presences)) {
+      const previousPresences = new Map(list(scene.characterPresences, 30).map((presence) => [key(presence.name), presence]));
+      const selected = new Map();
+      for (const requested of list(edit.character_presences, 30)) {
+        const name = canonicalName(requested?.name, scenario.characters);
+        const mode = text(requested?.mode);
+        if (!name || (!PRESENCE_MODES.has(mode) && mode !== "absent")) continue;
+        selected.set(key(name), { name, mode });
+      }
+      scene.characterPresences = [...selected.values()].filter(({ mode }) => mode !== "absent").map(({ name, mode }) => ({
+        name,
+        mode,
+        location: mode === "physical" ? scene.locationAfter : "",
+        action: text(previousPresences.get(key(name))?.action),
+      }));
+    }
+  }
+  return scenario;
+}
+
 export function stabilizeStoryScenario(input = {}) {
   const scenario = structuredClone(input);
   const scenes = list(scenario.scenes, 30);
+  for (const character of list(scenario.characters, 20)) {
+    if (character.initialLocation) continue;
+    const firstPhysicalScene = scenes.find((scene) => list(scene.characterPresences, 20).some((presence) => presence.name === character.name && presence.mode === "physical"));
+    if (!firstPhysicalScene) continue;
+    const changesLocation = key(firstPhysicalScene.locationBefore) !== key(firstPhysicalScene.locationAfter);
+    character.initialLocation = changesLocation ? firstPhysicalScene.locationBefore : firstPhysicalScene.locationAfter;
+  }
   const characterLocations = new Map(list(scenario.characters, 20).map((character) => [character.name, character.initialLocation]));
   const trackedObjects = list(scenario.objects, 20).filter((object) => object.trackEveryScene);
   const objectStates = new Map(trackedObjects.map((object) => [key(object.name), {

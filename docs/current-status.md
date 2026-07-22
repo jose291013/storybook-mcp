@@ -8,15 +8,15 @@ This is the concise operational memory for a new Codex task. Product direction r
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-invalid-review`
-- Latest merged checkpoint on `main`: `a3dbf41` — `Improve story scenario update feedback (#37)`
-- Current focused checkpoint: `b4839db` — `Show provisional scenarios needing revision`
+- Current branch: `codex/scenario-presence-editor`
+- Latest merged checkpoint on `main`: `520813a` — `Show provisional scenarios needing revision (#38)`
+- Current focused checkpoint: `8be49d3` — `Add deterministic scenario presence editor`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 37 is merged and Render serves the scenario progress and localized-error interface. The current correction branch is not merged or deployed. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 38 is merged and Render serves persisted provisional Act 1/2/3 cards. Draft PR 39 contains the presence editor and is not merged or deployed. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
 
 ## Focused product brick
 
@@ -26,7 +26,7 @@ The creator now validates the story logic before Calitiki writes pages or genera
 2. After authentication and price display, Calitiki prepares a persisted structured scenario without reserving a credit.
 3. The scenario may contain up to three adaptive clarification questions.
 4. Deterministic validation checks scene order, prerequisites, locations, portal or passage discovery/crossing, physical versus thought/memory presence, and one state per tracked object.
-5. The creator can edit scene title/location/action, send general feedback, request a revision, and explicitly approve the valid scenario.
+5. The creator can edit scene title/location/action, send general feedback, request a revision, and explicitly approve the valid scenario. The focused branch also adds exact physical/thought/memory/voice/absent choices for every available character in every scene.
 6. Approval starts the existing preview route; only then is the wallet credit reserved.
 7. Every later story, manuscript, scene-contract and QA prompt receives the approved scenario as authoritative input.
 
@@ -36,23 +36,24 @@ The original timeout fix remains active: whole-book story planning uses its dedi
 
 ## Current correction
 
-The first live scenario revision exposed two presentation and validation defects. The update request disabled its buttons but did not show a visible activity indicator, and a failed deterministic validation leaked raw English diagnostics without explaining what the creator could do. In addition, a model-supplied physical-presence sub-location such as “beside the portal” could contradict the scene's canonical location even when no teleportation occurred.
+The live PR 38 verification now displays all three acts, but it exposed an ambiguity: Alexandra and Jérôme can be absent from both the physical-presence summary and the nonphysical **Évoqués** summary, while a general request such as “guide Nolan by thought” remains dependent on model interpretation. The creator cannot tell whether the request was applied and cannot correct the authoritative cast directly.
 
-Merged PR 37 adds an accessible busy state, spinner, in-button progress text, disabled form fields, a client request guard and a server-side per-project concurrency guard. Failures provide localized retry guidance and never expose raw validation issues to the browser. Physical presence locations are deterministically normalized to the scene's exact `locationAfter`; real character travel is still checked independently through transition travelers and tracked locations.
+Branch `codex/scenario-presence-editor` always displays **Présents physiquement** and **Évoqués**, including an explicit “Aucun”. Every scene has a collapsible editor with one deterministic choice per available character: absent, physically present, thought, memory or voice. A missing story character can be added to the scenario. Explicit presence choices are sanitized and reapplied after every model response, so the model cannot omit or reinterpret them; nonphysical choices never become travelers or illustration cast members. A newly physical character receives a causal starting location and is added to a real transition when required.
 
-The second live retry showed that a project with no previously valid scenario displayed an empty review panel while claiming a previous scenario was preserved. Branch `codex/scenario-invalid-review` persists the best provisional candidate even when validation still fails, restores it through the existing `scenario_review` lifecycle, displays every Act 1/2/3 card, highlights affected scenes, and exposes only sanitized categories and scene numbers. Invisible metadata such as immediate prerequisites, exact transition endpoints, eligible physical travelers and missing carried-object states is stabilized deterministically before validation; semantic decisions remain creator-controlled.
+Only fields actually edited in the browser are sent as authoritative scene edits. This is important: untouched title/location/action values no longer block a general feedback request from genuinely rewriting the scenario. Any unsaved feedback, field edit, added character or presence choice disables approval until **Mettre à jour le scénario** succeeds.
 
 ## Verification completed locally
 
-- `npm test`: 105 passed, 0 failed; all 8 focused scenario tests pass.
+- `npm test`: 107 passed, 0 failed; all 10 focused scenario tests pass.
 - Scenario tests cover portal discovery before crossing, physical-character teleportation rejection, thought-only guide presence, and single-state wearable objects.
 - The illustration contract explicitly states that a held wearable is not also worn and must never be duplicated.
 - JavaScript syntax checks and `git diff --check` pass.
+- Focused tests prove that creator presence choices override model output exactly and that a newly added physical character receives a causal origin and transition.
 - `wordpress/calitiki-bridge-v0.6.2.zip` contains only the portable `calitiki-bridge/` directory with its PHP source and README.
 
 ## Next live verification target
 
-After explicit merge authorization for the current correction, wait until Render serves its merge commit. Retry the Alexandra/Jérôme request. If the scenario becomes valid, all Act 1/2/3 cards must appear and approval becomes available. If it remains invalid, the provisional cards must still appear, affected scenes must be outlined in red with sanitized categories and scene numbers, approval must remain disabled, and another update must reuse the saved proposal rather than start from an empty panel.
+After explicit merge authorization for the current correction, wait until Render serves its merge commit. Reopen the current scenario and confirm that every scene shows both presence summaries. In the dinosaur-valley scenes, choose Alexandra and Jérôme as **Par la pensée**, update the scenario, and verify that both names persist under **Évoqués** while never appearing under **Présents physiquement**. Approval must remain disabled whenever a local change has not yet been updated.
 
 For the complete scenario flow, create a fresh portal story and confirm:
 

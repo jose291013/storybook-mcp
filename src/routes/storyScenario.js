@@ -6,6 +6,7 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { previewRequestFingerprint } from "../services/previewGenerationCheckpoint.js";
 import { projectStore } from "../services/projectStore.js";
 import {
+  applyCreatorStoryScenarioEdits,
   normalizeStoryScenario,
   scenarioCharacterRegistry,
   stabilizeStoryScenario,
@@ -37,15 +38,27 @@ function safeAnswers(value) {
 function safeSceneEdits(value) {
   return (Array.isArray(value) ? value : []).slice(0, 24).map((edit) => ({
     scene_number: Number(edit?.scene_number || 0),
-    title: String(edit?.title || "").slice(0, 160),
-    location: String(edit?.location || "").slice(0, 240),
-    action: String(edit?.action || "").slice(0, 1200),
+    ...(Object.hasOwn(edit || {}, "title") ? { title: String(edit?.title || "").slice(0, 160) } : {}),
+    ...(Object.hasOwn(edit || {}, "location") ? { location: String(edit?.location || "").slice(0, 240) } : {}),
+    ...(Object.hasOwn(edit || {}, "action") ? { action: String(edit?.action || "").slice(0, 1200) } : {}),
+    ...(Array.isArray(edit?.character_presences) ? { character_presences: edit.character_presences.slice(0, 30).map((presence) => ({
+      name: String(presence?.name || "").slice(0, 120),
+      mode: ["physical", "thought", "memory", "voice", "absent"].includes(presence?.mode) ? presence.mode : "absent",
+    })).filter((presence) => presence.name) } : {}),
   })).filter((edit) => Number.isInteger(edit.scene_number) && edit.scene_number > 0);
 }
 
-async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, feedback }) {
+function safeAddedCharacters(value) {
+  return (Array.isArray(value) ? value : []).slice(0, 10).map((character) => ({
+    name: String(character?.name || character || "").trim().slice(0, 120),
+  })).filter((character) => character.name);
+}
+
+async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, addedCharacters, feedback }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
-  const canonicalCharacters = scenarioCharacterRegistry(normalized);
+  const canonicalCharacters = [...scenarioCharacterRegistry(normalized), ...(previousScenario?.characters || []), ...addedCharacters.map((character) => ({
+    name: character.name, role: "story_character", storyRole: "guest", relationship: "story character",
+  }))].filter((character, index, all) => character.name && all.findIndex((candidate) => candidate.name.localeCompare(character.name, undefined, { sensitivity: "base" }) === 0) === index);
   const input = {
     intake: normalized.answers,
     canonical_characters: canonicalCharacters,
@@ -56,11 +69,17 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
     previous_scenario: previousScenario || null,
   };
   let candidate = await storyScenarioAgent(input);
-  let scenario = stabilizeStoryScenario(normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }));
+  let scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
+    normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }),
+    { sceneEdits, addedCharacters },
+  ));
   let validation = validateStoryScenario(scenario);
   if (!validation.valid) {
     candidate = await storyScenarioAgent({ ...input, previous_scenario: scenario, validation_issues: validation.issues });
-    scenario = stabilizeStoryScenario(normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }));
+    scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
+      normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }),
+      { sceneEdits, addedCharacters },
+    ));
     validation = validateStoryScenario(scenario);
   }
   return { scenario, validation };
@@ -79,6 +98,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     const previous = storyScenarioSnapshot(project);
     const creatorClarifications = { ...(previous?.creatorClarifications || {}), ...safeAnswers(req.body?.clarifications) };
     const sceneEdits = safeSceneEdits(req.body?.sceneEdits);
+    const addedCharacters = safeAddedCharacters(req.body?.addedCharacters);
     if (activeScenarioUpdates.has(project.id)) {
       return res.status(409).json({ error: "Scenario update already in progress", code: "scenario_update_in_progress", retryable: true });
     }
@@ -89,6 +109,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
         previousScenario: previous?.fingerprint === fingerprint ? previous : null,
         creatorClarifications,
         sceneEdits,
+        addedCharacters,
         feedback: req.body?.feedback,
       });
       if (!validation.valid) {
