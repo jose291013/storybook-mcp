@@ -42,7 +42,7 @@ No environment variable, persistence schema, commerce rule, scenario behavior or
 
 ## Next verification target
 
-1. Finish the full test suite and open a draft PR; do not merge it automatically.
+1. Keep draft PR 42 unmerged until the user explicitly authorizes it and confirms that no generation is active.
 2. Leave draft PR 41 unmerged while this existing book is recovered, to avoid a second Render restart.
 3. After explicit user authorization, merge and wait for this safety correction to be live on Render.
 4. Only then use the project's free technical retry. It must resume at page 11 without regenerating the cover or completed pages.
