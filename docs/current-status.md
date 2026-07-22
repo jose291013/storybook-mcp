@@ -8,8 +8,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/scene-contract-coherence`
-- Latest deployed product-code checkpoint before this brick: `da7ce24` — `Stabilize preview style continuity`
+- Current branch: `main`
+- Latest merged product-code checkpoint: `6ed7c02` — `Add whole-book scene coherence contracts`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -19,7 +19,7 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 
 ## Current product state
 
-- The scene-contract coherence brick is implemented on the current branch and awaits merge/deployment. After all page texts exist, one whole-book pass minimally reconciles narrative continuity and creates one structured contract per spread before any illustration begins. Photo-upload names are immutable canon (for example `Mathéo` cannot become `Mathieu`); named observers cannot replace generic friends; main actions, objects, quantities, scale and spatial relationships are carried into preview, repair and final-generation prompts. A low-cost bounded scene check may request one correction, but an advisory-QA failure cannot abort a technically coherent book.
+- The scene-contract coherence brick is merged into `main` and awaits live Render verification. After all page texts exist, one whole-book pass minimally reconciles narrative continuity and creates one structured contract per spread before any illustration begins. Photo-upload names are immutable canon (for example `Mathéo` cannot become `Mathieu`); named observers cannot replace generic friends; main actions, objects, quantities, scale and spatial relationships are carried into preview, repair and final-generation prompts. A low-cost bounded scene check may request one correction, but an advisory-QA failure cannot abort a technically coherent book.
 
 - The first series brick is implemented on the current branch: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. It is not deployed until this branch is merged and Bridge 0.6.0 is installed.
 
