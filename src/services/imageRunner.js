@@ -5,18 +5,14 @@ import sharp from "sharp";
 import { saveBase64Png } from "./storageLocal.js";
 import { createOpenAIClient } from "./openaiClient.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
+import { sanitizeBrandSensitiveText } from "./imageVisualContract.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "image" });
 }
 
-export function sanitizeBrandSensitiveText(value) {
-  return String(value || "").replace(
-    /(?:\bbrand(?:ed)?\s+(?:name|character|logo)|\bcommercial\s+(?:brand|character|logo)|\bcopyrighted\s+character|\blogos?|\binscriptions?|\bprinted\s+(?:words?|text|labels?)|\bwording|[àa]\s+l['’]effigie\s+de|\beffigy\s+of|\bmarca(?:\s+comercial)?|\blogotipo|\binscripci[oó]n|\bpersonaje\s+comercial)[^,.;\n|]*/giu,
-    "plain generic unbranded detail",
-  );
-}
+export { sanitizeBrandSensitiveText } from "./imageVisualContract.js";
 
 export function buildFinalPrompt({
   prompt,
@@ -37,7 +33,7 @@ export function buildFinalPrompt({
     "Print-ready, clean square composition for a premium children's book.",
     renderingRule,
     `Identity fidelity target: ${likenessGoal}. The selected medium may change; the person's identity may not be replaced by a generic child.`,
-    "Treat every named character as a locked model sheet: never change face, species, colors, body markings, outfit or accessories between pages.",
+    "Treat every visual character role as a locked model sheet: never change face, species, colors, body markings, generic outfit or accessories between pages.",
     "A child must remain the same human child. An animal mascot must remain the exact same animal species and must never become another creature.",
     "Scene action, pose, expression, camera angle and lighting may change; locked identity and wardrobe may not.",
     "Reference photos may contain printed words, labels or commercial logos on clothing. Remove all of them and replace them with a plain, non-branded fabric or simple generic motif while preserving garment type and color.",
@@ -52,7 +48,7 @@ export function buildFinalPrompt({
   const referenceContract = referenceImages.length
     ? `\n\nREFERENCE IMAGE CONTRACT:\n${referenceImages.map((item, index) => (
         `- Reference ${index + 1}: ${item.label || "visual continuity reference"}`
-      )).join("\n")}\nUse these images only to preserve the named characters, their exact wardrobe and the established illustration style. Create a genuinely new scene composition. Never copy a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
+      )).join("\n")}\nUse these images only to preserve the visual identity, generic unbranded wardrobe and established illustration style. Create a genuinely new scene composition. Never copy printed clothing, a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
     : "";
   const safeSceneContract = sanitizeBrandSensitiveText(sceneContract).trim();
   const exactScene = safeSceneContract
@@ -62,11 +58,27 @@ export function buildFinalPrompt({
   return `${sanitizeBrandSensitiveText(prompt)}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}${exactScene}`;
 }
 
-async function normalizeIdentityReference(source) {
+async function normalizeIdentityReference(source, normalizationMode = "full_and_face") {
   const oriented = await sharp(source).rotate().png().toBuffer();
   const metadata = await sharp(oriented).metadata();
   const width = Math.max(1, Number(metadata.width || 1));
   const height = Math.max(1, Number(metadata.height || 1));
+  if (normalizationMode === "face_focus") {
+    const upperHeight = height > width * 1.2 ? Math.max(1, Math.floor(height * 0.45)) : height;
+    const upper = await sharp(oriented).extract({ left: 0, top: 0, width, height: upperHeight }).toBuffer();
+    const faceFocus = await sharp(upper)
+      .resize(1024, 1024, { fit: "cover", position: sharp.strategy.attention })
+      .png()
+      .toBuffer();
+    return sharp(faceFocus)
+      .composite([{
+        input: { create: { width: 1024, height: 220, channels: 4, background: "#f7f4ee" } },
+        left: 0,
+        top: 804,
+      }])
+      .png()
+      .toBuffer();
+  }
   const square = Math.min(width, height);
   const full = await sharp(oriented).resize(380, 980, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
   const faceFocus = await sharp(oriented).extract({ left: Math.max(0, Math.floor((width - square) / 2)), top: 0, width: square, height: square }).resize(620, 620, { fit: "cover" }).png().toBuffer();
@@ -90,7 +102,7 @@ async function loadReferenceFiles(referenceImages) {
       source = await storageBodyToBuffer(asset.body);
     } else source = await fs.readFile(reference.path);
     const normalized = reference.kind === "identity"
-      ? await normalizeIdentityReference(source)
+      ? await normalizeIdentityReference(source, reference.normalizationMode)
       : await sharp(source).rotate().resize(1024, 1024, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
     files.push(await toFile(normalized, `reference-${index + 1}.png`, { type: "image/png" }));
   }
@@ -108,7 +120,7 @@ export async function generateImage({
   likenessGoal = "strong",
   size = "1024x1024",
   quality = process.env.IMAGE_QUALITY || "low",
-  model = process.env.IMAGE_MODEL || "gpt-image-1-mini",
+  model = process.env.IMAGE_MODEL || "gpt-image-2",
 }) {
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
   if (!prompt || typeof prompt !== "string") throw new Error("Missing or invalid prompt");

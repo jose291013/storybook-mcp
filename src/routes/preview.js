@@ -55,10 +55,17 @@ function isActivePreviewJob(job) {
 }
 
 function reportImageAttempt(jobId, stepPrefix) {
-  return ({ phase, attempt, maximumAttempts, error = "", issues = [] }) => {
+  return ({ phase, attempt, maximumAttempts, error = "", issues = [], model = "", safetyFallback = false }) => {
     const step = `${stepPrefix}:attempt:${attempt}/${maximumAttempts}:${phase}`;
     updateJob(jobId, { step });
-    console.info("[preview] image", JSON.stringify({ jobId, step, error: error || undefined, issues: issues.length ? issues : undefined }));
+    console.info("[preview] image", JSON.stringify({
+      jobId,
+      step,
+      model: model || undefined,
+      safetyFallback: safetyFallback || undefined,
+      error: error || undefined,
+      issues: issues.length ? issues : undefined,
+    }));
   };
 }
 
@@ -514,7 +521,7 @@ router.post("/preview", async (req, res) => {
           quality: "medium",
           renderingMode: answers.rendering_mode,
           likenessGoal: answers.likeness_goal,
-          model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
+          model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
         });
         const localCoverPreviewUrl = await composeBookPagePNG({
           baseUrl,
@@ -596,11 +603,20 @@ router.post("/preview", async (req, res) => {
             structuredSceneContract: page.scene_contract || null,
             referenceAssets,
           });
+          const visualPrompt = sceneContractImagePrompt({
+            contract: page.scene_contract,
+            stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+            fallbackPrompt: page.image_prompt,
+            visualAliases: sceneContinuity.visualAliases,
+          });
           localImageUrl = await generateQualityCheckedImage({
-            prompt: sceneContractImagePrompt({
+            prompt: visualPrompt,
+            safetyFallbackPrompt: sceneContractImagePrompt({
               contract: page.scene_contract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
               fallbackPrompt: page.image_prompt,
+              visualAliases: sceneContinuity.visualAliases,
+              safetyFallback: true,
             }),
             outName: `draft-page${page.page_number}-${job.id}`,
             castPresent: page.cast_present || [],
@@ -611,7 +627,7 @@ router.post("/preview", async (req, res) => {
             quality: "low",
             renderingMode: answers.rendering_mode,
             likenessGoal: answers.likeness_goal,
-            model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
+            model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
           });
           const persistedImage = await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
           imageUrl = persistedImage.previewUrl;
