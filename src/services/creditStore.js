@@ -125,6 +125,16 @@ export class JsonCreditStore {
     if (releasedCount) this.write(store);
     return { projectId, releasedCount };
   }
+  async deleteProjectEntitlements(identity, { projectId }) {
+    const customer = await this.customer(identity); const store = this.read();
+    store.entries.forEach((entry) => { if (entry.customerId === customer.id && entry.projectId === projectId) entry.projectId = null; });
+    store.redemptions.forEach((redemption) => { if (redemption.customerId === customer.id && redemption.projectId === projectId) redemption.projectId = null; });
+    store.reservations = store.reservations.filter((item) => !(item.customerId === customer.id && item.projectId === projectId));
+    store.rebates = store.rebates.filter((item) => !(item.customerId === customer.id && item.projectId === projectId));
+    store.checkoutReservations = store.checkoutReservations.filter((item) => !(item.customerId === customer.id && item.projectId === projectId));
+    this.write(store);
+    return { projectId, deleted: true };
+  }
   async reserveProjectRebate(identity, { projectId, idempotencyKey }) {
     const customer = await this.customer(identity); const store = this.read(); const timestamp = Date.now();
     for (const reservation of store.checkoutReservations) {
@@ -264,6 +274,12 @@ export class PostgresCreditStore {
       await client.query("COMMIT");
       return { projectId, releasedCount: updated.rows.length };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async deleteProjectEntitlements(identity, { projectId }) {
+    await this.customer(identity);
+    // PostgreSQL foreign keys preserve ledger history and cascade project-bound
+    // reservations/rebates atomically when the project deletion commits.
+    return { projectId, deleted: true, managedByDatabase: true };
   }
   async reserveProjectRebate(identity, { projectId, idempotencyKey }) {
     const customer = await this.customer(identity); const client = await this.database.connect();

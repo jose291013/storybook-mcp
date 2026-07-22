@@ -55,6 +55,9 @@ export class JsonSeriesStore {
     const record = { id: crypto.randomUUID(), ...input, status: "approved", factData: input.factData || {}, createdAt: timestamp, updatedAt: timestamp };
     store.facts[record.id] = record; this.write(store); return record;
   }
+  async hasFactsForProject(projectId) {
+    return Object.values(this.read().facts).some((item) => item.sourceProjectId === projectId && item.status === "approved");
+  }
 }
 
 function profileFromRow(row) {
@@ -109,6 +112,13 @@ export class PostgresSeriesStore {
       [crypto.randomUUID(), input.seriesId, input.sourceProjectId, input.factKey, jsonb(input.factData)]
     );
     return rows[0];
+  }
+  async hasFactsForProject(projectId) {
+    const { rowCount } = await this.database.query(
+      "SELECT 1 FROM series_continuity_facts WHERE source_project_id=$1 AND status='approved' LIMIT 1",
+      [projectId]
+    );
+    return rowCount > 0;
   }
 }
 

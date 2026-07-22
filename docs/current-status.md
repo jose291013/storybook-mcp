@@ -8,46 +8,43 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after post-merge synchronization
-- Latest merged checkpoint on `main`: PR `#41` — `Separate initial scenario preparation`
-- Current focused checkpoint: production verification of initial scenario preparation
-- Pull request: `#41` — `https://github.com/jose291013/storybook-mcp/pull/41`
-- WordPress Bridge source/package: `0.6.2`
+- Current branch: `codex/delete-unpurchased-creations`
+- Latest merged checkpoint on `main`: `7a87af6` — `Separate initial scenario preparation (#41)`
+- Current focused checkpoint: uncommitted permanent-deletion workflow
+- Pull request: to be created, tested and merged under explicit user authorization
+- WordPress Bridge source/package: `0.6.3`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 41 was explicitly authorized for merge after confirmation that no preview generation was active. It retains the image-recovery and retry-rebate corrections from PRs 42–44. The already purchased production order remains unchanged.
+The user explicitly authorized creating and merging this separate PR after confirming the generator was idle. Render may restart after the merge. Calitiki Bridge 0.6.3 must be installed in WordPress before the new deletion button appears.
 
-## Current product brick: initial scenario preparation
+## Current product brick: permanent deletion of non-purchased creations
 
-The first scenario request previously reused the revision state before any proposal existed. It displayed empty modification controls and the misleading message that Calitiki was checking a creator request. PR 41 separates both moments while retaining the current visual-proof, image-recovery and credit behavior from `main`:
+This branch adds an owner-only irreversible deletion workflow from **My creations Calitiki**:
 
-1. Initial preparation shows only a dedicated three-step progress card explaining that Calitiki is organizing the acts, checking chronology and preparing editable cards from the ten answers.
-2. Character controls, Act 1/2/3 cards, general feedback and approval actions appear only after a real scenario response exists.
-3. Revision keeps its existing “checking your request” state because a creator request exists at that point.
-4. If the initial request fails without producing a provisional scenario, the creator returns to the credit-confirmation screen with an actionable no-charge retry message.
-5. If the service returns a provisional scenario with validation issues, the creator still sees the editable Act 1/2/3 cards and localized guidance.
+1. WordPress shows **Supprimer définitivement** only on non-purchased project cards and requires a clear browser confirmation plus a WordPress nonce.
+2. The Bridge sends a fresh signed DELETE request; Node verifies the signature, timestamp, exact project confirmation and WooCommerce customer ownership.
+3. Purchased projects, any project referenced by a commerce order, approved series canon and a currently active generation job are protected from deletion.
+4. Any still-reserved preview credit is released. Project rebates, checkout reservations and preview reservations are removed, while append-only wallet history remains with its project reference cleared.
+5. The project record, private preview prefix, project-only reference photos, legacy uploads, generated local outputs and job metadata are removed. A photo still referenced by another project is preserved.
+6. A persistent deletion receipt makes cleanup idempotent and retryable without restoring the deleted project.
 
-No persistence schema, commerce rule, preview price, image policy or WordPress package changes in this brick.
+PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup receipt. It does not change prices, order behavior, series canon or purchased-book delivery.
 
 ## Verification completed locally
 
-- The merge conflict with current `main` was limited to this operational status file.
-- `public/app.js`, the scenario markup/styles, the roadmap and scenario tests merged automatically with PRs 42–44.
-- Syntax check for `public/app.js`: passed.
-- Full `npm.cmd test`: 113 passed, 0 failed.
+- Syntax checks pass for the new Node service, stores and signed route.
+- Focused deletion and customer-library suites: 4 passed, 0 failed.
+- PHP CLI is not installed locally; plugin behavior is covered by source-contract tests and the packaged archive test.
+- Full `npm.cmd test`: 116 passed, 0 failed.
 
 ## Next verification target
 
-1. Wait for Render to finish deploying PR 41.
-2. Verify with a fresh unpaid project that the initial three-step preparation appears before any scenario controls.
-3. Confirm the editable Act 1/2/3 review appears after preparation, while a true revision still shows the “checking your request” state.
-4. Confirm the visual cover proof, safe image recovery and retry-rebate accounting introduced by later PRs remain unchanged.
-
-## Separate later brick
-
-Permanent deletion of unfinished or unpaid creations remains separate. It must delete private assets idempotently, preserve purchased books/order history/series canon, and require explicit confirmation.
+1. Publish and merge the dedicated PR, then wait for Render to finish deploying.
+2. Install `wordpress/calitiki-bridge-v0.6.3.zip` in WordPress.
+3. Delete one disposable interrupted/unpurchased creation and confirm it disappears after the explicit warning.
+4. Confirm a purchased book has no deletion action and that a creation with an active generation receives a safe refusal.
 
 ## Protected local state
 
