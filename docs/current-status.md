@@ -8,10 +8,10 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scene-planner-timeout`
-- Latest merged product-code checkpoint: `6ed7c02` — `Add whole-book scene coherence contracts`
-- Current focused fix checkpoint: `17faf67` — `Extend whole-book scene planning timeout`
-- WordPress Bridge source version: `0.6.0`
+- Current branch: `codex/customer-preview-library`
+- Latest merged product-code checkpoint: `0b1e17b` — `Extend whole-book scene planning timeout (#1)`
+- Current focused product-code checkpoint: `64d4468` — `Add customer preview library`
+- WordPress Bridge source version: `0.6.1`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
@@ -20,9 +20,11 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 
 ## Current product state
 
-- The scene-contract coherence brick is merged into `main` and its live execution was confirmed on project `66ca304a-4ee3-498e-b0f8-145216fb6874`. Its 36 page texts were checkpointed through `text:36`, then the whole-book `story:coherence-and-scene-contracts` request exceeded the former 180-second general limit. Fix `17faf67` gives only this larger response a dedicated 360-second timeout, retains zero hidden SDK retries, and adds start/completion timing plus exact failure-step logging. After all page texts exist, the pass minimally reconciles narrative continuity and creates one structured contract per spread before any illustration begins. Photo-upload names are immutable canon (for example `Mathéo` cannot become `Mathieu`); named observers cannot replace generic friends; main actions, objects, quantities, scale and spatial relationships are carried into preview, repair and final-generation prompts. A low-cost bounded scene check may request one correction, but an advisory-QA failure cannot abort a technically coherent book.
+- The scene-contract coherence brick and its dedicated 360-second whole-book timeout are merged into `main` at `0b1e17b`. Live project `66ca304a-4ee3-498e-b0f8-145216fb6874` has its 36 page texts checkpointed through `text:36` after the former 180-second limit failed at `story:coherence-and-scene-contracts`; its free retry must wait until Render serves `0b1e17b` or a later merge. The fix retains zero hidden SDK retries and adds start/completion timing plus exact failure-step logging.
 
-- The first series brick is implemented on the current branch: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. It is not deployed until this branch is merged and Bridge 0.6.0 is installed.
+- Customer preview library brick `64d4468` fixes the preview-ready email deep link so it restores the persisted project state before offering any new debit. Calitiki Bridge 0.6.1 adds generating, interrupted and ready unpaid previews to **My creations Calitiki** beside purchased-order cards. WooCommerce receives only signed metadata; private answers, photos, prompts and asset URLs remain in the Storybook service.
+
+- The first series brick is merged: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. Its live verification still requires the current Bridge installation.
 
 - The personalized eBook purchase includes the downloadable PDF and private interactive reader.
 - The printed book remains visible as **Coming soon** and must remain non-purchasable until the supplier and both feature flags are ready.
@@ -37,7 +39,7 @@ For the complete implementation checkpoint and all environment variables, read `
 
 ## Next verification target
 
-Deploy `17faf67`, optionally set `OPENAI_STORY_TIMEOUT_MS=360000` explicitly on Render, and then use the existing free technical retry for project `66ca304a-4ee3-498e-b0f8-145216fb6874`. Confirm that Render logs `[preview] story scene plan started`, reuses every text through `text:36` without another text call or wallet debit, reaches `[preview] story scene plan completed` within the dedicated limit, persists phase `scene-contracts`, and continues with the cover. Do not consume the retry before this deployment is live.
+After merging `64d4468`, deploy Render first, then install `wordpress/calitiki-bridge-v0.6.1.zip` and purge the WordPress cache. In **My creations Calitiki**, confirm that project `66ca304a-4ee3-498e-b0f8-145216fb6874` appears as interrupted and that **Reprendre mon projet** reauthenticates into its preserved failure screen. Use its existing free technical retry only after Render serves the merge. Confirm it reuses every text through `text:36`, logs `[preview] story scene plan started` then `[preview] story scene plan completed`, persists `scene-contracts`, and continues without another wallet debit. Once ready, close the browser and use the email link on another browser or signed-out session; it must authenticate and open the finished reader directly, never the debit-confirmation screen. Confirm the same preview appears exactly once in **My creations Calitiki**, while purchased books retain their order, reader and PDF actions.
 
 After merge, create a fresh story containing (1) a named photographed brother who only observes, (2) a new anonymous friend who shakes the hero's hand, and (3) three explicitly very large slides. Confirm that every uploaded name spelling remains exact, the generic friend stays distinct, the illustration shows the correct handshake, and the requested quantity and scale are visible. Confirm Render reaches `story:coherence-and-scene-contracts` once before the first interior illustration and a resumed job reuses that checkpoint without repeating the text call.
 
@@ -49,7 +51,7 @@ Verify the image-safety recovery on project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0
 
 Verify the series-foundation flow end to end after merge:
 
-1. Install Calitiki Bridge 0.6.0 and purge the WordPress cache.
+1. Install Calitiki Bridge 0.6.1 and purge the WordPress cache.
 2. Open a paid eBook under **My creations Calitiki** and click **Create a new adventure**.
 3. Confirm that the creator opens at step 1 with all ten answers, choices and private reference photos restored.
 4. Change the obstacle, one role and one photo; confirm the source purchased book remains unchanged.
