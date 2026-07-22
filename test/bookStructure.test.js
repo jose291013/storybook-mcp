@@ -565,7 +565,8 @@ test("technical image repair is validated, bounded and never spends customer cre
   assert.match(quality, /inspectIdentityLikeness/);
   assert.match(quality, /approved-with-identity-warning/);
   assert.match(quality, /IMAGE_LIKENESS_QA_ENABLED/);
-  assert.match(quality, /attempt === maximumAttempts/);
+  assert.match(quality, /attempt === attemptLimit/);
+  assert.match(quality, /if \(attempt === attemptLimit\) attemptLimit \+= 1/);
   assert.match(repair, /project\.status === "purchased"/);
   assert.match(repair, /status: "preview_repairing"/);
   assert.match(repair, /FREE_TECHNICAL_CHECKS_PER_PROJECT = 3/);

@@ -8,59 +8,45 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/visual-identity-proof`
-- Latest merged checkpoint on `main`: `33243c7` — `Add deterministic scenario presence editor (#39)`
-- Current focused checkpoint: `6cc111f` — `Add visual identity proof workflow`
-- Draft PR: `#40` — `https://github.com/jose291013/storybook-mcp/pull/40`
+- Current branch: `codex/image-safety-recovery`
+- Latest merged checkpoint on `main`: `9fd9397` — `Add visual identity proof workflow (#40)`
+- Current focused checkpoint: `629f3ff` — `Recover safely from image policy rejection`
+- Draft PR: `#42` — `https://github.com/jose291013/storybook-mcp/pull/42`
+- Parallel draft PR: `#41` — initial scenario loading; it is separate and unmerged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 39 is merged and its scenario presence editor is the current production base. Draft PR 40 contains the visual-identity workflow and is not merged or deployed. Never merge or trigger Render until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 40 is merged and its visual-proof workflow is deployed. Never merge this correction or trigger Render until the user explicitly confirms that no preview generation is running and authorizes the merge.
 
-## Current product brick: visual identity proof
+## Current product brick: bounded image-safety recovery
 
-The scenario workflow is unchanged: ten answers, persisted Act 1/2/3 review, deterministic chronology, creator-added characters, exact physical/thought/memory/voice presence choices, and explicit scenario approval before any paid generation.
+Project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442` has an approved cover and completed pages through page 10. Its resume job `816c87cc25b4819f8b4f6043` failed while generating page 11 after a scene-QA retry repeated branded clothing details and OpenAI rejected the second image request for safety. The project is preserved with `retryAvailable: true`; do not spend that retry on the currently deployed code.
 
-The current branch adds the next gate after scenario approval:
+This branch makes four focused corrections:
 
-1. Seven real style examples are derived from one synthetic non-customer portrait and one identical lantern scene.
-2. Style choice is grouped by expected likeness: maximum photorealism; illustrated and recognizable; clearly cartoon.
-3. Desktop hover and keyboard focus reveal the same reference portrait. Mobile has an explicit reference toggle.
-4. `3D douce` is renamed `3D cartoon douce`; its copy honestly says that facial traits are stylized.
-5. Reference payloads combine the full figure with a face-focused crop. Prompting preserves face geometry independently from the medium.
-6. A bounded identity QA check may request one correction in maximum/strong likeness modes.
-7. After scenario approval and credit reservation, Calitiki creates the manuscript/contracts and one medium-quality cover proof, then pauses. No interior image starts until the creator approves the proof. One same-style cover retry is included without a second credit reservation.
-8. The proof decision is checkpointed while the project remains `preview_generating`, so Bridge 0.6.2 and **My creations Calitiki** remain compatible. Closing the browser safely restores the proof.
+1. Scene QA ignores wardrobe-, inscription- and logo-only complaints while retaining action, cast, scale, quantity and held-versus-worn contradictions.
+2. Explicit brand or printed-inscription details are replaced with generic unbranded wording at the final image-prompt boundary.
+3. A safety rejection on the final normal image attempt may receive exactly one extra call using only the approved cover as continuity reference. The extension cannot repeat.
+4. A technical failure after cover approval leaves the visual-proof panel and opens the preserved-project/free-retry panel instead of showing only `La génération a échoué`.
 
-If a source identity image is rejected by the safety system before a cover reference exists, Calitiki now asks for a clear non-branded portrait rather than silently producing a generic cover. After approval, an interior retry may use the approved private cover as its continuity reference.
+No environment variable, persistence schema, commerce rule, scenario behavior or credit price changes in this brick.
 
 ## Verification completed locally
 
-- `node --check` passes for the browser app, preview routes and image services.
-- `npm.cmd test`: 107 passed, 0 failed.
-- Tests cover the seven-style catalog, three likeness families, real comparison assets, photoreal prompt rules, identity QA wiring and the mandatory cover pause before the interior loop.
-- Desktop browser QA loaded 7 cards in 3 groups with `soft_watercolor` selected by default.
-- Generated comparison assets are WebP files in `public/assets/examples/styles/`; the reference is entirely synthetic and contains no customer or child data.
+- Focused image-policy suite: 5 passed, 0 failed.
+- Syntax checks pass for the browser app and both modified image services.
+- Full `npm test`: 110 passed, 0 failed.
 - `git diff --check` passes apart from expected Windows line-ending notices.
 
 ## Next verification target
 
-Keep PR 40 in draft and unmerged until the user confirms that no preview generation is running and explicitly authorizes the merge.
-
-After explicit merge authorization and a confirmed idle generator, verify on Render with a fresh project:
-
-1. Scenario review and character presence editing behave exactly as on main.
-2. Every style example loads; hover/focus/mobile reference comparison works.
-3. A photoreal project keeps natural facial geometry; an illustrated project changes only the medium; 3D is visibly labelled cartoon.
-4. Scenario approval reserves once and stops after the cover proof.
-5. Closing and reopening through **My creations** restores that proof.
-6. Regenerating the proof once does not reserve a second credit; a third attempt is blocked.
-7. Approving the proof resumes from the persisted manuscript/contracts and completes all interior pages.
-8. The ready email is sent only after the complete book is ready.
-
-Do not use an existing paid or purchased book as the first test. Use a fresh unpaid preview project.
+1. Keep draft PR 42 unmerged until the user explicitly authorizes it and confirms that no generation is active.
+2. Leave draft PR 41 unmerged while this existing book is recovered, to avoid a second Render restart.
+3. After explicit user authorization, merge and wait for this safety correction to be live on Render.
+4. Only then use the project's free technical retry. It must resume at page 11 without regenerating the cover or completed pages.
+5. Verify that any later technical failure shows the preserved/free-retry screen and does not reserve or consume another credit.
 
 ## Separate later brick
 
