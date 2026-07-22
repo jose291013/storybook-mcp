@@ -163,39 +163,46 @@
       </section>
 
       <section class="story-scenario-panel" id="storyScenarioPanel" hidden>
-        <p class="section-kicker" data-i18n="scenarioKicker">VOTRE SCÉNARIO</p>
+        <p class="section-kicker" id="storyScenarioKicker" data-i18n="scenarioKicker">VOTRE SCÉNARIO</p>
         <h2 id="storyScenarioTitle" data-i18n="scenarioTitle">Vérifiez le déroulement avant les illustrations</h2>
-        <p class="section-lead" id="storyScenarioSummary"></p>
-        <section class="scenario-diagnostics" id="scenarioDiagnostics" hidden>
-          <h3 data-i18n="scenarioDiagnosticsTitle">Ce scénario provisoire a besoin de quelques corrections</h3>
-          <p data-i18n="scenarioDiagnosticsLead">Relisez les cartes encadrées ci-dessous. Vous pouvez modifier leur lieu ou leur action, ou préciser qui traverse et qui apparaît seulement en pensée.</p>
-          <ul id="scenarioDiagnosticList"></ul>
+        <section class="scenario-preparing-state" id="scenarioPreparingState" hidden>
+          <div class="scenario-preparing-orbit" aria-hidden="true"><span>1</span><span>2</span><span>3</span></div>
+          <p id="scenarioPreparingLead">Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.</p>
+          <ol id="scenarioPreparingSteps"></ol>
         </section>
-        <section class="scenario-clarifications" id="scenarioClarifications" hidden>
-          <h3 data-i18n="scenarioQuestionsTitle">Quelques précisions sont nécessaires</h3>
-          <p data-i18n="scenarioQuestionsLead">Vos réponses verrouillent les déplacements, les présences et l'ordre des événements.</p>
-          <div id="scenarioQuestionList"></div>
-        </section>
-        <section class="scenario-character-manager">
-          <div>
-            <h3 data-i18n="scenarioCharactersTitle">Personnages disponibles</h3>
-            <p data-i18n="scenarioCharactersLead">Ajoutez ici un personnage absent de la liste, puis choisissez sa présence dans les scènes concernées.</p>
+        <div id="scenarioReviewContent">
+          <p class="section-lead" id="storyScenarioSummary"></p>
+          <section class="scenario-diagnostics" id="scenarioDiagnostics" hidden>
+            <h3 data-i18n="scenarioDiagnosticsTitle">Ce scénario provisoire a besoin de quelques corrections</h3>
+            <p data-i18n="scenarioDiagnosticsLead">Relisez les cartes encadrées ci-dessous. Vous pouvez modifier leur lieu ou leur action, ou préciser qui traverse et qui apparaît seulement en pensée.</p>
+            <ul id="scenarioDiagnosticList"></ul>
+          </section>
+          <section class="scenario-clarifications" id="scenarioClarifications" hidden>
+            <h3 data-i18n="scenarioQuestionsTitle">Quelques précisions sont nécessaires</h3>
+            <p data-i18n="scenarioQuestionsLead">Vos réponses verrouillent les déplacements, les présences et l'ordre des événements.</p>
+            <div id="scenarioQuestionList"></div>
+          </section>
+          <section class="scenario-character-manager">
+            <div>
+              <h3 data-i18n="scenarioCharactersTitle">Personnages disponibles</h3>
+              <p data-i18n="scenarioCharactersLead">Ajoutez ici un personnage absent de la liste, puis choisissez sa présence dans les scènes concernées.</p>
+            </div>
+            <div class="scenario-character-add">
+              <input type="text" id="scenarioNewCharacterName" data-i18n-placeholder="scenarioNewCharacterPlaceholder" placeholder="Nom du personnage" maxlength="120" />
+              <button type="button" class="toolbar-button" id="scenarioAddCharacterButton" data-i18n="scenarioAddCharacter">Ajouter au scénario</button>
+            </div>
+          </section>
+          <div class="scenario-acts" id="scenarioActs"></div>
+          <label class="scenario-feedback"><span data-i18n="scenarioFeedbackLabel">Une modification générale à demander (facultatif)</span><textarea id="scenarioFeedback" data-i18n-placeholder="scenarioFeedbackPlaceholder" placeholder="Par exemple : Alexandra guide Nolan seulement par la pensée dans la vallée."></textarea></label>
+          <p class="scenario-help" data-i18n="scenarioHelp">Vous pouvez corriger le lieu ou l'action de chaque scène. Aucun texte ni aucune illustration ne sera généré avant votre validation.</p>
+          <div class="scenario-actions">
+            <button type="button" class="toolbar-button" id="reviseScenarioButton" data-i18n="reviseScenario">Mettre à jour le scénario</button>
+            <button type="button" class="primary-button" id="approveScenarioButton" data-i18n="approveScenario">Valider et générer mon livre</button>
           </div>
-          <div class="scenario-character-add">
-            <input type="text" id="scenarioNewCharacterName" data-i18n-placeholder="scenarioNewCharacterPlaceholder" placeholder="Nom du personnage" maxlength="120" />
-            <button type="button" class="toolbar-button" id="scenarioAddCharacterButton" data-i18n="scenarioAddCharacter">Ajouter au scénario</button>
+          <div class="scenario-status" id="scenarioStatus" role="status" aria-live="polite">
+            <span class="scenario-status-spinner" aria-hidden="true"></span>
+            <p id="scenarioFeedbackMessage"></p>
           </div>
-        </section>
-        <div class="scenario-acts" id="scenarioActs"></div>
-        <label class="scenario-feedback"><span data-i18n="scenarioFeedbackLabel">Une modification générale à demander (facultatif)</span><textarea id="scenarioFeedback" data-i18n-placeholder="scenarioFeedbackPlaceholder" placeholder="Par exemple : Alexandra guide Nolan seulement par la pensée dans la vallée."></textarea></label>
-        <p class="scenario-help" data-i18n="scenarioHelp">Vous pouvez corriger le lieu ou l'action de chaque scène. Aucun texte ni aucune illustration ne sera généré avant votre validation.</p>
-        <div class="scenario-actions">
-          <button type="button" class="toolbar-button" id="reviseScenarioButton" data-i18n="reviseScenario">Mettre à jour le scénario</button>
-          <button type="button" class="primary-button" id="approveScenarioButton" data-i18n="approveScenario">Valider et générer mon livre</button>
-        </div>
-        <div class="scenario-status" id="scenarioStatus" role="status" aria-live="polite">
-          <span class="scenario-status-spinner" aria-hidden="true"></span>
-          <p id="scenarioFeedbackMessage"></p>
         </div>
       </section>
 

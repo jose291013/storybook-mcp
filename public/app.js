@@ -95,7 +95,7 @@ const elements = {
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -142,6 +142,12 @@ const VISUAL_PROOF_TEXT = {
   FR: { kicker: "PREUVE VISUELLE", title: "Vérifiez le visage et le rendu avant les autres illustrations", lead: "Cette couverture utilise votre style et vos références. Le reste du livre ne sera illustré qu'après votre validation.", checks: ["Le personnage est-il reconnaissable ?", "Le niveau de réalisme correspond-il à votre choix ?", "La technique vous convient-elle pour tout le livre ?"], approve: "Valider et illustrer le livre", regenerate: "Réessayer cette couverture", note: "Un nouvel essai de couverture est inclus. Il ne consomme pas un second crédit.", limit: "Le nouvel essai inclus a été utilisé. Validez cette couverture ou contactez Calitiki avant de poursuivre.", working: "Calitiki prépare votre demande…", alt: "Couverture d'essai à valider" },
   ES: { kicker: "PRUEBA VISUAL", title: "Comprueba el rostro y el acabado antes de las demás ilustraciones", lead: "Esta portada utiliza tu estilo y tus referencias. El resto del libro solo se ilustrará después de tu aprobación.", checks: ["¿El personaje es reconocible?", "¿El nivel de realismo corresponde a tu elección?", "¿Te gusta esta técnica para todo el libro?"], approve: "Aprobar e ilustrar el libro", regenerate: "Reintentar esta portada", note: "Se incluye un nuevo intento de portada. No consume un segundo crédito.", limit: "Ya se ha utilizado el nuevo intento incluido. Aprueba esta portada o contacta con Calitiki.", working: "Calitiki está preparando tu solicitud…", alt: "Portada de prueba para aprobar" },
   EN: { kicker: "VISUAL PROOF", title: "Check the face and rendering before the remaining illustrations", lead: "This cover uses your selected style and references. The rest of the book will only be illustrated after your approval.", checks: ["Is the character recognizable?", "Does the realism level match your choice?", "Would you like this medium across the whole book?"], approve: "Approve and illustrate the book", regenerate: "Retry this cover", note: "One additional cover proof is included. It does not use a second credit.", limit: "The included retry has been used. Approve this cover or contact Calitiki before continuing.", working: "Calitiki is preparing your request…", alt: "Cover proof awaiting approval" },
+};
+
+const SCENARIO_PREPARATION_TEXT = {
+  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.", steps: ["Organiser le début, le défi et la résolution", "Vérifier les lieux, passages et personnages", "Préparer les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Aucun crédit n'a été utilisé : vous pouvez réessayer." },
+  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara de tres actos. No se utiliza ningún crédito durante esta etapa.", steps: ["Organizar el inicio, el reto y la resolución", "Comprobar los lugares, pasos y personajes", "Preparar las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. No se utilizó ningún crédito: puedes volver a intentarlo." },
+  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. No credit is used during this step.", steps: ["Organize the beginning, challenge and resolution", "Check locations, passages and characters", "Prepare the cards you can review and edit"], error: "The first proposal could not be prepared. No credit was used, so you can try again." },
 };
 
 const UNIVERSE_TEXT = {
@@ -290,7 +296,7 @@ async function confirmPreviewAuthorization() {
     await refreshCreditSummary(state.projectId).catch(() => null);
     elements.confirmPreviewButton.disabled = false;
     elements.confirmPreviewButton.textContent = original;
-    elements.formError.textContent = error.message;
+    elements.creditFeedback.textContent = (SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR).error;
   }
 }
 
@@ -398,6 +404,22 @@ function setStoryScenarioBusy(busy, action = "update") {
   if (!busy) elements.scenarioStatus.classList.remove("is-loading");
 }
 
+function showInitialScenarioPreparation() {
+  const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
+  document.querySelector("#creator").hidden = true;
+  elements.generationPanel.hidden = true;
+  elements.generationFailurePanel.hidden = true;
+  elements.resultSection.hidden = true;
+  elements.storyScenarioPanel.hidden = false;
+  elements.storyScenarioKicker.textContent = copy.kicker;
+  elements.storyScenarioTitle.textContent = copy.title;
+  elements.scenarioPreparingLead.textContent = copy.lead;
+  elements.scenarioPreparingSteps.innerHTML = copy.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
+  elements.scenarioPreparingState.hidden = false;
+  elements.scenarioReviewContent.hidden = true;
+  elements.storyScenarioPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function renderStoryScenario(scenario, { scroll = true } = {}) {
   state.storyScenario = scenario;
   state.storyScenarioUpdateFailed = false;
@@ -408,6 +430,9 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   elements.generationFailurePanel.hidden = true;
   elements.resultSection.hidden = true;
   elements.storyScenarioPanel.hidden = false;
+  elements.scenarioPreparingState.hidden = true;
+  elements.scenarioReviewContent.hidden = false;
+  elements.storyScenarioKicker.textContent = tr("scenarioKicker");
   elements.storyScenarioTitle.textContent = scenario.title || tr("scenarioTitle");
   elements.storyScenarioSummary.textContent = scenario.summary || "";
   const clarifications = scenario.clarifications || [];
@@ -445,10 +470,14 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
 
 async function requestStoryScenario({ includeEdits = false } = {}) {
   if (!state.projectId || state.storyScenarioBusy) return;
-  elements.storyScenarioPanel.hidden = false;
-  document.querySelector("#creator").hidden = true;
-  setStoryScenarioBusy(true, "update");
-  setScenarioStatus(tr("scenarioUpdating"), "loading");
+  const initialRequest = !state.storyScenario && !includeEdits;
+  if (initialRequest) showInitialScenarioPreparation();
+  else {
+    elements.storyScenarioPanel.hidden = false;
+    document.querySelector("#creator").hidden = true;
+    setScenarioStatus(tr("scenarioUpdating"), "loading");
+  }
+  setStoryScenarioBusy(true, initialRequest ? "prepare" : "update");
   try {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/story-scenario`, {
       method: "POST",
@@ -462,12 +491,22 @@ async function requestStoryScenario({ includeEdits = false } = {}) {
     });
     const payload = await response.json();
     if (!response.ok) {
-      if (payload.scenario) renderStoryScenario(payload.scenario);
+      if (payload.scenario) {
+        renderStoryScenario(payload.scenario);
+        state.storyScenarioUpdateFailed = true;
+        setScenarioStatus(scenarioApiMessage(payload, "scenarioRevisionError"), "error");
+        return;
+      }
       throw new Error(scenarioApiMessage(payload, "scenarioRevisionError"));
     }
     elements.scenarioFeedback.value = "";
     renderStoryScenario(payload.scenario);
   } catch (error) {
+    if (initialRequest) {
+      elements.storyScenarioPanel.hidden = true;
+      elements.scenarioPreparingState.hidden = true;
+      throw error;
+    }
     state.storyScenarioUpdateFailed = true;
     setScenarioStatus(error.message || tr("scenarioRevisionError"), "error");
   } finally {

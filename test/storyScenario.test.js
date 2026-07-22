@@ -192,7 +192,13 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /approveStoryScenario/);
   assert.match(app, /storyScenarioBusy/);
   assert.match(app, /scenarioApiMessage/);
-  assert.match(app, /if \(payload\.scenario\) renderStoryScenario\(payload\.scenario\)/);
+  assert.match(app, /if \(payload\.scenario\) \{/);
+  assert.match(app, /showInitialScenarioPreparation/);
+  assert.match(app, /const initialRequest = !state\.storyScenario && !includeEdits/);
+  assert.match(app, /setStoryScenarioBusy\(true, initialRequest \? "prepare" : "update"\)/);
+  assert.match(app, /elements\.scenarioReviewContent\.hidden = true/);
+  assert.match(app, /elements\.scenarioReviewContent\.hidden = false/);
+  assert.match(app, /if \(initialRequest\) \{[\s\S]*throw error;/);
   assert.match(app, /scenarioNeedsRevision/);
   assert.match(app, /data-presence-character/);
   assert.match(app, /storyScenarioDirty/);
@@ -201,6 +207,9 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioRoute, /character_presences/);
   assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
   assert.match(html, /id="storyScenarioPanel"/);
+  assert.match(html, /id="scenarioPreparingState"/);
+  assert.match(html, /id="scenarioPreparingSteps"/);
+  assert.match(html, /id="scenarioReviewContent"/);
   assert.match(html, /id="scenarioStatus"/);
   assert.match(html, /id="scenarioDiagnostics"/);
   assert.match(html, /id="scenarioNewCharacterName"/);

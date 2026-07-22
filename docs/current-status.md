@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/visual-identity-proof`
-- Latest merged checkpoint on `main`: `33243c7` — `Add deterministic scenario presence editor (#39)`
-- Current focused checkpoint: `6cc111f` — `Add visual identity proof workflow`
-- Draft PR: `#40` — `https://github.com/jose291013/storybook-mcp/pull/40`
+- Current branch: `codex/scenario-initial-loading`
+- Latest merged checkpoint on `main`: `9fd9397` — `Add visual identity proof workflow (#40)`
+- Current focused checkpoint: initial scenario-preparation UI correction, not yet merged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 39 is merged and its scenario presence editor is the current production base. Draft PR 40 contains the visual-identity workflow and is not merged or deployed. Never merge or trigger Render until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 40 is merged and Render exposes the seven styles and three rendering modes. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
+
+## Current correction: initial scenario preparation
+
+The first scenario request previously reused the revision state before any proposal existed. It displayed empty modification controls and the misleading message that Calitiki was checking a creator request. The focused branch separates both moments:
+
+1. Initial preparation shows only a dedicated three-step progress card explaining that Calitiki is organizing the acts, checking chronology and preparing editable cards from the ten answers.
+2. Character controls, Act 1/2/3 cards, general feedback and approval actions appear only after a real scenario response exists.
+3. Revision keeps its existing “checking your request” state because a creator request exists at that point.
+4. If the initial request fails without producing a provisional scenario, the creator returns to the credit-confirmation screen with an actionable no-charge retry message instead of remaining on an empty scenario screen.
 
 ## Current product brick: visual identity proof
 
@@ -47,7 +55,7 @@ If a source identity image is rejected by the safety system before a cover refer
 
 ## Next verification target
 
-Keep PR 40 in draft and unmerged until the user confirms that no preview generation is running and explicitly authorizes the merge.
+Verify the focused initial-loading correction locally, publish it as a separate draft PR, and leave it unmerged until explicit authorization and confirmation that no preview is generating.
 
 After explicit merge authorization and a confirmed idle generator, verify on Render with a fresh project:
 
