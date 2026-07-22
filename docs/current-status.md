@@ -8,15 +8,15 @@ This is the concise operational memory for a new Codex task. Product direction r
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/story-scenario-approval`
-- Latest merged checkpoint on `main`: `6296c9a` — `Recover previews after Render restarts (#35)`
-- Current focused checkpoint: `10e0f6b` — `Add creator-approved story scenarios`
+- Current branch: `codex/scenario-update-feedback`
+- Latest merged checkpoint on `main`: `c4c8bde` — `Add creator-approved story scenarios (#36)`
+- Current focused checkpoint: `dd4fe75` — `Improve story scenario update feedback`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-The branch is not merged or deployed. Never merge or trigger a Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 36 is merged and Render serves the scenario-review interface. The current correction branch is not merged or deployed. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
 
 ## Focused product brick
 
@@ -34,9 +34,15 @@ The workflow is persisted in the project continuity snapshot. Closing the browse
 
 The original timeout fix remains active: whole-book story planning uses its dedicated 360-second request limit, and interrupted Render background work remains eligible for an idempotent customer retry without a second debit.
 
+## Current correction
+
+The first live scenario revision exposed two presentation and validation defects. The update request disabled its buttons but did not show a visible activity indicator, and a failed deterministic validation leaked raw English diagnostics without explaining what the creator could do. In addition, a model-supplied physical-presence sub-location such as “beside the portal” could contradict the scene's canonical location even when no teleportation occurred.
+
+Branch `codex/scenario-update-feedback` adds an accessible busy state, spinner, in-button progress text, disabled form fields, a client request guard and a server-side per-project concurrency guard. Failures now keep the previous scenario and creator request visible, provide localized retry guidance, and never expose raw validation issues to the browser. Physical presence locations are deterministically normalized to the scene's exact `locationAfter`; real character travel is still checked independently through transition travelers and tracked locations.
+
 ## Verification completed locally
 
-- `npm test`: 102 passed, 0 failed.
+- `npm test`: 103 passed, 0 failed.
 - Scenario tests cover portal discovery before crossing, physical-character teleportation rejection, thought-only guide presence, and single-state wearable objects.
 - The illustration contract explicitly states that a held wearable is not also worn and must never be duplicated.
 - JavaScript syntax checks and `git diff --check` pass.
@@ -44,7 +50,9 @@ The original timeout fix remains active: whole-book story planning uses its dedi
 
 ## Next live verification target
 
-After explicit merge authorization, deploy Render first, wait until its displayed commit matches the merge commit, then install Bridge 0.6.2 and purge WordPress caches. Create a fresh portal story and confirm:
+After explicit merge authorization for the current correction, wait until Render serves its merge commit. Reopen the preserved scenario and confirm the update button shows a spinner and progress text, every scenario field and both buttons remain disabled until completion, and a failed update shows localized retry guidance without technical English details. Then retry the Alexandra/Jérôme correction and confirm the updated scenario is accepted when its only former issue was a physical-presence sub-location.
+
+For the complete scenario flow, create a fresh portal story and confirm:
 
 1. Preparing the scenario does not reserve or spend a credit.
 2. The scenario orders discovery of the portal, crossing it, then arrival in the enchanted dinosaur valley.

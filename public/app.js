@@ -56,6 +56,8 @@ const state = {
   previewComplete: false,
   awaitingPreviewConfirmation: false,
   storyScenario: null,
+  storyScenarioBusy: false,
+  storyScenarioUpdateFailed: false,
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
   customerSession: { authenticated: false, customer: null },
@@ -90,7 +92,7 @@ const elements = {
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -285,8 +287,43 @@ function scenarioSceneEdits() {
   }));
 }
 
+function scenarioHasClarifications() {
+  return (state.storyScenario?.clarifications || []).length > 0;
+}
+
+function setScenarioStatus(message, kind = "") {
+  elements.scenarioFeedbackMessage.textContent = message;
+  elements.scenarioStatus.classList.toggle("is-loading", kind === "loading");
+  elements.scenarioStatus.classList.toggle("is-error", kind === "error");
+}
+
+function scenarioApiMessage(payload, fallbackKey) {
+  const messages = {
+    scenario_invalid: "scenarioCoherenceError",
+    scenario_update_in_progress: "scenarioAlreadyUpdating",
+    scenario_locked: "scenarioLocked",
+    scenario_stale: "scenarioStale",
+    scenario_clarification_required: "scenarioNeedsAnswers",
+  };
+  return tr(messages[payload?.code] || fallbackKey);
+}
+
+function setStoryScenarioBusy(busy, action = "update") {
+  state.storyScenarioBusy = busy;
+  elements.storyScenarioPanel.setAttribute("aria-busy", String(busy));
+  elements.storyScenarioPanel.querySelectorAll("input, textarea").forEach((control) => { control.disabled = busy; });
+  elements.reviseScenarioButton.disabled = busy;
+  elements.approveScenarioButton.disabled = busy || !state.storyScenario || scenarioHasClarifications();
+  elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed ? tr("scenarioRetryUpdate") : tr("reviseScenario");
+  elements.approveScenarioButton.textContent = tr("approveScenario");
+  if (busy && action === "update") elements.reviseScenarioButton.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(tr("scenarioUpdatingAction"))}`;
+  if (busy && action === "approve") elements.approveScenarioButton.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(tr("scenarioApprovingAction"))}`;
+  if (!busy) elements.scenarioStatus.classList.remove("is-loading");
+}
+
 function renderStoryScenario(scenario, { scroll = true } = {}) {
   state.storyScenario = scenario;
+  state.storyScenarioUpdateFailed = false;
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
@@ -308,17 +345,16 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
     return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><small class="scenario-scene-meta">${escapeHtml(scene.storyRole)}</small><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label><div class="scenario-presences">${physical.length ? `${escapeHtml(tr("scenarioPhysical"))}: ${escapeHtml(physical.join(", "))}` : ""}${nonphysical.length ? ` · ${escapeHtml(tr("scenarioNonphysical"))}: ${escapeHtml(nonphysical.join(", "))}` : ""}</div></div></article>`;
   }).join("")}</section>`).join("");
   elements.approveScenarioButton.disabled = clarifications.length > 0;
-  elements.scenarioFeedbackMessage.textContent = clarifications.length ? tr("scenarioNeedsAnswers") : tr("scenarioReady");
+  setScenarioStatus(clarifications.length ? tr("scenarioNeedsAnswers") : tr("scenarioReady"));
   if (scroll) elements.storyScenarioPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function requestStoryScenario({ includeEdits = false } = {}) {
-  if (!state.projectId) return;
+  if (!state.projectId || state.storyScenarioBusy) return;
   elements.storyScenarioPanel.hidden = false;
   document.querySelector("#creator").hidden = true;
-  elements.reviseScenarioButton.disabled = true;
-  elements.approveScenarioButton.disabled = true;
-  elements.scenarioFeedbackMessage.textContent = tr("scenarioUpdating");
+  setStoryScenarioBusy(true, "update");
+  setScenarioStatus(tr("scenarioUpdating"), "loading");
   try {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/story-scenario`, {
       method: "POST",
@@ -330,34 +366,33 @@ async function requestStoryScenario({ includeEdits = false } = {}) {
       }),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error([payload.error, ...(payload.issues || [])].filter(Boolean).join(" · "));
+    if (!response.ok) throw new Error(scenarioApiMessage(payload, "scenarioRevisionError"));
     elements.scenarioFeedback.value = "";
     renderStoryScenario(payload.scenario);
   } catch (error) {
-    elements.scenarioFeedbackMessage.textContent = error.message || tr("scenarioRevisionError");
+    state.storyScenarioUpdateFailed = true;
+    setScenarioStatus(error.message || tr("scenarioRevisionError"), "error");
   } finally {
-    elements.reviseScenarioButton.disabled = false;
-    elements.approveScenarioButton.disabled = !state.storyScenario || (state.storyScenario.clarifications || []).length > 0;
+    setStoryScenarioBusy(false);
   }
 }
 
 async function approveStoryScenario() {
-  if (!state.projectId || !state.storyScenario || elements.approveScenarioButton.disabled) return;
-  elements.approveScenarioButton.disabled = true;
-  elements.reviseScenarioButton.disabled = true;
-  elements.scenarioFeedbackMessage.textContent = tr("confirmingPreview");
+  if (!state.projectId || !state.storyScenario || elements.approveScenarioButton.disabled || state.storyScenarioBusy) return;
+  setStoryScenarioBusy(true, "approve");
+  setScenarioStatus(tr("confirmingPreview"), "loading");
   try {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/story-scenario/approve`, { method: "POST" });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || tr("scenarioApprovalError"));
+    if (!response.ok) throw new Error(scenarioApiMessage(payload, "scenarioApprovalError"));
     state.storyScenario = payload.scenario;
     elements.storyScenarioPanel.hidden = true;
     await generatePreviewForProject(state.projectId);
   } catch (error) {
     elements.storyScenarioPanel.hidden = false;
-    elements.scenarioFeedbackMessage.textContent = error.message || tr("scenarioApprovalError");
-    elements.approveScenarioButton.disabled = false;
-    elements.reviseScenarioButton.disabled = false;
+    setScenarioStatus(error.message || tr("scenarioApprovalError"), "error");
+  } finally {
+    setStoryScenarioBusy(false);
   }
 }
 
