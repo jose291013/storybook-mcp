@@ -73,6 +73,6 @@ test("only fully persisted draft pages are reused after an interrupted Render jo
   assert.equal(isReusableDraftPage(null), false);
 });
 
-test("the current style-stability policy is version three", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 3);
+test("the compact visual-contract recovery policy is version four", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 4);
 });

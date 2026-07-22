@@ -220,12 +220,21 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
 
       updateJob(job.id, { step: `repair:page:${pageNumber}:illustrating` });
       const selectedStyle = findIllustrationStyle(refreshed.questionnaire?.style_id || refreshed.productConfiguration?.style_id);
+      const technicalRepairInstruction = "TECHNICAL REPAIR: replace an illustration with an objective production defect. Follow the compact visual specification and continuity reference exactly.";
       const localImageUrl = await generateQualityCheckedImage({
         prompt: `${sceneContractImagePrompt({
           contract: blueprintPage.scene_contract,
           stylePrompt: refreshed.finalBlueprint.style?.style_prompt || refreshed.finalBlueprint.style?.prompt || "",
           fallbackPrompt: blueprintPage.image_prompt,
-        })}\n\nTECHNICAL REPAIR: replace an illustration with an objective production defect. Follow the authoritative scene contract and continuity reference exactly.`,
+          visualAliases: continuity.visualAliases,
+        })}\n\n${technicalRepairInstruction}`,
+        safetyFallbackPrompt: `${sceneContractImagePrompt({
+          contract: blueprintPage.scene_contract,
+          stylePrompt: refreshed.finalBlueprint.style?.style_prompt || refreshed.finalBlueprint.style?.prompt || "",
+          fallbackPrompt: blueprintPage.image_prompt,
+          visualAliases: continuity.visualAliases,
+          safetyFallback: true,
+        })}\n\n${technicalRepairInstruction}`,
         outName: `repair-page${pageNumber}-${job.id}`,
         castPresent: blueprintPage.cast_present || [],
         pageLabel: `repaired interior illustration for page ${pageNumber}`,
@@ -234,7 +243,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         quality: "low",
         renderingMode: selectedStyle.renderingMode,
         likenessGoal: selectedStyle.likeness,
-        model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
+        model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
         maximumAttempts: 2,
       });
       const persistedImage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localImageUrl });

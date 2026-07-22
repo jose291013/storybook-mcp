@@ -8,45 +8,46 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/image-safety-recovery`
-- Latest merged checkpoint on `main`: `9fd9397` — `Add visual identity proof workflow (#40)`
-- Current focused checkpoint: `629f3ff` — `Recover safely from image policy rejection`
-- Draft PR: `#42` — `https://github.com/jose291013/storybook-mcp/pull/42`
+- Current branch: `codex/image-visual-contract`
+- Latest merged checkpoint on `main`: `ca81a17` — `Recover safely from image policy rejection (#42)`
+- Current focused checkpoint: uncommitted compact visual-contract recovery brick
+- Draft PR: to be opened after the full test suite passes
 - Parallel draft PR: `#41` — initial scenario loading; it is separate and unmerged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 40 is merged and its visual-proof workflow is deployed. Never merge this correction or trigger Render until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 42 is merged and its bounded safety-recovery UI is deployed. Never merge this new correction or trigger Render until the user explicitly confirms that no preview generation is running and separately authorizes the merge.
 
-## Current product brick: bounded image-safety recovery
+## Current product brick: compact image-facing visual contract
 
-Project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442` has an approved cover and completed pages through page 10. Its resume job `816c87cc25b4819f8b4f6043` failed while generating page 11 after a scene-QA retry repeated branded clothing details and OpenAI rejected the second image request for safety. The project is preserved with `retryAvailable: true`; do not spend that retry on the currently deployed code.
+Project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442` has an approved cover and a persisted checkpoint at page 11. Job `dca68ace4d79d19f8b7e7401` exhausted retry policy v3 on page 12 after two image safety rejections. The project is preserved with `retryAvailable: false`, `retryExhausted: true`; policy v4 in this branch will expose one new free recovery after deployment.
 
-This branch makes four focused corrections:
+This branch makes six focused corrections:
 
-1. Scene QA ignores wardrobe-, inscription- and logo-only complaints while retaining action, cast, scale, quantity and held-versus-worn contradictions.
-2. Explicit brand or printed-inscription details are replaced with generic unbranded wording at the final image-prompt boundary.
-3. A safety rejection on the final normal image attempt may receive exactly one extra call using only the approved cover as continuity reference. The extension cannot repeat.
-4. A technical failure after cover approval leaves the visual-proof panel and opens the preserved-project/free-retry panel instead of showing only `La génération a échoué`.
+1. The full manuscript, dialogue, story beat and persisted `planned_image_context` no longer cross the image-generation boundary.
+2. Character display names become stable visual roles such as `hero child`, `family member` or `original unbranded plush-bear companion`; the story and customer-facing manuscript keep their real names.
+3. Brand inscriptions and product comparisons such as `à l'effigie de Sonic` and `type Crocs` become generic unbranded clothing details.
+4. Interior identity references use a face-focused crop; after a safety rejection the replacement call uses the already-approved cover plus a smaller positive-only visual prompt.
+5. Scene QA rejects only explicit contradictions and ignores affirmative observations mistakenly returned in the `issues` array.
+6. Retry policy v4 grants the exhausted v3 project one free idempotent resume from its first missing page.
 
-No environment variable, persistence schema, commerce rule, scenario behavior or credit price changes in this brick.
+`IMAGE_MODEL` and `DRAFT_IMAGE_MODEL` now default to the current `gpt-image-2`; `REFERENCE_IMAGE_MODEL` already used that model. No persistence schema, commerce rule, scenario behavior or credit price changes in this brick.
 
 ## Verification completed locally
 
-- Focused image-policy suite: 5 passed, 0 failed.
-- Syntax checks pass for the browser app and both modified image services.
-- Full `npm test`: 110 passed, 0 failed.
-- `git diff --check` passes apart from expected Windows line-ending notices.
+- Focused image, scenario, checkpoint and structure suites: 83 passed, 0 failed.
+- The exact failed page-12 contract is covered: no dialogue, source prose, `Winnie`, `Sonic` or `Crocs` reaches the image prompt.
+- Full `npm.cmd test`: 111 passed, 0 failed.
 
 ## Next verification target
 
-1. Keep draft PR 42 unmerged until the user explicitly authorizes it and confirms that no generation is active.
-2. Leave draft PR 41 unmerged while this existing book is recovered, to avoid a second Render restart.
-3. After explicit user authorization, merge and wait for this safety correction to be live on Render.
-4. Only then use the project's free technical retry. It must resume at page 11 without regenerating the cover or completed pages.
-5. Verify that any later technical failure shows the preserved/free-retry screen and does not reserve or consume another credit.
+1. Finish the full suite, review the diff, then publish a draft PR without merging it.
+2. Keep PR 41 separate and unmerged while this existing book is recovered.
+3. After a separate user authorization, merge and wait for Render to finish deploying.
+4. Reopen project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442`; policy v4 must offer one free retry and resume at page 12 without regenerating the approved cover or page 11.
+5. Confirm Render logs show `gpt-image-2`, the optional `safetyFallback` marker, and no false scene-QA rejection for positive confirmations.
 
 ## Separate later brick
 

@@ -1,5 +1,5 @@
 import path from "path";
-import { buildFacingPageSceneContract } from "./worldReality.js";
+import { buildImageCharacterAliases, compactImageSceneContract, neutralizeImageText } from "./imageVisualContract.js";
 
 const UPLOAD_DIR = path.resolve("data/uploads");
 
@@ -67,6 +67,9 @@ export function buildSceneContinuity({
   referenceAssets = new Map(),
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
+  const visualAliases = buildImageCharacterAliases({ blueprint, characterCanons, castPresent });
+  const safe = (value) => neutralizeImageText(value, visualAliases).trim();
+  const aliasFor = (name) => visualAliases.find((item) => sameCharacter(item.name, name))?.alias || safe(name);
   const characterFingerprints = [];
   const referenceImages = [];
 
@@ -77,10 +80,11 @@ export function buildSceneContinuity({
     const outfit = role === "child"
       ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
       : (character.outfit_lock || photoCanon?.outfit_lock || "");
+    const visualAlias = aliasFor(character.name);
     const rules = [
-      `[${role.toUpperCase()} ${character.name}]`,
-      traits && `IDENTITY: ${traits}`,
-      outfit && `FIXED OUTFIT: ${outfit}. Keep every color, garment and accessory exactly unchanged on every page.`,
+      `[${role.toUpperCase()} ${visualAlias}]`,
+      traits && `IDENTITY: ${safe(traits)}`,
+      outfit && `FIXED OUTFIT: ${safe(outfit)}. Keep every generic color, garment and accessory exactly unchanged on every page.`,
       role === "mascot" && "SPECIES LOCK: keep the exact same animal species, coat colors, markings, ears, muzzle, tail and accessories; never reinterpret it as another animal or a famous character.",
     ].filter(Boolean);
     characterFingerprints.push(rules.join(" "));
@@ -93,8 +97,9 @@ export function buildSceneContinuity({
           : photoCanon.storageKey
             ? { storageKey: photoCanon.storageKey }
             : { path: uploadedPhotoPath(photoCanon.photoId) }),
-        label: `${character.name}, ${role}: primary identity reference; preserve face or animal traits faithfully`,
+        label: `${visualAlias}, ${role}: private identity reference; preserve face or animal traits faithfully while ignoring all printed or branded clothing details`,
         kind: "identity",
+        normalizationMode: continuityImagePath || continuityImageStorageKey ? "face_focus" : "full_and_face",
       });
     }
   }
@@ -107,13 +112,12 @@ export function buildSceneContinuity({
     });
   }
 
-  const castNames = selected.map((character) => character.name).filter(Boolean);
+  const castNames = selected.map((character) => aliasFor(character.name)).filter(Boolean);
   const sceneRules = [];
   if (structuredSceneContract) {
     sceneRules.push(
-      "AUTHORITATIVE STRUCTURED SCENE CONTRACT:",
-      JSON.stringify(structuredSceneContract, null, 2),
-      "The main_action subject must visibly perform the stated verb toward the stated target.",
+      "The compact visual specification is authoritative for the current scene.",
+      "Its main-action subject must visibly perform the stated verb toward the stated target.",
       "A generic character id is a distinct one-scene person and must never be replaced by a recurring named character or photo reference.",
       "Respect every required quantity and scale literally, and show none of the forbidden substitutions."
     );
@@ -126,28 +130,24 @@ export function buildSceneContinuity({
       "Do not add another recurring named book character who is not in the mandatory cast."
     );
   }
-  if (visualState?.directive) sceneRules.push(String(visualState.directive).trim());
+  if (visualState?.directive) sceneRules.push(safe(visualState.directive));
   const underwaterScene = isFullyUnderwaterScene(`${pairedText} ${scenePrompt}`);
   const underwaterPeople = selected.filter((character) => character.role !== "mascot");
   if (underwaterScene && underwaterPeople.length) {
-    const names = underwaterPeople.map((character) => character.name).filter(Boolean);
+    const names = underwaterPeople.map((character) => aliasFor(character.name)).filter(Boolean);
     sceneRules.push(
       `MANDATORY INDIVIDUAL UNDERWATER SAFETY (${names.length} people: ${names.join(", ")}): every listed person must individually have a complete visible breathing or story-established magical air mechanism.`,
       "Apply the same safety logic to every person, not only the hero. If one person wears a transparent diving helmet, bubble, mask-and-snorkel or other established mechanism, every other submerged person must have their own complete appropriate mechanism too.",
       "No listed person may appear bare-headed and breathing normally underwater. Do not merge two people's equipment into one shared object."
     );
   }
-  const facingPageContract = buildFacingPageSceneContract({
-    pairedText,
-    imagePrompt: scenePrompt,
-    realityContract: blueprint?.world?.reality_contract,
-  });
-  if (facingPageContract) sceneRules.push(facingPageContract);
-
   return {
     characterFingerprints,
     referenceImages,
     sceneContract: sceneRules.filter(Boolean).join("\n"),
-    sceneFidelityContract: structuredSceneContract,
+    sceneFidelityContract: structuredSceneContract
+      ? compactImageSceneContract(structuredSceneContract, visualAliases)
+      : null,
+    visualAliases,
   };
 }
