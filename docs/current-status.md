@@ -10,7 +10,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/image-safety-recovery`
 - Latest merged checkpoint on `main`: `9fd9397` — `Add visual identity proof workflow (#40)`
-- Current focused checkpoint: image safety recovery on the branch tip; draft PR pending
+- Current focused checkpoint: `629f3ff` — `Recover safely from image policy rejection`
+- Draft PR: `#42` — `https://github.com/jose291013/storybook-mcp/pull/42`
 - Parallel draft PR: `#41` — initial scenario loading; it is separate and unmerged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
