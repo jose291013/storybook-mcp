@@ -10,13 +10,13 @@ This is the concise operational memory for a new Codex task. Product direction r
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/scenario-presence-editor`
 - Latest merged checkpoint on `main`: `520813a` — `Show provisional scenarios needing revision (#38)`
-- Current focused checkpoint: scenario presence editor on the branch tip; PR not opened yet
+- Current focused checkpoint: `8be49d3` — `Add deterministic scenario presence editor`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 38 is merged and Render serves persisted provisional Act 1/2/3 cards. The current presence-editor branch is not merged or deployed. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 38 is merged and Render serves persisted provisional Act 1/2/3 cards. Draft PR 39 contains the presence editor and is not merged or deployed. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
 
 ## Focused product brick
 
