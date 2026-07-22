@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
-import { normalizeStoryScenario, validateStoryScenario } from "../src/services/storyScenario.js";
+import { normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
   return {
@@ -91,6 +91,35 @@ test("scenario normalization uses the scene location for physical presences", ()
   assert.equal(validateStoryScenario(scenario).valid, true);
 });
 
+test("invalid scenario diagnostics identify editable scenes without exposing character names", () => {
+  const summary = summarizeStoryScenarioValidation({ valid: false, issues: [
+    "scene-9: Nolan appears in la vallée without traveling there",
+    "scene-4 crosses a passage before it was discovered",
+    "scene-12: casquette rouge has two simultaneous states",
+  ] });
+  assert.deepEqual(summary.sceneNumbers, [4, 9, 12]);
+  assert.deepEqual(summary.categoryScenes, { travel: [9], passage: [4], object: [12] });
+  assert.equal(summary.issueCount, 3);
+  assert.doesNotMatch(JSON.stringify(summary), /Nolan|casquette/);
+});
+
+test("scenario stabilization repairs invisible metadata without changing story events", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[1].prerequisiteSceneIds = [];
+  scenario.scenes[1].transition.characters = [];
+  scenario.scenes[1].transition.from = "ailleurs";
+  scenario.scenes[1].transition.to = "ailleurs";
+  scenario.scenes[1].objectStates = [];
+  scenario.scenes[2].prerequisiteSceneIds = [];
+  const stabilized = stabilizeStoryScenario(scenario);
+  assert.deepEqual(stabilized.scenes[1].transition.characters, ["Nolan", "Mathéo"]);
+  assert.equal(stabilized.scenes[1].transition.from, "la clairière");
+  assert.equal(stabilized.scenes[1].transition.to, "la vallée des dinosaures");
+  assert.deepEqual(stabilized.scenes[2].prerequisiteSceneIds, ["scene-2"]);
+  assert.equal(stabilized.scenes[1].objectStates[0].name, "casquette rouge");
+  assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
 test("scene contracts tell the illustrator that a held wearable is not also worn", () => {
   const prompt = sceneContractImagePrompt({
     contract: {
@@ -120,11 +149,16 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /approveStoryScenario/);
   assert.match(app, /storyScenarioBusy/);
   assert.match(app, /scenarioApiMessage/);
+  assert.match(app, /if \(payload\.scenario\) renderStoryScenario\(payload\.scenario\)/);
+  assert.match(app, /scenarioNeedsRevision/);
   assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
   assert.match(html, /id="storyScenarioPanel"/);
   assert.match(html, /id="scenarioStatus"/);
+  assert.match(html, /id="scenarioDiagnostics"/);
   assert.match(scenarioRoute, /activeScenarioUpdates/);
   assert.match(scenarioRoute, /code: "scenario_update_in_progress"/);
+  assert.match(scenarioRoute, /scenario: storedScenario/);
+  assert.match(scenarioRoute, /status: "scenario_review"/);
   assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
   assert.match(bridge, /Version: 0\.6\.2/);
   assert.match(bridge, /Scénario à valider/);
