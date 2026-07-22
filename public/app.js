@@ -58,6 +58,8 @@ const state = {
   storyScenario: null,
   storyScenarioBusy: false,
   storyScenarioUpdateFailed: false,
+  storyScenarioDirty: false,
+  storyScenarioAddedCharacters: [],
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
   customerSession: { authenticated: false, customer: null },
@@ -92,7 +94,7 @@ const elements = {
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -279,12 +281,62 @@ function scenarioClarificationAnswers() {
 }
 
 function scenarioSceneEdits() {
-  return [...elements.scenarioActs.querySelectorAll("[data-scenario-scene]")].map((card) => ({
-    scene_number: Number(card.dataset.scenarioScene),
-    title: card.querySelector("[data-scene-title]")?.value || "",
-    location: card.querySelector("[data-scene-location]")?.value || "",
-    action: card.querySelector("[data-scene-action]")?.value || "",
-  }));
+  return [...elements.scenarioActs.querySelectorAll("[data-scenario-scene]")].map((card) => {
+    const title = card.querySelector("[data-scene-title]");
+    const location = card.querySelector("[data-scene-location]");
+    const action = card.querySelector("[data-scene-action]");
+    return {
+      scene_number: Number(card.dataset.scenarioScene),
+      ...(title?.dataset.creatorEdited === "true" ? { title: title.value } : {}),
+      ...(location?.dataset.creatorEdited === "true" ? { location: location.value } : {}),
+      ...(action?.dataset.creatorEdited === "true" ? { action: action.value } : {}),
+      ...(card.dataset.presencesEdited === "true" ? { character_presences: [...card.querySelectorAll("[data-presence-character]")].map((select) => ({
+        name: select.dataset.presenceCharacter,
+        mode: select.value,
+      })) } : {}),
+    };
+  }).filter((edit) => Object.keys(edit).length > 1);
+}
+
+function scenarioPresenceModeLabel(mode) {
+  return tr({ physical: "scenarioPresencePhysical", thought: "scenarioPresenceThought", memory: "scenarioPresenceMemory", voice: "scenarioPresenceVoice", absent: "scenarioPresenceAbsent" }[mode] || "scenarioPresenceAbsent");
+}
+
+function scenarioPresenceControl(name, mode = "absent") {
+  const options = ["absent", "physical", "thought", "memory", "voice"];
+  return `<label class="scenario-presence-control"><span>${escapeHtml(name)}</span><select data-presence-character="${escapeHtml(name)}" aria-label="${escapeHtml(tr("scenarioPresenceFor", { name }))}">${options.map((option) => `<option value="${option}"${option === mode ? " selected" : ""}>${escapeHtml(scenarioPresenceModeLabel(option))}</option>`).join("")}</select></label>`;
+}
+
+function updateScenarioPresenceSummary(card) {
+  const selections = [...card.querySelectorAll("[data-presence-character]")].map((select) => ({ name: select.dataset.presenceCharacter, mode: select.value }));
+  const physical = selections.filter(({ mode }) => mode === "physical").map(({ name }) => name);
+  const evoked = selections.filter(({ mode }) => ["thought", "memory", "voice"].includes(mode)).map(({ name, mode }) => `${name} (${scenarioPresenceModeLabel(mode).toLowerCase()})`);
+  card.querySelector("[data-physical-summary]").textContent = physical.length ? physical.join(", ") : tr("scenarioNone");
+  card.querySelector("[data-evoked-summary]").textContent = evoked.length ? evoked.join(", ") : tr("scenarioNone");
+}
+
+function markStoryScenarioDirty() {
+  if (!state.storyScenario || state.storyScenarioBusy) return;
+  state.storyScenarioDirty = true;
+  elements.approveScenarioButton.disabled = true;
+  setScenarioStatus(tr("scenarioUnsavedChanges"));
+}
+
+function addScenarioCharacter() {
+  const name = elements.scenarioNewCharacterName.value.trim();
+  if (!name) return;
+  const exists = (state.storyScenario?.characters || []).some((character) => character.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0);
+  if (exists) {
+    setScenarioStatus(tr("scenarioCharacterExists", { name }), "error");
+    return;
+  }
+  const character = { name, role: "story_character", storyRole: "guest", initialLocation: "", defaultPresenceMode: "physical" };
+  state.storyScenario.characters ||= [];
+  state.storyScenario.characters.push(character);
+  state.storyScenarioAddedCharacters.push({ name });
+  elements.scenarioActs.querySelectorAll("[data-presence-editor]").forEach((editor) => editor.insertAdjacentHTML("beforeend", scenarioPresenceControl(name)));
+  elements.scenarioNewCharacterName.value = "";
+  markStoryScenarioDirty();
 }
 
 function scenarioHasClarifications() {
@@ -315,9 +367,10 @@ function scenarioApiMessage(payload, fallbackKey) {
 function setStoryScenarioBusy(busy, action = "update") {
   state.storyScenarioBusy = busy;
   elements.storyScenarioPanel.setAttribute("aria-busy", String(busy));
-  elements.storyScenarioPanel.querySelectorAll("input, textarea").forEach((control) => { control.disabled = busy; });
+  elements.storyScenarioPanel.querySelectorAll("input, textarea, select, [data-toggle-presences]").forEach((control) => { control.disabled = busy; });
+  elements.scenarioAddCharacterButton.disabled = busy;
   elements.reviseScenarioButton.disabled = busy;
-  elements.approveScenarioButton.disabled = busy || !state.storyScenario || scenarioHasClarifications() || scenarioNeedsRevision();
+  elements.approveScenarioButton.disabled = busy || !state.storyScenario || state.storyScenarioDirty || scenarioHasClarifications() || scenarioNeedsRevision();
   elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed ? tr("scenarioRetryUpdate") : tr("reviseScenario");
   elements.approveScenarioButton.textContent = tr("approveScenario");
   if (busy && action === "update") elements.reviseScenarioButton.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(tr("scenarioUpdatingAction"))}`;
@@ -328,6 +381,8 @@ function setStoryScenarioBusy(busy, action = "update") {
 function renderStoryScenario(scenario, { scroll = true } = {}) {
   state.storyScenario = scenario;
   state.storyScenarioUpdateFailed = false;
+  state.storyScenarioDirty = false;
+  state.storyScenarioAddedCharacters = [];
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
@@ -355,8 +410,9 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   }
   elements.scenarioActs.innerHTML = [...acts].sort(([left], [right]) => left - right).map(([act, scenes]) => `<section class="scenario-act"><h3>${escapeHtml(tr("scenarioAct", { number: act }))}</h3>${scenes.map((scene) => {
     const physical = (scene.characterPresences || []).filter((presence) => presence.mode === "physical").map((presence) => presence.name);
-    const nonphysical = (scene.characterPresences || []).filter((presence) => presence.mode !== "physical").map((presence) => `${presence.name} (${presence.mode})`);
-    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><small class="scenario-scene-meta">${escapeHtml(scene.storyRole)}</small><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label><div class="scenario-presences">${physical.length ? `${escapeHtml(tr("scenarioPhysical"))}: ${escapeHtml(physical.join(", "))}` : ""}${nonphysical.length ? ` · ${escapeHtml(tr("scenarioNonphysical"))}: ${escapeHtml(nonphysical.join(", "))}` : ""}</div></div></article>`;
+    const nonphysical = (scene.characterPresences || []).filter((presence) => presence.mode !== "physical").map((presence) => `${presence.name} (${scenarioPresenceModeLabel(presence.mode).toLowerCase()})`);
+    const presenceByName = new Map((scene.characterPresences || []).map((presence) => [presence.name, presence.mode]));
+    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><small class="scenario-scene-meta">${escapeHtml(scene.storyRole)}</small><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label><div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${(scenario.characters || []).map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
   }).join("")}</section>`).join("");
   const invalidScenes = new Set(validation.sceneNumbers || []);
   elements.scenarioActs.querySelectorAll("[data-scenario-scene]").forEach((card) => {
@@ -380,6 +436,7 @@ async function requestStoryScenario({ includeEdits = false } = {}) {
       body: JSON.stringify({
         clarifications: scenarioClarificationAnswers(),
         sceneEdits: includeEdits ? scenarioSceneEdits() : [],
+        addedCharacters: state.storyScenarioAddedCharacters,
         feedback: elements.scenarioFeedback.value.trim(),
       }),
     });
@@ -1141,6 +1198,30 @@ elements.redeemPromoButton.addEventListener("click", redeemPromotion);
 elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
 elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenario({ includeEdits: true }));
 elements.approveScenarioButton.addEventListener("click", approveStoryScenario);
+elements.scenarioAddCharacterButton.addEventListener("click", addScenarioCharacter);
+elements.scenarioNewCharacterName.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); addScenarioCharacter(); } });
+elements.scenarioQuestionList.addEventListener("input", markStoryScenarioDirty);
+elements.scenarioFeedback.addEventListener("input", markStoryScenarioDirty);
+elements.scenarioActs.addEventListener("input", (event) => {
+  if (!event.target.matches("[data-scene-title], [data-scene-location], [data-scene-action]")) return;
+  event.target.dataset.creatorEdited = "true";
+  markStoryScenarioDirty();
+});
+elements.scenarioActs.addEventListener("change", (event) => {
+  if (!event.target.matches("[data-presence-character]")) return;
+  const card = event.target.closest("[data-scenario-scene]");
+  card.dataset.presencesEdited = "true";
+  updateScenarioPresenceSummary(card);
+  markStoryScenarioDirty();
+});
+elements.scenarioActs.addEventListener("click", (event) => {
+  const toggle = event.target.closest("[data-toggle-presences]");
+  if (!toggle) return;
+  const editor = toggle.closest("[data-scenario-scene]").querySelector("[data-presence-editor]");
+  editor.hidden = !editor.hidden;
+  toggle.setAttribute("aria-expanded", String(!editor.hidden));
+  toggle.textContent = tr(editor.hidden ? "scenarioEditPresences" : "scenarioHidePresences");
+});
 elements.retryPreviewButton.addEventListener("click", retryPreviewFree);
 elements.notifyPreviewEmail.addEventListener("change", () => { savePreviewNotificationPreference().catch(() => null); });
 elements.actionBuyEbook.addEventListener("click", () => openConfiguredCheckout("ebook", elements.actionBuyEbook));

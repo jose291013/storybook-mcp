@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
-import { normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
+import { applyCreatorStoryScenarioEdits, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
   return {
@@ -120,6 +120,49 @@ test("scenario stabilization repairs invisible metadata without changing story e
   assert.equal(validateStoryScenario(stabilized).valid, true);
 });
 
+test("creator presence choices override the generated scenario exactly", () => {
+  const scenario = coherentPortalScenario();
+  const edited = applyCreatorStoryScenarioEdits(scenario, {
+    addedCharacters: [{ name: "Jérôme" }],
+    sceneEdits: [{
+      scene_number: 3,
+      character_presences: [
+        { name: "Nolan", mode: "physical" },
+        { name: "Mathéo", mode: "physical" },
+        { name: "Alexandra", mode: "thought" },
+        { name: "Jérôme", mode: "voice" },
+      ],
+    }],
+  });
+  assert.ok(edited.characters.some((character) => character.name === "Jérôme"));
+  assert.deepEqual(edited.scenes[2].characterPresences.map(({ name, mode }) => ({ name, mode })), [
+    { name: "Nolan", mode: "physical" },
+    { name: "Mathéo", mode: "physical" },
+    { name: "Alexandra", mode: "thought" },
+    { name: "Jérôme", mode: "voice" },
+  ]);
+});
+
+test("a newly added physical character receives a causal starting location and travels", () => {
+  const scenario = coherentPortalScenario();
+  const edited = applyCreatorStoryScenarioEdits(scenario, {
+    addedCharacters: [{ name: "Lina" }],
+    sceneEdits: [{
+      scene_number: 2,
+      character_presences: [
+        { name: "Nolan", mode: "physical" },
+        { name: "Mathéo", mode: "physical" },
+        { name: "Alexandra", mode: "absent" },
+        { name: "Lina", mode: "physical" },
+      ],
+    }],
+  });
+  const stabilized = stabilizeStoryScenario(edited);
+  assert.equal(stabilized.characters.find((character) => character.name === "Lina").initialLocation, "la clairière");
+  assert.deepEqual(stabilized.scenes[1].transition.characters, ["Nolan", "Mathéo", "Lina"]);
+  assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
 test("scene contracts tell the illustrator that a held wearable is not also worn", () => {
   const prompt = sceneContractImagePrompt({
     contract: {
@@ -151,10 +194,17 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /scenarioApiMessage/);
   assert.match(app, /if \(payload\.scenario\) renderStoryScenario\(payload\.scenario\)/);
   assert.match(app, /scenarioNeedsRevision/);
+  assert.match(app, /data-presence-character/);
+  assert.match(app, /storyScenarioDirty/);
+  assert.match(app, /addedCharacters: state\.storyScenarioAddedCharacters/);
+  assert.match(scenarioRoute, /applyCreatorStoryScenarioEdits/);
+  assert.match(scenarioRoute, /character_presences/);
   assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
   assert.match(html, /id="storyScenarioPanel"/);
   assert.match(html, /id="scenarioStatus"/);
   assert.match(html, /id="scenarioDiagnostics"/);
+  assert.match(html, /id="scenarioNewCharacterName"/);
+  assert.match(html, /id="scenarioAddCharacterButton"/);
   assert.match(scenarioRoute, /activeScenarioUpdates/);
   assert.match(scenarioRoute, /code: "scenario_update_in_progress"/);
   assert.match(scenarioRoute, /scenario: storedScenario/);
