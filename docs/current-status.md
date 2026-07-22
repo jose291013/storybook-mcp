@@ -10,8 +10,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/image-visual-contract`
 - Latest merged checkpoint on `main`: `ca81a17` — `Recover safely from image policy rejection (#42)`
-- Current focused checkpoint: uncommitted compact visual-contract recovery brick
-- Draft PR: to be opened after the full test suite passes
+- Current focused checkpoint: `ac25634` — `Use compact visual contracts for images`
+- Draft PR: `#43` — `https://github.com/jose291013/storybook-mcp/pull/43`
 - Parallel draft PR: `#41` — initial scenario loading; it is separate and unmerged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
@@ -43,7 +43,7 @@ This branch makes six focused corrections:
 
 ## Next verification target
 
-1. Finish the full suite, review the diff, then publish a draft PR without merging it.
+1. Keep draft PR 43 unmerged until the user explicitly authorizes it and confirms that no generation is active.
 2. Keep PR 41 separate and unmerged while this existing book is recovered.
 3. After a separate user authorization, merge and wait for Render to finish deploying.
 4. Reopen project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442`; policy v4 must offer one free retry and resume at page 12 without regenerating the approved cover or page 11.
