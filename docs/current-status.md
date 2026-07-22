@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/delete-unpurchased-creations`
-- Latest merged checkpoint on `main`: `7a87af6` — `Separate initial scenario preparation (#41)`
-- Current focused checkpoint: uncommitted permanent-deletion workflow
-- Pull request: to be created, tested and merged under explicit user authorization
+- Current branch after handoff: `main`
+- Latest merged checkpoint: PR #45 — `Delete non-purchased creations safely`
+- Current focused checkpoint: deploy and production-check the permanent-deletion workflow
+- Pull request: `https://github.com/jose291013/storybook-mcp/pull/45`
 - WordPress Bridge source/package: `0.6.3`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -41,7 +41,7 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Publish and merge the dedicated PR, then wait for Render to finish deploying.
+1. Confirm Render has deployed PR #45 and that `/health` responds successfully.
 2. Install `wordpress/calitiki-bridge-v0.6.3.zip` in WordPress.
 3. Delete one disposable interrupted/unpurchased creation and confirm it disappears after the explicit warning.
 4. Confirm a purchased book has no deletion action and that a creation with an active generation receives a safe refusal.
