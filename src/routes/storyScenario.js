@@ -8,6 +8,8 @@ import { projectStore } from "../services/projectStore.js";
 import {
   normalizeStoryScenario,
   scenarioCharacterRegistry,
+  stabilizeStoryScenario,
+  summarizeStoryScenarioValidation,
   storyScenarioSnapshot,
   validateStoryScenario,
 } from "../services/storyScenario.js";
@@ -54,11 +56,11 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
     previous_scenario: previousScenario || null,
   };
   let candidate = await storyScenarioAgent(input);
-  let scenario = normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications });
+  let scenario = stabilizeStoryScenario(normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }));
   let validation = validateStoryScenario(scenario);
   if (!validation.valid) {
     candidate = await storyScenarioAgent({ ...input, previous_scenario: scenario, validation_issues: validation.issues });
-    scenario = normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications });
+    scenario = stabilizeStoryScenario(normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }));
     validation = validateStoryScenario(scenario);
   }
   return { scenario, validation };
@@ -91,7 +93,31 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
       });
       if (!validation.valid) {
         console.warn("[story-scenario] validation failed", { projectId: project.id, issueCount: validation.issues.length });
-        return res.status(422).json({ error: "The scenario update needs another attempt", code: "scenario_invalid", retryable: true });
+        const createdAt = new Date().toISOString();
+        const validationSummary = summarizeStoryScenarioValidation(validation);
+        const storedScenario = {
+          ...scenario,
+          fingerprint,
+          status: "needs_revision",
+          revision: Number(previous?.revision || 0) + 1,
+          validation: validationSummary,
+          createdAt,
+          approvedAt: null,
+        };
+        const continuitySnapshot = {
+          ...project.continuitySnapshot,
+          storyScenarioWorkflow: { required: true, version: 1, startedAt: previous?.createdAt || createdAt },
+          storyScenario: storedScenario,
+        };
+        await projectStore.updateForCustomer(project.id, identity, { status: "scenario_review", continuitySnapshot, generationJobId: null });
+        return res.status(422).json({
+          error: "The provisional scenario needs another update",
+          code: "scenario_invalid",
+          retryable: true,
+          scenario: storedScenario,
+          status: "scenario_review",
+          diagnostics: validationSummary,
+        });
       }
       const createdAt = new Date().toISOString();
       const storedScenario = {

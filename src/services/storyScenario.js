@@ -124,6 +124,61 @@ export function normalizeStoryScenario(candidate = {}, { pagePlan = [], canonica
   };
 }
 
+export function stabilizeStoryScenario(input = {}) {
+  const scenario = structuredClone(input);
+  const scenes = list(scenario.scenes, 30);
+  const characterLocations = new Map(list(scenario.characters, 20).map((character) => [character.name, character.initialLocation]));
+  const trackedObjects = list(scenario.objects, 20).filter((object) => object.trackEveryScene);
+  const objectStates = new Map(trackedObjects.map((object) => [key(object.name), {
+    name: object.name,
+    owner: object.owner,
+    state: object.initialState,
+    quantity: 1,
+    instruction: "Keep exactly one visible state for this object.",
+  }]));
+  let previous = null;
+
+  for (const scene of scenes) {
+    if (previous) {
+      scene.locationBefore = previous.locationAfter;
+      scene.prerequisiteSceneIds = [...new Set([
+        previous.id,
+        ...list(scene.prerequisiteSceneIds, 10).filter((id) => {
+          const number = Number(String(id).replace("scene-", ""));
+          return Number.isInteger(number) && number < scene.sceneNumber;
+        }),
+      ])];
+    } else {
+      scene.prerequisiteSceneIds = [];
+    }
+
+    scene.transition ||= { kind: "none", mechanism: "", characters: [] };
+    scene.transition.from = scene.locationBefore;
+    scene.transition.to = scene.locationAfter;
+    const nonphysical = new Set(list(scene.characterPresences, 20).filter((presence) => presence.mode !== "physical").map((presence) => presence.name));
+    const travelers = new Set(list(scene.transition.characters, 20).filter((name) => !nonphysical.has(name)));
+    const changesLocation = key(scene.locationBefore) !== key(scene.locationAfter);
+    if (changesLocation && scene.transition.kind !== "none") {
+      for (const presence of list(scene.characterPresences, 20).filter((item) => item.mode === "physical")) {
+        const knownLocation = characterLocations.get(presence.name);
+        if (knownLocation && key(knownLocation) === key(scene.locationBefore)) travelers.add(presence.name);
+      }
+    }
+    scene.transition.characters = [...travelers];
+    for (const traveler of travelers) characterLocations.set(traveler, scene.locationAfter);
+
+    scene.objectStates ||= [];
+    const explicitObjectKeys = new Set(list(scene.objectStates, 30).map((item) => key(item.name)));
+    for (const tracked of trackedObjects) {
+      const objectKey = key(tracked.name);
+      if (!explicitObjectKeys.has(objectKey) && objectStates.has(objectKey)) scene.objectStates.push({ ...objectStates.get(objectKey) });
+    }
+    for (const state of list(scene.objectStates, 30)) objectStates.set(key(state.name), { ...state });
+    previous = scene;
+  }
+  return scenario;
+}
+
 export function validateStoryScenario(scenario = {}) {
   const issues = [];
   const scenes = list(scenario.scenes, 30);
@@ -193,6 +248,35 @@ export function validateStoryScenario(scenario = {}) {
     previous = scene;
   }
   return { valid: issues.length === 0, issues };
+}
+
+export function summarizeStoryScenarioValidation(validation = {}) {
+  const categories = new Set();
+  const sceneNumbers = new Set();
+  const categoryScenes = new Map();
+  for (const issue of list(validation.issues, 100).map(text)) {
+    const sceneMatch = issue.match(/scene[- ](\d+)/i);
+    const sceneNumber = sceneMatch ? Number(sceneMatch[1]) : 0;
+    if (sceneNumber) sceneNumbers.add(sceneNumber);
+    let category = "incomplete";
+    if (/passage|crosses/i.test(issue)) category = "passage";
+    else if (/object|states|quantity|worn|held/i.test(issue)) category = "object";
+    else if (/location|transition|depart|travel|appears|physical/i.test(issue)) category = "travel";
+    else if (/order|depend|prerequisite|storyrole/i.test(issue)) category = "order";
+    categories.add(category);
+    if (sceneNumber) {
+      const numbers = categoryScenes.get(category) || new Set();
+      numbers.add(sceneNumber);
+      categoryScenes.set(category, numbers);
+    }
+  }
+  return {
+    valid: validation.valid === true,
+    issueCount: Number(validation.issues?.length || 0),
+    categories: [...categories],
+    sceneNumbers: [...sceneNumbers].sort((left, right) => left - right),
+    categoryScenes: Object.fromEntries([...categoryScenes].map(([category, numbers]) => [category, [...numbers].sort((left, right) => left - right)])),
+  };
 }
 
 export function storyScenarioSnapshot(project) {
