@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-initial-loading`
-- Latest merged checkpoint on `main`: `84ba8d7` — `Capture preview rebates after successful technical retries (#44)`
-- Current focused checkpoint: PR 41 updated with current `main`; merge commit pending
-- Draft PR: `#41` — `https://github.com/jose291013/storybook-mcp/pull/41`
+- Current branch: `main` after post-merge synchronization
+- Latest merged checkpoint on `main`: PR `#41` — `Separate initial scenario preparation`
+- Current focused checkpoint: production verification of initial scenario preparation
+- Pull request: `#41` — `https://github.com/jose291013/storybook-mcp/pull/41`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 44 is merged and production responds successfully. Its accounting correction settles a released preview reservation exactly once after a successful technical retry and creates the equal project rebate. The already purchased production order remains unchanged. Never merge PR 41 or trigger another Render deployment until the user explicitly confirms that no preview generation is running and separately authorizes the merge.
+PR 41 was explicitly authorized for merge after confirmation that no preview generation was active. It retains the image-recovery and retry-rebate corrections from PRs 42–44. The already purchased production order remains unchanged.
 
 ## Current product brick: initial scenario preparation
 
@@ -40,8 +40,8 @@ No persistence schema, commerce rule, preview price, image policy or WordPress p
 
 ## Next verification target
 
-1. Commit and push the conflict-free branch update to draft PR 41 without merging it.
-2. After separate merge authorization and a confirmed idle generator, verify with a fresh unpaid project that the initial three-step preparation appears before any scenario controls.
+1. Wait for Render to finish deploying PR 41.
+2. Verify with a fresh unpaid project that the initial three-step preparation appears before any scenario controls.
 3. Confirm the editable Act 1/2/3 review appears after preparation, while a true revision still shows the “checking your request” state.
 4. Confirm the visual cover proof, safe image recovery and retry-rebate accounting introduced by later PRs remain unchanged.
 
