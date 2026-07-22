@@ -162,6 +162,25 @@
         </div>
       </section>
 
+      <section class="story-scenario-panel" id="storyScenarioPanel" hidden>
+        <p class="section-kicker" data-i18n="scenarioKicker">VOTRE SCÉNARIO</p>
+        <h2 id="storyScenarioTitle" data-i18n="scenarioTitle">Vérifiez le déroulement avant les illustrations</h2>
+        <p class="section-lead" id="storyScenarioSummary"></p>
+        <section class="scenario-clarifications" id="scenarioClarifications" hidden>
+          <h3 data-i18n="scenarioQuestionsTitle">Quelques précisions sont nécessaires</h3>
+          <p data-i18n="scenarioQuestionsLead">Vos réponses verrouillent les déplacements, les présences et l'ordre des événements.</p>
+          <div id="scenarioQuestionList"></div>
+        </section>
+        <div class="scenario-acts" id="scenarioActs"></div>
+        <label class="scenario-feedback"><span data-i18n="scenarioFeedbackLabel">Une modification générale à demander (facultatif)</span><textarea id="scenarioFeedback" data-i18n-placeholder="scenarioFeedbackPlaceholder" placeholder="Par exemple : Alexandra guide Nolan seulement par la pensée dans la vallée."></textarea></label>
+        <p class="scenario-help" data-i18n="scenarioHelp">Vous pouvez corriger le lieu ou l'action de chaque scène. Aucun texte ni aucune illustration ne sera généré avant votre validation.</p>
+        <div class="scenario-actions">
+          <button type="button" class="toolbar-button" id="reviseScenarioButton" data-i18n="reviseScenario">Mettre à jour le scénario</button>
+          <button type="button" class="primary-button" id="approveScenarioButton" data-i18n="approveScenario">Valider et générer mon livre</button>
+        </div>
+        <p class="credit-feedback" id="scenarioFeedbackMessage" aria-live="polite"></p>
+      </section>
+
       <section class="generation-panel" id="generationPanel" hidden>
         <div class="generation-orbit"><span>✦</span></div>
         <p class="section-kicker" data-i18n="generationKicker">CREATION EN COURS</p>

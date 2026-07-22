@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.6.1
+Stable tag: 0.6.2
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -17,6 +17,10 @@ Connecte de manière signée les comptes WooCommerce au générateur Calitiki h�
 6. Copier le secret et l’URL du pont dans les variables Render indiquées.
 
 Le plugin ne reçoit ni ne stocke les photos des enfants. Il émet uniquement une identité client signée et valable cinq minutes.
+
+== Validation du scénario ==
+
+Les projets dont le scénario attend une précision ou une validation apparaissent dans « Mes créations Calitiki ». Le bouton « Vérifier le scénario » reconnecte le propriétaire au générateur avant toute rédaction ou illustration.
 
 == Produits de crédits ==
 

@@ -36,6 +36,13 @@ test("customer library exposes safe preview metadata and excludes unpaid drafts"
         generationCheckpoint: { version: 1, retryAvailable: true, retryExhausted: false },
       },
     });
+    await store.create({
+      customerId: customer.id,
+      status: "scenario_review",
+      title: "Scénario de Noa",
+      questionnaire: { page_count: 32 },
+      continuitySnapshot: { storyScenario: { title: "Noa et le portail", status: "proposed" } },
+    });
     const otherCustomer = await store.ensureCustomer({ wooCustomerId: "99", email: "other@example.com" });
     await store.create({
       customerId: otherCustomer.id,
@@ -46,8 +53,9 @@ test("customer library exposes safe preview metadata and excludes unpaid drafts"
     });
 
     const creations = await listCustomerCreations(identity, store);
-    assert.equal(creations.length, 2);
-    assert.deepEqual(creations.map((creation) => creation.status).sort(), ["preview_failed", "preview_ready"]);
+    assert.equal(creations.length, 3);
+    assert.deepEqual(creations.map((creation) => creation.status).sort(), ["preview_failed", "preview_ready", "scenario_review"]);
+    assert.equal(creations.find((creation) => creation.status === "scenario_review").title, "Noa et le portail");
     assert.equal(creations.find((creation) => creation.status === "preview_ready").title, "Noa et la forêt enchantée");
     assert.equal(creations.find((creation) => creation.status === "preview_ready").pageCount, 36);
     assert.equal(creations.find((creation) => creation.status === "preview_failed").technicalRetryAvailable, true);

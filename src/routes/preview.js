@@ -38,6 +38,7 @@ import {
   technicalPreviewRetryAvailable,
 } from "../services/previewGenerationCheckpoint.js";
 import { notifyPreviewReady } from "../services/previewNotification.js";
+import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 
 const router = express.Router();
 
@@ -189,6 +190,13 @@ router.post("/preview", async (req, res) => {
   const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
   const isTechnicalReferenceRecovery = referenceRecovery?.available === true;
   const fingerprint = previewRequestFingerprint(normalized);
+  const approvedScenario = approvedStoryScenario(project, fingerprint);
+  if (storyScenarioRequired(project) && !approvedScenario) {
+    return res.status(409).json({
+      error: "Approve the story scenario before generating the book",
+      code: "story_scenario_required",
+    });
+  }
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
   const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
@@ -298,7 +306,7 @@ router.post("/preview", async (req, res) => {
       const hero_profile = checkpoint.heroProfile || await heroClassifierAgent(intake);
       if (!checkpoint.heroProfile) await persistCheckpoint({ heroProfile: hero_profile, phase: "hero" });
       updateJob(job.id, { step: "storybrand" });
-      const storybrand = checkpoint.storybrand || await storybrandAgent({ intake, hero_profile });
+      const storybrand = checkpoint.storybrand || await storybrandAgent({ intake, hero_profile, approvedScenario });
       if (!checkpoint.storybrand) await persistCheckpoint({ storybrand, phase: "storybrand" });
       updateJob(job.id, { step: "worldBuilder" });
       const world = checkpoint.world || await worldBuilderAgent(intake);
@@ -319,7 +327,9 @@ router.post("/preview", async (req, res) => {
         portraitCanonShort: childCanon?.canon_short || "",
         portraitCanonJson: childCanon?.canon_json || null,
         characterCanons,
+        approvedScenario,
       });
+      if (approvedScenario) final_blueprint.approved_scenario = approvedScenario;
 
       updateJob(job.id, { step: "qa", final_blueprint });
       let qa = checkpoint.finalBlueprint ? { qa: { status: "approved", issues: [] } } : await qaAgent(final_blueprint);
@@ -334,6 +344,7 @@ router.post("/preview", async (req, res) => {
           qa,
           pagePlan: createPagePlan(answers.page_count),
         });
+        if (approvedScenario) repaired.approved_scenario = approvedScenario;
         final_blueprint = lockBlueprintContinuity(repaired, {
           heroProfile: hero_profile?.hero_profile || hero_profile || {},
           characterCanons,
@@ -357,7 +368,7 @@ router.post("/preview", async (req, res) => {
       }
       if (!checkpoint.finalBlueprint) await persistCheckpoint({ finalBlueprint: final_blueprint, phase: "blueprint" }, { finalBlueprint: final_blueprint });
 
-      const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand });
+      const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand, approvedScenario });
       const draftTextByPage = new Map(Object.entries(checkpoint.draftTexts || {}).map(([page, text]) => [Number(page), text]));
       let previousText = "";
       for (const textPage of final_blueprint.pages.filter((page) => (
@@ -398,6 +409,7 @@ router.post("/preview", async (req, res) => {
           blueprint: final_blueprint,
           pageTexts: Object.fromEntries(draftTextByPage),
           characterCanons,
+          approvedScenario,
         });
         console.info("[preview] story scene plan completed", JSON.stringify({
           jobId: job.id,

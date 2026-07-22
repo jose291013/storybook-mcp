@@ -5,6 +5,8 @@ import {
 } from "./previewGenerationCheckpoint.js";
 
 const LIBRARY_STATUSES = new Set([
+  "scenario_needs_clarification",
+  "scenario_review",
   "preview_generating",
   "preview_failed",
   "preview_ready",
@@ -26,7 +28,7 @@ export function customerCreationSummary(project) {
   if (!project || !LIBRARY_STATUSES.has(project.status)) return null;
   return {
     id: String(project.id),
-    title: String(project.finalBlueprint?.cover?.title || project.title || project.questionnaire?.hero_name || "Calitiki"),
+    title: String(project.finalBlueprint?.cover?.title || project.continuitySnapshot?.storyScenario?.title || project.title || project.questionnaire?.hero_name || "Calitiki"),
     status: String(project.status),
     locale: String(project.locale || "FR"),
     pageCount: pageCount(project),

@@ -620,7 +620,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.6\.1/);
+  assert.match(plugin, /Version: 0\.6\.2/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -649,6 +649,8 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /creator_bridge_url/);
   assert.match(plugin, /Aperçu personnalisé/);
   assert.match(plugin, /Voir mon livre/);
+  assert.match(plugin, /Vérifier le scénario/);
+  assert.match(plugin, /Version: 0\.6\.2/);
   assert.match(plugin, /Partager avec la famille/);
   assert.match(plugin, /'destination' => 'family_share'/);
   assert.match(plugin, /family_share_bridge_url/);
@@ -669,7 +671,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const commerceCredits = await fs.readFile("src/routes/commerceCredits.js", "utf8");
   assert.match(commerceCredits, /creations\|\$\{wooCustomerId\}\|\$\{timestamp\}/);
   assert.match(commerceCredits, /listCustomerCreations/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.1.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.2.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
