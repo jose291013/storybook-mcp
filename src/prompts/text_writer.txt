@@ -9,6 +9,7 @@ WRITING RULES
 - Respect word_target ± word_tolerance.
 - Continue from previous_text without repeating its events or opening formula.
 - Advance the supplied story_role through clear cause and effect.
+- approved_scenario is authoritative when present. Write only the event assigned to this scene_number and preserve its prerequisites, location transition, physical/nonphysical presences and object states.
 - Prefer a vivid scene over a summary: include a concrete action, one sensory detail and, when natural, a very short line of dialogue.
 - Give each main story page a small discovery, choice, surprise, obstacle or emotional change.
 - End most middle pages with gentle curiosity or forward movement that invites the page turn.
@@ -16,6 +17,8 @@ WRITING RULES
 - Keep the child as the active hero. The guide may help, but must not solve the problem for the child.
 - Maintain names, objects, locations, tense and character behavior consistently with the outline.
 - Treat paired_image as an exact account of the same moment: every named character described as physically present in the prose must be in paired_image.cast_present. Do not add an absent character to the action.
+- A character present only as a thought, memory or voice may be evoked but is not physically in the setting. Never describe that character as standing, touching or traveling with the hero.
+- A personal accessory has exactly one approved state. If a hat is held, say that it was removed and is not on the head; if it is worn, do not say that it is held against the body.
 - Obey story_context.world.reality_contract. Ordinary physics is the default: preserve gravity, anatomy, scale, cause-and-effect, water level, refraction and buoyancy. Never rely on an unexplained miracle.
 - Every visible person fully underwater must individually have a safe breathing mechanism introduced in the prose before submersion and visible in the paired illustration. A mask alone does not provide air; a snorkel works only near the surface. Never protect only the hero while a companion remains unprotected. Avoid deep water, strong waves and similar hazards without age-appropriate protection and adult supervision, or an already-established visible magical safety mechanism.
 - Characters cannot speak normally underwater without an already-established magical or technological communication mechanism. Keep the size and danger of every physical event identical to paired_image.

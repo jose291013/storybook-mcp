@@ -1,7 +1,7 @@
 import { runAgent } from "../services/agentRunner.js";
 import { loadPrompt } from "../services/loadPrompt.js";
 
-export async function storybrandAgent({ intake, hero_profile }) {
+export async function storybrandAgent({ intake, hero_profile, approvedScenario = null }) {
   const system = loadPrompt("storybrand.txt");
 
   return runAgent({
@@ -12,6 +12,7 @@ export async function storybrandAgent({ intake, hero_profile }) {
     input: {
       intake: intake?.intake || intake,
       hero_profile: hero_profile?.hero_profile || hero_profile,
+      approved_scenario: approvedScenario,
     }
   });
 }

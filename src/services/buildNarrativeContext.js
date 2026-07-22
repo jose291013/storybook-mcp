@@ -1,4 +1,4 @@
-export function buildNarrativeContext({ blueprint, intake, storybrand }) {
+export function buildNarrativeContext({ blueprint, intake, storybrand, approvedScenario = null }) {
   const normalizedIntake = intake?.intake || intake || {};
   const normalizedStorybrand = storybrand?.storybrand || storybrand || {};
   return {
@@ -17,6 +17,7 @@ export function buildNarrativeContext({ blueprint, intake, storybrand }) {
     world: blueprint?.world || {},
     cast: blueprint?.cast || [],
     plot_continuity: blueprint?.plot_continuity || {},
+    approved_scenario: approvedScenario,
     outline: (blueprint?.pages || [])
       .filter((page) => ["text", "opening_text", "closing_text"].includes(page.page_type))
       .map((page) => {

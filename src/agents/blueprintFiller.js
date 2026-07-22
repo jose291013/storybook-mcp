@@ -361,6 +361,7 @@ export async function blueprintFillerAgent({
   portraitCanonShort = "",
   portraitCanonJson = null,
   characterCanons = [],
+  approvedScenario = null,
 }) {
   const system = loadPrompt("blueprint_filler.txt");
   const intakeData = intake?.intake || intake || {};
@@ -381,6 +382,7 @@ export async function blueprintFillerAgent({
       heroPhotoId,
       page_plan: createPagePlan(pageCount),
       character_canons: characterCanons,
+      approved_scenario: approvedScenario,
       portrait: {
         canon_short: portraitCanonShort,
         canon_json: portraitCanonJson,

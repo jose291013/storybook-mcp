@@ -40,11 +40,15 @@ function list(value, maximum = 20) {
 
 function normalizeContract(raw, expected, canonicalCharacters) {
   const rawNamed = list(raw?.named_characters, 10);
+  const approvedPhysicalNames = new Set(list(expected?.approved_scene?.characterPresences, 15)
+    .filter((presence) => presence?.mode === "physical")
+    .map((presence) => key(presence?.name)));
   const namedSource = rawNamed.length
     ? rawNamed
     : list(expected.planned_cast, 10).map((name) => ({ name, visual_role: "visible", action: "as stated in the paired prose" }));
   const named = namedSource.map((item) => {
     const name = canonicalName(item?.name, canonicalCharacters);
+    if (expected?.approved_scene && !approvedPhysicalNames.has(key(name))) return null;
     return name ? {
       name,
       visual_role: String(item?.visual_role || "background"),
@@ -81,6 +85,13 @@ function normalizeContract(raw, expected, canonicalCharacters) {
       quantity: String(item?.quantity || "").trim(),
       scale: String(item?.scale || "").trim(),
     })).filter((item) => item.description),
+    object_states: list(expected?.approved_scene?.objectStates?.length ? expected.approved_scene.objectStates : raw?.object_states, 20).map((item) => ({
+      name: String(item?.name || "").trim(),
+      owner: canonicalName(item?.owner, canonicalCharacters) || String(item?.owner || "").trim(),
+      state: String(item?.state || "visible").trim(),
+      quantity: Math.max(1, Number(item?.quantity || 1)),
+      instruction: String(item?.instruction || "").trim(),
+    })).filter((item) => item.name),
     spatial_relationships: list(raw?.spatial_relationships).map(String),
     forbidden_elements: list(raw?.forbidden_elements).map(String),
     continuity_from_previous: String(raw?.continuity_from_previous || "").trim(),
@@ -88,7 +99,7 @@ function normalizeContract(raw, expected, canonicalCharacters) {
   };
 }
 
-export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCanons = [] }) {
+export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCanons = [], approvedScenario = null }) {
   const canonicalCharacters = [
     ...characterCanons.map((item) => ({ name: item.name, role: item.role, relationship: item.relationship })),
     { name: blueprint?.hero?.name, role: "child" },
@@ -106,6 +117,7 @@ export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCa
       prose: textByPage.get(textPage.page_number) || "",
       planned_image: imagePage.image_prompt || "",
       planned_cast: imagePage.cast_present || [],
+      approved_scene: approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number)) || null,
     } : null;
   }).filter(Boolean);
   const response = await runAgent({
@@ -118,6 +130,7 @@ export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCa
       canonical_characters: canonicalCharacters,
       page_texts: [...textByPage].map(([page_number, text]) => ({ page_number, text })),
       narrative_spreads: spreads,
+      approved_scenario: approvedScenario,
     },
   });
   const candidate = response?.json ?? response?.data ?? response?.output ?? response;
@@ -151,6 +164,9 @@ export function sceneContractImagePrompt({ contract, stylePrompt = "", fallbackP
   const elements = list(contract.required_elements, 15)
     .map((item) => `${item.description}${item.quantity ? `; quantity: ${item.quantity}` : ""}${item.scale ? `; scale: ${item.scale}` : ""}`)
     .join(" | ");
+  const objectStates = list(contract.object_states, 20)
+    .map((item) => `${item.name}: state ${item.state}; owner ${item.owner || "none"}; quantity ${item.quantity || 1}; ${item.instruction || "keep exactly this state"}`)
+    .join(" | ");
   return [
     "Create one detailed square children's-book illustration from the authoritative scene contract below.",
     `STORY BEAT: ${contract.story_beat || ""}`,
@@ -159,6 +175,7 @@ export function sceneContractImagePrompt({ contract, stylePrompt = "", fallbackP
     named ? `RECURRING NAMED CHARACTERS: ${named}` : "",
     generic ? `GENERIC CHARACTERS: ${generic}` : "",
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",
+    objectStates ? `AUTHORITATIVE OBJECT STATES: ${objectStates}. Each object has exactly one state. A held wearable is not also worn; never duplicate it.` : "",
     list(contract.spatial_relationships).length ? `SPATIAL RELATIONSHIPS: ${contract.spatial_relationships.join(" | ")}` : "",
     list(contract.forbidden_elements).length ? `FORBIDDEN SUBSTITUTIONS OR ELEMENTS: ${contract.forbidden_elements.join(" | ")}` : "",
     stylePrompt ? `LOCKED RENDERING STYLE: ${stylePrompt}` : "",
