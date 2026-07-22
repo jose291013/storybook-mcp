@@ -34,7 +34,7 @@ import { JsonProjectStore, PostgresProjectStore } from "../src/services/projectS
 import { inspectPageStructure } from "../src/agents/qa.js";
 import { buildFacingPageSceneContract, normalizeWorldReality } from "../src/services/worldReality.js";
 import { previewPriceCents, PREVIEW_PRICE_CENTS_BY_PAGE_COUNT } from "../src/config/previewPricing.js";
-import { configuredPromoCodes, InsufficientCreditError, JsonCreditStore } from "../src/services/creditStore.js";
+import { configuredPromoCodes, InsufficientCreditError, JsonCreditStore, PostgresCreditStore } from "../src/services/creditStore.js";
 import { signBookOrderWebhook, signCommercePayload, verifyBookOrderWebhook } from "../src/services/commerceToken.js";
 import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
 import { LocalDeliveryStorage } from "../src/services/deliveryStorage.js";
@@ -372,6 +372,77 @@ test("promotion credit is redeemable once per customer and successful preview sp
   }
 });
 
+test("a successful technical retry captures its released preview once and creates one rebate", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-retry-rebate-"));
+  const previousCodes = process.env.PREVIEW_PROMO_CODES;
+  process.env.PREVIEW_PROMO_CODES = "RETRY500:500";
+  try {
+    const customerStore = { async ensureCustomer(identity) { return { id: `customer-${identity.wooCustomerId}` }; } };
+    const store = new JsonCreditStore(path.join(directory, "credits.json"), customerStore);
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    await store.redeem(identity, { code: "RETRY500", projectId: "project-retry" });
+    const preview = await store.reservePreview(identity, {
+      projectId: "project-retry",
+      amountCents: 400,
+      idempotencyKey: "preview-retry",
+    });
+    await store.releasePreview(preview.id);
+    assert.deepEqual(await store.summary(identity, "project-retry"), { balanceCents: 500, rebateCents: 0 });
+
+    await store.capturePreview(preview.id);
+    await store.capturePreview(preview.id);
+    assert.deepEqual(await store.summary(identity, "project-retry"), { balanceCents: 100, rebateCents: 400 });
+    const history = await store.history(identity);
+    assert.equal(history.filter((entry) => entry.entryType === "preview_retry_capture").length, 1);
+    const persisted = JSON.parse(await fs.readFile(path.join(directory, "credits.json"), "utf8"));
+    assert.equal(persisted.rebates.filter((rebate) => rebate.reservationId === preview.id).length, 1);
+  } finally {
+    if (previousCodes === undefined) delete process.env.PREVIEW_PROMO_CODES; else process.env.PREVIEW_PROMO_CODES = previousCodes;
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("PostgreSQL settles a released retry atomically and idempotently", async () => {
+  const reservation = {
+    id: "11111111-1111-4111-8111-111111111111",
+    customer_id: "22222222-2222-4222-8222-222222222222",
+    project_id: "33333333-3333-4333-8333-333333333333",
+    amount_cents: 400,
+    status: "released",
+  };
+  let walletDebits = 0;
+  let rebates = 0;
+  const client = {
+    async query(sql, params = []) {
+      if (["BEGIN", "COMMIT", "ROLLBACK"].includes(sql)) return { rows: [] };
+      if (sql.startsWith("SELECT * FROM preview_credit_reservations")) return { rows: [{ ...reservation }] };
+      if (sql.startsWith("INSERT INTO credit_wallet_entries")) {
+        walletDebits += 1;
+        assert.equal(params[3], -400);
+        assert.equal(params[4], `retry-capture:${reservation.id}`);
+        return { rows: [] };
+      }
+      if (sql.startsWith("UPDATE preview_credit_reservations")) {
+        reservation.status = "captured";
+        return { rows: [{ ...reservation }] };
+      }
+      if (sql.startsWith("INSERT INTO project_purchase_rebates")) {
+        rebates += 1;
+        assert.equal(params[4], 400);
+        return { rows: [] };
+      }
+      throw new Error(`Unexpected SQL in retry settlement test: ${sql}`);
+    },
+    release() {},
+  };
+  const store = new PostgresCreditStore({ async connect() { return client; } }, null);
+  await store.capturePreview(reservation.id);
+  await store.capturePreview(reservation.id);
+  assert.equal(walletDebits, 1);
+  assert.equal(rebates, 1);
+  assert.equal(reservation.status, "captured");
+});
+
 test("paid WooCommerce credit products grant wallet value through a signed idempotent webhook", async () => {
   const [plugin, route, store] = await Promise.all([
     fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
@@ -477,7 +548,9 @@ test("personalized checkout reserves one project rebate and requires a signed Wo
     assert.match(plugin, /Crédit d’aperçu déduit/);
     assert.match(route, /\/commerce\/checkout-link/);
     assert.match(route, /reserveProjectRebate/);
+    assert.ok(route.indexOf("capturePreview(previewReservationId)") < route.indexOf("reserveProjectRebate(identity"));
     assert.match(route, /isProductEnabled\(productType\)/);
+    assert.match(route, /project\.status === "preview_ready"/);
     assert.match(html, /id="actionBuyEbook"/);
     assert.match(html, /id="actionBuyPrint" disabled aria-disabled="true"/);
     assert.match(app, /openConfiguredCheckout/);

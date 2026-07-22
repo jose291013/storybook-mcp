@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,46 +8,42 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/image-visual-contract`
-- Latest merged checkpoint on `main`: `ca81a17` — `Recover safely from image policy rejection (#42)`
-- Current focused checkpoint: `ac25634` — `Use compact visual contracts for images`
-- Draft PR: `#43` — `https://github.com/jose291013/storybook-mcp/pull/43`
+- Current branch: `codex/retry-rebate-capture`
+- Latest merged checkpoint on `main`: `9e14dfe` — `Use compact visual contracts for reliable image generation (#43)`
+- Current focused checkpoint: `ac7e01a` — `Capture successful technical retry rebates`
+- Draft PR: `#44` — `https://github.com/jose291013/storybook-mcp/pull/44`
 - Parallel draft PR: `#41` — initial scenario loading; it is separate and unmerged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 42 is merged and its bounded safety-recovery UI is deployed. Never merge this new correction or trigger Render until the user explicitly confirms that no preview generation is running and separately authorizes the merge.
+PR 43 is merged and its compact image contract completed the previously blocked 36-page preview. Never merge this accounting correction or trigger Render until the user explicitly confirms that no preview generation is running and separately authorizes the merge.
 
-## Current product brick: compact image-facing visual contract
+## Current product brick: technical-retry rebate settlement
 
-Project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442` has an approved cover and a persisted checkpoint at page 11. Job `dca68ace4d79d19f8b7e7401` exhausted retry policy v3 on page 12 after two image safety rejections. The project is preserved with `retryAvailable: false`, `retryExhausted: true`; policy v4 in this branch will expose one new free recovery after deployment.
+Project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442` completed successfully under retry policy v4 and was then purchased using a WooCommerce promotion. Its production credit summary proves the accounting gap: `pageCount: 36`, `balanceCents: 2650`, `rebateCents: 0`. The failed attempt had released the EUR 4.00 reservation; the successful retry reused that released reservation id, but the former capture function ignored released reservations and therefore created no project purchase rebate.
 
-This branch makes six focused corrections:
+This branch makes three focused corrections:
 
-1. The full manuscript, dialogue, story beat and persisted `planned_image_context` no longer cross the image-generation boundary.
-2. Character display names become stable visual roles such as `hero child`, `family member` or `original unbranded plush-bear companion`; the story and customer-facing manuscript keep their real names.
-3. Brand inscriptions and product comparisons such as `à l'effigie de Sonic` and `type Crocs` become generic unbranded clothing details.
-4. Interior identity references use a face-focused crop; after a safety rejection the replacement call uses the already-approved cover plus a smaller positive-only visual prompt.
-5. Scene QA rejects only explicit contradictions and ignores affirmative observations mistakenly returned in the `issues` array.
-6. Retry policy v4 grants the exhausted v3 project one free idempotent resume from its first missing page.
+1. Capturing a successful retry may settle either a still-reserved reservation or its previously released original reservation.
+2. Settling a released reservation adds exactly one compensating wallet debit and exactly one project purchase rebate; repeated completion calls remain idempotent in JSON and PostgreSQL.
+3. Before opening checkout for a legacy completed-but-unpurchased preview, the service reconciles its stored preview reservation. Projects already marked purchased are never altered automatically, preventing a second discount after payment.
 
-`IMAGE_MODEL` and `DRAFT_IMAGE_MODEL` now default to the current `gpt-image-2`; `REFERENCE_IMAGE_MODEL` already used that model. No persistence schema, commerce rule, scenario behavior or credit price changes in this brick.
+No persistence schema, price, WooCommerce product or coupon behavior changes in this brick.
 
 ## Verification completed locally
 
-- Focused image, scenario, checkpoint and structure suites: 83 passed, 0 failed.
-- The exact failed page-12 contract is covered: no dialogue, source prose, `Winnie`, `Sonic` or `Crocs` reaches the image prompt.
-- Full `npm.cmd test`: 111 passed, 0 failed.
+- Focused promotion, JSON/PostgreSQL released-retry capture and personalized-checkout tests pass.
+- Syntax checks pass for the credit store and checkout route.
+- Full `npm.cmd test`: 113 passed, 0 failed.
 
 ## Next verification target
 
-1. Keep draft PR 43 unmerged until the user explicitly authorizes it and confirms that no generation is active.
-2. Keep PR 41 separate and unmerged while this existing book is recovered.
-3. After a separate user authorization, merge and wait for Render to finish deploying.
-4. Reopen project `7dee3296-9cfc-4796-aa5f-3aa6fdde8442`; policy v4 must offer one free retry and resume at page 12 without regenerating the approved cover or page 11.
-5. Confirm Render logs show `gpt-image-2`, the optional `safetyFallback` marker, and no false scene-QA rejection for positive confirmations.
+1. Keep draft PR 44 unmerged until the user explicitly confirms that no generation is active and separately authorizes the merge.
+2. Keep PR 41 separate and unmerged.
+3. Do not modify the already paid order or create a new rebate for its purchased project automatically; any commercial gesture for the consumed WooCommerce promotion is a separate explicit business decision.
+4. After a separate merge authorization, validate the next technical retry or a controlled local ledger case: one final preview debit, one equal project rebate, no duplicate on refresh or checkout.
 
 ## Separate later brick
 
