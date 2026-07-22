@@ -23,4 +23,5 @@
 - Keep local JSON storage as a development fallback only. Production persistence uses PostgreSQL and private object storage.
 - Run `npm test` before publishing a pull request.
 - Keep one product brick per branch and document any new environment variables in `.env.example` and the roadmap.
+- Never merge a pull request or trigger a production deployment without the user's explicit confirmation. Before requesting confirmation, warn that Render may restart and interrupt any preview currently generating.
 
