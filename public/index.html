@@ -178,7 +178,10 @@
           <button type="button" class="toolbar-button" id="reviseScenarioButton" data-i18n="reviseScenario">Mettre à jour le scénario</button>
           <button type="button" class="primary-button" id="approveScenarioButton" data-i18n="approveScenario">Valider et générer mon livre</button>
         </div>
-        <p class="credit-feedback" id="scenarioFeedbackMessage" aria-live="polite"></p>
+        <div class="scenario-status" id="scenarioStatus" role="status" aria-live="polite">
+          <span class="scenario-status-spinner" aria-hidden="true"></span>
+          <p id="scenarioFeedbackMessage"></p>
+        </div>
       </section>
 
       <section class="generation-panel" id="generationPanel" hidden>

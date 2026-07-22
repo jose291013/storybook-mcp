@@ -77,27 +77,29 @@ export function normalizeStoryScenario(candidate = {}, { pagePlan = [], canonica
   const scenes = expectedScenes.map((expected, index) => {
     const supplied = rawScenes.find((item) => Number(item?.scene_number) === Number(expected.scene_number)) || rawScenes[index] || {};
     const transitionKind = TRANSITION_KINDS.has(supplied?.transition?.kind) ? supplied.transition.kind : "none";
+    const locationBefore = text(supplied?.location_before);
+    const locationAfter = text(supplied?.location_after || supplied?.location_before);
     return {
       id: sceneId(expected.scene_number),
       sceneNumber: Number(expected.scene_number),
       storyRole: expected.story_role,
       act: Math.max(1, Math.min(3, Number(supplied?.act || (index < expectedScenes.length / 3 ? 1 : index < expectedScenes.length * 2 / 3 ? 2 : 3)))),
       title: text(supplied?.title),
-      locationBefore: text(supplied?.location_before),
-      locationAfter: text(supplied?.location_after || supplied?.location_before),
+      locationBefore,
+      locationAfter,
       action: text(supplied?.action),
       purpose: text(supplied?.purpose),
       prerequisiteSceneIds: [...new Set(list(supplied?.prerequisite_scene_ids, 10).map(text).filter(Boolean))],
       characterPresences: list(supplied?.character_presences, 15).map((presence) => {
         const name = canonicalName(presence?.name, scenarioCharacters);
         const mode = PRESENCE_MODES.has(presence?.mode) ? presence.mode : "physical";
-        return name ? { name, mode, location: text(presence?.location), action: text(presence?.action) } : null;
+        return name ? { name, mode, location: mode === "physical" ? locationAfter : "", action: text(presence?.action) } : null;
       }).filter(Boolean),
       transition: {
         kind: transitionKind,
         mechanism: text(supplied?.transition?.mechanism),
-        from: text(supplied?.transition?.from || supplied?.location_before),
-        to: text(supplied?.transition?.to || supplied?.location_after),
+        from: text(supplied?.transition?.from || locationBefore),
+        to: text(supplied?.transition?.to || locationAfter),
         characters: [...new Set(list(supplied?.transition?.characters, 12).map((name) => canonicalName(name, scenarioCharacters)).filter(Boolean))],
       },
       objectStates: list(supplied?.object_states, 20).map((item) => ({

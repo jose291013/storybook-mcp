@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
-import { validateStoryScenario } from "../src/services/storyScenario.js";
+import { normalizeStoryScenario, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
   return {
@@ -73,6 +73,24 @@ test("scenario validation rejects two simultaneous states for one personal objec
   assert.ok(result.issues.some((issue) => issue.includes("two simultaneous states")));
 });
 
+test("scenario normalization uses the scene location for physical presences", () => {
+  const scenario = normalizeStoryScenario({ scenario: {
+    title: "Le portail", summary: "Une traversée cohérente.",
+    characters: [{ name: "Nolan", initial_location: "la vallée" }],
+    scenes: [{
+      scene_number: 1, title: "Dans la vallée", action: "Nolan avance près du portail.",
+      location_before: "la vallée", location_after: "la vallée",
+      character_presences: [{ name: "Nolan", mode: "physical", location: "près du portail" }],
+      transition: { kind: "none", from: "la vallée", to: "la vallée", characters: [] },
+    }],
+  } }, {
+    pagePlan: [{ page_type: "image", scene_number: 1, story_role: "character_and_desire" }],
+    canonicalCharacters: [{ name: "Nolan", role: "child", storyRole: "hero" }],
+  });
+  assert.equal(scenario.scenes[0].characterPresences[0].location, "la vallée");
+  assert.equal(validateStoryScenario(scenario).valid, true);
+});
+
 test("scene contracts tell the illustrator that a held wearable is not also worn", () => {
   const prompt = sceneContractImagePrompt({
     contract: {
@@ -100,7 +118,14 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioRoute, /validateStoryScenario\(scenario\)/);
   assert.match(app, /requestStoryScenario/);
   assert.match(app, /approveStoryScenario/);
+  assert.match(app, /storyScenarioBusy/);
+  assert.match(app, /scenarioApiMessage/);
+  assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
   assert.match(html, /id="storyScenarioPanel"/);
+  assert.match(html, /id="scenarioStatus"/);
+  assert.match(scenarioRoute, /activeScenarioUpdates/);
+  assert.match(scenarioRoute, /code: "scenario_update_in_progress"/);
+  assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
   assert.match(bridge, /Version: 0\.6\.2/);
   assert.match(bridge, /Scénario à valider/);
 });

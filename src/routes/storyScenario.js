@@ -14,6 +14,7 @@ import {
 
 const router = express.Router();
 const EDITABLE_STATUSES = new Set(["ready_for_preview", "scenario_review", "scenario_needs_clarification"]);
+const activeScenarioUpdates = new Set();
 
 function requireIdentity(req, res) {
   try {
@@ -76,35 +77,44 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     const previous = storyScenarioSnapshot(project);
     const creatorClarifications = { ...(previous?.creatorClarifications || {}), ...safeAnswers(req.body?.clarifications) };
     const sceneEdits = safeSceneEdits(req.body?.sceneEdits);
-    const { scenario, validation } = await generateValidatedScenario({
-      normalized,
-      previousScenario: previous?.fingerprint === fingerprint ? previous : null,
-      creatorClarifications,
-      sceneEdits,
-      feedback: req.body?.feedback,
-    });
-    if (!validation.valid) {
-      return res.status(422).json({ error: "The scenario is not causally coherent yet", code: "scenario_invalid", issues: validation.issues });
+    if (activeScenarioUpdates.has(project.id)) {
+      return res.status(409).json({ error: "Scenario update already in progress", code: "scenario_update_in_progress", retryable: true });
     }
-    const createdAt = new Date().toISOString();
-    const storedScenario = {
-      ...scenario,
-      fingerprint,
-      status: scenario.clarifications.length ? "needs_clarification" : "proposed",
-      revision: Number(previous?.revision || 0) + 1,
-      validation,
-      createdAt,
-      approvedAt: null,
-    };
-    const continuitySnapshot = {
-      ...project.continuitySnapshot,
-      storyScenarioWorkflow: { required: true, version: 1, startedAt: previous?.createdAt || createdAt },
-      storyScenario: storedScenario,
-    };
-    const status = storedScenario.status === "needs_clarification" ? "scenario_needs_clarification" : "scenario_review";
-    await projectStore.updateForCustomer(project.id, identity, { status, continuitySnapshot, generationJobId: null });
-    res.set("Cache-Control", "private, no-store");
-    res.json({ scenario: storedScenario, status });
+    activeScenarioUpdates.add(project.id);
+    try {
+      const { scenario, validation } = await generateValidatedScenario({
+        normalized,
+        previousScenario: previous?.fingerprint === fingerprint ? previous : null,
+        creatorClarifications,
+        sceneEdits,
+        feedback: req.body?.feedback,
+      });
+      if (!validation.valid) {
+        console.warn("[story-scenario] validation failed", { projectId: project.id, issueCount: validation.issues.length });
+        return res.status(422).json({ error: "The scenario update needs another attempt", code: "scenario_invalid", retryable: true });
+      }
+      const createdAt = new Date().toISOString();
+      const storedScenario = {
+        ...scenario,
+        fingerprint,
+        status: scenario.clarifications.length ? "needs_clarification" : "proposed",
+        revision: Number(previous?.revision || 0) + 1,
+        validation,
+        createdAt,
+        approvedAt: null,
+      };
+      const continuitySnapshot = {
+        ...project.continuitySnapshot,
+        storyScenarioWorkflow: { required: true, version: 1, startedAt: previous?.createdAt || createdAt },
+        storyScenario: storedScenario,
+      };
+      const status = storedScenario.status === "needs_clarification" ? "scenario_needs_clarification" : "scenario_review";
+      await projectStore.updateForCustomer(project.id, identity, { status, continuitySnapshot, generationJobId: null });
+      res.set("Cache-Control", "private, no-store");
+      res.json({ scenario: storedScenario, status });
+    } finally {
+      activeScenarioUpdates.delete(project.id);
+    }
   } catch (error) {
     res.status(500).json({ error: String(error?.message || error) });
   }
@@ -122,7 +132,10 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       return res.status(409).json({ error: "The scenario no longer matches this project", code: "scenario_stale" });
     }
     const validation = validateStoryScenario(scenario);
-    if (!validation.valid) return res.status(422).json({ error: "The scenario is not coherent", issues: validation.issues });
+    if (!validation.valid) {
+      console.warn("[story-scenario] approval validation failed", { projectId: project.id, issueCount: validation.issues.length });
+      return res.status(422).json({ error: "The scenario needs another update before approval", code: "scenario_invalid", retryable: true });
+    }
     if (scenario.clarifications?.length) {
       return res.status(409).json({ error: "Answer the scenario questions before approval", code: "scenario_clarification_required" });
     }
