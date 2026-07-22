@@ -9,6 +9,8 @@ INPUT
 - age_input: {age}
 - gender: {gender}
 - language: {language}
+- rendering_mode: {rendering_mode} (photorealistic, illustrated_faithful or cartoon)
+- likeness_goal: {likeness_goal} (maximum, strong or interpreted)
 
 TASK
 Analyze this specific reference photo and create a compact visual canon that helps an image model render the same subject consistently in a children's-book illustration style. The subject can be a person or an animal/mascot.
@@ -21,7 +23,7 @@ RULES
 - For an animal, describe species, approximate size, coat colors/patterns, ears, muzzle, eyes, tail and clearly visible accessories.
 - Record visible clothing and accessories as one exact outfit_lock. Keep garment type, main colors, footwear and accessories stable; omit visible brand names.
 - Ignore temporary background details and brand names.
-- Aim for a recognizable but illustrated result, never photorealism.
+- The requested rendering_mode is authoritative. For photorealistic, preserve natural facial geometry and real skin texture. For illustrated_faithful, preserve natural facial proportions while changing only the artistic medium. For cartoon, preserve the strongest visible identity markers while honestly allowing stylization.
 - canon_short must be one natural, compact sentence.
 
 OUTPUT
@@ -41,7 +43,8 @@ OUTPUT
       "distinctive_details": [],
       "keep_constant": [],
       "rendering_rules": {
-        "likeness_goal": "recognizable but illustrated, not photorealistic",
+        "likeness_goal": "{likeness_goal}",
+        "rendering_mode": "{rendering_mode}",
         "safe_clothing_rule": "people remain fully clothed in age-appropriate clothing"
       }
     },

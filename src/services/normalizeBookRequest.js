@@ -91,6 +91,8 @@ export function normalizeBookRequest(body = {}) {
     style_id: selectedStyle.id,
     style: customStyle || selectedStyle.name,
     style_instructions: customStyle || selectedStyle.prompt,
+    rendering_mode: selectedStyle.renderingMode,
+    likeness_goal: selectedStyle.likeness,
     language: normalizeBookLanguage(source.language || body.language || "FR"),
     page_count: normalizePageCount(source.page_count || body.page_count),
     product_type: normalizeProductType(source.product_type || body.product_type),

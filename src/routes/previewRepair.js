@@ -11,6 +11,7 @@ import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { generateQualityCheckedImage, inspectGeneratedIllustration, inspectStyleConsistency } from "../services/imageQualityGate.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
+import { findIllustrationStyle } from "../config/illustrationStyles.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -218,6 +219,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
       });
 
       updateJob(job.id, { step: `repair:page:${pageNumber}:illustrating` });
+      const selectedStyle = findIllustrationStyle(refreshed.questionnaire?.style_id || refreshed.productConfiguration?.style_id);
       const localImageUrl = await generateQualityCheckedImage({
         prompt: `${sceneContractImagePrompt({
           contract: blueprintPage.scene_contract,
@@ -230,6 +232,8 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         ...continuity,
         size: "1024x1024",
         quality: "low",
+        renderingMode: selectedStyle.renderingMode,
+        likenessGoal: selectedStyle.likeness,
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
         maximumAttempts: 2,
       });

@@ -17,10 +17,19 @@ export function buildFinalPrompt({
   characterFingerprints = [],
   referenceImages = [],
   sceneContract = "",
+  renderingMode = "illustrated_faithful",
+  likenessGoal = "strong",
 }) {
+  const renderingRule = renderingMode === "photorealistic"
+    ? "Photorealistic fairy-tale photography: preserve natural facial geometry, true skin texture and realistic human proportions. Never turn a person into a cartoon, doll, figurine or CGI character; never enlarge the eyes."
+    : renderingMode === "cartoon"
+      ? "Clearly stylized children's-book art: preserve the strongest identity markers, face shape, hairstyle, colors and distinctive visible details while applying the selected cartoon medium honestly."
+      : "Faithful children's-book illustration: change the artistic medium, but preserve natural facial proportions, face geometry, eye shape and spacing, nose, mouth, ears, hairstyle and every distinctive visible identity marker.";
   const baseRules = [
     "No text, captions, watermarks, logos, branded characters or copyrighted character lookalikes.",
-    "Children's book illustration, print-ready, clean square composition.",
+    "Print-ready, clean square composition for a premium children's book.",
+    renderingRule,
+    `Identity fidelity target: ${likenessGoal}. The selected medium may change; the person's identity may not be replaced by a generic child.`,
     "Treat every named character as a locked model sheet: never change face, species, colors, body markings, outfit or accessories between pages.",
     "A child must remain the same human child. An animal mascot must remain the exact same animal species and must never become another creature.",
     "Scene action, pose, expression, camera angle and lighting may change; locked identity and wardrobe may not.",
@@ -45,6 +54,23 @@ export function buildFinalPrompt({
   return `${prompt}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}${exactScene}`;
 }
 
+async function normalizeIdentityReference(source) {
+  const oriented = await sharp(source).rotate().png().toBuffer();
+  const metadata = await sharp(oriented).metadata();
+  const width = Math.max(1, Number(metadata.width || 1));
+  const height = Math.max(1, Number(metadata.height || 1));
+  const square = Math.min(width, height);
+  const full = await sharp(oriented).resize(380, 980, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
+  const faceFocus = await sharp(oriented).extract({ left: Math.max(0, Math.floor((width - square) / 2)), top: 0, width: square, height: square }).resize(620, 620, { fit: "cover" }).png().toBuffer();
+  return sharp({ create: { width: 1024, height: 1024, channels: 4, background: "#f7f4ee" } })
+    .composite([
+      { input: full, left: 10, top: 22, gravity: "southwest" },
+      { input: faceFocus, left: 394, top: 26 },
+    ])
+    .png()
+    .toBuffer();
+}
+
 async function loadReferenceFiles(referenceImages) {
   const files = [];
   for (let index = 0; index < referenceImages.length; index += 1) {
@@ -55,11 +81,9 @@ async function loadReferenceFiles(referenceImages) {
       const asset = await getDeliveryStorage().get(reference.storageKey);
       source = await storageBodyToBuffer(asset.body);
     } else source = await fs.readFile(reference.path);
-    const normalized = await sharp(source)
-      .rotate()
-      .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
-      .png()
-      .toBuffer();
+    const normalized = reference.kind === "identity"
+      ? await normalizeIdentityReference(source)
+      : await sharp(source).rotate().resize(1024, 1024, { fit: "inside", withoutEnlargement: true }).png().toBuffer();
     files.push(await toFile(normalized, `reference-${index + 1}.png`, { type: "image/png" }));
   }
   return files;
@@ -72,6 +96,8 @@ export async function generateImage({
   characterFingerprints = [],
   referenceImages = [],
   sceneContract = "",
+  renderingMode = "illustrated_faithful",
+  likenessGoal = "strong",
   size = "1024x1024",
   quality = process.env.IMAGE_QUALITY || "low",
   model = process.env.IMAGE_MODEL || "gpt-image-1-mini",
@@ -86,6 +112,8 @@ export async function generateImage({
     characterFingerprints,
     referenceImages: usableReferences,
     sceneContract,
+    renderingMode,
+    likenessGoal,
   });
 
   let res;

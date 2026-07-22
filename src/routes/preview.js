@@ -48,6 +48,7 @@ function previewStaleAfterMs() {
 }
 
 function isActivePreviewJob(job) {
+  if (job?.status === "awaiting_visual_approval") return true;
   if (!job || !["queued", "running"].includes(job.status)) return false;
   const updatedAt = Date.parse(job.updatedAt || job.createdAt || "");
   return Number.isFinite(updatedAt) && Date.now() - updatedAt < previewStaleAfterMs();
@@ -102,6 +103,9 @@ router.post("/projects/:id/preview-recover", async (req, res) => {
   if (project.status !== "preview_generating") {
     return res.json({ recovered: false, status: project.status, retryAvailable: technicalPreviewRetryAvailable(project) });
   }
+  if (generationCheckpoint(project)?.visualProof?.status === "awaiting_approval") {
+    return res.json({ recovered: false, status: project.status, visualProofRequired: true, retryAvailable: false });
+  }
   try {
     const recovered = await recoverAbandonedPreview({ project, identity });
     return res.json({ recovered: true, status: recovered.status, retryAvailable: true });
@@ -128,6 +132,8 @@ async function describeReferences({ photos, answers, referenceAssets, jobId }) {
       gender: isChild ? answers.gender : "",
       language: answers.language,
       photo_url: photoUrl,
+      rendering_mode: answers.rendering_mode,
+      likeness_goal: answers.likeness_goal,
     });
     canons.push({
       photoId: photo.id,
@@ -152,15 +158,48 @@ router.post("/preview", async (req, res) => {
   if (!projectId) return res.status(400).json({ error: "A saved project is required" });
   let project = await projectStore.getForCustomer(projectId, identity);
   if (!project) return res.status(404).json({ error: "Project not found" });
+  const visualProofAction = String(req.body?.visualProofAction || "");
+  const pendingVisualProof = generationCheckpoint(project)?.visualProof;
   if (project.status === "preview_generating") {
     const existingJob = project.generationJobId ? getJob(project.generationJobId) : null;
-    if (isActivePreviewJob(existingJob)) {
+    if (pendingVisualProof?.status === "awaiting_approval") {
+      if (!["approve", "regenerate"].includes(visualProofAction)) {
+        return res.status(409).json({
+          error: "Approve or regenerate the visual proof before continuing",
+          code: "visual_proof_required",
+          jobId: existingJob?.id || project.generationJobId || null,
+        });
+      }
+      if (visualProofAction === "regenerate" && Number(pendingVisualProof.attempts || 1) >= 2) {
+        return res.status(409).json({ error: "The included visual-proof retry has already been used", code: "visual_proof_limit" });
+      }
+      if (existingJob && existingJob.status === "awaiting_visual_approval") {
+        updateJob(existingJob.id, { status: "done", step: `visual-proof:${visualProofAction}` });
+      }
+      const visualProof = {
+        ...pendingVisualProof,
+        status: visualProofAction === "approve" ? "approved" : "regenerating",
+        ...(visualProofAction === "approve" ? { approvedAt: new Date().toISOString() } : { regenerationRequestedAt: new Date().toISOString() }),
+      };
+      const previewResult = visualProofAction === "regenerate"
+        ? { ...(project.previewResult || {}), coverImageUrl: "", coverImageStorageKey: "", coverPreviewUrl: "", coverStorageKey: "" }
+        : project.previewResult;
+      project = await projectStore.updateForCustomer(projectId, identity, {
+        generationJobId: null,
+        previewResult,
+        continuitySnapshot: mergeGenerationCheckpoint(project.continuitySnapshot, {
+          ...generationCheckpoint(project),
+          visualProof,
+        }),
+      }) || project;
+    } else if (isActivePreviewJob(existingJob)) {
       return res.json({ jobId: existingJob.id, resumed: true });
+    } else {
+      return res.status(409).json({
+        error: "Preview generation was interrupted. Confirm the free technical retry before continuing.",
+        code: "preview_interrupted",
+      });
     }
-    return res.status(409).json({
-      error: "Preview generation was interrupted. Confirm the free technical retry before continuing.",
-      code: "preview_interrupted",
-    });
   }
   if (project.status === "preview_ready" && project.previewResult) {
     return res.status(409).json({ error: "This draft has already been generated" });
@@ -201,8 +240,8 @@ router.post("/preview", async (req, res) => {
   const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
 
-  let creditReservation = null;
-  if (previewEntitlementsEnabled() && !isTechnicalRetry) {
+  let creditReservation = existingCheckpoint?.creditReservationId ? { id: existingCheckpoint.creditReservationId } : null;
+  if (previewEntitlementsEnabled() && !isTechnicalRetry && !creditReservation) {
     const requiredCents = previewPriceCents(normalized.answers.page_count);
     try {
       creditReservation = await creditStore.reservePreview(identity, {
@@ -253,6 +292,8 @@ router.post("/preview", async (req, res) => {
       product_type: normalized.answers.product_type,
       font_style: normalized.answers.font_style,
       style_id: normalized.answers.style_id,
+      rendering_mode: normalized.answers.rendering_mode,
+      likeness_goal: normalized.answers.likeness_goal,
       universe_id: normalized.answers.universe_id,
       book_language: normalized.answers.language,
       price_eur: calculateBookPrice(normalized.answers.page_count, normalized.answers.product_type),
@@ -267,6 +308,7 @@ router.post("/preview", async (req, res) => {
     ...initialCheckpoint,
     fingerprint,
     phase: "started",
+    creditReservationId: creditReservation?.id || initialCheckpoint.creditReservationId || null,
     failureReason: null,
     failedAt: null,
   });
@@ -452,6 +494,7 @@ router.post("/preview", async (req, res) => {
       let coverImageStorageKey = priorResult.coverImageStorageKey || "";
       let coverPreviewUrl = priorResult.coverPreviewUrl || "";
       let coverStorageKey = priorResult.coverStorageKey || "";
+      let generatedCover = false;
       if (!coverImageStorageKey || !coverStorageKey || !coverPreviewUrl) {
         const coverContinuity = buildSceneContinuity({
           blueprint: final_blueprint,
@@ -468,7 +511,9 @@ router.post("/preview", async (req, res) => {
           onAttempt: reportImageAttempt(job.id, "draft:cover"),
           ...coverContinuity,
           size: "1024x1024",
-          quality: "low",
+          quality: "medium",
+          renderingMode: answers.rendering_mode,
+          likenessGoal: answers.likeness_goal,
           model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
         });
         const localCoverPreviewUrl = await composeBookPagePNG({
@@ -485,9 +530,36 @@ router.post("/preview", async (req, res) => {
         coverImageStorageKey = persistedCoverImage.storageKey;
         coverPreviewUrl = persistedCover.previewUrl;
         coverStorageKey = persistedCover.storageKey;
+        generatedCover = true;
         await persistCheckpoint({ phase: "cover" }, {
           previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: priorResult.draftPages || [] },
         });
+      }
+
+      if (checkpoint.visualProof?.status !== "approved") {
+        const visualProof = {
+          status: "awaiting_approval",
+          attempts: Number(checkpoint.visualProof?.attempts || 0) + (generatedCover ? 1 : 0),
+          styleId: answers.style_id,
+          renderingMode: answers.rendering_mode,
+          likenessGoal: answers.likeness_goal,
+          coverImageUrl,
+          coverImageStorageKey,
+          coverPreviewUrl,
+          coverStorageKey,
+          readyAt: new Date().toISOString(),
+        };
+        const proofResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: priorResult.draftPages || [] };
+        await persistCheckpoint({ phase: "visual-proof", visualProof }, { previewResult: proofResult, finalBlueprint: final_blueprint });
+        updateJob(job.id, {
+          status: "awaiting_visual_approval",
+          step: "draft:cover:review",
+          final_blueprint,
+          result: proofResult,
+          visualProof,
+        });
+        console.info("[preview] visual proof awaiting approval", JSON.stringify({ jobId: job.id, projectId, attempts: visualProof.attempts, styleId: answers.style_id }));
+        return;
       }
 
       const draftPages = (priorResult.draftPages || []).filter(isReusableDraftPage);
@@ -537,6 +609,8 @@ router.post("/preview", async (req, res) => {
             ...sceneContinuity,
             size: "1024x1024",
             quality: "low",
+            renderingMode: answers.rendering_mode,
+            likenessGoal: answers.likeness_goal,
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-1-mini",
           });
           const persistedImage = await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
