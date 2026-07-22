@@ -17,6 +17,7 @@ import { blueprintRepairAgent } from "../agents/blueprintRepair.js";
 import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
+import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
@@ -383,6 +384,38 @@ router.post("/preview", async (req, res) => {
         await persistCheckpoint({ draftTexts: Object.fromEntries(draftTextByPage), phase: `text:${textPage.page_number}` });
       }
 
+      updateJob(job.id, { step: "story:coherence-and-scene-contracts" });
+      const storyScenePlan = checkpoint.storyScenePlan || await storyScenePlannerAgent({
+        blueprint: final_blueprint,
+        pageTexts: Object.fromEntries(draftTextByPage),
+        characterCanons,
+      });
+      draftTextByPage.clear();
+      Object.entries(storyScenePlan.pageTexts || {}).forEach(([pageNumber, text]) => {
+        draftTextByPage.set(Number(pageNumber), String(text || ""));
+      });
+      for (const contract of storyScenePlan.sceneContracts || []) {
+        const imagePage = final_blueprint.pages.find((page) => Number(page.page_number) === Number(contract.image_page_number));
+        const textPage = final_blueprint.pages.find((page) => Number(page.page_number) === Number(contract.text_page_number));
+        const namedCast = [...new Set((contract.named_characters || []).map((character) => character.name).filter(Boolean))];
+        if (imagePage) {
+          imagePage.scene_contract = contract;
+          imagePage.cast_present = namedCast;
+        }
+        if (textPage) {
+          textPage.scene_contract = contract;
+          textPage.cast_present = namedCast;
+        }
+      }
+      if (!checkpoint.storyScenePlan) {
+        await persistCheckpoint({
+          storyScenePlan,
+          draftTexts: Object.fromEntries(draftTextByPage),
+          finalBlueprint: final_blueprint,
+          phase: "scene-contracts",
+        }, { finalBlueprint: final_blueprint });
+      }
+
       updateJob(job.id, { step: "draft:cover" });
       const storedProject = await projectStore.get(job.projectId);
       const priorResult = existingCheckpoint ? (storedProject?.previewResult || {}) : {};
@@ -460,10 +493,15 @@ router.post("/preview", async (req, res) => {
             ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
             ...(!coverReferencePath && coverImageStorageKey ? { continuityImageStorageKey: coverImageStorageKey } : {}),
             pairedText,
+            structuredSceneContract: page.scene_contract || null,
             referenceAssets,
           });
           localImageUrl = await generateQualityCheckedImage({
-            prompt: page.image_prompt,
+            prompt: sceneContractImagePrompt({
+              contract: page.scene_contract,
+              stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+              fallbackPrompt: page.image_prompt,
+            }),
             outName: `draft-page${page.page_number}-${job.id}`,
             castPresent: page.cast_present || [],
             pageLabel: `interior illustration for page ${page.page_number}`,

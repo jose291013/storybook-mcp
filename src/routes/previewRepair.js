@@ -10,6 +10,7 @@ import { persistPreviewAsset, storageBodyToBuffer } from "../services/previewAss
 import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { generateQualityCheckedImage, inspectGeneratedIllustration, inspectStyleConsistency } from "../services/imageQualityGate.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
+import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -213,11 +214,16 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         visualState: blueprintPage.visual_state || {},
         continuityImagePath: referencePath,
         pairedText,
+        structuredSceneContract: blueprintPage.scene_contract || null,
       });
 
       updateJob(job.id, { step: `repair:page:${pageNumber}:illustrating` });
       const localImageUrl = await generateQualityCheckedImage({
-        prompt: `${blueprintPage.image_prompt}\n\nTECHNICAL REPAIR: replace an illustration with a production defect or a rendering style that broke the locked visual continuity. Follow the scene contract and the continuity reference exactly.`,
+        prompt: `${sceneContractImagePrompt({
+          contract: blueprintPage.scene_contract,
+          stylePrompt: refreshed.finalBlueprint.style?.style_prompt || refreshed.finalBlueprint.style?.prompt || "",
+          fallbackPrompt: blueprintPage.image_prompt,
+        })}\n\nTECHNICAL REPAIR: replace an illustration with an objective production defect. Follow the authoritative scene contract and continuity reference exactly.`,
         outName: `repair-page${pageNumber}-${job.id}`,
         castPresent: blueprintPage.cast_present || [],
         pageLabel: `repaired interior illustration for page ${pageNumber}`,

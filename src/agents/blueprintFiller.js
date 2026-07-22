@@ -48,6 +48,23 @@ function canonicalizePromptNames(value, canonicalCharacters) {
   });
 }
 
+function canonicalCharacterMatch(value, characters = []) {
+  const exact = characters.find((character) => sameName(character?.name, value));
+  if (exact) return exact;
+  const source = nameKey(value);
+  const candidates = characters
+    .filter((character) => source.slice(0, 2) === nameKey(character?.name).slice(0, 2))
+    .map((character) => ({ character, distance: editDistance(value, character.name) }))
+    .filter((candidate) => candidate.distance <= 2)
+    .sort((left, right) => left.distance - right.distance);
+  if (!candidates.length || (candidates[1] && candidates[1].distance === candidates[0].distance)) return null;
+  return candidates[0].character;
+}
+
+export function canonicalizeWrittenNames(value, canonicalCharacters = []) {
+  return canonicalizePromptNames(value, canonicalCharacters.filter((character) => character?.name));
+}
+
 function castDirective(language, names, pageType) {
   if (!names.length) return "";
   const list = names.join(", ");
@@ -233,6 +250,7 @@ export function lockBlueprintContinuity(blueprint, {
   const questObject = normalizeQuestObject(result);
   result.hero ||= {};
   const childCanon = characterCanons.find((canon) => canon.role === "child");
+  if (childCanon?.name) result.hero.name = childCanon.name;
   result.hero.outfit_lock = String(
     childCanon?.outfit_lock
     || result.hero.outfit_lock
@@ -242,16 +260,17 @@ export function lockBlueprintContinuity(blueprint, {
 
   result.cast = Array.isArray(result.cast) ? result.cast : [];
   result.cast = result.cast.map((character) => {
-    const photoCanon = characterCanons.find((canon) => sameName(canon.name, character.name));
+    const photoCanon = canonicalCharacterMatch(character.name, characterCanons);
     return {
       ...character,
+      name: photoCanon?.name || character.name,
       canon_short: photoCanon?.canon_short || character.canon_short || "",
       outfit_lock: photoCanon?.outfit_lock || character.outfit_lock || "",
       story_role: photoCanon?.story_role || character.story_role || "guest",
     };
   });
   for (const canon of characterCanons.filter((item) => item.role !== "child" && item.name)) {
-    if (result.cast.some((character) => sameName(character.name, canon.name))) continue;
+    if (canonicalCharacterMatch(canon.name, result.cast)) continue;
     result.cast.push({
       name: canon.name,
       role: canon.role || "other",

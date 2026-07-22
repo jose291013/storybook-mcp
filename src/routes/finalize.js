@@ -8,6 +8,7 @@ import { textWriterAgent } from "../agents/textWriter.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { createEbookPdf } from "../services/createEbookPdf.js";
+import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 
 const router = express.Router();
 
@@ -119,9 +120,14 @@ router.post("/finalize", async (req, res) => {
               ? finalCoverPath
               : (existsSync(draftCoverPath) ? draftCoverPath : ""),
             pairedText,
+            structuredSceneContract: page.scene_contract || null,
           });
           imageUrl = await generateImage({
-            prompt: page.image_prompt,
+            prompt: sceneContractImagePrompt({
+              contract: page.scene_contract,
+              stylePrompt: blueprint.style?.style_prompt || blueprint.style?.prompt || "",
+              fallbackPrompt: page.image_prompt,
+            }),
             outName: `final-page${page.page_number}-${jobId}`,
             ...sceneContinuity,
             size: "1024x1024",

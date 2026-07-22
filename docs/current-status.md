@@ -8,8 +8,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 
 - Repository: `jose291013/storybook-mcp`
 - Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `codex/stable-style-continuity`
-- Latest deployed product-code checkpoint before this brick: `474c48a` — `Lock illustration style across preview pages`
+- Current branch: `codex/scene-contract-coherence`
+- Latest deployed product-code checkpoint before this brick: `da7ce24` — `Stabilize preview style continuity`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -18,6 +18,8 @@ This is the short operational memory for a new Codex task. Product rules and arc
 Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and WordPress theme are synchronized. Confirm their displayed versions and deployed commit before diagnosing production behavior.
 
 ## Current product state
+
+- The scene-contract coherence brick is implemented on the current branch and awaits merge/deployment. After all page texts exist, one whole-book pass minimally reconciles narrative continuity and creates one structured contract per spread before any illustration begins. Photo-upload names are immutable canon (for example `Mathéo` cannot become `Mathieu`); named observers cannot replace generic friends; main actions, objects, quantities, scale and spatial relationships are carried into preview, repair and final-generation prompts. A low-cost bounded scene check may request one correction, but an advisory-QA failure cannot abort a technically coherent book.
 
 - The first series brick is implemented on the current branch: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. It is not deployed until this branch is merged and Bridge 0.6.0 is installed.
 
@@ -33,6 +35,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+After merge, create a fresh story containing (1) a named photographed brother who only observes, (2) a new anonymous friend who shakes the hero's hand, and (3) three explicitly very large slides. Confirm that every uploaded name spelling remains exact, the generic friend stays distinct, the illustration shows the correct handshake, and the requested quantity and scale are visible. Confirm Render reaches `story:coherence-and-scene-contracts` once before the first interior illustration and a resumed job reuses that checkpoint without repeating the text call.
 
 Verify project `6760b75e-84d6-4c37-a545-32b798b3e771` after deploying `codex/stable-style-continuity`. Its exhausted checkpoint must receive exactly one recovery under retry-policy version 3 and resume from the first missing illustration. A first categorical style mismatch may cause one regeneration; a technically coherent second image must log `approved-with-style-warning`, persist, and let the remaining book finish without another wallet debit. Objective corrupt, blank or incomplete files remain blocking.
 

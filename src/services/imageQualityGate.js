@@ -130,12 +130,42 @@ Return only JSON in this exact form: {"approved":true,"issues":[]} or {"approved
   return { approved, issues: approved ? [] : issues };
 }
 
+export async function inspectSceneFidelity({ imagePath, sceneContract, pageLabel = "illustration" }) {
+  if (!sceneContract) return { approved: true, issues: [] };
+  if (process.env.IMAGE_SCENE_QA_ENABLED === "false") return { approved: true, issues: [] };
+  const source = await sharp(await fs.readFile(imagePath)).rotate().resize(512, 512, { fit: "inside" }).jpeg({ quality: 72 }).toBuffer();
+  const instruction = `You are checking whether one children's-book ${pageLabel} depicts its authoritative structured scene contract.
+Judge only objective, clearly visible contradictions:
+- the main action has the wrong subject or wrong target;
+- a recurring named character is substituted for a distinct generic character;
+- a named observer is shown performing the central action instead;
+- a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
+- an explicitly forbidden substitution is present.
+Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.
+SCENE CONTRACT JSON:
+${JSON.stringify(sceneContract)}
+Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short objective contradiction"]}.`;
+  const response = await getClient().responses.create({
+    model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+    input: [{ role: "user", content: [
+      { type: "input_text", text: instruction },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${source.toString("base64")}`, detail: "low" },
+    ] }],
+    max_output_tokens: 350,
+  });
+  const result = parseJson(extractText(response));
+  const approved = result?.approved === true;
+  const issues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 4) : [];
+  return { approved, issues: approved ? [] : (issues.length ? issues : ["The illustration contradicts the structured scene contract."]) };
+}
+
 export async function generateQualityCheckedImage({
   prompt,
   castPresent = [],
   pageLabel = "illustration",
   maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "2", 10) || 2),
   onAttempt = null,
+  sceneFidelityContract = null,
   ...generationOptions
 }) {
   let previousIssues = [];
@@ -146,7 +176,9 @@ export async function generateQualityCheckedImage({
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
-        : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
+        : previousRejectionKind === "scene"
+          ? `\n\nSCENE FIDELITY REGENERATION: the previous output contradicted the authoritative scene contract because ${previousIssues.join("; ")}. Correct exactly who performs the main action and toward whom, keep generic people distinct from recurring named characters, and obey the required quantity, physical scale, spatial relationships and forbidden substitutions.`
+          : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
       : "";
     try {
       const imageUrl = await generateImage({
@@ -163,10 +195,21 @@ export async function generateQualityCheckedImage({
         pageLabel,
       });
       const styleReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "continuity");
-      const styleInspection = inspection.approved
-        ? await inspectStyleConsistency({ imagePath: outputImagePath(imageUrl), styleReference, pageLabel })
-        : { approved: false, issues: [] };
-      if (inspection.approved && styleInspection.approved) {
+      const advisoryCheck = async (check) => {
+        try { return await check; }
+        catch (error) {
+          // Narrative/style vision checks may improve a coherent image once, but
+          // their own timeout or malformed JSON must never destroy a whole book.
+          return { approved: true, issues: [], warning: String(error?.message || error) };
+        }
+      };
+      const [styleInspection, sceneInspection] = inspection.approved
+        ? await Promise.all([
+          advisoryCheck(inspectStyleConsistency({ imagePath: outputImagePath(imageUrl), styleReference, pageLabel })),
+          advisoryCheck(inspectSceneFidelity({ imagePath: outputImagePath(imageUrl), sceneContract: sceneFidelityContract, pageLabel })),
+        ])
+        : [{ approved: false, issues: [] }, { approved: false, issues: [] }];
+      if (inspection.approved && styleInspection.approved && sceneInspection.approved) {
         onAttempt?.({ phase: "approved", attempt, maximumAttempts, pageLabel });
         return imageUrl;
       }
@@ -175,16 +218,16 @@ export async function generateQualityCheckedImage({
       // preview because a vision model distinguishes subtle realism or polish.
       if (inspection.approved && attempt === maximumAttempts) {
         onAttempt?.({
-          phase: "approved-with-style-warning",
+          phase: sceneInspection.approved ? "approved-with-style-warning" : "approved-with-scene-warning",
           attempt,
           maximumAttempts,
           pageLabel,
-          issues: styleInspection.issues,
+          issues: [...styleInspection.issues, ...sceneInspection.issues],
         });
         return imageUrl;
       }
-      previousIssues = inspection.approved ? styleInspection.issues : inspection.issues;
-      previousRejectionKind = inspection.approved ? "style" : "technical";
+      previousIssues = inspection.approved ? [...styleInspection.issues, ...sceneInspection.issues] : inspection.issues;
+      previousRejectionKind = inspection.approved ? (sceneInspection.approved ? "style" : "scene") : "technical";
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });

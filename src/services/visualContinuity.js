@@ -63,6 +63,7 @@ export function buildSceneContinuity({
   continuityImagePath = "",
   continuityImageStorageKey = "",
   pairedText = "",
+  structuredSceneContract = null,
   referenceAssets = new Map(),
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
@@ -108,6 +109,15 @@ export function buildSceneContinuity({
 
   const castNames = selected.map((character) => character.name).filter(Boolean);
   const sceneRules = [];
+  if (structuredSceneContract) {
+    sceneRules.push(
+      "AUTHORITATIVE STRUCTURED SCENE CONTRACT:",
+      JSON.stringify(structuredSceneContract, null, 2),
+      "The main_action subject must visibly perform the stated verb toward the stated target.",
+      "A generic character id is a distinct one-scene person and must never be replaced by a recurring named character or photo reference.",
+      "Respect every required quantity and scale literally, and show none of the forbidden substitutions."
+    );
+  }
   if (castNames.length) {
     sceneRules.push(
       `MANDATORY VISIBLE CAST (${castNames.length}): ${castNames.join(", ")}.`,
@@ -138,5 +148,6 @@ export function buildSceneContinuity({
     characterFingerprints,
     referenceImages,
     sceneContract: sceneRules.filter(Boolean).join("\n"),
+    sceneFidelityContract: structuredSceneContract,
   };
 }

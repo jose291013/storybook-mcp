@@ -12,7 +12,8 @@ import { ILLUSTRATION_STYLES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
-import { lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
+import { canonicalizeWrittenNames, lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
+import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { buildNarrativeContext } from "../src/services/buildNarrativeContext.js";
 import { ALLOWED_PAGE_COUNTS, calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PAGE_PRICE_EUR, TYPOGRAPHY_OPTIONS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 import { getProductAvailability, isProductEnabled } from "../src/config/productAvailability.js";
@@ -903,6 +904,12 @@ test("scene continuity locks child outfit and mascot species while attaching the
     castPresent: ["Noa", "Pixel"],
     scenePrompt: "Noa and Pixel cross the moonlit forest",
     pairedText: "Noa montre une branche brillante a Pixel et la tient devant lui.",
+    structuredSceneContract: {
+      main_action: { subject: "Noa", verb: "montre une branche", target: "Pixel" },
+      generic_characters: [{ id: "new_friend_1", description: "un nouvel enfant", must_not_resemble: ["Pixel"] }],
+      required_elements: [{ description: "grande branche brillante", quantity: "1", scale: "longue comme le bras de Noa" }],
+      forbidden_elements: ["Pixel ne remplace pas le nouvel enfant"],
+    },
   });
   assert.equal(continuity.referenceImages.length, 1);
   assert.match(continuity.referenceImages[0].path, /noa\.jpg$/);
@@ -913,6 +920,9 @@ test("scene continuity locks child outfit and mascot species while attaching the
   assert.match(continuity.sceneContract, /branche brillante/);
   assert.match(continuity.sceneContract, /every central visible action, handled object/i);
   assert.match(continuity.sceneContract, /mask alone does not provide air/i);
+  assert.match(continuity.sceneContract, /STRUCTURED SCENE CONTRACT/);
+  assert.match(continuity.sceneContract, /grande branche brillante/);
+  assert.equal(continuity.sceneFidelityContract.main_action.subject, "Noa");
 
   const prompt = buildFinalPrompt({
     prompt: "A new forest scene",
@@ -935,6 +945,49 @@ test("scene continuity locks child outfit and mascot species while attaching the
   });
   assert.equal(resumed.referenceImages[0].storageKey, "previews/project/cover-image.png");
   assert.equal(resumed.referenceImages[0].kind, "continuity");
+});
+
+test("photo-upload names are immutable canon throughout blueprint and manuscript", () => {
+  const blueprint = {
+    hero: { name: "Nolan", outfit_lock: "red jacket" },
+    cast: [{ name: "Mathieu", role: "family", canon_short: "grand frere" }],
+    cover: { title: "Nolan", image_prompt: "Nolan et Mathieu", cast_present: ["Nolan", "Mathieu"] },
+    pages: createPagePlan(24).map((page) => ({
+      ...page,
+      text_prompt: page.page_type.includes("text") ? "Nolan avance avec Mathieu." : "",
+      image_prompt: page.page_type === "image" ? "Nolan avance avec Mathieu." : "",
+      cast_present: page.page_type === "image" ? ["Nolan", "Mathieu"] : [],
+    })),
+  };
+  const characterCanons = [
+    { name: "Nolan", role: "child", outfit_lock: "red jacket" },
+    { name: "Mathéo", role: "family", relationship: "frère", canon_short: "grand frère de Nolan" },
+  ];
+  const result = lockBlueprintContinuity(blueprint, { language: "FR", pageCount: 24, characterCanons });
+  assert.equal(result.cast.filter((character) => character.name === "Mathéo").length, 1);
+  assert.equal(result.cast.some((character) => character.name === "Mathieu"), false);
+  assert.match(result.cover.image_prompt, /Mathéo/);
+  assert.doesNotMatch(result.cover.image_prompt, /Mathieu/);
+  assert.equal(canonicalizeWrittenNames("Mathieu donne la main à Nolan.", characterCanons), "Mathéo donne la main à Nolan.");
+});
+
+test("structured scene prompt preserves action roles, generic people, quantities and scale", () => {
+  const prompt = sceneContractImagePrompt({
+    contract: {
+      story_beat: "Nolan rencontre un nouveau camarade près des grands toboggans",
+      main_action: { subject: "Nolan", verb: "serre la main de", target: "new_friend_1" },
+      named_characters: [{ name: "Mathéo", visual_role: "observer", action: "reste derrière Nolan" }],
+      generic_characters: [{ id: "new_friend_1", description: "enfant inconnu avec un pull vert", action: "serre la main de Nolan", must_not_resemble: ["Mathéo"] }],
+      required_elements: [{ description: "toboggans", quantity: "3", scale: "très grands" }],
+      spatial_relationships: ["Mathéo observe derrière Nolan"],
+      forbidden_elements: ["Mathéo ne serre pas la main de Nolan"],
+    },
+    stylePrompt: "gouache douce",
+  });
+  assert.match(prompt, /Nolan serre la main de new_friend_1/);
+  assert.match(prompt, /must remain visually distinct from Mathéo/);
+  assert.match(prompt, /quantity: 3; scale: très grands/);
+  assert.match(prompt, /Mathéo ne serre pas la main/);
 });
 
 test("world reality keeps physics by default and requires explicit visible fantasy exceptions", () => {
