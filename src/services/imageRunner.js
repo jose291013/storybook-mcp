@@ -11,6 +11,13 @@ function getClient() {
   return createOpenAIClient({ kind: "image" });
 }
 
+export function sanitizeBrandSensitiveText(value) {
+  return String(value || "").replace(
+    /(?:\bbrand(?:ed)?\s+(?:name|character|logo)|\bcommercial\s+(?:brand|character|logo)|\bcopyrighted\s+character|\blogos?|\binscriptions?|\bprinted\s+(?:words?|text|labels?)|\bwording|[àa]\s+l['’]effigie\s+de|\beffigy\s+of|\bmarca(?:\s+comercial)?|\blogotipo|\binscripci[oó]n|\bpersonaje\s+comercial)[^,.;\n|]*/giu,
+    "plain generic unbranded detail",
+  );
+}
+
 export function buildFinalPrompt({
   prompt,
   characterFingerprint = "",
@@ -36,9 +43,9 @@ export function buildFinalPrompt({
     "Reference photos may contain printed words, labels or commercial logos on clothing. Remove all of them and replace them with a plain, non-branded fabric or simple generic motif while preserving garment type and color.",
   ];
 
-  const combinedFingerprints = characterFingerprints.length
+  const combinedFingerprints = sanitizeBrandSensitiveText(characterFingerprints.length
     ? characterFingerprints.filter(Boolean).join("\n")
-    : characterFingerprint;
+    : characterFingerprint);
   const canon = combinedFingerprints?.trim()
     ? `\n\nLOCKED CHARACTER CANON (higher priority than any conflicting scene wording):\n${combinedFingerprints.trim()}`
     : "";
@@ -47,11 +54,12 @@ export function buildFinalPrompt({
         `- Reference ${index + 1}: ${item.label || "visual continuity reference"}`
       )).join("\n")}\nUse these images only to preserve the named characters, their exact wardrobe and the established illustration style. Create a genuinely new scene composition. Never copy a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
     : "";
-  const exactScene = sceneContract?.trim()
-    ? `\n\nSCENE CONTRACT (highest priority for this illustration):\n${sceneContract.trim()}`
+  const safeSceneContract = sanitizeBrandSensitiveText(sceneContract).trim();
+  const exactScene = safeSceneContract
+    ? `\n\nSCENE CONTRACT (highest priority for this illustration):\n${safeSceneContract}`
     : "";
 
-  return `${prompt}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}${exactScene}`;
+  return `${sanitizeBrandSensitiveText(prompt)}\n\nGLOBAL CONTINUITY RULES:\n- ${baseRules.join("\n- ")}${canon}${referenceContract}${exactScene}`;
 }
 
 async function normalizeIdentityReference(source) {
