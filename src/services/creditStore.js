@@ -83,9 +83,25 @@ export class JsonCreditStore {
   async capturePreview(reservationId) {
     const store = this.read(); const reservation = store.reservations.find((item) => item.id === reservationId);
     if (!reservation || reservation.status === "captured") return reservation;
-    if (reservation.status !== "reserved") return reservation;
+    if (!["reserved", "released"].includes(reservation.status)) return reservation;
+    if (reservation.status === "released") {
+      const idempotencyKey = `retry-capture:${reservation.id}`;
+      if (!store.entries.some((entry) => entry.idempotencyKey === idempotencyKey)) {
+        store.entries.push({
+          id: crypto.randomUUID(),
+          customerId: reservation.customerId,
+          projectId: reservation.projectId,
+          amountCents: -reservation.amountCents,
+          entryType: "preview_retry_capture",
+          idempotencyKey,
+          createdAt: now(),
+        });
+      }
+    }
     reservation.status = "captured"; reservation.updatedAt = now();
-    store.rebates.push({ id: crypto.randomUUID(), customerId: reservation.customerId, projectId: reservation.projectId, reservationId, amountCents: reservation.amountCents, status: "available", createdAt: now() });
+    if (!store.rebates.some((rebate) => rebate.reservationId === reservation.id)) {
+      store.rebates.push({ id: crypto.randomUUID(), customerId: reservation.customerId, projectId: reservation.projectId, reservationId, amountCents: reservation.amountCents, status: "available", createdAt: now() });
+    }
     this.write(store); return reservation;
   }
   async releasePreview(reservationId) {
@@ -204,10 +220,21 @@ export class PostgresCreditStore {
     const client = await this.database.connect();
     try {
       await client.query("BEGIN");
-      const updated = await client.query("UPDATE preview_credit_reservations SET status='captured',updated_at=now() WHERE id=$1 AND status='reserved' RETURNING *", [reservationId]);
-      const reservation = updated.rows[0];
-      if (reservation) await client.query("INSERT INTO project_purchase_rebates (id,customer_id,project_id,reservation_id,amount_cents) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (reservation_id) DO NOTHING", [crypto.randomUUID(), reservation.customer_id, reservation.project_id, reservation.id, reservation.amount_cents]);
-      await client.query("COMMIT"); return reservation || null;
+      const selected = await client.query("SELECT * FROM preview_credit_reservations WHERE id=$1 FOR UPDATE", [reservationId]);
+      let reservation = selected.rows[0] || null;
+      if (!reservation || reservation.status === "captured" || !["reserved", "released"].includes(reservation.status)) {
+        await client.query("COMMIT"); return reservation;
+      }
+      if (reservation.status === "released") {
+        await client.query(
+          "INSERT INTO credit_wallet_entries (id,customer_id,project_id,amount_cents,entry_type,idempotency_key,metadata) VALUES ($1,$2,$3,$4,'preview_retry_capture',$5,$6) ON CONFLICT (idempotency_key) DO NOTHING",
+          [crypto.randomUUID(), reservation.customer_id, reservation.project_id, -reservation.amount_cents, `retry-capture:${reservation.id}`, JSON.stringify({ recoveredReservationId: reservation.id })]
+        );
+      }
+      const updated = await client.query("UPDATE preview_credit_reservations SET status='captured',updated_at=now() WHERE id=$1 AND status IN ('reserved','released') RETURNING *", [reservationId]);
+      reservation = updated.rows[0] || reservation;
+      await client.query("INSERT INTO project_purchase_rebates (id,customer_id,project_id,reservation_id,amount_cents) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (reservation_id) DO NOTHING", [crypto.randomUUID(), reservation.customer_id, reservation.project_id, reservation.id, reservation.amount_cents]);
+      await client.query("COMMIT"); return reservation;
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   }
   async releasePreview(reservationId) {
