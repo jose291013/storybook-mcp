@@ -10,7 +10,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/scenario-initial-loading`
 - Latest merged checkpoint on `main`: `9fd9397` — `Add visual identity proof workflow (#40)`
-- Current focused checkpoint: initial scenario-preparation UI correction, not yet merged
+- Current focused checkpoint: `25576e6` — `Separate initial scenario preparation`
+- Draft PR: `#41` — `https://github.com/jose291013/storybook-mcp/pull/41`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -55,7 +56,7 @@ If a source identity image is rejected by the safety system before a cover refer
 
 ## Next verification target
 
-Verify the focused initial-loading correction locally, publish it as a separate draft PR, and leave it unmerged until explicit authorization and confirmation that no preview is generating.
+Keep PR 41 in draft and unmerged until explicit authorization and confirmation that no preview is generating.
 
 After explicit merge authorization and a confirmed idle generator, verify on Render with a fresh project:
 
