@@ -7,9 +7,10 @@ This is the short operational memory for a new Codex task. Product rules and arc
 ## Git checkpoint
 
 - Repository: `jose291013/storybook-mcp`
-- Local working folder: `C:\Users\aleya\OneDrive - Aleyant\Documentos\story book`
-- Current branch: `main`
+- Local working folder: `C:\Dev\storybook-mcp`
+- Current branch: `codex/scene-planner-timeout`
 - Latest merged product-code checkpoint: `6ed7c02` — `Add whole-book scene coherence contracts`
+- Current focused fix checkpoint: `17faf67` — `Extend whole-book scene planning timeout`
 - WordPress Bridge source version: `0.6.0`
 - WordPress theme source version: `1.1.5`
 - Render service: `https://storybook-mcp.onrender.com`
@@ -19,7 +20,7 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 
 ## Current product state
 
-- The scene-contract coherence brick is merged into `main` and awaits live Render verification. After all page texts exist, one whole-book pass minimally reconciles narrative continuity and creates one structured contract per spread before any illustration begins. Photo-upload names are immutable canon (for example `Mathéo` cannot become `Mathieu`); named observers cannot replace generic friends; main actions, objects, quantities, scale and spatial relationships are carried into preview, repair and final-generation prompts. A low-cost bounded scene check may request one correction, but an advisory-QA failure cannot abort a technically coherent book.
+- The scene-contract coherence brick is merged into `main` and its live execution was confirmed on project `66ca304a-4ee3-498e-b0f8-145216fb6874`. Its 36 page texts were checkpointed through `text:36`, then the whole-book `story:coherence-and-scene-contracts` request exceeded the former 180-second general limit. Fix `17faf67` gives only this larger response a dedicated 360-second timeout, retains zero hidden SDK retries, and adds start/completion timing plus exact failure-step logging. After all page texts exist, the pass minimally reconciles narrative continuity and creates one structured contract per spread before any illustration begins. Photo-upload names are immutable canon (for example `Mathéo` cannot become `Mathieu`); named observers cannot replace generic friends; main actions, objects, quantities, scale and spatial relationships are carried into preview, repair and final-generation prompts. A low-cost bounded scene check may request one correction, but an advisory-QA failure cannot abort a technically coherent book.
 
 - The first series brick is implemented on the current branch: a paid eBook can create one idempotent editable next-adventure draft, reusing the ten answers and private character references without an AI call. It is not deployed until this branch is merged and Bridge 0.6.0 is installed.
 
@@ -35,6 +36,8 @@ Do not assume that the Git checkpoint, Render deployment, WordPress plugin, and 
 For the complete implementation checkpoint and all environment variables, read `docs/product-roadmap.md`.
 
 ## Next verification target
+
+Deploy `17faf67`, optionally set `OPENAI_STORY_TIMEOUT_MS=360000` explicitly on Render, and then use the existing free technical retry for project `66ca304a-4ee3-498e-b0f8-145216fb6874`. Confirm that Render logs `[preview] story scene plan started`, reuses every text through `text:36` without another text call or wallet debit, reaches `[preview] story scene plan completed` within the dedicated limit, persists phase `scene-contracts`, and continues with the cover. Do not consume the retry before this deployment is live.
 
 After merge, create a fresh story containing (1) a named photographed brother who only observes, (2) a new anonymous friend who shakes the hero's hand, and (3) three explicitly very large slides. Confirm that every uploaded name spelling remains exact, the generic friend stays distinct, the illustration shows the correct handshake, and the requested quantity and scale are visible. Confirm Render reaches `story:coherence-and-scene-contracts` once before the first interior illustration and a resumed job reuses that checkpoint without repeating the text call.
 
