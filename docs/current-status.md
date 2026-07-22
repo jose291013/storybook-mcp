@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -10,8 +10,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/retry-rebate-capture`
 - Latest merged checkpoint on `main`: `9e14dfe` — `Use compact visual contracts for reliable image generation (#43)`
-- Current focused checkpoint: tested retry-rebate accounting correction awaiting commit and draft PR
-- Draft PR: to be opened without merging or deploying
+- Current focused checkpoint: `ac7e01a` — `Capture successful technical retry rebates`
+- Draft PR: `#44` — `https://github.com/jose291013/storybook-mcp/pull/44`
 - Parallel draft PR: `#41` — initial scenario loading; it is separate and unmerged
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
@@ -40,7 +40,7 @@ No persistence schema, price, WooCommerce product or coupon behavior changes in 
 
 ## Next verification target
 
-1. Review the accounting diff, then publish a draft PR without merging it.
+1. Keep draft PR 44 unmerged until the user explicitly confirms that no generation is active and separately authorizes the merge.
 2. Keep PR 41 separate and unmerged.
 3. Do not modify the already paid order or create a new rebate for its purchased project automatically; any commercial gesture for the consumed WooCommerce promotion is a separate explicit business decision.
 4. After a separate merge authorization, validate the next technical retry or a controlled local ledger case: one final preview debit, one equal project rebate, no duplicate on refresh or checkout.
