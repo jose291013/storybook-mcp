@@ -88,6 +88,9 @@ export class JsonCommerceOrderStore {
       && record.paymentStatus === "paid"
     ));
   }
+  async hasAnyProjectOrder({ projectId, customerId }) {
+    return Object.values(this.read().orders).some((record) => record.projectId === projectId && record.customerId === customerId);
+  }
   async findReadyNarration({ projectId, customerId }) {
     const records = Object.values(this.read().orders).filter((record) => (
       record.projectId === projectId && record.customerId === customerId && record.productType === "narration"
@@ -168,6 +171,13 @@ export class PostgresCommerceOrderStore {
       `SELECT 1 FROM commerce_orders
        WHERE project_id=$1 AND customer_id=$2 AND product_type='ebook' AND payment_status='paid'
        LIMIT 1`,
+      [projectId, customerId]
+    );
+    return rowCount > 0;
+  }
+  async hasAnyProjectOrder({ projectId, customerId }) {
+    const { rowCount } = await this.database.query(
+      "SELECT 1 FROM commerce_orders WHERE project_id=$1 AND customer_id=$2 LIMIT 1",
       [projectId, customerId]
     );
     return rowCount > 0;

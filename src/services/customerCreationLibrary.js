@@ -34,6 +34,7 @@ export function customerCreationSummary(project) {
     pageCount: pageCount(project),
     updatedAt: project.updatedAt || null,
     previewReady: Boolean(project.previewResult && ["preview_ready", "preview_repairing", "purchased"].includes(project.status)),
+    deletable: project.status !== "purchased",
     technicalRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalRetryExhausted: technicalPreviewRetryExhausted(project),
   };

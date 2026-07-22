@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.2
+ * Version: 0.6.3
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -60,6 +60,7 @@ final class Calitiki_Woo_Bridge {
         add_action('woocommerce_account_calitiki-credits_endpoint', array(__CLASS__, 'render_account_credits'));
         add_action('woocommerce_account_calitiki-creations_endpoint', array(__CLASS__, 'render_account_creations'));
         add_action('admin_post_calitiki_resend_ebook', array(__CLASS__, 'resend_ebook_email'));
+        add_action('admin_post_calitiki_delete_creation', array(__CLASS__, 'delete_creation'));
     }
 
     public static function activate() {
@@ -77,8 +78,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.2') {
-            update_option(self::VERSION_OPTION, '0.6.2');
+        if (get_option(self::VERSION_OPTION) !== '0.6.3') {
+            update_option(self::VERSION_OPTION, '0.6.3');
             flush_rewrite_rules(false);
         }
     }
@@ -183,6 +184,43 @@ final class Calitiki_Woo_Bridge {
         $payload = json_decode(wp_remote_retrieve_body($response), true);
         if ($status < 200 || $status >= 300 || !is_array($payload)) {
             return new WP_Error('calitiki_creations_unavailable', __('Impossible de consulter vos créations pour le moment.', 'calitiki-bridge'));
+        }
+        return $payload;
+    }
+
+    private static function delete_creation_payload($customer_id, $project_id) {
+        $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        if (!$generator_url || strlen($secret) < 32) {
+            return new WP_Error('calitiki_creations_config', __('La bibliothèque Calitiki n’est pas encore configurée.', 'calitiki-bridge'));
+        }
+        $timestamp = time();
+        $signature = hash_hmac('sha256', 'delete-creation|' . $customer_id . '|' . $project_id . '|' . $timestamp, $secret);
+        $url = add_query_arg(array(
+            'wooCustomerId' => (string) $customer_id,
+            'timestamp' => $timestamp,
+            'confirmation' => $project_id,
+        ), $generator_url . '/api/commerce/creations/' . rawurlencode($project_id));
+        $response = wp_remote_request($url, array(
+            'method' => 'DELETE',
+            'timeout' => 30,
+            'headers' => array('X-Calitiki-Signature' => $signature),
+        ));
+        if (is_wp_error($response)) {
+            return $response;
+        }
+        $status = wp_remote_retrieve_response_code($response);
+        $payload = json_decode(wp_remote_retrieve_body($response), true);
+        if ($status < 200 || $status >= 300 || !is_array($payload)) {
+            $code = sanitize_key((string) ($payload['code'] ?? 'deletion_failed'));
+            $messages = array(
+                'generation_active' => __('Calitiki travaille encore sur cette création. Réessayez dès que la génération est terminée ou interrompue.', 'calitiki-bridge'),
+                'purchased_project' => __('Un livre acheté ne peut pas être supprimé.', 'calitiki-bridge'),
+                'order_exists' => __('Cette création est liée à une commande et doit être conservée.', 'calitiki-bridge'),
+                'series_canon' => __('Cette création fait partie de la continuité d’une série et doit être conservée.', 'calitiki-bridge'),
+                'cleanup_pending' => __('La création a été retirée, mais le nettoyage privé doit être finalisé par Calitiki.', 'calitiki-bridge'),
+            );
+            return new WP_Error($code, $messages[$code] ?? __('Impossible de supprimer cette création pour le moment.', 'calitiki-bridge'));
         }
         return $payload;
     }
@@ -303,7 +341,16 @@ final class Calitiki_Woo_Bridge {
                         : __('Suivre la génération', 'calitiki-bridge')));
             echo '<article class="calitiki-creation-card calitiki-preview-card"><span>' . esc_html__('Aperçu personnalisé', 'calitiki-bridge') . '</span>';
             echo '<h3>' . esc_html($title ?: 'Calitiki') . '</h3><p>' . esc_html($pages ? sprintf(__('%1$s · %2$d pages', 'calitiki-bridge'), $status_labels[$status], $pages) : $status_labels[$status]) . '</p>';
-            echo '<a class="button alt" href="' . esc_url($project_url) . '">' . esc_html($button_label) . '</a></article>';
+            echo '<a class="button alt" href="' . esc_url($project_url) . '">' . esc_html($button_label) . '</a>';
+            if (!empty($project['deletable'])) {
+                $warning = __('Supprimer définitivement cette création ? Les photos et fichiers privés qui ne sont utilisés par aucun autre livre seront effacés. Le crédit déjà utilisé et la remise liée à ce livre ne pourront pas être récupérés.', 'calitiki-bridge');
+                echo '<form class="calitiki-delete-creation" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" data-confirm="' . esc_attr($warning) . '">';
+                echo '<input type="hidden" name="action" value="calitiki_delete_creation">';
+                echo '<input type="hidden" name="project_id" value="' . esc_attr($project_id) . '">';
+                wp_nonce_field('calitiki_delete_creation_' . $project_id);
+                echo '<button class="button calitiki-delete-button" type="submit">' . esc_html__('Supprimer définitivement', 'calitiki-bridge') . '</button></form>';
+            }
+            echo '</article>';
         }
         foreach ($orders as $order) {
             foreach ($order->get_items() as $item) {
@@ -370,7 +417,30 @@ final class Calitiki_Woo_Bridge {
         if (!$found) {
             echo '<p>' . esc_html__('Aucune création achetée pour le moment.', 'calitiki-bridge') . '</p>';
         }
-        echo '</div><style>.calitiki-creation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.calitiki-creation-card{padding:22px;border:1px solid #ead8c8;border-radius:18px;background:#fffaf4}.calitiki-creation-card>span{font-size:12px;font-weight:800;color:#c96f57;text-transform:uppercase;letter-spacing:.08em}.calitiki-creation-card h3{margin:8px 0}.calitiki-creation-card>a.button,.calitiki-creation-card .calitiki-email-resend .button{display:block;width:100%;margin:0 0 12px;text-align:center}.calitiki-delivery-pending,.calitiki-delivery-email{color:#667a7c}.calitiki-delivery-warning{color:#934b3d;font-weight:600}.calitiki-email-resend{margin:14px 0 0}.calitiki-email-resend .button{margin-bottom:0!important}@media(max-width:700px){.calitiki-creation-grid{grid-template-columns:1fr}}</style></div>';
+        echo '</div><style>.calitiki-creation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.calitiki-creation-card{padding:22px;border:1px solid #ead8c8;border-radius:18px;background:#fffaf4}.calitiki-creation-card>span{font-size:12px;font-weight:800;color:#c96f57;text-transform:uppercase;letter-spacing:.08em}.calitiki-creation-card h3{margin:8px 0}.calitiki-creation-card>a.button,.calitiki-creation-card .calitiki-email-resend .button,.calitiki-creation-card .calitiki-delete-button{display:block;width:100%;margin:0 0 12px;text-align:center}.calitiki-delete-creation{margin-top:4px}.calitiki-creation-card .calitiki-delete-button{border-color:#b54136!important;background:transparent!important;color:#8b2f28!important;box-shadow:none!important}.calitiki-creation-card .calitiki-delete-button:hover{background:#b54136!important;color:#fff!important}.calitiki-delivery-pending,.calitiki-delivery-email{color:#667a7c}.calitiki-delivery-warning{color:#934b3d;font-weight:600}.calitiki-email-resend{margin:14px 0 0}.calitiki-email-resend .button{margin-bottom:0!important}@media(max-width:700px){.calitiki-creation-grid{grid-template-columns:1fr}}</style>';
+        echo '<script>document.querySelectorAll(".calitiki-delete-creation").forEach(function(form){form.addEventListener("submit",function(event){if(!window.confirm(form.getAttribute("data-confirm")||"")){event.preventDefault();}});});</script></div>';
+    }
+
+    public static function delete_creation() {
+        $redirect = function_exists('wc_get_account_endpoint_url') ? wc_get_account_endpoint_url('calitiki-creations') : home_url('/');
+        $customer_id = get_current_user_id();
+        $project_id = sanitize_text_field((string) ($_POST['project_id'] ?? ''));
+        if (!$customer_id || !$project_id) {
+            if ($customer_id) {
+                wc_add_notice(__('Création introuvable.', 'calitiki-bridge'), 'error');
+            }
+            wp_safe_redirect($redirect);
+            exit;
+        }
+        check_admin_referer('calitiki_delete_creation_' . $project_id);
+        $result = self::delete_creation_payload($customer_id, $project_id);
+        if (is_wp_error($result)) {
+            wc_add_notice($result->get_error_message(), 'error');
+        } else {
+            wc_add_notice(__('La création et ses fichiers privés propres ont été supprimés définitivement.', 'calitiki-bridge'), 'success');
+        }
+        wp_safe_redirect($redirect);
+        exit;
     }
 
     public static function resend_ebook_email() {

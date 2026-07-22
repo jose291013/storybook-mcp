@@ -12,6 +12,17 @@ const PATCH_FIELDS = new Set([
 const now = () => new Date().toISOString();
 const safePatch = (patch = {}) => Object.fromEntries(Object.entries(patch).filter(([key, value]) => PATCH_FIELDS.has(key) && value !== undefined));
 const jsonbParameter = (value) => value == null ? null : JSON.stringify(value);
+const deletionFromRow = (row) => row ? {
+  id: row.id,
+  projectId: row.project_id,
+  customerId: row.customer_id,
+  assetManifest: row.asset_manifest || {},
+  status: row.status,
+  lastError: row.last_error || "",
+  createdAt: row.created_at?.toISOString?.() || row.created_at || null,
+  updatedAt: row.updated_at?.toISOString?.() || row.updated_at || null,
+  completedAt: row.completed_at?.toISOString?.() || row.completed_at || null,
+} : null;
 
 function createRecord(input = {}) {
   const createdAt = now();
@@ -32,11 +43,11 @@ function createRecord(input = {}) {
 export class JsonProjectStore {
   constructor(filePath = DEFAULT_LOCAL_PATH) { this.filePath = path.resolve(filePath); }
   read() {
-    if (!fs.existsSync(this.filePath)) return { customers: {}, projects: {} };
+    if (!fs.existsSync(this.filePath)) return { customers: {}, projects: {}, deletions: {} };
     try {
       const parsed = JSON.parse(fs.readFileSync(this.filePath, "utf8"));
-      return { customers: parsed.customers || {}, projects: parsed.projects || {} };
-    } catch { return { customers: {}, projects: {} }; }
+      return { customers: parsed.customers || {}, projects: parsed.projects || {}, deletions: parsed.deletions || {} };
+    } catch { return { customers: {}, projects: {}, deletions: {} }; }
   }
   write(store) {
     fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
@@ -92,6 +103,41 @@ export class JsonProjectStore {
       project.sourceProjectId === sourceProjectId && project.customerId === customerId
       && !["purchased", "archived"].includes(project.status)
     )) || null;
+  }
+  async photoStorageKeysReferencedElsewhere(projectId, candidates = []) {
+    const wanted = new Set(candidates.filter(Boolean));
+    if (!wanted.size) return [];
+    const referenced = new Set();
+    for (const project of Object.values(this.read().projects)) {
+      if (project.id === projectId) continue;
+      for (const photo of project.photoRefs || []) if (wanted.has(photo?.storageKey)) referenced.add(photo.storageKey);
+    }
+    return [...referenced];
+  }
+  async prepareDeletion(id, identity, assetManifest = {}) {
+    const customer = await this.ensureCustomer(identity); const store = this.read();
+    const prior = Object.values(store.deletions).find((item) => item.projectId === id && item.customerId === customer.id);
+    if (prior) return { project: null, deletion: prior, alreadyDeleted: true };
+    const project = store.projects[id];
+    if (!project || project.customerId !== customer.id) return null;
+    const timestamp = now();
+    const deletion = {
+      id: crypto.randomUUID(), projectId: project.id, customerId: customer.id, assetManifest,
+      status: "pending", lastError: "", createdAt: timestamp, updatedAt: timestamp, completedAt: null,
+    };
+    store.deletions[deletion.id] = deletion;
+    delete store.projects[id];
+    this.write(store);
+    return { project, deletion, alreadyDeleted: false };
+  }
+  async completeDeletion(projectId, identity, { error = "" } = {}) {
+    const customer = await this.ensureCustomer(identity); const store = this.read();
+    const deletion = Object.values(store.deletions).find((item) => item.projectId === projectId && item.customerId === customer.id);
+    if (!deletion) return null;
+    deletion.status = error ? "pending" : "completed";
+    deletion.lastError = String(error || ""); deletion.updatedAt = now();
+    deletion.completedAt = error ? null : (deletion.completedAt || now());
+    this.write(store); return deletion;
   }
 }
 
@@ -176,6 +222,54 @@ export class PostgresProjectStore {
       [sourceProjectId, customerId]
     );
     return fromRow(rows[0]);
+  }
+  async photoStorageKeysReferencedElsewhere(projectId, candidates = []) {
+    const wanted = new Set(candidates.filter(Boolean));
+    if (!wanted.size) return [];
+    const { rows } = await this.database.query("SELECT photo_refs FROM book_projects WHERE id<>$1", [projectId]);
+    const referenced = new Set();
+    for (const row of rows) for (const photo of row.photo_refs || []) if (wanted.has(photo?.storageKey)) referenced.add(photo.storageKey);
+    return [...referenced];
+  }
+  async prepareDeletion(id, identity, assetManifest = {}) {
+    const customer = await this.ensureCustomer(identity); const client = await this.database.connect();
+    try {
+      await client.query("BEGIN");
+      const prior = await client.query("SELECT * FROM project_deletions WHERE project_id=$1 AND customer_id=$2 FOR UPDATE", [id, customer.id]);
+      if (prior.rows[0]) {
+        await client.query("COMMIT");
+        return { project: null, deletion: deletionFromRow(prior.rows[0]), alreadyDeleted: true };
+      }
+      const selected = await client.query("SELECT * FROM book_projects WHERE id=$1 AND customer_id=$2 FOR UPDATE", [id, customer.id]);
+      const project = fromRow(selected.rows[0]);
+      if (!project) { await client.query("COMMIT"); return null; }
+      if (project.status === "purchased") { await client.query("ROLLBACK"); return { blockedReason: "purchased" }; }
+      const protectedRows = await client.query(
+        `SELECT EXISTS(SELECT 1 FROM commerce_orders WHERE project_id=$1) AS has_order,
+                EXISTS(SELECT 1 FROM series_continuity_facts WHERE source_project_id=$1) AS has_canon`,
+        [id]
+      );
+      if (protectedRows.rows[0]?.has_order) { await client.query("ROLLBACK"); return { blockedReason: "order_exists" }; }
+      if (protectedRows.rows[0]?.has_canon) { await client.query("ROLLBACK"); return { blockedReason: "series_canon" }; }
+      const deletionId = crypto.randomUUID();
+      const inserted = await client.query(
+        "INSERT INTO project_deletions (id,project_id,customer_id,asset_manifest) VALUES ($1,$2,$3,$4) RETURNING *",
+        [deletionId, id, customer.id, JSON.stringify(assetManifest || {})]
+      );
+      await client.query("DELETE FROM book_projects WHERE id=$1 AND customer_id=$2", [id, customer.id]);
+      await client.query("COMMIT");
+      return { project, deletion: deletionFromRow(inserted.rows[0]), alreadyDeleted: false };
+    } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async completeDeletion(projectId, identity, { error = "" } = {}) {
+    const customer = await this.ensureCustomer(identity);
+    const { rows } = await this.database.query(
+      `UPDATE project_deletions SET status=$3,last_error=$4,updated_at=now(),
+       completed_at=CASE WHEN $3='completed' THEN COALESCE(completed_at,now()) ELSE NULL END
+       WHERE project_id=$1 AND customer_id=$2 RETURNING *`,
+      [projectId, customer.id, error ? "pending" : "completed", String(error || "")]
+    );
+    return deletionFromRow(rows[0]);
   }
 }
 

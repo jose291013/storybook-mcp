@@ -75,6 +75,15 @@ export function getJob(id) {
   return store.jobs[id] || null;
 }
 
+export function deleteJob(id) {
+  if (!id) return false;
+  const store = readStoreSafe();
+  if (!store.jobs[id]) return false;
+  delete store.jobs[id];
+  writeStore(store);
+  return true;
+}
+
 function cryptoRandomId() {
   return Math.random().toString(16).slice(2) + Date.now().toString(16);
 }

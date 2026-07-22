@@ -1,7 +1,7 @@
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const DEFAULT_LOCAL_DIR = path.resolve("data/private/ebooks");
 
@@ -20,6 +20,15 @@ function safeLocalPath(root, key) {
   return target;
 }
 
+function safeStoragePrefix(value) {
+  const prefix = String(value || "").replaceAll("\\", "/").replace(/^\/+/, "");
+  const segments = prefix.replace(/\/$/, "").split("/");
+  if (!prefix || segments.some((segment) => !segment || segment === "." || segment === "..") || !/^[A-Za-z0-9._/-]+$/.test(prefix)) {
+    throw new Error("Invalid private storage prefix");
+  }
+  return prefix.endsWith("/") ? prefix : `${prefix}/`;
+}
+
 export class LocalDeliveryStorage {
   constructor(root = DEFAULT_LOCAL_DIR) { this.root = path.resolve(root); }
   async put({ key, body }) {
@@ -33,6 +42,17 @@ export class LocalDeliveryStorage {
     const stat = await fsPromises.stat(target);
     return { body: fs.createReadStream(target), contentType: contentTypeForKey(key), byteSize: stat.size };
   }
+  async delete(key) {
+    const target = safeLocalPath(this.root, key);
+    await fsPromises.rm(target, { force: true });
+    return { key, deleted: true };
+  }
+  async deletePrefix(prefix) {
+    const normalized = safeStoragePrefix(prefix);
+    const target = safeLocalPath(this.root, normalized);
+    await fsPromises.rm(target, { recursive: true, force: true });
+    return { prefix: normalized, deleted: true };
+  }
 }
 
 export class S3DeliveryStorage {
@@ -44,6 +64,23 @@ export class S3DeliveryStorage {
   async get(key) {
     const result = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
     return { body: result.Body, contentType: result.ContentType || "application/pdf", byteSize: Number(result.ContentLength || 0) };
+  }
+  async delete(key) {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    return { key, deleted: true };
+  }
+  async deletePrefix(prefix) {
+    const normalized = safeStoragePrefix(prefix);
+    let continuationToken;
+    do {
+      const listed = await this.client.send(new ListObjectsV2Command({
+        Bucket: this.bucket, Prefix: normalized, ContinuationToken: continuationToken,
+      }));
+      const objects = (listed.Contents || []).map((item) => ({ Key: item.Key })).filter((item) => item.Key);
+      if (objects.length) await this.client.send(new DeleteObjectsCommand({ Bucket: this.bucket, Delete: { Objects: objects, Quiet: true } }));
+      continuationToken = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+    } while (continuationToken);
+    return { prefix: normalized, deleted: true };
   }
 }
 
