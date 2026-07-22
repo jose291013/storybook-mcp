@@ -1154,6 +1154,10 @@ async function submitVisualProof(action) {
   try {
     await generatePreviewForProject(state.projectId, action);
   } catch (error) {
+    if (error?.technical) {
+      await showGenerationFailure();
+      return;
+    }
     elements.visualProofPanel.hidden = false;
     elements.generationPanel.hidden = true;
     elements.visualProofFeedback.textContent = error.message || tr("generationFailed");

@@ -127,6 +127,7 @@ router.post("/finalize", async (req, res) => {
               contract: page.scene_contract,
               stylePrompt: blueprint.style?.style_prompt || blueprint.style?.prompt || "",
               fallbackPrompt: page.image_prompt,
+              visualAliases: sceneContinuity.visualAliases,
             }),
             outName: `final-page${page.page_number}-${jobId}`,
             ...sceneContinuity,

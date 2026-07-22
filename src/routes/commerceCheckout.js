@@ -7,6 +7,7 @@ import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../services/ebookFulfillment.js";
 import { narrationChoice } from "../config/narrationOptions.js";
 import { registerPaidNarration } from "../services/narrationFulfillment.js";
+import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { signCommercePayload, verifyBookOrderWebhook, verifyDeliveryLinkRequest, woocommerceCheckoutBridgeUrl } from "../services/commerceToken.js";
@@ -30,6 +31,13 @@ router.post("/commerce/checkout-link", async (req, res) => {
     if (!project) return res.status(404).json({ error: "Project not found" });
     if (!project.previewResult || !["preview_ready", "purchased"].includes(project.status)) return res.status(409).json({ error: "Generate and validate the preview before purchase" });
     const pageCount = normalizePageCount(project.questionnaire?.page_count || project.productConfiguration?.page_count || project.productConfiguration?.pageCount || 24);
+    // Older technical retries could complete after their original wallet
+    // reservation had been released. Settle that successful preview before
+    // building an unpaid checkout, but never alter an already purchased book.
+    const previewReservationId = generationCheckpoint(project)?.creditReservationId;
+    if (project.status === "preview_ready" && previewReservationId) {
+      await creditStore.capturePreview(previewReservationId);
+    }
     const reservation = await creditStore.reserveProjectRebate(identity, { projectId, idempotencyKey: `checkout:${projectId}:${productType}:${crypto.randomUUID()}` });
     const payload = {
       sub: String(identity.wooCustomerId), projectId, productType, pageCount,

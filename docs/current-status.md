@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-22
+Last updated: 2026-07-23
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -9,67 +9,41 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/scenario-initial-loading`
-- Latest merged checkpoint on `main`: `9fd9397` — `Add visual identity proof workflow (#40)`
-- Current focused checkpoint: `25576e6` — `Separate initial scenario preparation`
+- Latest merged checkpoint on `main`: `84ba8d7` — `Capture preview rebates after successful technical retries (#44)`
+- Current focused checkpoint: PR 41 updated with current `main`; merge commit pending
 - Draft PR: `#41` — `https://github.com/jose291013/storybook-mcp/pull/41`
 - WordPress Bridge source/package: `0.6.2`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR 40 is merged and Render exposes the seven styles and three rendering modes. Never merge or trigger another Render deployment until the user explicitly confirms that no preview generation is running and authorizes the merge.
+PR 44 is merged and production responds successfully. Its accounting correction settles a released preview reservation exactly once after a successful technical retry and creates the equal project rebate. The already purchased production order remains unchanged. Never merge PR 41 or trigger another Render deployment until the user explicitly confirms that no preview generation is running and separately authorizes the merge.
 
-## Current correction: initial scenario preparation
+## Current product brick: initial scenario preparation
 
-The first scenario request previously reused the revision state before any proposal existed. It displayed empty modification controls and the misleading message that Calitiki was checking a creator request. The focused branch separates both moments:
+The first scenario request previously reused the revision state before any proposal existed. It displayed empty modification controls and the misleading message that Calitiki was checking a creator request. PR 41 separates both moments while retaining the current visual-proof, image-recovery and credit behavior from `main`:
 
 1. Initial preparation shows only a dedicated three-step progress card explaining that Calitiki is organizing the acts, checking chronology and preparing editable cards from the ten answers.
 2. Character controls, Act 1/2/3 cards, general feedback and approval actions appear only after a real scenario response exists.
 3. Revision keeps its existing “checking your request” state because a creator request exists at that point.
-4. If the initial request fails without producing a provisional scenario, the creator returns to the credit-confirmation screen with an actionable no-charge retry message instead of remaining on an empty scenario screen.
+4. If the initial request fails without producing a provisional scenario, the creator returns to the credit-confirmation screen with an actionable no-charge retry message.
+5. If the service returns a provisional scenario with validation issues, the creator still sees the editable Act 1/2/3 cards and localized guidance.
 
-## Current product brick: visual identity proof
-
-The scenario workflow is unchanged: ten answers, persisted Act 1/2/3 review, deterministic chronology, creator-added characters, exact physical/thought/memory/voice presence choices, and explicit scenario approval before any paid generation.
-
-The current branch adds the next gate after scenario approval:
-
-1. Seven real style examples are derived from one synthetic non-customer portrait and one identical lantern scene.
-2. Style choice is grouped by expected likeness: maximum photorealism; illustrated and recognizable; clearly cartoon.
-3. Desktop hover and keyboard focus reveal the same reference portrait. Mobile has an explicit reference toggle.
-4. `3D douce` is renamed `3D cartoon douce`; its copy honestly says that facial traits are stylized.
-5. Reference payloads combine the full figure with a face-focused crop. Prompting preserves face geometry independently from the medium.
-6. A bounded identity QA check may request one correction in maximum/strong likeness modes.
-7. After scenario approval and credit reservation, Calitiki creates the manuscript/contracts and one medium-quality cover proof, then pauses. No interior image starts until the creator approves the proof. One same-style cover retry is included without a second credit reservation.
-8. The proof decision is checkpointed while the project remains `preview_generating`, so Bridge 0.6.2 and **My creations Calitiki** remain compatible. Closing the browser safely restores the proof.
-
-If a source identity image is rejected by the safety system before a cover reference exists, Calitiki now asks for a clear non-branded portrait rather than silently producing a generic cover. After approval, an interior retry may use the approved private cover as its continuity reference.
+No persistence schema, commerce rule, preview price, image policy or WordPress package changes in this brick.
 
 ## Verification completed locally
 
-- `node --check` passes for the browser app, preview routes and image services.
-- `npm.cmd test`: 107 passed, 0 failed.
-- Tests cover the seven-style catalog, three likeness families, real comparison assets, photoreal prompt rules, identity QA wiring and the mandatory cover pause before the interior loop.
-- Desktop browser QA loaded 7 cards in 3 groups with `soft_watercolor` selected by default.
-- Generated comparison assets are WebP files in `public/assets/examples/styles/`; the reference is entirely synthetic and contains no customer or child data.
-- `git diff --check` passes apart from expected Windows line-ending notices.
+- The merge conflict with current `main` was limited to this operational status file.
+- `public/app.js`, the scenario markup/styles, the roadmap and scenario tests merged automatically with PRs 42–44.
+- Syntax check for `public/app.js`: passed.
+- Full `npm.cmd test`: 113 passed, 0 failed.
 
 ## Next verification target
 
-Keep PR 41 in draft and unmerged until explicit authorization and confirmation that no preview is generating.
-
-After explicit merge authorization and a confirmed idle generator, verify on Render with a fresh project:
-
-1. Scenario review and character presence editing behave exactly as on main.
-2. Every style example loads; hover/focus/mobile reference comparison works.
-3. A photoreal project keeps natural facial geometry; an illustrated project changes only the medium; 3D is visibly labelled cartoon.
-4. Scenario approval reserves once and stops after the cover proof.
-5. Closing and reopening through **My creations** restores that proof.
-6. Regenerating the proof once does not reserve a second credit; a third attempt is blocked.
-7. Approving the proof resumes from the persisted manuscript/contracts and completes all interior pages.
-8. The ready email is sent only after the complete book is ready.
-
-Do not use an existing paid or purchased book as the first test. Use a fresh unpaid preview project.
+1. Commit and push the conflict-free branch update to draft PR 41 without merging it.
+2. After separate merge authorization and a confirmed idle generator, verify with a fresh unpaid project that the initial three-step preparation appears before any scenario controls.
+3. Confirm the editable Act 1/2/3 review appears after preparation, while a true revision still shows the “checking your request” state.
+4. Confirm the visual cover proof, safe image recovery and retry-rebate accounting introduced by later PRs remain unchanged.
 
 ## Separate later brick
 

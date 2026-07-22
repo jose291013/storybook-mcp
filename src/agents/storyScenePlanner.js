@@ -1,5 +1,6 @@
 import { runAgent } from "../services/agentRunner.js";
 import { loadPrompt } from "../services/loadPrompt.js";
+import { aliasesFromSceneContract, compactImageSceneContract, neutralizeImageText } from "../services/imageVisualContract.js";
 import { canonicalizeWrittenNames } from "./blueprintFiller.js";
 
 function key(value) {
@@ -153,32 +154,40 @@ export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCa
   return { pageTexts: finalPageTexts, sceneContracts };
 }
 
-export function sceneContractImagePrompt({ contract, stylePrompt = "", fallbackPrompt = "" } = {}) {
-  if (!contract) return String(fallbackPrompt || "").trim();
-  const named = list(contract.named_characters, 10)
-    .map((item) => `${item.name}: ${item.visual_role || "visible"}; action: ${item.action || "as defined by the story"}`)
+export function sceneContractImagePrompt({
+  contract,
+  stylePrompt = "",
+  fallbackPrompt = "",
+  visualAliases = [],
+  safetyFallback = false,
+} = {}) {
+  const aliases = visualAliases.length ? visualAliases : aliasesFromSceneContract(contract);
+  if (!contract) return neutralizeImageText(fallbackPrompt, aliases).trim();
+  const compact = compactImageSceneContract(contract, aliases, { safetyFallback });
+  const named = list(compact.named_characters, 10)
+    .map((item) => `${item.name}: ${item.visual_role || "visible"}; action: ${item.action || "present in the scene"}`)
     .join(" | ");
-  const generic = list(contract.generic_characters, 12)
+  const generic = list(compact.generic_characters, 12)
     .map((item) => `${item.id}: ${item.description}; action: ${item.action}; must remain visually distinct from ${(item.must_not_resemble || []).join(", ") || "all recurring characters"}`)
     .join(" | ");
-  const elements = list(contract.required_elements, 15)
+  const elements = list(compact.required_elements, 15)
     .map((item) => `${item.description}${item.quantity ? `; quantity: ${item.quantity}` : ""}${item.scale ? `; scale: ${item.scale}` : ""}`)
     .join(" | ");
-  const objectStates = list(contract.object_states, 20)
+  const objectStates = list(compact.object_states, 20)
     .map((item) => `${item.name}: state ${item.state}; owner ${item.owner || "none"}; quantity ${item.quantity || 1}; ${item.instruction || "keep exactly this state"}`)
     .join(" | ");
   return [
-    "Create one detailed square children's-book illustration from the authoritative scene contract below.",
-    `STORY BEAT: ${contract.story_beat || ""}`,
-    contract.source_prose ? `AUTHORITATIVE PAIRED PROSE: ${contract.source_prose}` : "",
-    `MAIN ACTION: ${contract.main_action?.subject || ""} ${contract.main_action?.verb || ""} ${contract.main_action?.target || ""}. The subject, gesture and target must be unmistakable.`,
-    named ? `RECURRING NAMED CHARACTERS: ${named}` : "",
+    safetyFallback
+      ? "Create one policy-safe square children's-book illustration from this minimal visual specification. Every character is original and unbranded."
+      : "Create one detailed square children's-book illustration from this compact visual specification.",
+    `MAIN ACTION: ${compact.main_action.subject} ${compact.main_action.verb} ${compact.main_action.target}. The subject, gesture and target must be unmistakable.`,
+    named ? `VISIBLE CHARACTER ROLES: ${named}` : "",
     generic ? `GENERIC CHARACTERS: ${generic}` : "",
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",
     objectStates ? `AUTHORITATIVE OBJECT STATES: ${objectStates}. Each object has exactly one state. A held wearable is not also worn; never duplicate it.` : "",
-    list(contract.spatial_relationships).length ? `SPATIAL RELATIONSHIPS: ${contract.spatial_relationships.join(" | ")}` : "",
-    list(contract.forbidden_elements).length ? `FORBIDDEN SUBSTITUTIONS OR ELEMENTS: ${contract.forbidden_elements.join(" | ")}` : "",
-    stylePrompt ? `LOCKED RENDERING STYLE: ${stylePrompt}` : "",
-    "Show one readable focal action, coherent physical scale and the exact requested number of people or objects. Generic people are not recurring family members. No text, captions, logos or watermarks inside the illustration.",
+    compact.spatial_relationships.length ? `SPATIAL RELATIONSHIPS: ${compact.spatial_relationships.join(" | ")}` : "",
+    compact.forbidden_elements.length ? `FORBIDDEN SUBSTITUTIONS OR ELEMENTS: ${compact.forbidden_elements.join(" | ")}` : "",
+    stylePrompt ? `LOCKED RENDERING STYLE: ${neutralizeImageText(stylePrompt, aliases)}` : "",
+    "Show one readable focal action, coherent physical scale and the exact requested number of people or objects. Do not render dialogue or written story text. No text, captions, logos, trademarks or watermarks inside the illustration.",
   ].filter(Boolean).join("\n");
 }

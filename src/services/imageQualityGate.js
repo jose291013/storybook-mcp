@@ -31,11 +31,30 @@ function parseJson(text) {
 }
 
 const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|no coherent|no recognizable|unrecognizable scene|broken pixels|pixel corruption)/iu;
+const WARDROBE_ONLY_PATTERN = /(?:\boutfits?\b|\bwardrobe\b|\bclothing\b|\bgarments?\b|\bwears?\b|\bwore\b|\bt-?shirts?\b|\btee-?shirts?\b|\bshirts?\b|\bshorts?\b|\bshoes?\b|\bsneakers?\b|\bsandals?\b|\bcrocs?\b|\bcaps?\b|\bhats?\b|\bcasquettes?\b|\btenues?\b|\bv[êe]tements?\b|\bchemises?\b|\bd[ée]bardeurs?\b|\bchaussures?\b|\bbaskets?\b|\bsandales?\b|\bporte(?:nt)?\b|\bmotifs?\b|\blogos?\b|\binscriptions?\b|\bmarques?\b|\batuendos?\b|\bropa\b|\blleva(?:n)?\b|\bcamisetas?\b|\bpantalones?\b|\bzapatos?\b|\bgorras?\b)/iu;
+const OBJECT_STATE_CONTRADICTION_PATTERN = /(?:duplicat|two copies|twice|quantity|hold(?:s|ing)?[^.]{0,80}wear(?:s|ing)?|wear(?:s|ing)?[^.]{0,80}hold(?:s|ing)?|held[^.]{0,80}worn|worn[^.]{0,80}held|required object[^.]{0,80}(?:absent|missing)|dupliqu|deux exempl|quantit[ée]|(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main[^.]{0,80}port[ée]|port[ée][^.]{0,80}(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main|objet requis[^.]{0,80}(?:absent|manquant)|sostiene[^.]{0,80}lleva\s+puesto|lleva\s+puesto[^.]{0,80}sostiene)/iu;
+
+const NARRATIVE_CONTRADICTION_PATTERN = /(?:does not (?:perform|show|depict)|wrong (?:subject|target|central action)|required (?:named )?(?:character|creature)[^.]{0,80}(?:absent|missing)|n['\u2019](?:effectue|accomplit|ex[\u00e9e]cute|montre|repr[\u00e9e]sente) pas|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|cr[\u00e9e]ature) (?:nomm[\u00e9e](?:e)? )?requis(?:e)?[^.]{0,80}(?:absent|manquant)|no (?:realiza|muestra|representa) la acci[\u00f3o]n|(?:sujeto|objetivo|acci[\u00f3o]n principal) incorrect[oa]|(?:personaje|criatura) requerid[oa][^.]{0,80}(?:ausente|falta))/iu;
+const POSITIVE_SCENE_CONFIRMATION_PATTERN = /(?:\bno issue\b|\bno contradiction\b|\bas (?:requested|required|specified)\b|\bcorrectly\b|\bcompliant\b|\bconform[ée]ment\b|\bcomme demand[ée]\b|\bcomme pr[ée]vu\b|\bsans probl[èe]me\b|\bsin problema\b|\bseg[uú]n lo solicitado\b)/iu;
+const EXPLICIT_SCENE_CONTRADICTION_PATTERN = /(?:\babsent\b|\bmissing\b|\bomitted\b|\bwrong\b|\bincorrect\b|\bcontradict|\bdoes not\b|\bdo not\b|\bnot (?:shown|visible|present|depicted|large|small|clear|performed)\b|\bfails? to\b|\binstead\b|\bduplicat|\btwo copies\b|\btwice\b|\bquantity\b|\bscale\b[^.]{0,60}\bnot\b|\babsent(?:e)?\b|\bmanquant(?:e)?\b|\bomis(?:e)?\b|\bincorrect(?:e)?\b|\bcontradi|\bn['’]est pas\b|\bne\b[^.]{0,80}\bpas\b|\bau lieu\b|\bdupliqu|\bdeux exempl|\bquantit[ée]\b|\b[ée]chelle\b[^.]{0,60}\bpas\b|\bausente\b|\bfalta\b|\bincorrect[oa]\b|\bcontradi|\bno (?:aparece|muestra|representa|realiza|est[aá])\b|\ben lugar de\b|\bduplicad[oa]\b|\bcantidad\b|\bescala\b[^.]{0,60}\bno\b)/iu;
 
 export function objectiveTechnicalIssues(issues = []) {
   return (Array.isArray(issues) ? issues : [])
     .map(String)
     .filter((issue) => OBJECTIVE_DEFECT_PATTERN.test(issue));
+}
+
+export function objectiveSceneContractIssues(issues = []) {
+  return (Array.isArray(issues) ? issues : [])
+    .map(String)
+    .filter(Boolean)
+    .filter((issue) => !POSITIVE_SCENE_CONFIRMATION_PATTERN.test(issue))
+    .filter((issue) => EXPLICIT_SCENE_CONTRADICTION_PATTERN.test(issue)
+      || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
+      || NARRATIVE_CONTRADICTION_PATTERN.test(issue))
+    .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
+      || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
+      || NARRATIVE_CONTRADICTION_PATTERN.test(issue));
 }
 
 export function isImageSafetyRejection(error) {
@@ -154,8 +173,12 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
     max_output_tokens: 350,
   });
   const result = parseJson(extractText(response));
-  const approved = result?.approved === true;
-  const issues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 4) : [];
+  const reportedIssues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 4) : [];
+  const issues = objectiveSceneContractIssues(reportedIssues);
+  // This check owns action, cast, quantity and spatial contradictions only.
+  // Models sometimes report wardrobe or logo differences despite the explicit
+  // instruction above; those belong to continuity prompting, not scene QA.
+  const approved = result?.approved === true || issues.length === 0;
   return { approved, issues: approved ? [] : (issues.length ? issues : ["The illustration contradicts the structured scene contract."]) };
 }
 
@@ -204,6 +227,7 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
 
 export async function generateQualityCheckedImage({
   prompt,
+  safetyFallbackPrompt = "",
   castPresent = [],
   pageLabel = "illustration",
   maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "2", 10) || 2),
@@ -214,8 +238,16 @@ export async function generateQualityCheckedImage({
   let previousIssues = [];
   let previousRejectionKind = "technical";
   let omitReferenceImages = false;
-  for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
-    onAttempt?.({ phase: "started", attempt, maximumAttempts, pageLabel });
+  let safetyFallbackActive = false;
+  let attemptLimit = maximumAttempts;
+  for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
+    const referenceImagesForAttempt = omitReferenceImages
+      ? generationOptions.referenceImages?.filter((reference) => reference?.kind === "continuity")
+      : generationOptions.referenceImages;
+    const model = referenceImagesForAttempt?.length
+      ? (process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2")
+      : (generationOptions.model || process.env.IMAGE_MODEL || "gpt-image-2");
+    onAttempt?.({ phase: "started", attempt, maximumAttempts: attemptLimit, pageLabel, model, safetyFallback: safetyFallbackActive });
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
@@ -228,13 +260,11 @@ export async function generateQualityCheckedImage({
     try {
       const imageUrl = await generateImage({
         ...generationOptions,
-        referenceImages: omitReferenceImages
-          ? generationOptions.referenceImages?.filter((reference) => reference?.kind === "continuity")
-          : generationOptions.referenceImages,
-        prompt: `${prompt}${repairNote}`,
+        referenceImages: referenceImagesForAttempt,
+        prompt: `${safetyFallbackActive && safetyFallbackPrompt ? safetyFallbackPrompt : prompt}${repairNote}`,
         outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
       });
-      onAttempt?.({ phase: "generated", attempt, maximumAttempts, pageLabel });
+      onAttempt?.({ phase: "generated", attempt, maximumAttempts: attemptLimit, pageLabel });
       const inspection = await inspectGeneratedIllustration({
         imagePath: outputImagePath(imageUrl),
         pageLabel,
@@ -263,17 +293,17 @@ export async function generateQualityCheckedImage({
         ])
         : [{ approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }];
       if (inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved) {
-        onAttempt?.({ phase: "approved", attempt, maximumAttempts, pageLabel });
+        onAttempt?.({ phase: "approved", attempt, maximumAttempts: attemptLimit, pageLabel });
         return imageUrl;
       }
       // Style comparison is bounded and advisory. It may request one stronger
       // regeneration, but a second coherent image must not abort an entire
       // preview because a vision model distinguishes subtle realism or polish.
-      if (inspection.approved && attempt === maximumAttempts) {
+      if (inspection.approved && attempt === attemptLimit) {
         onAttempt?.({
           phase: !identityInspection.approved ? "approved-with-identity-warning" : sceneInspection.approved ? "approved-with-style-warning" : "approved-with-scene-warning",
           attempt,
-          maximumAttempts,
+          maximumAttempts: attemptLimit,
           pageLabel,
           issues: [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues],
         });
@@ -283,10 +313,10 @@ export async function generateQualityCheckedImage({
       previousRejectionKind = inspection.approved
         ? (!identityInspection.approved ? "identity" : sceneInspection.approved ? "style" : "scene")
         : "technical";
-      onAttempt?.({ phase: "rejected", attempt, maximumAttempts, pageLabel, issues: previousIssues });
+      onAttempt?.({ phase: "rejected", attempt, maximumAttempts: attemptLimit, pageLabel, issues: previousIssues });
     } catch (error) {
-      onAttempt?.({ phase: "failed", attempt, maximumAttempts, pageLabel, error: String(error?.message || error) });
-      if (isImageSafetyRejection(error) && !omitReferenceImages && generationOptions.referenceImages?.length && attempt < maximumAttempts) {
+      onAttempt?.({ phase: "failed", attempt, maximumAttempts: attemptLimit, pageLabel, error: String(error?.message || error) });
+      if (isImageSafetyRejection(error) && !omitReferenceImages && generationOptions.referenceImages?.length) {
         const continuityReferences = generationOptions.referenceImages.filter((reference) => reference?.kind === "continuity");
         if (!continuityReferences.length) {
           throw new Error("The identity reference could not be used safely. Upload a clear, non-branded portrait before regenerating the visual proof.");
@@ -295,12 +325,17 @@ export async function generateQualityCheckedImage({
         // canon, but omit source pixels that may contain a logo or protected
         // character. This makes the next request safer without bypassing policy.
         omitReferenceImages = true;
+        safetyFallbackActive = true;
         previousRejectionKind = "technical";
-        previousIssues = ["a supplied reference contained material the safety system could not process; use only the generic non-branded identity description"];
+        previousIssues = [];
+        // A rejected request returned no image. If it happened on the final
+        // normal attempt, allow exactly one continuity-only replacement call.
+        // `omitReferenceImages` prevents this bounded extension from repeating.
+        if (attempt === attemptLimit) attemptLimit += 1;
         continue;
       }
       throw error;
     }
   }
-  throw new Error(`Illustration rejected after ${maximumAttempts} attempts: ${previousIssues.join(" | ") || "visual quality failure"}`);
+  throw new Error(`Illustration rejected after ${attemptLimit} attempts: ${previousIssues.join(" | ") || "visual quality failure"}`);
 }
