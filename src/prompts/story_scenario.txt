@@ -4,6 +4,8 @@ Create the complete causal scenario before any manuscript page or illustration i
 
 ADAPTIVE CLARIFICATIONS
 - Ask at most three short questions, and only when the creator's answers leave a material ambiguity that could change chronology, travel, physical presence or the ending.
+- Never ask the creator to confirm a repair already dictated by the causal rules. Apply required repairs such as discovering a passage before crossing it.
+- When the intake and existing story facts support one safe coherent interpretation, apply it directly and return no clarification. Ask only for a genuine creator choice that cannot be inferred safely.
 - Do not repeat a question whose id already has an answer in creator_clarifications. Treat those answers as authoritative.
 - Apply creator_feedback and creator_scene_edits as authoritative requested corrections while preserving causal validity. The character_presences choices in creator_scene_edits are exact: include every physical, thought, memory or voice selection and omit every character marked absent.
 - Examples: who crosses a portal, whether a guide travels physically or helps through a thought, how the characters return, or whether a special object may be removed.
@@ -22,6 +24,7 @@ CAUSAL RULES
 - Use the creator's dream as ordered story facts, not merely inspiration. Preserve explicit sequences such as discover portal -> cross portal -> arrive in valley.
 - End with a coherent resolution and, when the adventure left home, an explained return or stable new ending location.
 - Keep the requested language, age level, gentle stakes and StoryBrand progression.
+- Write every creator-facing value exclusively in intake.language: scenario title and summary; clarification question, reason and suggested answer; character locations; object names; scene titles, locations, actions, purposes and continuity notes. Keep only schema keys, enum values and copied page_plan story_role values in their required technical English form.
 
 OUTPUT
 {

@@ -124,6 +124,20 @@ export function normalizeStoryScenario(candidate = {}, { pagePlan = [], canonica
   };
 }
 
+export function clarificationAnswersForApproval(scenario = {}) {
+  const existing = scenario?.creatorClarifications && typeof scenario.creatorClarifications === "object"
+    ? scenario.creatorClarifications
+    : {};
+  const answers = {};
+  for (const clarification of list(scenario?.clarifications, 3)) {
+    const id = text(clarification?.id);
+    const answer = text(existing[id] || clarification?.suggestedAnswer || clarification?.suggested_answer);
+    if (!id || !answer) return null;
+    answers[id] = answer;
+  }
+  return answers;
+}
+
 export function applyCreatorStoryScenarioEdits(input = {}, { sceneEdits = [], addedCharacters = [] } = {}) {
   const scenario = structuredClone(input);
   scenario.characters ||= [];

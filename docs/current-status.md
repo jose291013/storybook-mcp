@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/legacy-photo-refs-deletion`
-- Latest merged checkpoint before this release: PR #48 — `Make project deletion non-blocking` (`80c0534`)
-- Current release checkpoint: PR #49 — `Handle legacy photo references during deletion`
-- Merge safety: explicitly authorized on 2026-07-23 after the user confirmed no active book generation
+- Current branch: `codex/scenario-language-direct-approval`
+- Latest merged checkpoint: PR #49 — `Handle legacy photo references during deletion` (`4e05a6d`)
+- Current focused checkpoint: keep every scenario-review field in the requested language and allow direct approval of unchanged suggested answers
+- Pull request: draft PR #50 — `Localize and streamline scenario approval`; do not merge while the user's current book is being created
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-The automatic worker deployed by PR #47 recovered project `6e934bb8-7322-4f7e-b77c-e40d30f0fa90` on attempt 5 after the missing AWS `s3:ListBucket` permission was granted. PR #48 and Bridge 0.6.7 then made the deletion request non-blocking. The production retry for project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` exposed one remaining historical-data case: another PostgreSQL row stores `photo_refs` as a JSON object instead of an array, causing `object is not iterable` before the deletion receipt commits. The current branch normalizes array, object-map and nested-wrapper photo references before deletion and shared-photo checks.
+The scenario review exposed two UX defects on a French book: clarification questions were generated in English, and prefilled suggested answers blocked approval until an unnecessary scenario update. The current branch adds the authoritative book-language instruction to the scenario agent, removes the raw technical `story_role` from the customer UI, and lets the creator approve the visible coherent scenario directly when every clarification has an unchanged suggested answer. Editing any answer, scene or presence still marks the scenario dirty and requires an update; a clarification without any answer remains blocking.
 
 ## Current product brick: permanent deletion of non-purchased creations
 
@@ -47,11 +47,13 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 - Full `npm.cmd test` with Bridge 0.6.7: 118 passed, 0 failed.
 - Legacy `photo_refs` deletion regression suite: 6 passed, 0 failed.
 - Full `npm.cmd test` after legacy `photo_refs` normalization: 119 passed, 0 failed.
+- Scenario language/direct-approval regression suite: 11 passed, 0 failed.
+- Full `npm.cmd test` after scenario language/direct approval: 120 passed, 0 failed.
 
 ## Next verification target
 
-1. Confirm PR #49 merged and its Render deployment completed.
-2. Retry project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` and confirm its card disappears immediately while Render logs `cleanup queued`.
+1. Let the current customer book finish, then obtain explicit confirmation that no generation is active before merging PR #50 because Render may restart.
+2. On a fresh French scenario, confirm questions, reasons, suggested answers and scene prose are French, no technical role slug is visible, unchanged suggestions allow direct approval, and any edit requires an update.
 
 ## Protected local state
 
