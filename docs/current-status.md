@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/automatic-deletion-cleanup`
 - Latest merged checkpoint: PR #46 — `Fix and reassure WordPress deletion notices` (`72189f4`)
 - Current focused checkpoint: automatically finish pending private-asset deletion
-- Pull request: to be created; do not merge without fresh user confirmation
+- Pull request: `https://github.com/jose291013/storybook-mcp/pull/47` (draft; do not merge without fresh user confirmation)
 - WordPress Bridge source/package: `0.6.6`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -46,11 +46,10 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Publish a dedicated PR without merging it.
-2. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
-3. After deployment, verify Render logs show the prior pending receipt completing or a precise bounded storage error.
-4. Install `wordpress/calitiki-bridge-v0.6.6.zip` in WordPress.
-5. Delete one disposable unpurchased creation and confirm no customer action is required.
+1. Before merging PR #47, confirm no preview is generating and obtain explicit user approval because Render may restart.
+2. After deployment, verify Render logs show the prior pending receipt completing or a precise bounded storage error.
+3. Install `wordpress/calitiki-bridge-v0.6.6.zip` in WordPress.
+4. Delete one disposable unpurchased creation and confirm no customer action is required.
 
 ## Protected local state
 
