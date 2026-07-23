@@ -71,7 +71,11 @@ export class JsonProjectStore {
     const store = this.read(); const project = createRecord(input);
     store.projects[project.id] = project; this.write(store); return project;
   }
-  async get(id) { return this.read().projects[id] || null; }
+  async get(id) {
+    const store = this.read();
+    const deleted = Object.values(store.deletions).some((item) => item.projectId === id);
+    return deleted ? null : (store.projects[id] || null);
+  }
   async update(id, patch) {
     const store = this.read(); const existing = store.projects[id]; if (!existing) return null;
     const project = { ...existing, ...safePatch(patch), updatedAt: now() };
@@ -85,7 +89,9 @@ export class JsonProjectStore {
   }
   async listForCustomer(identity) {
     const customer = await this.ensureCustomer(identity);
-    return Object.values(this.read().projects).filter((project) => project.customerId === customer.id)
+    const store = this.read();
+    const deleted = new Set(Object.values(store.deletions).map((item) => item.projectId));
+    return Object.values(store.projects).filter((project) => project.customerId === customer.id && !deleted.has(project.id))
       .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)));
   }
   async getForCustomer(id, identity) {
@@ -213,7 +219,13 @@ export class PostgresProjectStore {
         jsonbParameter(p.photoRefs),jsonbParameter(p.productConfiguration),jsonbParameter(p.continuitySnapshot),jsonbParameter(p.finalBlueprint),jsonbParameter(p.previewResult),p.generationJobId,p.expiresAt,p.createdAt,p.updatedAt]
     ); return fromRow(rows[0]);
   }
-  async get(id) { const { rows } = await this.database.query("SELECT * FROM book_projects WHERE id=$1", [id]); return fromRow(rows[0]); }
+  async get(id) {
+    const { rows } = await this.database.query(
+      "SELECT project.* FROM book_projects AS project WHERE project.id=$1 AND NOT EXISTS (SELECT 1 FROM project_deletions AS deletion WHERE deletion.project_id=project.id)",
+      [id]
+    );
+    return fromRow(rows[0]);
+  }
   async update(id, patch) {
     const existing = await this.get(id); if (!existing) return null; const p = { ...existing, ...safePatch(patch), updatedAt: now() };
     const { rows } = await this.database.query(
@@ -233,12 +245,29 @@ export class PostgresProjectStore {
   }
   async listForCustomer(identity) {
     const customer = await this.ensureCustomer(identity);
-    const { rows } = await this.database.query("SELECT * FROM book_projects WHERE customer_id=$1 ORDER BY updated_at DESC", [customer.id]);
+    const { rows } = await this.database.query(
+      `SELECT project.* FROM book_projects AS project
+       WHERE project.customer_id=$1
+       AND NOT EXISTS (
+         SELECT 1 FROM project_deletions AS deletion
+         WHERE deletion.project_id=project.id AND deletion.customer_id=project.customer_id
+       )
+       ORDER BY project.updated_at DESC`,
+      [customer.id]
+    );
     return rows.map(fromRow);
   }
   async getForCustomer(id, identity) {
     const customer = await this.ensureCustomer(identity);
-    const { rows } = await this.database.query("SELECT * FROM book_projects WHERE id=$1 AND customer_id=$2", [id, customer.id]);
+    const { rows } = await this.database.query(
+      `SELECT project.* FROM book_projects AS project
+       WHERE project.id=$1 AND project.customer_id=$2
+       AND NOT EXISTS (
+         SELECT 1 FROM project_deletions AS deletion
+         WHERE deletion.project_id=project.id AND deletion.customer_id=project.customer_id
+       )`,
+      [id, customer.id]
+    );
     return fromRow(rows[0]);
   }
   async updateForCustomer(id, identity, patch) {

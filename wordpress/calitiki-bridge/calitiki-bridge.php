@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.6
+ * Version: 0.6.7
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -78,8 +78,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.6') {
-            update_option(self::VERSION_OPTION, '0.6.6');
+        if (get_option(self::VERSION_OPTION) !== '0.6.7') {
+            update_option(self::VERSION_OPTION, '0.6.7');
             flush_rewrite_rules(false);
         }
     }
@@ -219,6 +219,8 @@ final class Calitiki_Woo_Bridge {
                 'order_exists' => __('Cette création est liée à une commande et doit être conservée.', 'calitiki-bridge'),
                 'series_canon' => __('Cette création fait partie de la continuité d’une série et doit être conservée.', 'calitiki-bridge'),
                 'cleanup_pending' => __('Votre création a bien été supprimée de votre compte. La suppression sécurisée des derniers fichiers privés se poursuit automatiquement. Aucune action n’est nécessaire.', 'calitiki-bridge'),
+                'invalid_confirmation' => __('La confirmation de suppression a expiré. Actualisez la page puis réessayez une seule fois.', 'calitiki-bridge'),
+                'deletion_failed' => __('Calitiki n’a pas pu enregistrer cette suppression. La création reste intacte. Réessayez plus tard ou contactez Calitiki.', 'calitiki-bridge'),
             );
             return new WP_Error($code, $messages[$code] ?? __('Impossible de supprimer cette création pour le moment.', 'calitiki-bridge'));
         }
@@ -437,6 +439,8 @@ final class Calitiki_Woo_Bridge {
         $result = self::delete_creation_payload($customer_id, $project_id);
         if (is_wp_error($result)) {
             self::store_creation_deletion_notice($customer_id, $result->get_error_code());
+        } elseif (!empty($result['cleanupPending'])) {
+            self::store_creation_deletion_notice($customer_id, 'cleanup_pending');
         } else {
             self::store_creation_deletion_notice($customer_id, 'success');
         }
@@ -463,6 +467,10 @@ final class Calitiki_Woo_Bridge {
             'order_exists' => array('error', __('Cette création est liée à une commande et doit être conservée.', 'calitiki-bridge')),
             'series_canon' => array('error', __('Cette création fait partie de la continuité d’une série et doit être conservée.', 'calitiki-bridge')),
             'cleanup_pending' => array('notice', __('Votre création a bien été supprimée de votre compte. La suppression sécurisée des derniers fichiers privés se poursuit automatiquement. Aucune action n’est nécessaire.', 'calitiki-bridge')),
+            'invalid_confirmation' => array('error', __('La confirmation de suppression a expiré. Actualisez la page puis réessayez une seule fois.', 'calitiki-bridge')),
+            'deletion_failed' => array('error', __('Calitiki n’a pas pu enregistrer cette suppression. La création reste intacte. Réessayez plus tard ou contactez Calitiki.', 'calitiki-bridge')),
+            'http_request_failed' => array('error', __('La connexion sécurisée avec Calitiki n’a pas abouti. La création reste intacte. Réessayez dans quelques instants.', 'calitiki-bridge')),
+            'calitiki_creations_config' => array('error', __('La connexion Calitiki doit être vérifiée par l’administrateur. La création reste intacte.', 'calitiki-bridge')),
         );
         $notice = isset($notices[$status])
             ? $notices[$status]

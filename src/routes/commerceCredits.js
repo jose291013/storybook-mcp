@@ -68,9 +68,13 @@ router.delete("/commerce/creations/:id", async (req, res) => {
   try {
     const result = await deleteCustomerCreation(projectId, { wooCustomerId, email: "" });
     res.set("Cache-Control", "private, no-store");
-    return res.json(result);
+    return res.status(result.cleanupPending ? 202 : 200).json(result);
   } catch (error) {
     if (error instanceof ProjectDeletionError) return res.status(error.status).json({ error: error.message, code: error.code });
+    console.error("[project-deletion] request failed", {
+      projectId,
+      error: String(error?.message || error || "Unknown deletion request error").slice(0, 500),
+    });
     return res.status(500).json({ error: "Creation deletion failed", code: "deletion_failed" });
   }
 });
