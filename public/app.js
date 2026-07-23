@@ -365,8 +365,11 @@ function addScenarioCharacter() {
   markStoryScenarioDirty();
 }
 
-function scenarioHasClarifications() {
-  return (state.storyScenario?.clarifications || []).length > 0;
+function scenarioHasUnansweredClarifications() {
+  return (state.storyScenario?.clarifications || []).some((item) => {
+    const answer = state.storyScenario?.creatorClarifications?.[item.id] || item.suggestedAnswer || "";
+    return !String(answer).trim();
+  });
 }
 
 function scenarioNeedsRevision() {
@@ -396,7 +399,7 @@ function setStoryScenarioBusy(busy, action = "update") {
   elements.storyScenarioPanel.querySelectorAll("input, textarea, select, [data-toggle-presences]").forEach((control) => { control.disabled = busy; });
   elements.scenarioAddCharacterButton.disabled = busy;
   elements.reviseScenarioButton.disabled = busy;
-  elements.approveScenarioButton.disabled = busy || !state.storyScenario || state.storyScenarioDirty || scenarioHasClarifications() || scenarioNeedsRevision();
+  elements.approveScenarioButton.disabled = busy || !state.storyScenario || state.storyScenarioDirty || scenarioHasUnansweredClarifications() || scenarioNeedsRevision();
   elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed ? tr("scenarioRetryUpdate") : tr("reviseScenario");
   elements.approveScenarioButton.textContent = tr("approveScenario");
   if (busy && action === "update") elements.reviseScenarioButton.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(tr("scenarioUpdatingAction"))}`;
@@ -457,14 +460,18 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
     const physical = (scene.characterPresences || []).filter((presence) => presence.mode === "physical").map((presence) => presence.name);
     const nonphysical = (scene.characterPresences || []).filter((presence) => presence.mode !== "physical").map((presence) => `${presence.name} (${scenarioPresenceModeLabel(presence.mode).toLowerCase()})`);
     const presenceByName = new Map((scene.characterPresences || []).map((presence) => [presence.name, presence.mode]));
-    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><small class="scenario-scene-meta">${escapeHtml(scene.storyRole)}</small><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label><div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${(scenario.characters || []).map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
+    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label><div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${(scenario.characters || []).map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
   }).join("")}</section>`).join("");
   const invalidScenes = new Set(validation.sceneNumbers || []);
   elements.scenarioActs.querySelectorAll("[data-scenario-scene]").forEach((card) => {
     card.classList.toggle("has-validation-issue", invalidScenes.has(Number(card.dataset.scenarioScene)));
   });
-  elements.approveScenarioButton.disabled = clarifications.length > 0 || needsRevision;
-  setScenarioStatus(needsRevision ? tr("scenarioNeedsRevision") : clarifications.length ? tr("scenarioNeedsAnswers") : tr("scenarioReady"), needsRevision ? "error" : "");
+  const unansweredClarifications = scenarioHasUnansweredClarifications();
+  elements.approveScenarioButton.disabled = unansweredClarifications || needsRevision;
+  setScenarioStatus(
+    needsRevision ? tr("scenarioNeedsRevision") : unansweredClarifications ? tr("scenarioNeedsAnswers") : clarifications.length ? tr("scenarioDefaultsReady") : tr("scenarioReady"),
+    needsRevision || unansweredClarifications ? "error" : "",
+  );
   if (scroll) elements.storyScenarioPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 

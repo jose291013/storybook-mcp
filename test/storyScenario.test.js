@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
-import { applyCreatorStoryScenarioEdits, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
+import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
   return {
@@ -120,6 +120,22 @@ test("scenario stabilization repairs invisible metadata without changing story e
   assert.equal(validateStoryScenario(stabilized).valid, true);
 });
 
+test("unchanged suggested clarifications can be accepted with the visible scenario", () => {
+  assert.deepEqual(clarificationAnswersForApproval({
+    creatorClarifications: {},
+    clarifications: [
+      { id: "portal_discovery", suggestedAnswer: "Ajouter une scène de découverte avant le passage." },
+      { id: "starting_location", suggestedAnswer: "Ils commencent dans la maison familiale." },
+    ],
+  }), {
+    portal_discovery: "Ajouter une scène de découverte avant le passage.",
+    starting_location: "Ils commencent dans la maison familiale.",
+  });
+  assert.equal(clarificationAnswersForApproval({
+    clarifications: [{ id: "missing_choice", suggestedAnswer: "" }],
+  }), null);
+});
+
 test("creator presence choices override the generated scenario exactly", () => {
   const scenario = coherentPortalScenario();
   const edited = applyCreatorStoryScenarioEdits(scenario, {
@@ -177,10 +193,13 @@ test("scene contracts tell the illustrator that a held wearable is not also worn
 });
 
 test("the creator must approve a persisted scenario before the preview route can start", async () => {
-  const [previewRoute, scenarioRoute, app, html, bridge] = await Promise.all([
+  const [previewRoute, scenarioRoute, scenarioAgent, scenarioPrompt, app, i18n, html, bridge] = await Promise.all([
     fs.readFile("src/routes/preview.js", "utf8"),
     fs.readFile("src/routes/storyScenario.js", "utf8"),
+    fs.readFile("src/agents/storyScenario.js", "utf8"),
+    fs.readFile("src/prompts/story_scenario.txt", "utf8"),
     fs.readFile("public/app.js", "utf8"),
+    fs.readFile("public/i18n.js", "utf8"),
     fs.readFile("public/index.html", "utf8"),
     fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
   ]);
@@ -188,6 +207,12 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(previewRoute, /code: "story_scenario_required"/);
   assert.match(scenarioRoute, /story-scenario\/approve/);
   assert.match(scenarioRoute, /validateStoryScenario\(scenario\)/);
+  assert.match(scenarioRoute, /clarificationAnswersForApproval\(scenario\)/);
+  assert.match(scenarioRoute, /clarifications: \[\]/);
+  assert.match(scenarioAgent, /bookLanguageInstruction\(language\)/);
+  assert.match(scenarioAgent, /normalizeBookLanguage\(input\?\.intake\?\.language\)/);
+  assert.match(scenarioPrompt, /Never ask the creator to confirm a repair already dictated by the causal rules/);
+  assert.match(scenarioPrompt, /Write every creator-facing value exclusively in intake\.language/);
   assert.match(app, /requestStoryScenario/);
   assert.match(app, /approveStoryScenario/);
   assert.match(app, /storyScenarioBusy/);
@@ -200,6 +225,10 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /elements\.scenarioReviewContent\.hidden = false/);
   assert.match(app, /if \(initialRequest\) \{[\s\S]*throw error;/);
   assert.match(app, /scenarioNeedsRevision/);
+  assert.match(app, /scenarioHasUnansweredClarifications/);
+  assert.match(app, /scenarioDefaultsReady/);
+  assert.doesNotMatch(app, /escapeHtml\(scene\.storyRole\)/);
+  assert.match(i18n, /scenarioDefaultsReady: "Les réponses proposées sont déjà appliquées au scénario/);
   assert.match(app, /data-presence-character/);
   assert.match(app, /storyScenarioDirty/);
   assert.match(app, /addedCharacters: state\.storyScenarioAddedCharacters/);

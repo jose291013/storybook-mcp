@@ -7,6 +7,7 @@ import { previewRequestFingerprint } from "../services/previewGenerationCheckpoi
 import { projectStore } from "../services/projectStore.js";
 import {
   applyCreatorStoryScenarioEdits,
+  clarificationAnswersForApproval,
   normalizeStoryScenario,
   scenarioCharacterRegistry,
   stabilizeStoryScenario,
@@ -183,10 +184,18 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       console.warn("[story-scenario] approval validation failed", { projectId: project.id, issueCount: validation.issues.length });
       return res.status(422).json({ error: "The scenario needs another update before approval", code: "scenario_invalid", retryable: true });
     }
-    if (scenario.clarifications?.length) {
+    const clarificationAnswers = clarificationAnswersForApproval(scenario);
+    if (clarificationAnswers === null) {
       return res.status(409).json({ error: "Answer the scenario questions before approval", code: "scenario_clarification_required" });
     }
-    const approved = { ...scenario, status: "approved", validation, approvedAt: new Date().toISOString() };
+    const approved = {
+      ...scenario,
+      clarifications: [],
+      creatorClarifications: { ...(scenario.creatorClarifications || {}), ...clarificationAnswers },
+      status: "approved",
+      validation,
+      approvedAt: new Date().toISOString(),
+    };
     const continuitySnapshot = { ...project.continuitySnapshot, storyScenario: approved };
     await projectStore.updateForCustomer(project.id, identity, { status: "ready_for_preview", continuitySnapshot });
     res.set("Cache-Control", "private, no-store");
