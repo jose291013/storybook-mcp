@@ -9,9 +9,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/legacy-photo-refs-deletion`
-- Latest merged checkpoint: PR #48 — `Make project deletion non-blocking` (`80c0534`)
-- Current focused checkpoint: accept legacy object-shaped `photo_refs` during permanent deletion
-- Pull request: to be created; do not merge without fresh user confirmation
+- Latest merged checkpoint before this release: PR #48 — `Make project deletion non-blocking` (`80c0534`)
+- Current release checkpoint: PR #49 — `Handle legacy photo references during deletion`
+- Merge safety: explicitly authorized on 2026-07-23 after the user confirmed no active book generation
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -50,9 +50,8 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Publish a dedicated draft PR without merging it.
-2. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
-3. After the Node deployment completes, retry project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` and confirm its card disappears immediately while Render logs `cleanup queued`.
+1. Confirm PR #49 merged and its Render deployment completed.
+2. Retry project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` and confirm its card disappears immediately while Render logs `cleanup queued`.
 
 ## Protected local state
 
