@@ -154,6 +154,25 @@ export class JsonCreditStore {
     rebates.forEach((rebate) => { rebate.status = "reserved"; rebate.checkoutReservationId = reservation.id; rebate.updatedAt = now(); });
     this.write(store); return reservation;
   }
+  async hasActiveCheckoutReservation(identity, { projectId }) {
+    const customer = await this.customer(identity);
+    const store = this.read();
+    const timestamp = Date.now();
+    let changed = false;
+    for (const reservation of store.checkoutReservations) {
+      if (reservation.status === "reserved" && Date.parse(reservation.expiresAt) <= timestamp) {
+        reservation.status = "expired";
+        reservation.updatedAt = now();
+        store.rebates.filter((rebate) => rebate.checkoutReservationId === reservation.id && rebate.status === "reserved")
+          .forEach((rebate) => { rebate.status = "available"; rebate.checkoutReservationId = null; rebate.updatedAt = now(); });
+        changed = true;
+      }
+    }
+    if (changed) this.write(store);
+    return store.checkoutReservations.some((item) => (
+      item.customerId === customer.id && item.projectId === projectId && item.status === "reserved"
+    ));
+  }
   async captureCheckout(reservationId, orderId) {
     if (!reservationId) return null;
     const store = this.read(); const reservation = store.checkoutReservations.find((item) => item.id === reservationId);
@@ -298,6 +317,14 @@ export class PostgresCreditStore {
       await client.query("UPDATE project_purchase_rebates SET status='reserved',checkout_reservation_id=$1,updated_at=now() WHERE id=ANY($2::uuid[])", [id, rebates.rows.map((row) => row.id)]);
       await client.query("COMMIT"); return { ...inserted.rows[0], amountCents };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
+  }
+  async hasActiveCheckoutReservation(identity, { projectId }) {
+    const customer = await this.customer(identity);
+    const { rowCount } = await this.database.query(
+      "SELECT 1 FROM checkout_credit_reservations WHERE customer_id=$1 AND project_id=$2 AND status='reserved' AND expires_at>now() LIMIT 1",
+      [customer.id, projectId],
+    );
+    return rowCount > 0;
   }
   async captureCheckout(reservationId, orderId) {
     if (!reservationId) return null; const client = await this.database.connect();

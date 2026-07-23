@@ -10,6 +10,8 @@ data/commerce-orders.json
 data/commerce-orders.json.tmp
 data/family-shares.json
 data/family-shares.json.tmp
+data/preview-revisions.json
+data/preview-revisions.json.tmp
 data/private/
 dist/*.zip
 !data/outputs/.gitkeep

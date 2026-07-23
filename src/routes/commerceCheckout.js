@@ -3,6 +3,7 @@ import express from "express";
 import { normalizePageCount } from "../config/bookOptions.js";
 import { isProductEnabled } from "../config/productAvailability.js";
 import { creditStore } from "../services/creditStore.js";
+import { previewRevisionStore } from "../services/previewRevisionStore.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../services/ebookFulfillment.js";
 import { narrationChoice } from "../config/narrationOptions.js";
@@ -30,6 +31,9 @@ router.post("/commerce/checkout-link", async (req, res) => {
     const project = await projectStore.getForCustomer(projectId, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
     if (!project.previewResult || !["preview_ready", "purchased"].includes(project.status)) return res.status(409).json({ error: "Generate and validate the preview before purchase" });
+    if (project.status !== "purchased" && await previewRevisionStore.activeForProject(project.id)) {
+      return res.status(409).json({ error: "Approve or reject the pending preview modification before checkout" });
+    }
     const pageCount = normalizePageCount(project.questionnaire?.page_count || project.productConfiguration?.page_count || project.productConfiguration?.pageCount || 24);
     // Older technical retries could complete after their original wallet
     // reservation had been released. Settle that successful preview before

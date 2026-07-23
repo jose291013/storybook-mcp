@@ -62,6 +62,10 @@ const state = {
   storyScenarioAddedCharacters: [],
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
+  currentPreview: null,
+  previewModification: null,
+  previewModificationQuote: null,
+  previewModificationPoll: null,
   customerSession: { authenticated: false, customer: null },
 };
 
@@ -93,7 +97,8 @@ const elements = {
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
-  creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
+  creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
+  previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
   storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
@@ -566,6 +571,210 @@ async function renderPreviewActionCenter({ locked = false } = {}) {
   elements.actionBuyEbook.disabled = locked;
   elements.actionBuyPrint.disabled = locked || !isProductAvailable("print");
   elements.actionBuyPrint.textContent = isProductAvailable("print") ? tr("buyPrint") : tr("printComingSoonAction");
+}
+
+function selectedModificationScope() {
+  return document.querySelector('input[name="modificationScope"]:checked')?.value || "illustration";
+}
+
+function setModificationStatus(message = "", kind = "") {
+  elements.modificationStatus.textContent = message;
+  elements.modificationStatus.className = `preview-modification-status${kind ? ` is-${kind}` : ""}`;
+}
+
+function setModificationBusy(busy) {
+  elements.previewModificationPanel.setAttribute("aria-busy", String(Boolean(busy)));
+  elements.submitModification.disabled = Boolean(busy) || Number(state.previewModificationQuote?.missingCents || 0) > 0;
+  elements.approveModification.disabled = Boolean(busy);
+  elements.rejectModification.disabled = Boolean(busy);
+  elements.actionRequestChange.disabled = Boolean(busy);
+  elements.actionBuyEbook.disabled = Boolean(busy);
+  elements.actionBuyPrint.disabled = Boolean(busy) || !isProductAvailable("print");
+}
+
+function firstModificationSpread() {
+  return (state.currentPreview?.final_blueprint?.pages || [])
+    .find((page) => page.page_type === "image" && Number(page.spread_number) > 0)?.spread_number || 1;
+}
+
+async function loadModificationQuote({ preserveSelection = true } = {}) {
+  if (!state.projectId) return null;
+  const spreadNumber = Number(elements.modificationSpread.value || firstModificationSpread());
+  const scope = selectedModificationScope();
+  const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-modifications/quote?spreadNumber=${encodeURIComponent(spreadNumber)}&scope=${encodeURIComponent(scope)}`, { cache: "no-store" });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || tr("creditError"));
+  const selected = preserveSelection ? Number(elements.modificationSpread.value || payload.spread.spreadNumber) : payload.spread.spreadNumber;
+  elements.modificationSpread.innerHTML = payload.availableSpreads.map((spread) => `<option value="${spread.spreadNumber}">${escapeHtml(tr("modificationSpreadLabel", {
+    spread: spread.spreadNumber,
+    textPage: spread.textPageNumber,
+    imagePage: spread.imagePageNumber,
+  }))}</option>`).join("");
+  elements.modificationSpread.value = String(payload.availableSpreads.some((spread) => spread.spreadNumber === selected) ? selected : payload.spread.spreadNumber);
+  elements.modificationPrice.textContent = formatPrice(payload.amountCents / 100);
+  elements.modificationBalance.textContent = formatPrice(payload.balanceCents / 100);
+  elements.modificationMissing.textContent = formatPrice(payload.missingCents / 100);
+  elements.modificationBuyCredits.hidden = !payload.buyCreditsUrl;
+  if (payload.buyCreditsUrl) elements.modificationBuyCredits.href = payload.buyCreditsUrl;
+  state.previewModificationQuote = payload;
+  elements.submitModification.disabled = payload.missingCents > 0;
+  setModificationStatus(payload.missingCents > 0
+    ? tr("modificationInsufficient", { amount: formatPrice(payload.missingCents / 100) })
+    : "");
+  return payload;
+}
+
+function renderModificationCandidate(modification) {
+  const candidate = modification?.candidateSnapshot;
+  if (!candidate?.previewResult || !candidate?.finalBlueprint) return;
+  state.previewModification = modification;
+  const imagePageNumber = candidate.finalBlueprint.pages?.find((page) => (
+    page.page_type === "image" && Number(page.spread_number) === Number(modification.spreadNumber)
+  ))?.page_number || 0;
+  renderBook({
+    result: candidate.previewResult,
+    final_blueprint: candidate.finalBlueprint,
+    projectStatus: "preview_modification_review",
+  }, {
+    initialPageNumber: imagePageNumber,
+  });
+  elements.previewModificationPanel.hidden = false;
+  elements.submitModification.hidden = true;
+  elements.approveModification.hidden = false;
+  elements.rejectModification.hidden = false;
+  elements.actionBuyEbook.disabled = true;
+  elements.actionBuyPrint.disabled = true;
+  setModificationBusy(false);
+  elements.actionBuyEbook.disabled = true;
+  elements.actionBuyPrint.disabled = true;
+  setModificationStatus(tr("modificationAwaitingApproval"));
+}
+
+async function refreshLatestModification({ schedule = true } = {}) {
+  if (!state.projectId || !state.previewComplete) return null;
+  const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-modifications/latest`, { cache: "no-store" });
+  if (!response.ok) return null;
+  const { modification } = await response.json();
+  state.previewModification = modification;
+  if (!modification || ["approved", "rejected"].includes(modification.status)) return modification;
+
+  elements.previewModificationPanel.hidden = false;
+  elements.modificationInstruction.value = modification.instruction || "";
+  document.querySelectorAll('input[name="modificationScope"]').forEach((input) => { input.checked = input.value === modification.changeScope; });
+  await loadModificationQuote({ preserveSelection: false }).catch(() => null);
+  elements.modificationSpread.value = String(modification.spreadNumber);
+
+  if (modification.status === "awaiting_approval") {
+    renderModificationCandidate(modification);
+    return modification;
+  }
+  if (modification.status === "failed") {
+    setModificationBusy(false);
+    elements.submitModification.hidden = false;
+    elements.approveModification.hidden = true;
+    elements.rejectModification.hidden = true;
+    elements.submitModification.textContent = tr("retryPreviewFree");
+    setModificationStatus(tr("modificationRetry"), "error");
+    return modification;
+  }
+  if (["reserved", "generating"].includes(modification.status)) {
+    setModificationBusy(true);
+    elements.submitModification.hidden = false;
+    elements.approveModification.hidden = true;
+    elements.rejectModification.hidden = true;
+    setModificationStatus(tr("modificationWorking"), "working");
+    if (schedule) {
+      window.clearTimeout(state.previewModificationPoll);
+      state.previewModificationPoll = window.setTimeout(() => refreshLatestModification().catch(() => null), 3000);
+    }
+  }
+  return modification;
+}
+
+async function openModificationPanel() {
+  elements.previewModificationPanel.hidden = false;
+  elements.submitModification.hidden = false;
+  elements.approveModification.hidden = true;
+  elements.rejectModification.hidden = true;
+  elements.submitModification.textContent = tr("modificationGenerate");
+  setModificationStatus("");
+  try {
+    const latest = await refreshLatestModification({ schedule: false });
+    if (latest && ["reserved", "generating", "awaiting_approval", "failed"].includes(latest.status)) return;
+    state.previewModification = null;
+    await loadModificationQuote({ preserveSelection: false });
+    elements.previewModificationPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+  } catch (error) {
+    setModificationStatus(error.message || tr("creditError"), "error");
+  }
+}
+
+async function submitPreviewModification() {
+  if (!state.projectId || elements.submitModification.disabled) return;
+  const retrying = state.previewModification?.status === "failed";
+  if (!retrying && elements.modificationInstruction.value.trim().length < 8) {
+    setModificationStatus(tr("modificationRequest"), "error");
+    return;
+  }
+  setModificationBusy(true);
+  setModificationStatus(tr("modificationWorking"), "working");
+  try {
+    const url = retrying
+      ? `/api/projects/${encodeURIComponent(state.projectId)}/preview-modifications/${encodeURIComponent(state.previewModification.id)}/retry`
+      : `/api/projects/${encodeURIComponent(state.projectId)}/preview-modifications`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: retrying ? "{}" : JSON.stringify({
+        spreadNumber: Number(elements.modificationSpread.value),
+        scope: selectedModificationScope(),
+        instruction: elements.modificationInstruction.value.trim(),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      if (response.status === 402 && payload.buyCreditsUrl) {
+        elements.modificationBuyCredits.hidden = false;
+        elements.modificationBuyCredits.href = payload.buyCreditsUrl;
+      }
+      throw new Error(payload.error || tr("generationFailed"));
+    }
+    state.previewModification = payload.modification;
+    await pollJob(payload.jobId).catch(() => null);
+    await refreshLatestModification({ schedule: false });
+  } catch (error) {
+    await refreshLatestModification({ schedule: false }).catch(() => null);
+    if (state.previewModification?.status !== "failed") setModificationStatus(error.message || tr("generationFailed"), "error");
+  } finally {
+    if (!["reserved", "generating"].includes(state.previewModification?.status)) setModificationBusy(false);
+  }
+}
+
+async function decidePreviewModification(action) {
+  const modification = state.previewModification;
+  if (!modification?.id || modification.status !== "awaiting_approval") return;
+  setModificationBusy(true);
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-modifications/${encodeURIComponent(modification.id)}/${action}`, { method: "POST" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || tr("generationFailed"));
+    const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+    const projectPayload = await projectResponse.json();
+    if (!projectResponse.ok) throw new Error(projectPayload.error || tr("generationFailed"));
+    const project = projectPayload.project;
+    showCompletedPreview({
+      result: project.previewResult,
+      final_blueprint: project.finalBlueprint,
+      projectStatus: project.status,
+      referenceRecoveryAvailable: project.referenceRecoveryAvailable,
+    }, { scroll: false });
+    elements.previewModificationPanel.hidden = true;
+    setModificationStatus(action === "approve" ? tr("modificationApproved") : tr("modificationRejected"));
+  } catch (error) {
+    setModificationStatus(error.message || tr("generationFailed"), "error");
+  } finally {
+    setModificationBusy(false);
+  }
 }
 
 async function beginReferenceRecovery() {
@@ -1104,9 +1313,12 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   elements.visualProofPanel.hidden = true;
   elements.resultSection.hidden = false;
   state.referenceRecoveryAvailable = Boolean(job.referenceRecoveryAvailable);
+  state.currentPreview = job;
   renderBook(job, { initialPageNumber });
   setPreviewComplete(true);
-  renderPreviewActionCenter({ locked: job.projectStatus === "preview_repairing" });
+  renderPreviewActionCenter({ locked: job.projectStatus === "preview_repairing" })
+    .then(() => refreshLatestModification())
+    .catch(() => null);
   if (scroll) elements.resultSection.scrollIntoView({ behavior: "smooth" });
 }
 
@@ -1180,6 +1392,11 @@ async function restoreCompletedPreview() {
   if (!response.ok) return false;
   const payload = await response.json();
   const project = payload.project;
+  state.currentPreview = project ? {
+    result: project.previewResult,
+    final_blueprint: project.finalBlueprint,
+    projectStatus: project.status,
+  } : null;
   elements.notifyPreviewEmail.checked = project?.continuitySnapshot?.previewNotification?.emailRequested === true;
   const scenario = project?.continuitySnapshot?.storyScenario;
   if (scenario && (["scenario_review", "scenario_needs_clarification"].includes(project?.status)
@@ -1393,6 +1610,13 @@ elements.notifyPreviewEmail.addEventListener("change", () => { savePreviewNotifi
 elements.actionBuyEbook.addEventListener("click", () => openConfiguredCheckout("ebook", elements.actionBuyEbook));
 elements.actionBuyPrint.addEventListener("click", () => openConfiguredCheckout("print", elements.actionBuyPrint));
 elements.actionRecoverReferences.addEventListener("click", beginReferenceRecovery);
+elements.actionRequestChange.addEventListener("click", openModificationPanel);
+elements.closeModificationPanel.addEventListener("click", () => { elements.previewModificationPanel.hidden = true; });
+elements.modificationSpread.addEventListener("change", () => loadModificationQuote().catch((error) => setModificationStatus(error.message, "error")));
+document.querySelectorAll('input[name="modificationScope"]').forEach((input) => input.addEventListener("change", () => loadModificationQuote().catch((error) => setModificationStatus(error.message, "error"))));
+elements.submitModification.addEventListener("click", submitPreviewModification);
+elements.approveModification.addEventListener("click", () => decidePreviewModification("approve"));
+elements.rejectModification.addEventListener("click", () => decidePreviewModification("reject"));
 elements.logoutButton.addEventListener("click", () => { logoutCustomer().catch((error) => { elements.formError.textContent = error.message; }); });
 
 init();
