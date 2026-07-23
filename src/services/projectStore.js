@@ -12,6 +12,14 @@ const PATCH_FIELDS = new Set([
 const now = () => new Date().toISOString();
 const safePatch = (patch = {}) => Object.fromEntries(Object.entries(patch).filter(([key, value]) => PATCH_FIELDS.has(key) && value !== undefined));
 const jsonbParameter = (value) => value == null ? null : JSON.stringify(value);
+export function normalizePhotoRefs(value) {
+  if (Array.isArray(value)) return value.flatMap((item) => normalizePhotoRefs(item));
+  if (!value || typeof value !== "object") return [];
+  const nested = Object.values(value).filter((item) => item && typeof item === "object");
+  const looksLikePhoto = ["storageKey", "url", "name", "role", "story_role"].some((key) => key in value)
+    || ("id" in value && nested.length === 0);
+  return looksLikePhoto ? [value] : nested.flatMap((item) => normalizePhotoRefs(item));
+}
 const deletionFromRow = (row) => row ? {
   id: row.id,
   projectId: row.project_id,
@@ -35,7 +43,7 @@ function createRecord(input = {}) {
     childProfileId: input.childProfileId || null, seriesId: input.seriesId || null, episodeNumber: input.episodeNumber || null,
     sourceProjectId: input.sourceProjectId || null,
     status: input.status || "draft", title: input.title || "", locale: input.locale || "FR",
-    questionnaire: input.questionnaire || {}, photoRefs: Array.isArray(input.photoRefs) ? input.photoRefs : [],
+    questionnaire: input.questionnaire || {}, photoRefs: normalizePhotoRefs(input.photoRefs),
     productConfiguration: input.productConfiguration || {}, continuitySnapshot: input.continuitySnapshot || {},
     finalBlueprint: input.finalBlueprint || null, previewResult: input.previewResult || null,
     generationJobId: input.generationJobId || null,
@@ -119,7 +127,7 @@ export class JsonProjectStore {
     const referenced = new Set();
     for (const project of Object.values(this.read().projects)) {
       if (project.id === projectId) continue;
-      for (const photo of project.photoRefs || []) if (wanted.has(photo?.storageKey)) referenced.add(photo.storageKey);
+      for (const photo of normalizePhotoRefs(project.photoRefs)) if (wanted.has(photo?.storageKey)) referenced.add(photo.storageKey);
     }
     return [...referenced];
   }
@@ -191,7 +199,7 @@ function fromRow(row) {
     childProfileId: row.child_profile_id, seriesId: row.series_id, episodeNumber: row.episode_number,
     sourceProjectId: row.source_project_id || null,
     status: row.status, title: row.title || "", locale: row.locale || "FR", questionnaire: row.questionnaire || {},
-    photoRefs: row.photo_refs || [], productConfiguration: row.product_configuration || {},
+    photoRefs: normalizePhotoRefs(row.photo_refs), productConfiguration: row.product_configuration || {},
     continuitySnapshot: row.continuity_snapshot || {}, finalBlueprint: row.final_blueprint,
     previewResult: row.preview_result, generationJobId: row.generation_job_id, expiresAt: date(row.expires_at),
     createdAt: date(row.created_at), updatedAt: date(row.updated_at),
@@ -293,7 +301,7 @@ export class PostgresProjectStore {
     if (!wanted.size) return [];
     const { rows } = await this.database.query("SELECT photo_refs FROM book_projects WHERE id<>$1", [projectId]);
     const referenced = new Set();
-    for (const row of rows) for (const photo of row.photo_refs || []) if (wanted.has(photo?.storageKey)) referenced.add(photo.storageKey);
+    for (const row of rows) for (const photo of normalizePhotoRefs(row.photo_refs)) if (wanted.has(photo?.storageKey)) referenced.add(photo.storageKey);
     return [...referenced];
   }
   async prepareDeletion(id, identity, assetManifest = {}) {

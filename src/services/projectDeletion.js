@@ -4,7 +4,7 @@ import { commerceOrderStore } from "./commerceOrderStore.js";
 import { creditStore } from "./creditStore.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { deleteJob, getJob, updateJob } from "./jobStore.js";
-import { projectStore } from "./projectStore.js";
+import { normalizePhotoRefs, projectStore } from "./projectStore.js";
 import { seriesStore } from "./seriesStore.js";
 
 const SAFE_FILENAME = /^[A-Za-z0-9._-]+$/;
@@ -195,13 +195,14 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
     if (hasOrder) throw deletionBlocked({ blockedReason: "order_exists" });
     if (hasCanon) throw deletionBlocked({ blockedReason: "series_canon" });
 
-    const candidateReferenceKeys = [...new Set((project.photoRefs || []).map((photo) => photo?.storageKey).filter((key) => SAFE_REFERENCE_KEY.test(String(key || ""))))];
+    const photoRefs = normalizePhotoRefs(project.photoRefs);
+    const candidateReferenceKeys = [...new Set(photoRefs.map((photo) => photo?.storageKey).filter((key) => SAFE_REFERENCE_KEY.test(String(key || ""))))];
     const sharedKeys = new Set(await projects.photoStorageKeysReferencedElsewhere(project.id, candidateReferenceKeys));
     const assetManifest = {
       previewPrefix: `ebooks/previews/${project.id}/`,
       referenceStorageKeys: candidateReferenceKeys.filter((key) => !sharedKeys.has(key)),
       outputFilenames: outputFilenames(project.previewResult),
-      legacyPhotoIds: [...new Set((project.photoRefs || []).filter((photo) => !photo?.storageKey).map((photo) => String(photo?.id || "")).filter((value) => SAFE_FILENAME.test(value)))],
+      legacyPhotoIds: [...new Set(photoRefs.filter((photo) => !photo?.storageKey).map((photo) => String(photo?.id || "")).filter((value) => SAFE_FILENAME.test(value)))],
       jobId: project.generationJobId || "",
     };
     await credits.releasePreviewForProject(identity, { projectId: project.id });
