@@ -46,7 +46,7 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Before merging PR #47, confirm no preview is generating and obtain explicit user approval because Render may restart.
+1. The user confirmed no preview is generating and explicitly authorized merging PR #47; merge it, then wait for Render to restart.
 2. After deployment, verify Render logs show the prior pending receipt completing or a precise bounded storage error.
 3. Install `wordpress/calitiki-bridge-v0.6.6.zip` in WordPress.
 4. Delete one disposable unpurchased creation and confirm no customer action is required.
