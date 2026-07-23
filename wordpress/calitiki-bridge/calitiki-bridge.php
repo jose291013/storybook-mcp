@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.5
+ * Version: 0.6.6
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -78,8 +78,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.5') {
-            update_option(self::VERSION_OPTION, '0.6.5');
+        if (get_option(self::VERSION_OPTION) !== '0.6.6') {
+            update_option(self::VERSION_OPTION, '0.6.6');
             flush_rewrite_rules(false);
         }
     }
@@ -218,7 +218,7 @@ final class Calitiki_Woo_Bridge {
                 'purchased_project' => __('Un livre acheté ne peut pas être supprimé.', 'calitiki-bridge'),
                 'order_exists' => __('Cette création est liée à une commande et doit être conservée.', 'calitiki-bridge'),
                 'series_canon' => __('Cette création fait partie de la continuité d’une série et doit être conservée.', 'calitiki-bridge'),
-                'cleanup_pending' => __('Votre création a bien été supprimée de votre compte. Certains fichiers privés restent protégés pendant que Calitiki finalise leur suppression. Aucune action n’est nécessaire.', 'calitiki-bridge'),
+                'cleanup_pending' => __('Votre création a bien été supprimée de votre compte. La suppression sécurisée des derniers fichiers privés se poursuit automatiquement. Aucune action n’est nécessaire.', 'calitiki-bridge'),
             );
             return new WP_Error($code, $messages[$code] ?? __('Impossible de supprimer cette création pour le moment.', 'calitiki-bridge'));
         }
@@ -462,7 +462,7 @@ final class Calitiki_Woo_Bridge {
             'purchased_project' => array('error', __('Un livre acheté ne peut pas être supprimé.', 'calitiki-bridge')),
             'order_exists' => array('error', __('Cette création est liée à une commande et doit être conservée.', 'calitiki-bridge')),
             'series_canon' => array('error', __('Cette création fait partie de la continuité d’une série et doit être conservée.', 'calitiki-bridge')),
-            'cleanup_pending' => array('notice', __('Votre création a bien été supprimée de votre compte. Certains fichiers privés restent protégés pendant que Calitiki finalise leur suppression. Aucune action n’est nécessaire.', 'calitiki-bridge')),
+            'cleanup_pending' => array('notice', __('Votre création a bien été supprimée de votre compte. La suppression sécurisée des derniers fichiers privés se poursuit automatiquement. Aucune action n’est nécessaire.', 'calitiki-bridge')),
         );
         $notice = isset($notices[$status])
             ? $notices[$status]

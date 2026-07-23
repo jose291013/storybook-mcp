@@ -20,6 +20,7 @@ import { projectStore } from "./services/projectStore.js";
 import { familyShareStore } from "./services/familyShareStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
 import { interactiveReaderInstallManifest } from "./services/interactiveReaderInstallManifest.js";
+import { startProjectDeletionCleanupWorker } from "./services/projectDeletion.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
@@ -64,6 +65,7 @@ app.use(familySharesRouter);
 const port = process.env.PORT || 3000;
 await projectStore.initialize();
 await familyShareStore.initialize();
+startProjectDeletionCleanupWorker();
 app.listen(port, () => {
   logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
   console.log(`✅ Server listening on port ${port}`);

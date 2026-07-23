@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { customerCreationSummary } from "../src/services/customerCreationLibrary.js";
 import { JsonCreditStore } from "../src/services/creditStore.js";
-import { deleteCustomerCreation, ProjectDeletionError } from "../src/services/projectDeletion.js";
+import { deleteCustomerCreation, ProjectDeletionError, runPendingProjectDeletionCleanup } from "../src/services/projectDeletion.js";
 import { JsonProjectStore } from "../src/services/projectStore.js";
 
 function safeDependencies(overrides = {}) {
@@ -96,6 +96,71 @@ test("an unpaid creation is deleted idempotently while shared photos remain priv
   }
 });
 
+test("pending private cleanup resumes automatically and escalates only after bounded failures", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-project-cleanup-worker-"));
+  try {
+    const projects = new JsonProjectStore(path.join(directory, "projects.json"));
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    const customer = await projects.ensureCustomer(identity);
+    const recoverable = await projects.create({ customerId: customer.id, status: "preview_failed" });
+    const manual = await projects.create({ customerId: customer.id, status: "preview_failed" });
+    const loggerEvents = [];
+    const logger = {
+      info(message, details) { loggerEvents.push({ level: "info", message, details }); },
+      warn(message, details) { loggerEvents.push({ level: "warn", message, details }); },
+      error(message, details) { loggerEvents.push({ level: "error", message, details }); },
+    };
+    const failingStorage = {
+      async delete() { throw new Error("private storage delete denied"); },
+      async deletePrefix() { throw new Error("private storage delete denied"); },
+    };
+    for (const project of [recoverable, manual]) {
+      await assert.rejects(
+        deleteCustomerCreation(project.id, identity, safeDependencies({ projects, storage: failingStorage, logger })),
+        (error) => error.code === "cleanup_pending"
+      );
+    }
+    const makeDue = (projectId) => {
+      const store = projects.read();
+      const deletion = Object.values(store.deletions).find((item) => item.projectId === projectId);
+      deletion.nextRetryAt = new Date(Date.now() - 1000).toISOString();
+      store.deletions[deletion.id] = deletion;
+      projects.write(store);
+    };
+    makeDue(recoverable.id);
+    const recovered = await runPendingProjectDeletionCleanup({
+      projects,
+      storage: { async delete() {}, async deletePrefix() {} },
+      jobs: { delete() {} },
+      logger,
+      configuration: { intervalMs: 30000, maxAttempts: 3, batchSize: 10 },
+      outputsDir: path.join(directory, "outputs"),
+      uploadsDir: path.join(directory, "uploads"),
+    });
+    assert.deepEqual(recovered, { claimed: 1, completed: 1, pending: 0, manualReview: 0 });
+    assert.equal(Object.values(projects.read().deletions).find((item) => item.projectId === recoverable.id).status, "completed");
+
+    makeDue(manual.id);
+    const exhausted = await runPendingProjectDeletionCleanup({
+      projects,
+      storage: failingStorage,
+      jobs: { delete() {} },
+      logger,
+      configuration: { intervalMs: 30000, maxAttempts: 2, batchSize: 10 },
+      outputsDir: path.join(directory, "outputs"),
+      uploadsDir: path.join(directory, "uploads"),
+    });
+    assert.deepEqual(exhausted, { claimed: 1, completed: 0, pending: 0, manualReview: 1 });
+    const exhaustedDeletion = Object.values(projects.read().deletions).find((item) => item.projectId === manual.id);
+    assert.equal(exhaustedDeletion.status, "manual_review");
+    assert.equal(exhaustedDeletion.cleanupAttempts, 2);
+    assert.match(exhaustedDeletion.lastError, /delete denied/);
+    assert.ok(loggerEvents.some((event) => event.message.includes("manual review required")));
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("purchases, order history, series canon and active generation each block deletion", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-project-deletion-blocks-"));
   try {
@@ -125,15 +190,17 @@ test("purchases, order history, series canon and active generation each block de
 });
 
 test("customer metadata and the WordPress bridge expose deletion without exposing purchased books", async () => {
-  const [bridge, route, migration, storeSource] = await Promise.all([
+  const [bridge, route, migration, queueMigration, storeSource, serverSource] = await Promise.all([
     fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
     fs.readFile("src/routes/commerceCredits.js", "utf8"),
     fs.readFile("db/migrations/008_project_deletions.sql", "utf8"),
+    fs.readFile("db/migrations/009_project_deletion_cleanup_queue.sql", "utf8"),
     fs.readFile("src/services/projectStore.js", "utf8"),
+    fs.readFile("src/server.js", "utf8"),
   ]);
   assert.equal(customerCreationSummary({ id: "draft", status: "preview_failed" }).deletable, true);
   assert.equal(customerCreationSummary({ id: "paid", status: "purchased" }).deletable, false);
-  assert.match(bridge, /Version: 0\.6\.5/);
+  assert.match(bridge, /Version: 0\.6\.6/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
   assert.match(bridge, /window\.confirm/);
@@ -151,7 +218,11 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.match(route, /router\.delete\("\/commerce\/creations\/:id"/);
   assert.match(route, /confirmation !== projectId/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS project_deletions/);
+  assert.match(queueMigration, /cleanup_attempts/);
+  assert.match(queueMigration, /next_retry_at/);
   assert.match(storeSource, /SELECT \* FROM book_projects WHERE id=\$1 AND customer_id=\$2 FOR UPDATE/);
   assert.match(storeSource, /EXISTS\(SELECT 1 FROM commerce_orders WHERE project_id=\$1\)/);
   assert.match(storeSource, /EXISTS\(SELECT 1 FROM series_continuity_facts WHERE source_project_id=\$1\)/);
+  assert.match(storeSource, /FOR UPDATE SKIP LOCKED/);
+  assert.match(serverSource, /startProjectDeletionCleanupWorker\(\)/);
 });
