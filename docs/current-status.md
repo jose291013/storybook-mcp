@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/targeted-preview-modifications`
 - Latest merged checkpoint: PR #50 — `Localize and streamline scenario approval` (`0fe181e`)
 - Current focused checkpoint: paid targeted modification of one double-page in a completed, unpurchased preview
-- Pull request: not published yet
+- Pull request: draft PR #51 — `Add targeted paid preview modifications`; do not merge while any preview or targeted modification is generating
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
