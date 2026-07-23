@@ -219,6 +219,6 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioRoute, /scenario: storedScenario/);
   assert.match(scenarioRoute, /status: "scenario_review"/);
   assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
-  assert.match(bridge, /Version: 0\.6\.3/);
+  assert.match(bridge, /Version: 0\.6\.4/);
   assert.match(bridge, /Scénario à valider/);
 });

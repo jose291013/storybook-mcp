@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.3
+ * Version: 0.6.4
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -78,8 +78,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.3') {
-            update_option(self::VERSION_OPTION, '0.6.3');
+        if (get_option(self::VERSION_OPTION) !== '0.6.4') {
+            update_option(self::VERSION_OPTION, '0.6.4');
             flush_rewrite_rules(false);
         }
     }
@@ -288,6 +288,7 @@ final class Calitiki_Woo_Bridge {
     public static function render_account_creations() {
         $customer_id = get_current_user_id();
         echo '<div class="calitiki-creations-account"><h2>' . esc_html__('Mes créations Calitiki', 'calitiki-bridge') . '</h2>';
+        self::render_creation_deletion_notice($customer_id);
         self::render_ebook_resend_notice($customer_id);
         $project_payload = self::creation_projects_payload($customer_id);
         $projects = is_wp_error($project_payload) ? array() : (is_array($project_payload['projects'] ?? null) ? $project_payload['projects'] : array());
@@ -427,7 +428,7 @@ final class Calitiki_Woo_Bridge {
         $project_id = sanitize_text_field((string) ($_POST['project_id'] ?? ''));
         if (!$customer_id || !$project_id) {
             if ($customer_id) {
-                wc_add_notice(__('Création introuvable.', 'calitiki-bridge'), 'error');
+                self::store_creation_deletion_notice($customer_id, 'not_found');
             }
             wp_safe_redirect($redirect);
             exit;
@@ -435,12 +436,39 @@ final class Calitiki_Woo_Bridge {
         check_admin_referer('calitiki_delete_creation_' . $project_id);
         $result = self::delete_creation_payload($customer_id, $project_id);
         if (is_wp_error($result)) {
-            wc_add_notice($result->get_error_message(), 'error');
+            self::store_creation_deletion_notice($customer_id, $result->get_error_code());
         } else {
-            wc_add_notice(__('La création et ses fichiers privés propres ont été supprimés définitivement.', 'calitiki-bridge'), 'success');
+            self::store_creation_deletion_notice($customer_id, 'success');
         }
         wp_safe_redirect($redirect);
         exit;
+    }
+
+    private static function store_creation_deletion_notice($customer_id, $status) {
+        set_transient('calitiki_creation_deletion_' . absint($customer_id), sanitize_key($status), 5 * MINUTE_IN_SECONDS);
+    }
+
+    private static function render_creation_deletion_notice($customer_id) {
+        $key = 'calitiki_creation_deletion_' . absint($customer_id);
+        $status = sanitize_key((string) get_transient($key));
+        if (!$status) {
+            return;
+        }
+        delete_transient($key);
+        $notices = array(
+            'success' => array('success', __('La création et ses fichiers privés propres ont été supprimés définitivement.', 'calitiki-bridge')),
+            'not_found' => array('error', __('Création introuvable.', 'calitiki-bridge')),
+            'generation_active' => array('error', __('Calitiki travaille encore sur cette création. Réessayez dès que la génération est terminée ou interrompue.', 'calitiki-bridge')),
+            'purchased_project' => array('error', __('Un livre acheté ne peut pas être supprimé.', 'calitiki-bridge')),
+            'order_exists' => array('error', __('Cette création est liée à une commande et doit être conservée.', 'calitiki-bridge')),
+            'series_canon' => array('error', __('Cette création fait partie de la continuité d’une série et doit être conservée.', 'calitiki-bridge')),
+            'cleanup_pending' => array('error', __('La création a été retirée, mais le nettoyage privé doit être finalisé par Calitiki.', 'calitiki-bridge')),
+        );
+        $notice = isset($notices[$status])
+            ? $notices[$status]
+            : array('error', __('Impossible de supprimer cette création pour le moment.', 'calitiki-bridge'));
+        $class = $notice[0] === 'success' ? 'woocommerce-message' : 'woocommerce-error';
+        echo '<div class="' . esc_attr($class) . '" role="alert">' . esc_html($notice[1]) . '</div>';
     }
 
     public static function resend_ebook_email() {

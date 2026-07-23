@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.6.3
+Stable tag: 0.6.4
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -21,6 +21,7 @@ Le plugin ne reçoit ni ne stocke les photos des enfants. Il émet uniquement un
 == Suppression des créations non achetées ==
 
 Dans « Mes créations Calitiki », le propriétaire peut supprimer définitivement une création non achetée après une confirmation explicite. Les livres liés à une commande ou à la continuité d’une série restent protégés. Les photos encore utilisées par une autre création sont conservées.
+Le résultat de l’action est conservé brièvement puis affiché après la redirection, sans dépendre de la session de notifications WooCommerce dans `admin-post.php`.
 
 == Validation du scénario ==
 
