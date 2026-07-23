@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/nonblocking-project-deletion`
-- Latest merged checkpoint: PR #47 — `Automate private deletion cleanup` (`4181550`)
-- Current focused checkpoint: make the deletion receipt immediately authoritative and the request non-blocking
-- Pull request: draft PR #48 — `Make project deletion non-blocking`; do not merge without fresh user confirmation
+- Current branch: `codex/legacy-photo-refs-deletion`
+- Latest merged checkpoint: PR #48 — `Make project deletion non-blocking` (`80c0534`)
+- Current focused checkpoint: accept legacy object-shaped `photo_refs` during permanent deletion
+- Pull request: to be created; do not merge without fresh user confirmation
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-The automatic worker deployed by PR #47 recovered project `6e934bb8-7322-4f7e-b77c-e40d30f0fa90` on attempt 5 after the missing AWS `s3:ListBucket` permission was granted. That project no longer appears in the customer DOM. Two different projects, `66ca304a-4ee3-498e-b0f8-145216fb6874` and `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a`, still returned the Bridge's generic pre-receipt error. Bridge 0.6.7 therefore removes S3 work from the request, treats every deletion receipt as a tombstone, and exposes bounded actionable failure categories.
+The automatic worker deployed by PR #47 recovered project `6e934bb8-7322-4f7e-b77c-e40d30f0fa90` on attempt 5 after the missing AWS `s3:ListBucket` permission was granted. PR #48 and Bridge 0.6.7 then made the deletion request non-blocking. The production retry for project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` exposed one remaining historical-data case: another PostgreSQL row stores `photo_refs` as a JSON object instead of an array, causing `object is not iterable` before the deletion receipt commits. The current branch normalizes array, object-map and nested-wrapper photo references before deletion and shared-photo checks.
 
 ## Current product brick: permanent deletion of non-purchased creations
 
@@ -45,12 +45,14 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 - Full `npm.cmd test` with Bridge 0.6.6: 117 passed, 0 failed.
 - Bridge 0.6.7 focused deletion and archive suites: 69 passed, 0 failed.
 - Full `npm.cmd test` with Bridge 0.6.7: 118 passed, 0 failed.
+- Legacy `photo_refs` deletion regression suite: 6 passed, 0 failed.
+- Full `npm.cmd test` after legacy `photo_refs` normalization: 119 passed, 0 failed.
 
 ## Next verification target
 
-1. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
-2. Install `wordpress/calitiki-bridge-v0.6.7.zip` only after the Node deployment completes.
-3. Retry exactly one of the two identified projects and confirm its card disappears immediately while Render logs `cleanup queued`.
+1. Publish a dedicated draft PR without merging it.
+2. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
+3. After the Node deployment completes, retry project `0c04bb8a-bc29-4a7a-84e6-be5adbc68d0a` and confirm its card disappears immediately while Render logs `cleanup queued`.
 
 ## Protected local state
 

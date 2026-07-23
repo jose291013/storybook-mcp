@@ -6,7 +6,7 @@ import test from "node:test";
 import { customerCreationSummary } from "../src/services/customerCreationLibrary.js";
 import { JsonCreditStore } from "../src/services/creditStore.js";
 import { deleteCustomerCreation, ProjectDeletionError, runPendingProjectDeletionCleanup } from "../src/services/projectDeletion.js";
-import { JsonProjectStore } from "../src/services/projectStore.js";
+import { JsonProjectStore, normalizePhotoRefs, PostgresProjectStore } from "../src/services/projectStore.js";
 
 function safeDependencies(overrides = {}) {
   return {
@@ -241,6 +241,33 @@ test("a deletion receipt is an authoritative tombstone for project reads and cus
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("legacy object-shaped photo references remain iterable during PostgreSQL deletion checks", async () => {
+  const database = {
+    async query() {
+      return {
+        rows: [
+          { photo_refs: { primary: { id: "shared", storageKey: "reference-photos/shared.jpg" } } },
+          { photo_refs: { photos: [{ id: "other", storageKey: "reference-photos/other.jpg" }] } },
+          { photo_refs: null },
+        ],
+      };
+    },
+  };
+  const projects = new PostgresProjectStore(database);
+
+  assert.deepEqual(
+    normalizePhotoRefs({ primary: { id: "legacy.jpg" }, photos: [{ storageKey: "reference-photos/shared.jpg" }] }),
+    [{ id: "legacy.jpg" }, { storageKey: "reference-photos/shared.jpg" }]
+  );
+  assert.deepEqual(
+    await projects.photoStorageKeysReferencedElsewhere("project-to-delete", [
+      "reference-photos/shared.jpg",
+      "reference-photos/missing.jpg",
+    ]),
+    ["reference-photos/shared.jpg"]
+  );
 });
 
 test("customer metadata and the WordPress bridge expose deletion without exposing purchased books", async () => {
