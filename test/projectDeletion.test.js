@@ -75,8 +75,20 @@ test("an unpaid creation is deleted idempotently while shared photos remain priv
 
     assert.equal(first.deleted, true);
     assert.equal(first.alreadyDeleted, false);
+    assert.equal(first.cleanupPending, true);
     assert.equal(second.alreadyDeleted, true);
+    assert.equal(second.cleanupPending, true);
     assert.equal(await projects.get(project.id), null);
+    assert.deepEqual(deletedPrefixes, []);
+    assert.deepEqual(deletedKeys, []);
+    assert.deepEqual(deletedJobs, []);
+
+    const cleanup = await runPendingProjectDeletionCleanup({
+      ...dependencies,
+      projects,
+      configuration: { intervalMs: 30000, maxAttempts: 3, batchSize: 10 },
+    });
+    assert.deepEqual(cleanup, { claimed: 1, completed: 1, pending: 0, manualReview: 0 });
     assert.deepEqual(deletedPrefixes, [`ebooks/previews/${project.id}/`]);
     assert.deepEqual(deletedKeys, ["reference-photos/unique.jpg"]);
     assert.deepEqual(deletedJobs, ["job-delete"]);
@@ -115,10 +127,8 @@ test("pending private cleanup resumes automatically and escalates only after bou
       async deletePrefix() { throw new Error("private storage delete denied"); },
     };
     for (const project of [recoverable, manual]) {
-      await assert.rejects(
-        deleteCustomerCreation(project.id, identity, safeDependencies({ projects, storage: failingStorage, logger })),
-        (error) => error.code === "cleanup_pending"
-      );
+      const queued = await deleteCustomerCreation(project.id, identity, safeDependencies({ projects, storage: failingStorage, logger }));
+      assert.equal(queued.cleanupPending, true);
     }
     const makeDue = (projectId) => {
       const store = projects.read();
@@ -127,6 +137,11 @@ test("pending private cleanup resumes automatically and escalates only after bou
       store.deletions[deletion.id] = deletion;
       projects.write(store);
     };
+    const hold = projects.read();
+    const heldDeletion = Object.values(hold.deletions).find((item) => item.projectId === manual.id);
+    heldDeletion.nextRetryAt = new Date(Date.now() + 60000).toISOString();
+    hold.deletions[heldDeletion.id] = heldDeletion;
+    projects.write(hold);
     makeDue(recoverable.id);
     const recovered = await runPendingProjectDeletionCleanup({
       projects,
@@ -140,6 +155,17 @@ test("pending private cleanup resumes automatically and escalates only after bou
     assert.deepEqual(recovered, { claimed: 1, completed: 1, pending: 0, manualReview: 0 });
     assert.equal(Object.values(projects.read().deletions).find((item) => item.projectId === recoverable.id).status, "completed");
 
+    makeDue(manual.id);
+    const firstFailure = await runPendingProjectDeletionCleanup({
+      projects,
+      storage: failingStorage,
+      jobs: { delete() {} },
+      logger,
+      configuration: { intervalMs: 30000, maxAttempts: 2, batchSize: 10 },
+      outputsDir: path.join(directory, "outputs"),
+      uploadsDir: path.join(directory, "uploads"),
+    });
+    assert.deepEqual(firstFailure, { claimed: 1, completed: 0, pending: 1, manualReview: 0 });
     makeDue(manual.id);
     const exhausted = await runPendingProjectDeletionCleanup({
       projects,
@@ -189,6 +215,34 @@ test("purchases, order history, series canon and active generation each block de
   }
 });
 
+test("a deletion receipt is an authoritative tombstone for project reads and customer listings", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-project-tombstone-"));
+  try {
+    const projects = new JsonProjectStore(path.join(directory, "projects.json"));
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    const customer = await projects.ensureCustomer(identity);
+    const project = await projects.create({ customerId: customer.id, status: "preview_ready" });
+    const store = projects.read();
+    store.deletions.tombstone = {
+      id: "tombstone",
+      projectId: project.id,
+      customerId: customer.id,
+      assetManifest: {},
+      status: "completed",
+      cleanupAttempts: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    projects.write(store);
+
+    assert.equal(await projects.get(project.id), null);
+    assert.equal(await projects.getForCustomer(project.id, identity), null);
+    assert.deepEqual(await projects.listForCustomer(identity), []);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("customer metadata and the WordPress bridge expose deletion without exposing purchased books", async () => {
   const [bridge, route, migration, queueMigration, storeSource, serverSource] = await Promise.all([
     fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
@@ -200,7 +254,7 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   ]);
   assert.equal(customerCreationSummary({ id: "draft", status: "preview_failed" }).deletable, true);
   assert.equal(customerCreationSummary({ id: "paid", status: "purchased" }).deletable, false);
-  assert.match(bridge, /Version: 0\.6\.6/);
+  assert.match(bridge, /Version: 0\.6\.7/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
   assert.match(bridge, /window\.confirm/);
@@ -208,6 +262,8 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.match(bridge, /store_creation_deletion_notice/);
   assert.match(bridge, /render_creation_deletion_notice/);
   assert.match(bridge, /'cleanup_pending' => array\('notice'/);
+  assert.match(bridge, /!empty\(\$result\['cleanupPending'\]\)/);
+  assert.match(bridge, /'http_request_failed' => array\('error'/);
   assert.match(bridge, /Aucune action n’est nécessaire/);
   assert.match(bridge, /woocommerce-info/);
   const deleteHandler = bridge.slice(
@@ -217,6 +273,8 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.doesNotMatch(deleteHandler, /wc_add_notice/);
   assert.match(route, /router\.delete\("\/commerce\/creations\/:id"/);
   assert.match(route, /confirmation !== projectId/);
+  assert.match(route, /result\.cleanupPending \? 202 : 200/);
+  assert.match(route, /\[project-deletion\] request failed/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS project_deletions/);
   assert.match(queueMigration, /cleanup_attempts/);
   assert.match(queueMigration, /next_retry_at/);
@@ -224,5 +282,6 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.match(storeSource, /EXISTS\(SELECT 1 FROM commerce_orders WHERE project_id=\$1\)/);
   assert.match(storeSource, /EXISTS\(SELECT 1 FROM series_continuity_facts WHERE source_project_id=\$1\)/);
   assert.match(storeSource, /FOR UPDATE SKIP LOCKED/);
+  assert.match(storeSource, /NOT EXISTS \(SELECT 1 FROM project_deletions/);
   assert.match(serverSource, /startProjectDeletionCleanupWorker\(\)/);
 });

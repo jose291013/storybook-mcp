@@ -173,11 +173,8 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
   const orders = dependencies.orders || commerceOrderStore;
   const series = dependencies.series || seriesStore;
   const credits = dependencies.credits || creditStore;
-  const storage = dependencies.storage || getDeliveryStorage();
   const jobs = dependencies.jobs || { get: getJob, fail: (id) => updateJob(id, { status: "failed", step: "project:deleted", error: "Creation deleted by its owner" }), delete: deleteJob };
   const logger = dependencies.logger || console;
-  const outputsDir = dependencies.outputsDir || path.resolve("data/outputs");
-  const uploadsDir = dependencies.uploadsDir || path.resolve("data/uploads");
   const id = String(projectId || "");
   if (!id) throw new ProjectDeletionError("Project id is required", { code: "invalid_project", status: 400 });
 
@@ -208,6 +205,7 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
       jobId: project.generationJobId || "",
     };
     await credits.releasePreviewForProject(identity, { projectId: project.id });
+    await credits.deleteProjectEntitlements(identity, { projectId: project.id });
     prepared = await projects.prepareDeletion(project.id, identity, assetManifest);
   } else {
     prepared = await projects.prepareDeletion(id, identity, {});
@@ -216,24 +214,17 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
   const blocked = deletionBlocked(prepared);
   if (blocked) throw blocked;
   if (!prepared) return { deleted: true, alreadyDeleted: true, projectId: id };
-  if (prepared.deletion?.status === "completed") return { deleted: true, alreadyDeleted: true, projectId: id };
-
-  try {
-    await credits.deleteProjectEntitlements(identity, { projectId: id });
-    await cleanupAssetsWithRetries(prepared.deletion.assetManifest || {}, { storage, outputsDir, uploadsDir, jobs });
-    await projects.completeDeletion(id, identity);
-  } catch (error) {
-    const message = cleanupErrorMessage(error);
-    const deletion = await projects.completeDeletion(id, identity, { error: message }).catch(() => null);
-    logger.warn?.("[project-deletion] initial cleanup retry scheduled", {
+  const cleanupPending = prepared.deletion?.status !== "completed";
+  if (cleanupPending) {
+    logger.info?.("[project-deletion] cleanup queued", {
       projectId: id,
-      attempt: deletion?.cleanupAttempts,
-      nextRetryAt: deletion?.nextRetryAt,
-      error: message,
-    });
-    throw new ProjectDeletionError("The creation was removed from the library, but private asset cleanup must be retried", {
-      code: "cleanup_pending", status: 503,
+      nextRetryAt: prepared.deletion?.nextRetryAt || null,
     });
   }
-  return { deleted: true, alreadyDeleted: Boolean(prepared.alreadyDeleted), projectId: id };
+  return {
+    deleted: true,
+    alreadyDeleted: Boolean(prepared.alreadyDeleted),
+    cleanupPending,
+    projectId: id,
+  };
 }
