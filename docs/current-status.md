@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/wordpress-deletion-notice`
 - Latest merged checkpoint: PR #45 — `Delete non-purchased creations safely`
 - Current focused checkpoint: prevent the WordPress fatal error after a deletion attempt
-- Pull request: to be created; do not merge without fresh user confirmation
+- Pull request: `https://github.com/jose291013/storybook-mcp/pull/46` (draft; do not merge without fresh user confirmation)
 - WordPress Bridge source/package: `0.6.4`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -42,12 +42,10 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Run the complete test suite for Bridge 0.6.4.
-2. Publish the focused PR without merging it.
-3. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
-4. Install `wordpress/calitiki-bridge-v0.6.4.zip` in WordPress.
-5. Confirm the prior creation's actual state before attempting another deletion.
-6. Delete one disposable unpurchased creation and confirm the success message appears after redirection without a fatal error.
+1. Before merging PR #46, confirm no preview is generating and obtain explicit user approval because Render may restart.
+2. Install `wordpress/calitiki-bridge-v0.6.4.zip` in WordPress.
+3. Confirm the prior creation's actual state before attempting another deletion.
+4. Delete one disposable unpurchased creation and confirm the success message appears after redirection without a fatal error.
 
 ## Protected local state
 
