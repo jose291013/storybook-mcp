@@ -133,13 +133,16 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   ]);
   assert.equal(customerCreationSummary({ id: "draft", status: "preview_failed" }).deletable, true);
   assert.equal(customerCreationSummary({ id: "paid", status: "purchased" }).deletable, false);
-  assert.match(bridge, /Version: 0\.6\.4/);
+  assert.match(bridge, /Version: 0\.6\.5/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
   assert.match(bridge, /window\.confirm/);
   assert.match(bridge, /delete-creation\|/);
   assert.match(bridge, /store_creation_deletion_notice/);
   assert.match(bridge, /render_creation_deletion_notice/);
+  assert.match(bridge, /'cleanup_pending' => array\('notice'/);
+  assert.match(bridge, /Aucune action n’est nécessaire/);
+  assert.match(bridge, /woocommerce-info/);
   const deleteHandler = bridge.slice(
     bridge.indexOf("public static function delete_creation"),
     bridge.indexOf("public static function resend_ebook_email")

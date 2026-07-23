@@ -10,14 +10,14 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/wordpress-deletion-notice`
 - Latest merged checkpoint: PR #45 — `Delete non-purchased creations safely`
-- Current focused checkpoint: prevent the WordPress fatal error after a deletion attempt
+- Current focused checkpoint: make the successful-but-pending cleanup result reassuring and actionable
 - Pull request: `https://github.com/jose291013/storybook-mcp/pull/46` (draft; do not merge without fresh user confirmation)
-- WordPress Bridge source/package: `0.6.4`
+- WordPress Bridge source/package: `0.6.5`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Calitiki Bridge 0.6.3 is installed in WordPress. Its deletion handler calls `wc_add_notice()` from `admin-post.php`, where that WooCommerce function is unavailable, and production reported an `E_ERROR` at plugin line 438 after the signed deletion request. The project may therefore already be deleted even though WordPress showed a fatal page.
+Calitiki Bridge 0.6.4 is installed in WordPress and fixes the `admin-post.php` fatal error. A real deletion then returned `cleanup_pending`: the creation disappeared correctly, but the Bridge rendered the secondary private-file cleanup as a red customer error. Bridge 0.6.5 presents that state as an informational confirmation: the creation is removed, remaining files stay private while Calitiki finishes cleanup, and the customer has nothing to do.
 
 ## Current product brick: permanent deletion of non-purchased creations
 
@@ -39,11 +39,13 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 - PHP CLI is not installed locally; plugin behavior is covered by source-contract tests and the packaged archive test.
 - Full `npm.cmd test` with Bridge 0.6.4: 116 passed, 0 failed.
 - Bridge 0.6.4 focused PHP-parser, archive and deletion suites: 67 passed, 0 failed.
+- Bridge 0.6.5 focused PHP-parser, archive and deletion suites: 67 passed, 0 failed.
+- Full `npm.cmd test` with Bridge 0.6.5: 116 passed, 0 failed.
 
 ## Next verification target
 
 1. Before merging PR #46, confirm no preview is generating and obtain explicit user approval because Render may restart.
-2. Install `wordpress/calitiki-bridge-v0.6.4.zip` in WordPress.
+2. Install `wordpress/calitiki-bridge-v0.6.5.zip` in WordPress.
 3. Confirm the prior creation's actual state before attempting another deletion.
 4. Delete one disposable unpurchased creation and confirm the success message appears after redirection without a fatal error.
 
