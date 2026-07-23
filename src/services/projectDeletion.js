@@ -70,6 +70,97 @@ async function cleanupAssetsWithRetries(manifest, dependencies) {
   throw lastError;
 }
 
+function cleanupWorkerConfiguration() {
+  const intervalMs = Math.max(30000, Number.parseInt(process.env.PROJECT_DELETION_CLEANUP_INTERVAL_MS || "60000", 10) || 60000);
+  const maxAttempts = Math.max(2, Math.min(20, Number.parseInt(process.env.PROJECT_DELETION_CLEANUP_MAX_ATTEMPTS || "8", 10) || 8));
+  const batchSize = Math.max(1, Math.min(50, Number.parseInt(process.env.PROJECT_DELETION_CLEANUP_BATCH_SIZE || "10", 10) || 10));
+  return { intervalMs, maxAttempts, batchSize };
+}
+
+function cleanupRetryDelayMs(attempt) {
+  return Math.min(3600000, 60000 * (2 ** Math.max(0, Math.min(6, Number(attempt || 0)))));
+}
+
+function cleanupErrorMessage(error) {
+  return String(error?.message || error || "Unknown private cleanup error").slice(0, 500);
+}
+
+export async function runPendingProjectDeletionCleanup(dependencies = {}) {
+  const projects = dependencies.projects || projectStore;
+  const storage = dependencies.storage || getDeliveryStorage();
+  const jobs = dependencies.jobs || { delete: deleteJob };
+  const outputsDir = dependencies.outputsDir || path.resolve("data/outputs");
+  const uploadsDir = dependencies.uploadsDir || path.resolve("data/uploads");
+  const logger = dependencies.logger || console;
+  const configuration = { ...cleanupWorkerConfiguration(), ...(dependencies.configuration || {}) };
+  const deletions = await projects.claimPendingDeletions({
+    limit: configuration.batchSize,
+    leaseMs: Math.max(120000, configuration.intervalMs * 2),
+  });
+  const result = { claimed: deletions.length, completed: 0, pending: 0, manualReview: 0 };
+  for (const deletion of deletions) {
+    try {
+      await cleanupAssetsWithRetries(deletion.assetManifest || {}, { storage, outputsDir, uploadsDir, jobs });
+      await projects.recordDeletionCleanup(deletion.projectId);
+      result.completed += 1;
+      logger.info?.("[project-deletion] cleanup completed", {
+        projectId: deletion.projectId,
+        attempt: Number(deletion.cleanupAttempts || 0) + 1,
+      });
+    } catch (error) {
+      const message = cleanupErrorMessage(error);
+      const updated = await projects.recordDeletionCleanup(deletion.projectId, {
+        error: message,
+        maxAttempts: configuration.maxAttempts,
+        retryDelayMs: cleanupRetryDelayMs(Number(deletion.cleanupAttempts || 0)),
+      });
+      if (updated?.status === "manual_review") {
+        result.manualReview += 1;
+        logger.error?.("[project-deletion] manual review required", {
+          projectId: deletion.projectId,
+          attempts: updated.cleanupAttempts,
+          error: message,
+        });
+      } else {
+        result.pending += 1;
+        logger.warn?.("[project-deletion] cleanup retry scheduled", {
+          projectId: deletion.projectId,
+          attempt: updated?.cleanupAttempts,
+          nextRetryAt: updated?.nextRetryAt,
+          error: message,
+        });
+      }
+    }
+  }
+  return result;
+}
+
+export function startProjectDeletionCleanupWorker(dependencies = {}) {
+  if (String(process.env.PROJECT_DELETION_CLEANUP_ENABLED || "true").toLowerCase() === "false") {
+    return { enabled: false, stop() {}, runNow: async () => ({ claimed: 0, completed: 0, pending: 0, manualReview: 0 }) };
+  }
+  const configuration = { ...cleanupWorkerConfiguration(), ...(dependencies.configuration || {}) };
+  let running = false;
+  const runNow = async () => {
+    if (running) return { skipped: true };
+    running = true;
+    try { return await runPendingProjectDeletionCleanup({ ...dependencies, configuration }); }
+    catch (error) {
+      (dependencies.logger || console).error?.("[project-deletion] cleanup worker failed", { error: cleanupErrorMessage(error) });
+      return { failed: true };
+    } finally { running = false; }
+  };
+  const initial = setTimeout(runNow, Math.min(10000, configuration.intervalMs));
+  const interval = setInterval(runNow, configuration.intervalMs);
+  initial.unref?.();
+  interval.unref?.();
+  return {
+    enabled: true,
+    runNow,
+    stop() { clearTimeout(initial); clearInterval(interval); },
+  };
+}
+
 function deletionBlocked(result) {
   if (result?.blockedReason === "purchased") return new ProjectDeletionError("Purchased books cannot be deleted", { code: "purchased_project" });
   if (result?.blockedReason === "order_exists") return new ProjectDeletionError("A creation linked to an order cannot be deleted", { code: "order_exists" });
@@ -84,6 +175,7 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
   const credits = dependencies.credits || creditStore;
   const storage = dependencies.storage || getDeliveryStorage();
   const jobs = dependencies.jobs || { get: getJob, fail: (id) => updateJob(id, { status: "failed", step: "project:deleted", error: "Creation deleted by its owner" }), delete: deleteJob };
+  const logger = dependencies.logger || console;
   const outputsDir = dependencies.outputsDir || path.resolve("data/outputs");
   const uploadsDir = dependencies.uploadsDir || path.resolve("data/uploads");
   const id = String(projectId || "");
@@ -131,7 +223,14 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
     await cleanupAssetsWithRetries(prepared.deletion.assetManifest || {}, { storage, outputsDir, uploadsDir, jobs });
     await projects.completeDeletion(id, identity);
   } catch (error) {
-    await projects.completeDeletion(id, identity, { error: String(error?.message || error) }).catch(() => null);
+    const message = cleanupErrorMessage(error);
+    const deletion = await projects.completeDeletion(id, identity, { error: message }).catch(() => null);
+    logger.warn?.("[project-deletion] initial cleanup retry scheduled", {
+      projectId: id,
+      attempt: deletion?.cleanupAttempts,
+      nextRetryAt: deletion?.nextRetryAt,
+      error: message,
+    });
     throw new ProjectDeletionError("The creation was removed from the library, but private asset cleanup must be retried", {
       code: "cleanup_pending", status: 503,
     });

@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/wordpress-deletion-notice`
-- Latest merged checkpoint: PR #45 — `Delete non-purchased creations safely`
-- Current focused checkpoint: make the successful-but-pending cleanup result reassuring and actionable
-- Pull request: `https://github.com/jose291013/storybook-mcp/pull/46` (draft; do not merge without fresh user confirmation)
-- WordPress Bridge source/package: `0.6.5`
+- Current branch: `codex/automatic-deletion-cleanup`
+- Latest merged checkpoint: PR #46 — `Fix and reassure WordPress deletion notices` (`72189f4`)
+- Current focused checkpoint: automatically finish pending private-asset deletion
+- Pull request: `https://github.com/jose291013/storybook-mcp/pull/47` (draft; do not merge without fresh user confirmation)
+- WordPress Bridge source/package: `0.6.6`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Calitiki Bridge 0.6.4 is installed in WordPress and fixes the `admin-post.php` fatal error. A real deletion then returned `cleanup_pending`: the creation disappeared correctly, but the Bridge rendered the secondary private-file cleanup as a red customer error. Bridge 0.6.5 presents that state as an informational confirmation: the creation is removed, remaining files stay private while Calitiki finishes cleanup, and the customer has nothing to do.
+Calitiki Bridge 0.6.4 remains installed in WordPress while the user waits for one complete replacement. A real deletion returned `cleanup_pending`: the creation disappeared correctly, but the private-object cleanup exhausted its three immediate attempts. Bridge 0.6.6 pairs the reassuring message with a real durable worker that resumes the existing receipt automatically after deployment.
 
 ## Current product brick: permanent deletion of non-purchased creations
 
@@ -41,13 +41,15 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 - Bridge 0.6.4 focused PHP-parser, archive and deletion suites: 67 passed, 0 failed.
 - Bridge 0.6.5 focused PHP-parser, archive and deletion suites: 67 passed, 0 failed.
 - Full `npm.cmd test` with Bridge 0.6.5: 116 passed, 0 failed.
+- Bridge 0.6.6 automatic-cleanup, PHP-parser and archive suites: 68 passed, 0 failed.
+- Full `npm.cmd test` with Bridge 0.6.6: 117 passed, 0 failed.
 
 ## Next verification target
 
-1. Before merging PR #46, confirm no preview is generating and obtain explicit user approval because Render may restart.
-2. Install `wordpress/calitiki-bridge-v0.6.5.zip` in WordPress.
-3. Confirm the prior creation's actual state before attempting another deletion.
-4. Delete one disposable unpurchased creation and confirm the success message appears after redirection without a fatal error.
+1. The user confirmed no preview is generating and explicitly authorized merging PR #47; merge it, then wait for Render to restart.
+2. After deployment, verify Render logs show the prior pending receipt completing or a precise bounded storage error.
+3. Install `wordpress/calitiki-bridge-v0.6.6.zip` in WordPress.
+4. Delete one disposable unpurchased creation and confirm no customer action is required.
 
 ## Protected local state
 

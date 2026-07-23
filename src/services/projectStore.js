@@ -19,6 +19,9 @@ const deletionFromRow = (row) => row ? {
   assetManifest: row.asset_manifest || {},
   status: row.status,
   lastError: row.last_error || "",
+  cleanupAttempts: Number(row.cleanup_attempts || 0),
+  nextRetryAt: row.next_retry_at?.toISOString?.() || row.next_retry_at || null,
+  lastAttemptAt: row.last_attempt_at?.toISOString?.() || row.last_attempt_at || null,
   createdAt: row.created_at?.toISOString?.() || row.created_at || null,
   updatedAt: row.updated_at?.toISOString?.() || row.updated_at || null,
   completedAt: row.completed_at?.toISOString?.() || row.completed_at || null,
@@ -123,21 +126,54 @@ export class JsonProjectStore {
     const timestamp = now();
     const deletion = {
       id: crypto.randomUUID(), projectId: project.id, customerId: customer.id, assetManifest,
-      status: "pending", lastError: "", createdAt: timestamp, updatedAt: timestamp, completedAt: null,
+      status: "pending", lastError: "", cleanupAttempts: 0, nextRetryAt: timestamp, lastAttemptAt: null,
+      createdAt: timestamp, updatedAt: timestamp, completedAt: null,
     };
     store.deletions[deletion.id] = deletion;
     delete store.projects[id];
     this.write(store);
     return { project, deletion, alreadyDeleted: false };
   }
-  async completeDeletion(projectId, identity, { error = "" } = {}) {
+  async claimPendingDeletions({ limit = 10, leaseMs = 120000 } = {}) {
+    const store = this.read(); const timestamp = Date.now();
+    const pending = Object.values(store.deletions)
+      .filter((item) => item.status === "pending" && Date.parse(item.nextRetryAt || item.updatedAt || 0) <= timestamp)
+      .sort((left, right) => String(left.nextRetryAt || "").localeCompare(String(right.nextRetryAt || "")))
+      .slice(0, Math.max(1, Math.min(50, Number(limit) || 10)));
+    for (const deletion of pending) {
+      deletion.lastAttemptAt = now();
+      deletion.nextRetryAt = new Date(timestamp + Math.max(30000, Number(leaseMs) || 120000)).toISOString();
+      deletion.updatedAt = now();
+    }
+    if (pending.length) this.write(store);
+    return pending;
+  }
+  async recordDeletionCleanup(projectId, { error = "", maxAttempts = 8, retryDelayMs = 60000, customerId = null } = {}) {
+    const store = this.read();
+    const deletion = Object.values(store.deletions).find((item) => item.projectId === projectId && (!customerId || item.customerId === customerId));
+    if (!deletion) return null;
+    const failure = String(error || "");
+    if (failure) {
+      deletion.cleanupAttempts = Number(deletion.cleanupAttempts || 0) + 1;
+      deletion.status = deletion.cleanupAttempts >= Math.max(1, Number(maxAttempts) || 8) ? "manual_review" : "pending";
+      deletion.lastError = failure;
+      deletion.lastAttemptAt = now();
+      deletion.nextRetryAt = new Date(Date.now() + Math.max(30000, Number(retryDelayMs) || 60000)).toISOString();
+      deletion.completedAt = null;
+    } else {
+      deletion.status = "completed";
+      deletion.lastError = "";
+      deletion.completedAt = deletion.completedAt || now();
+    }
+    deletion.updatedAt = now();
+    this.write(store);
+    return deletion;
+  }
+  async completeDeletion(projectId, identity, options = {}) {
     const customer = await this.ensureCustomer(identity); const store = this.read();
     const deletion = Object.values(store.deletions).find((item) => item.projectId === projectId && item.customerId === customer.id);
     if (!deletion) return null;
-    deletion.status = error ? "pending" : "completed";
-    deletion.lastError = String(error || ""); deletion.updatedAt = now();
-    deletion.completedAt = error ? null : (deletion.completedAt || now());
-    this.write(store); return deletion;
+    return this.recordDeletionCleanup(projectId, { ...options, customerId: customer.id });
   }
 }
 
@@ -261,15 +297,49 @@ export class PostgresProjectStore {
       return { project, deletion: deletionFromRow(inserted.rows[0]), alreadyDeleted: false };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   }
-  async completeDeletion(projectId, identity, { error = "" } = {}) {
-    const customer = await this.ensureCustomer(identity);
+  async claimPendingDeletions({ limit = 10, leaseMs = 120000 } = {}) {
+    const boundedLimit = Math.max(1, Math.min(50, Number(limit) || 10));
+    const boundedLease = Math.max(30000, Number(leaseMs) || 120000);
     const { rows } = await this.database.query(
-      `UPDATE project_deletions SET status=$3,last_error=$4,updated_at=now(),
-       completed_at=CASE WHEN $3='completed' THEN COALESCE(completed_at,now()) ELSE NULL END
-       WHERE project_id=$1 AND customer_id=$2 RETURNING *`,
-      [projectId, customer.id, error ? "pending" : "completed", String(error || "")]
+      `WITH candidates AS (
+         SELECT id FROM project_deletions
+         WHERE status='pending' AND next_retry_at<=now()
+         ORDER BY next_retry_at ASC
+         FOR UPDATE SKIP LOCKED
+         LIMIT $1
+       )
+       UPDATE project_deletions AS deletion
+       SET last_attempt_at=now(),next_retry_at=now()+($2 * interval '1 millisecond'),updated_at=now()
+       FROM candidates
+       WHERE deletion.id=candidates.id
+       RETURNING deletion.*`,
+      [boundedLimit, boundedLease]
+    );
+    return rows.map(deletionFromRow);
+  }
+  async recordDeletionCleanup(projectId, { error = "", maxAttempts = 8, retryDelayMs = 60000, customerId = null } = {}) {
+    const failure = String(error || "");
+    const boundedAttempts = Math.max(1, Number(maxAttempts) || 8);
+    const boundedDelay = Math.max(30000, Number(retryDelayMs) || 60000);
+    const { rows } = await this.database.query(
+      `UPDATE project_deletions SET
+       cleanup_attempts=CASE WHEN $2='' THEN cleanup_attempts ELSE cleanup_attempts+1 END,
+       status=CASE WHEN $2='' THEN 'completed'
+                   WHEN cleanup_attempts+1 >= $3 THEN 'manual_review'
+                   ELSE 'pending' END,
+       last_error=$2,
+       last_attempt_at=CASE WHEN $2='' THEN last_attempt_at ELSE now() END,
+       next_retry_at=CASE WHEN $2='' THEN next_retry_at ELSE now()+($4 * interval '1 millisecond') END,
+       updated_at=now(),
+       completed_at=CASE WHEN $2='' THEN COALESCE(completed_at,now()) ELSE NULL END
+       WHERE project_id=$1 AND ($5::uuid IS NULL OR customer_id=$5) RETURNING *`,
+      [projectId, failure, boundedAttempts, boundedDelay, customerId]
     );
     return deletionFromRow(rows[0]);
+  }
+  async completeDeletion(projectId, identity, options = {}) {
+    const customer = await this.ensureCustomer(identity);
+    return this.recordDeletionCleanup(projectId, { ...options, customerId: customer.id });
   }
 }
 
