@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/nonblocking-project-deletion`
 - Latest merged checkpoint: PR #47 — `Automate private deletion cleanup` (`4181550`)
 - Current focused checkpoint: make the deletion receipt immediately authoritative and the request non-blocking
-- Pull request: to be created; do not merge without fresh user confirmation
+- Pull request: draft PR #48 — `Make project deletion non-blocking`; do not merge without fresh user confirmation
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -48,10 +48,9 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Publish a dedicated draft PR without merging it.
-2. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
-3. Install `wordpress/calitiki-bridge-v0.6.7.zip` only after the Node deployment completes.
-4. Retry exactly one of the two identified projects and confirm its card disappears immediately while Render logs `cleanup queued`.
+1. Before merging, confirm no preview is generating and obtain explicit user approval because Render may restart.
+2. Install `wordpress/calitiki-bridge-v0.6.7.zip` only after the Node deployment completes.
+3. Retry exactly one of the two identified projects and confirm its card disappears immediately while Render logs `cleanup queued`.
 
 ## Protected local state
 
