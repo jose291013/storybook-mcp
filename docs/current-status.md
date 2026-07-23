@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-language-direct-approval`
 - Latest merged checkpoint: PR #49 — `Handle legacy photo references during deletion` (`4e05a6d`)
 - Current focused checkpoint: keep every scenario-review field in the requested language and allow direct approval of unchanged suggested answers
-- Pull request: to be created; do not merge while the user's current book is being created
+- Pull request: draft PR #50 — `Localize and streamline scenario approval`; do not merge while the user's current book is being created
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -52,9 +52,8 @@ PostgreSQL migration `008_project_deletions.sql` adds only the durable cleanup r
 
 ## Next verification target
 
-1. Publish a dedicated draft PR without merging it.
-2. Let the current customer book finish, then obtain explicit confirmation that no generation is active before merging because Render may restart.
-3. On a fresh French scenario, confirm questions, reasons, suggested answers and scene prose are French, no technical role slug is visible, unchanged suggestions allow direct approval, and any edit requires an update.
+1. Let the current customer book finish, then obtain explicit confirmation that no generation is active before merging PR #50 because Render may restart.
+2. On a fresh French scenario, confirm questions, reasons, suggested answers and scene prose are French, no technical role slug is visible, unchanged suggestions allow direct approval, and any edit requires an update.
 
 ## Protected local state
 
