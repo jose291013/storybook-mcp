@@ -1385,6 +1385,9 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /visualProofAction === "regenerate"/);
   assert.match(source, /storyScenePlanAuditAgent/);
   assert.match(source, /story:scenario-fidelity-repair/);
+  assert.match(source, /storySceneTextRepairAgent/);
+  assert.match(source, /story:scenario-fidelity-targeted-repair/);
+  assert.match(source, /story:scenario-fidelity-targeted-recheck/);
   assert.match(source, /if \(!hasCurrentStoryScenePlan\)/);
   assert.match(source, /event: "cover_ready"/);
   assert.match(source, /event: "generation_failed"/);

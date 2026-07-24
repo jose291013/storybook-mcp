@@ -1419,6 +1419,8 @@ function generationProgress(step = "") {
   if (step.includes("scenario-fidelity-check")) return 21;
   if (step.includes("scenario-fidelity-repair")) return 22;
   if (step.includes("scenario-fidelity-recheck")) return 23;
+  if (step.includes("scenario-fidelity-targeted-repair")) return 23;
+  if (step.includes("scenario-fidelity-targeted-recheck")) return 24;
   if (step.includes("cover")) return 25;
   const pageMatch = step.match(/draft:page:(\d+)/);
   if (pageMatch) return Math.min(96, 25 + Number(pageMatch[1]) * (71 / state.pageCount));
@@ -1432,6 +1434,7 @@ function friendlyStep(step = "") {
   if (step.includes("blueprint")) return tr("progressBlueprint");
   if (step.includes("draft:text:page")) return tr("progressManuscript");
   if (step.includes("coherence-and-scene-contracts")) return tr("progressCoherence");
+  if (step.includes("scenario-fidelity-targeted-repair")) return tr("progressFidelityRepair");
   if (step.includes("scenario-fidelity-repair")) return tr("progressFidelityRepair");
   if (step.includes("scenario-fidelity")) return tr("progressFidelityCheck");
   if (step.includes("cover")) return tr("progressCover");

@@ -8,37 +8,38 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/prefill-story-message`
-- Latest merged checkpoint: PR #56 — hard scene fidelity on top of preview milestone e-mails (`07ab4a6`)
-- Current focused checkpoint: pre-fill the creator's moral/message from the selected inspiration card
-- Pull request: draft PR #57 — `Préremplir le message depuis l’inspiration`; do not merge while the creator's current real-book test is active
+- Current branch: `codex/targeted-scenario-fidelity-repair`
+- Latest merged checkpoint: PR #57 — inspiration cards pre-fill the creator's editable message (`c8c6af8`)
+- Current focused checkpoint: targeted reader-text repair after whole-book scenario fidelity fails
+- Pull request: not opened yet; never merge without confirming that no generation is active
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 and PR #56 are merged and Render has received the combined notification and hard-fidelity source. Bridge 0.6.9 remains the required WordPress package for the new cover-ready and generation-failure e-mails.
+PR #55 through PR #57 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
 
-During the next real-book test, selecting an inspiration card correctly copied its dream and gentle challenge but left the required message field empty even though the card already supplied a useful inner realization.
+Project `7039d6f6-e411-44fb-ab7a-38d5aac28568` exhausted its policy-4 retry at `story:scenario-fidelity-recheck`: the whole-book repair removed the scene-4 contradiction but still mentioned Tyam in scene 5 even though the approved scene excludes him. Its questionnaire, approved scenario and draft text through page 32 remain checkpointed.
 
-## Current product brick: inspiration-to-message handoff
+## Current product brick: targeted scenario-fidelity repair
 
-1. Selecting an inspiration card now copies its `transformation` into the visible `message` answer in addition to its dream and challenge.
-2. The pre-filled message remains ordinary editable questionnaire text; the creator may keep, rewrite or replace it before continuing.
-3. Choosing **I already have my own idea** still preserves the creator's existing free-form answers.
+1. After the two whole-book planning attempts fail, Calitiki maps every remaining fidelity issue to its exact approved scene and paired reader-text page.
+2. A dedicated story repair rewrites only those pages, with the approved cast, location, event and character-presence mode locked.
+3. The same semantic and deterministic audits run again; an unresolved contradiction still stops before cover or image generation.
+4. Preview retry policy 5 makes projects exhausted under policy 4 eligible for one explicit no-charge recovery while reusing their checkpointed work.
 
 ## Verification completed locally
 
-- Browser syntax check passes.
-- Focused story-funnel tests: 4 passed, 0 failed.
-- Full `npm.cmd test`: 139 passed, 0 failed.
+- Server and browser syntax checks pass.
+- Focused scenario, checkpoint and structure tests: 89 passed, 0 failed.
+- Full `npm.cmd test`: 141 passed, 0 failed.
 
 ## Next verification target
 
-1. Let the creator finish the current real-book test without deploying this branch.
-2. Publish this focused change as a draft PR.
-3. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
-4. After deployment, select each inspiration lane in FR, ES and EN and confirm that dream, challenge and message are all pre-filled and editable.
+1. Run the full suite and publish this focused change as a draft PR.
+2. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
+3. After deployment, reopen project `7039d6f6-e411-44fb-ab7a-38d5aac28568`; policy 5 must expose one free retry.
+4. Confirm logs reach `story:scenario-fidelity-targeted-repair` only when needed, then `story scene plan completed` before cover generation.
 
 ## Protected local state
 
