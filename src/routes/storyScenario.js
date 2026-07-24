@@ -84,6 +84,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
         canonicalCharacters,
         creatorClarifications,
         worldContract: normalized.answers.universe_story_contract,
+        language: normalized.answers.language,
       }),
       { sceneEdits, addedCharacters },
     ));

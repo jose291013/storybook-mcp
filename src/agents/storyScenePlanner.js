@@ -1,6 +1,7 @@
 import { runAgent } from "../services/agentRunner.js";
 import { loadPrompt } from "../services/loadPrompt.js";
 import { aliasesFromSceneContract, compactImageSceneContract, neutralizeImageText } from "../services/imageVisualContract.js";
+import { enrichFamilyAddress } from "../services/characterRelationships.js";
 import { canonicalizeWrittenNames } from "./blueprintFiller.js";
 
 function key(value) {
@@ -136,7 +137,9 @@ export async function storyScenePlannerAgent({
     ...characterCanons.map((item) => ({ name: item.name, role: item.role, relationship: item.relationship })),
     { name: blueprint?.hero?.name, role: "child" },
     ...(blueprint?.cast || []),
-  ].filter((item, index, all) => item?.name && all.findIndex((candidate) => key(candidate?.name) === key(item.name)) === index);
+  ]
+    .filter((item, index, all) => item?.name && all.findIndex((candidate) => key(candidate?.name) === key(item.name)) === index)
+    .map((character) => enrichFamilyAddress(character, blueprint?.language));
   const textByPage = new Map(Object.entries(pageTexts || {}).map(([page, text]) => [Number(page), String(text || "")]));
   const spreads = (blueprint?.pages || []).filter((page) => page.page_type === "image").map((imagePage) => {
     const textPage = blueprint.pages.find((page) => page.spread_number === imagePage.spread_number && page.page_type === "text");
@@ -222,5 +225,6 @@ export function sceneContractImagePrompt({
     compact.forbidden_elements.length ? `FORBIDDEN SUBSTITUTIONS OR ELEMENTS: ${compact.forbidden_elements.join(" | ")}` : "",
     stylePrompt ? `LOCKED RENDERING STYLE: ${neutralizeImageText(stylePrompt, aliases)}` : "",
     "Show one readable focal action, coherent physical scale and the exact requested number of people or objects. Do not render dialogue or written story text. No text, captions, logos, trademarks or watermarks inside the illustration.",
+    "IDENTITY SEPARATION: every listed person or animal is one complete, separate individual with one coherent head and body. Never fuse, splice, morph or exchange faces, heads, bodies, limbs, species, clothing or markings between characters or reference images.",
   ].filter(Boolean).join("\n");
 }
