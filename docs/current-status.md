@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/universe-first-story-funnel`
 - Latest merged checkpoint: PR #51 — targeted paid preview modifications (`e95545b`)
 - Current focused checkpoint: universe-first seven-step creator, universe-aware inspiration cards and causal universe validation
-- Pull request: not published yet
+- Pull request: draft PR #52 — `Add universe-first story funnel`; do not merge while any preview or targeted modification is generating
 - WordPress Bridge source/package: `0.6.7`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
