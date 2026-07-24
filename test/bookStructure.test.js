@@ -940,7 +940,7 @@ test("every sellable page count creates complete alternating spreads", () => {
 
 test("the product configurator exposes visual universes and previewable typography", () => {
   assert.equal(UNIVERSE_OPTIONS.length, 6);
-  assert.ok(UNIVERSE_OPTIONS.every((option) => option.prompt && option.palette.length === 3 && option.previewImage));
+  assert.ok(UNIVERSE_OPTIONS.every((option) => option.prompt && option.palette.length === 3 && option.previewImage && option.referenceImage && option.storyContract));
   assert.equal(TYPOGRAPHY_OPTIONS.length, 6);
   assert.ok(TYPOGRAPHY_OPTIONS.every((option) => option.preview));
   assert.ok(ILLUSTRATION_STYLES.every((style) => style.previewImage));

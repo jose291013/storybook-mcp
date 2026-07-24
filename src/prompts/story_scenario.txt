@@ -12,6 +12,10 @@ ADAPTIVE CLARIFICATIONS
 - Even when clarification is needed, return your best provisional complete scenario so the creator can understand the consequence.
 
 CAUSAL RULES
+- intake.universe_story_contract is authoritative. Use its story bridge, entry rule, physical rules, required mechanisms and object rule in every applicable scene.
+- The selected universe is a real causal setting, not decorative wallpaper. Connect the child's real-world passion to a useful skill, choice or emotional bridge; never force a physically incompatible literal activity or device into the world.
+- Introduce every required world mechanism before first use, include every affected physical traveler, and keep it stable. A nonphysical thought, memory or voice never uses a physical mechanism.
+- Treat story_seed_* as the creator's selected inspiration when present. Preserve its dream, challenge, adaptation, key moment and transformation without copying its wording mechanically.
 - Every scene after the first must list the immediately previous scene id as a prerequisite.
 - A destination cannot appear before the travel or threshold crossing that reaches it.
 - A portal, gate, vehicle, tunnel or magical passage must be discovered in an earlier scene before it is crossed.

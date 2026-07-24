@@ -12,6 +12,9 @@ try {
 const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLocale : referrerLocale;
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
+const FLOW_VERSION = 2;
+const STEP_COUNT = 7;
+const REVIEW_STEP = 6;
 
 function safeCalitikiReturnUrl(value) {
   try {
@@ -47,6 +50,9 @@ const state = {
   step: 0,
   selectedStyle: "",
   selectedUniverse: "",
+  storySuggestions: [],
+  storySuggestionMode: "",
+  storySuggestionsBusy: false,
   fontStyle: "school_round",
   pageCount: 24,
   productType: "ebook",
@@ -88,19 +94,19 @@ const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams
 
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
-  heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"), universeTitle: document.querySelector("#universeTitle"),
+  heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -164,6 +170,43 @@ const UNIVERSE_TEXT = {
   wonder_city: { FR: ["Ville merveilleuse", "Ateliers magiques, toits colorés et passages secrets."], ES: ["Ciudad maravillosa", "Talleres mágicos, tejados de colores y pasadizos."], EN: ["Wonder city", "Magical workshops, colorful roofs and secret passages."] },
 };
 
+const UNIVERSE_CONTRACT_TEXT = {
+  enchanted_forest: {
+    FR: { adventure: "Les chemins et clairières d'une forêt réellement enchantée.", entry: "L'aventure commence à son entrée ou après la découverte d'un passage clairement montré.", rules: ["La magie visible peut ouvrir ou éclairer un chemin.", "Les objets ordinaires restent soumis aux règles normales."], mechanisms: ["Le passage ou le signe magique est découvert avant d'être utilisé."] },
+    ES: { adventure: "Los senderos y claros de un bosque verdaderamente encantado.", entry: "La aventura empieza en su entrada o tras descubrir un paso claramente visible.", rules: ["La magia visible puede abrir o iluminar un camino.", "Los objetos corrientes conservan sus reglas normales."], mechanisms: ["El paso o la señal mágica se descubre antes de utilizarse."] },
+    EN: { adventure: "The paths and clearings of a genuinely enchanted forest.", entry: "The adventure starts at its edge or after a clearly shown passage is discovered.", rules: ["Visible magic may open or light a path.", "Ordinary objects keep their normal rules."], mechanisms: ["The passage or magical sign is discovered before use."] },
+  },
+  starry_space: {
+    FR: { adventure: "Une exploration de planètes, lunes et jardins célestes.", entry: "Chaque voyageur part dans une capsule ou par un passage spatial sûr montré avant le départ.", rules: ["Le vide, la gravité et la respiration exigent une protection stable.", "La capsule suit les voyageurs d'une étape à l'autre."], mechanisms: ["Transport spatial sûr.", "Air et communication pour tous les voyageurs."] },
+    ES: { adventure: "Una exploración de planetas, lunas y jardines celestes.", entry: "Cada viajero sale en una cápsula o por un paso espacial seguro mostrado antes de partir.", rules: ["El vacío, la gravedad y la respiración exigen una protección estable.", "La cápsula acompaña a los viajeros entre etapas."], mechanisms: ["Transporte espacial seguro.", "Aire y comunicación para todos los viajeros."] },
+    EN: { adventure: "An exploration of planets, moons and celestial gardens.", entry: "Every traveler leaves in a capsule or through a safe space passage shown before departure.", rules: ["Vacuum, gravity and breathing require stable protection.", "The capsule remains with the travelers between stops."], mechanisms: ["Safe space transport.", "Air and communication for every traveler."] },
+  },
+  coral_ocean: {
+    FR: { adventure: "Un récif sous-marin lumineux et ses chemins de corail.", entry: "Chaque personnage physique reçoit sa bulle avant de plonger.", rules: ["La bulle assure respiration, pression et parole.", "Un téléphone ordinaire reste sec, rangé ou absent."], mechanisms: ["Une bulle complète par voyageur.", "Un moyen stable de parler sous l'eau."] },
+    ES: { adventure: "Un arrecife submarino luminoso y sus caminos de coral.", entry: "Cada personaje físico recibe su burbuja antes de sumergirse.", rules: ["La burbuja permite respirar, soportar la presión y hablar.", "Un teléfono normal permanece seco, guardado o ausente."], mechanisms: ["Una burbuja completa por viajero.", "Una forma estable de hablar bajo el agua."] },
+    EN: { adventure: "A luminous underwater reef and its coral paths.", entry: "Every physical character receives a bubble before diving.", rules: ["The bubble provides breathing, pressure safety and speech.", "An ordinary phone remains dry, stored or absent."], mechanisms: ["One complete bubble per traveler.", "A stable way to speak underwater."] },
+  },
+  cloud_castle: {
+    FR: { adventure: "Les tours, ponts et salles d'un château au-dessus des nuages.", entry: "Un pont, un aéronef ou un passage magique sûr est montré avant l'arrivée.", rules: ["Le support contre la chute reste visible et stable.", "Personne n'apparaît soudainement dans le château."], mechanisms: ["Un trajet aérien sûr pour chaque personnage physique."] },
+    ES: { adventure: "Las torres, puentes y salas de un castillo sobre las nubes.", entry: "Antes de llegar se muestra un puente, aeronave o paso mágico seguro.", rules: ["La protección contra la caída permanece visible y estable.", "Nadie aparece de repente dentro del castillo."], mechanisms: ["Un trayecto aéreo seguro para cada personaje físico."] },
+    EN: { adventure: "The towers, bridges and rooms of a castle above the clouds.", entry: "A safe bridge, aircraft or magical passage is shown before arrival.", rules: ["Protection from falling stays visible and stable.", "Nobody suddenly appears inside the castle."], mechanisms: ["A safe aerial route for every physical character."] },
+  },
+  dinosaur_valley: {
+    FR: { adventure: "Une vaste vallée préhistorique aux fougères géantes et dinosaures amicaux.", entry: "Le portail est découvert et ouvert avant que quiconque ne le traverse.", rules: ["Seuls les personnages qui franchissent le portail sont présents physiquement.", "Les dinosaures gardent une taille cohérente."], mechanisms: ["Découverte du portail.", "Traversée explicite de chaque voyageur."] },
+    ES: { adventure: "Un gran valle prehistórico con helechos gigantes y dinosaurios amistosos.", entry: "El portal se descubre y abre antes de que nadie lo cruce.", rules: ["Solo están físicamente presentes quienes cruzan el portal.", "Los dinosaurios mantienen un tamaño coherente."], mechanisms: ["Descubrimiento del portal.", "Cruce explícito de cada viajero."] },
+    EN: { adventure: "A vast prehistoric valley with giant ferns and friendly dinosaurs.", entry: "The portal is discovered and opened before anyone crosses it.", rules: ["Only characters who cross the portal are physically present.", "Dinosaurs keep a coherent scale."], mechanisms: ["Portal discovery.", "Explicit crossing by every traveler."] },
+  },
+  wonder_city: {
+    FR: { adventure: "Les ateliers, toits et passages secrets d'une ville merveilleuse.", entry: "Le héros entre par une rue, une porte ou un passage découvert avant usage.", rules: ["Les inventions magiques montrent comment elles fonctionnent.", "Les objets réels ne gagnent pas de pouvoirs sans explication."], mechanisms: ["L'entrée ou le passage est établi.", "Toute invention utile est introduite avant son usage."] },
+    ES: { adventure: "Los talleres, tejados y pasadizos secretos de una ciudad maravillosa.", entry: "El protagonista entra por una calle, puerta o paso descubierto antes de usarlo.", rules: ["Los inventos mágicos muestran cómo funcionan.", "Los objetos reales no obtienen poderes sin explicación."], mechanisms: ["Se establece la entrada o el pasadizo.", "Todo invento útil se presenta antes de usarlo."] },
+    EN: { adventure: "The workshops, rooftops and secret passages of a wonder city.", entry: "The hero enters through a street, gate or passage discovered before use.", rules: ["Magical inventions show how they work.", "Real objects do not gain powers without explanation."], mechanisms: ["The entrance or passage is established.", "Every useful invention is introduced before use."] },
+  },
+};
+
+function localizedUniverseContract(id = state.selectedUniverse) {
+  return UNIVERSE_CONTRACT_TEXT[id]?.[state.locale] || UNIVERSE_CONTRACT_TEXT[id]?.FR || null;
+}
+
 const ROLE_LABELS = {
   FR: { child: "L'enfant", mascot: "Mascotte / animal", friend: "Ami(e)", family: "Famille", other: "Autre personnage", hero: "Héros / héroïne", guide: "Guide", ally: "Allié(e)", companion: "Compagnon", supporter: "Soutien", guest: "Invité(e)" },
   ES: { child: "El niño", mascot: "Mascota / animal", friend: "Amigo/a", family: "Familia", other: "Otro personaje", hero: "Protagonista", guide: "Guía", ally: "Aliado/a", companion: "Compañero/a", supporter: "Apoyo", guest: "Invitado/a" },
@@ -189,9 +232,10 @@ function readLocalDraft() { try { return JSON.parse(localStorage.getItem(LOCAL_D
 function persistLocalDraft() {
   if (!state.config) return;
   localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
-    values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
+    flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
-    productType: state.productType, projectId: state.projectId, updatedAt: new Date().toISOString(),
+    productType: state.productType, projectId: state.projectId, storySuggestions: state.storySuggestions,
+    storySuggestionMode: state.storySuggestionMode, updatedAt: new Date().toISOString(),
   }));
 }
 function scheduleLocalDraft() { window.clearTimeout(localDraftTimer); localDraftTimer = window.setTimeout(persistLocalDraft, 250); }
@@ -204,9 +248,9 @@ function setPreviewComplete(complete) {
   if (state.previewComplete) submit.innerHTML = `<span>${escapeHtml(tr("previewAlreadyGenerated"))}</span>`;
 }
 
-async function saveServerDraft(questionnaire, photos) {
+async function saveServerDraft(questionnaire, photos, status = "ready_for_preview") {
   const body = JSON.stringify({
-    status: "ready_for_preview", title: questionnaire.hero_name || "", locale: state.locale,
+    status, title: questionnaire.hero_name || "", locale: state.locale,
     questionnaire, photos, productConfiguration: productConfiguration(),
   });
   let response = state.projectId
@@ -265,7 +309,7 @@ async function refreshCreditSummary(projectId = state.projectId) {
 async function preparePreviewAuthorization(projectId) {
   const summary = await refreshCreditSummary(projectId);
   document.querySelector("#creator").hidden = false;
-  showStep(4, false);
+  showStep(REVIEW_STEP, false);
   state.awaitingPreviewConfirmation = true;
   elements.creditPanel.scrollIntoView({ behavior: "smooth", block: "center" });
   elements.creditFeedback.textContent = summary?.missingCents > 0
@@ -297,7 +341,7 @@ async function confirmPreviewAuthorization() {
     state.awaitingPreviewConfirmation = true;
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;
-    showStep(4, false);
+    showStep(REVIEW_STEP, false);
     await refreshCreditSummary(state.projectId).catch(() => null);
     elements.confirmPreviewButton.disabled = false;
     elements.confirmPreviewButton.textContent = original;
@@ -443,6 +487,18 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   elements.storyScenarioKicker.textContent = tr("scenarioKicker");
   elements.storyScenarioTitle.textContent = scenario.title || tr("scenarioTitle");
   elements.storyScenarioSummary.textContent = scenario.summary || "";
+  const worldContract = scenario.worldContract || {};
+  const localizedContract = localizedUniverseContract(worldContract.id);
+  const contractRules = [
+    [tr("scenarioContractAdventure"), localizedContract?.adventure || worldContract.adventureZone],
+    [tr("scenarioContractEntry"), localizedContract?.entry || worldContract.entryRule],
+    [tr("scenarioContractRules"), (localizedContract?.rules || worldContract.physicalRules || []).join(" · ")],
+    [tr("scenarioContractMechanisms"), (localizedContract?.mechanisms || worldContract.requiredMechanisms || []).join(" · ")],
+  ].filter(([, value]) => String(value || "").trim());
+  elements.scenarioWorldContract.hidden = !contractRules.length;
+  elements.scenarioWorldContract.innerHTML = contractRules.length
+    ? `<h3>${escapeHtml(tr("scenarioContractTitle"))}</h3><p>${escapeHtml(tr("scenarioContractLead"))}</p><dl>${contractRules.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>`
+    : "";
   const clarifications = scenario.clarifications || [];
   const validation = scenario.validation || { valid: true, categories: [], sceneNumbers: [], categoryScenes: {} };
   const needsRevision = validation.valid === false;
@@ -791,9 +847,11 @@ async function beginReferenceRecovery() {
     state.selectedUniverse = questionnaire.universe_id || project.productConfiguration?.universe_id || state.selectedUniverse;
     state.fontStyle = questionnaire.font_style || project.productConfiguration?.font_style || state.fontStyle;
     state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
+    state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
+    state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
     renderQuestions(questionnaire);
     restoreValues(questionnaire);
-    renderUniverses(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
+    renderUniverses(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
     state.photos.forEach((photo) => URL.revokeObjectURL(photo.url));
     state.photos = [];
     state.referenceRecoveryMode = true;
@@ -802,7 +860,7 @@ async function beginReferenceRecovery() {
     setPreviewComplete(false);
     elements.resultSection.hidden = true;
     document.querySelector("#creator").hidden = false;
-    showStep(3);
+    showStep(5);
     elements.formError.textContent = tr("recoverReferencesInstructions");
   } catch (error) {
     elements.previewRebateText.textContent = error.message || tr("recoverReferencesError");
@@ -928,17 +986,167 @@ function renderQuestions(values = {}) {
   bindImproveButtons();
 }
 
+function selectedUniverseOption() {
+  return state.config?.universeOptions?.find((option) => option.id === state.selectedUniverse);
+}
+
+function selectedStorySuggestion() {
+  const selectedId = document.querySelector("#story_seed_id")?.value || "";
+  return state.storySuggestions.find((suggestion) => suggestion.id === selectedId) || null;
+}
+
+function resetStorySuggestionChoice({ preserveAnswers = true } = {}) {
+  state.storySuggestionMode = "";
+  ["story_seed_id", "story_seed_title", "story_seed_adaptation", "story_seed_moment", "story_seed_transformation"].forEach((id) => {
+    const input = document.querySelector(`#${id}`);
+    if (input) input.value = "";
+  });
+  if (!preserveAnswers) {
+    const dream = document.querySelector("#dream");
+    const challenge = document.querySelector("#challenge");
+    if (dream) dream.value = "";
+    if (challenge) challenge.value = "";
+  }
+}
+
+function renderSelectedSuggestionSummary() {
+  const suggestion = selectedStorySuggestion();
+  elements.selectedSuggestionSummary.hidden = !suggestion;
+  if (!suggestion) {
+    elements.selectedSuggestionSummary.innerHTML = "";
+    return;
+  }
+  elements.selectedSuggestionSummary.innerHTML = `<strong>${escapeHtml(tr("suggestionSelected"))} : ${escapeHtml(suggestion.title)}</strong><span>${escapeHtml(suggestion.adventure)}</span>`;
+}
+
+function chooseStorySuggestion(id) {
+  const suggestion = state.storySuggestions.find((item) => item.id === id);
+  if (!suggestion) return;
+  state.storySuggestionMode = "suggestion";
+  document.querySelector("#story_seed_id").value = suggestion.id;
+  document.querySelector("#story_seed_title").value = suggestion.title;
+  document.querySelector("#story_seed_adaptation").value = suggestion.adventure;
+  document.querySelector("#story_seed_moment").value = suggestion.moment;
+  document.querySelector("#story_seed_transformation").value = suggestion.transformation;
+  const dream = document.querySelector("#dream");
+  const challenge = document.querySelector("#challenge");
+  if (dream) dream.value = suggestion.dream;
+  if (challenge) challenge.value = suggestion.challenge;
+  renderStorySuggestions();
+  renderSelectedSuggestionSummary();
+  persistLocalDraft();
+}
+
+function chooseCustomStory() {
+  state.storySuggestionMode = "custom";
+  resetStorySuggestionChoice({ preserveAnswers: true });
+  state.storySuggestionMode = "custom";
+  renderStorySuggestions();
+  renderSelectedSuggestionSummary();
+  persistLocalDraft();
+}
+
+function renderStorySuggestions() {
+  const selectedId = document.querySelector("#story_seed_id")?.value || "";
+  const universe = selectedUniverseOption();
+  const contract = localizedUniverseContract(universe?.id);
+  elements.suggestionUniverseSummary.innerHTML = universe
+    ? `<strong>${escapeHtml(localizedUniverseName())}</strong><span>${escapeHtml(contract?.adventure || universe.storyContract?.adventureZone || "")}</span>`
+    : "";
+  elements.suggestionLoading.hidden = !state.storySuggestionsBusy;
+  elements.refreshStorySuggestions.disabled = state.storySuggestionsBusy;
+  elements.customStoryChoice.disabled = state.storySuggestionsBusy;
+  elements.storySuggestionGrid.innerHTML = state.storySuggestions.map((suggestion) => `
+    <article class="story-suggestion-card ${suggestion.id === selectedId ? "is-selected" : ""}">
+      <span class="story-suggestion-lane">${escapeHtml(tr(`suggestionLane_${suggestion.id}`))}</span>
+      <h3>${escapeHtml(suggestion.title)}</h3>
+      <dl>
+        <div><dt>${escapeHtml(tr("suggestionDream"))}</dt><dd>${escapeHtml(suggestion.dream)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionChallenge"))}</dt><dd>${escapeHtml(suggestion.challenge)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionAdventure"))}</dt><dd>${escapeHtml(suggestion.adventure)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionMoment"))}</dt><dd>${escapeHtml(suggestion.moment)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionTransformation"))}</dt><dd>${escapeHtml(suggestion.transformation)}</dd></div>
+      </dl>
+      <button type="button" class="primary-button" data-story-suggestion="${escapeHtml(suggestion.id)}">${escapeHtml(suggestion.id === selectedId ? tr("editIdea") : tr("useIdea"))}</button>
+    </article>`).join("");
+  elements.storySuggestionGrid.querySelectorAll("[data-story-suggestion]").forEach((button) => {
+    button.addEventListener("click", () => chooseStorySuggestion(button.dataset.storySuggestion));
+  });
+  elements.customStoryChoice.classList.toggle("is-selected", state.storySuggestionMode === "custom");
+  elements.suggestionChoiceStatus.textContent = selectedId
+    ? tr("suggestionSelected")
+    : state.storySuggestionMode === "custom" ? tr("suggestionCustomSelected") : "";
+}
+
+async function requestStorySuggestions({ refresh = false } = {}) {
+  if (state.storySuggestionsBusy || !state.selectedUniverse) return;
+  const values = formValues();
+  if (![values.hero_name, values.age, values.favorite_activities, values.personality].every((value) => String(value || "").trim())) return;
+  if (state.storySuggestions.length && !refresh) {
+    renderStorySuggestions();
+    return;
+  }
+  state.storySuggestionsBusy = true;
+  elements.suggestionChoiceStatus.textContent = "";
+  renderStorySuggestions();
+  try {
+    const response = await fetch("/api/story-suggestions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        heroName: values.hero_name,
+        age: values.age,
+        favoriteActivities: values.favorite_activities,
+        personality: values.personality,
+        universeId: state.selectedUniverse,
+        locale: state.locale,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload.suggestions) || payload.suggestions.length !== 3) throw new Error(payload.error || tr("suggestionError"));
+    state.storySuggestions = payload.suggestions;
+    resetStorySuggestionChoice({ preserveAnswers: true });
+    persistLocalDraft();
+  } catch (error) {
+    elements.suggestionChoiceStatus.textContent = error.message || tr("suggestionError");
+  } finally {
+    state.storySuggestionsBusy = false;
+    renderStorySuggestions();
+  }
+}
+
 function renderUniverses() {
   const options = state.config.universeOptions;
-  state.selectedUniverse ||= options[0]?.id;
+  const ui = STYLE_UI_TEXT[state.locale] || STYLE_UI_TEXT.FR;
   elements.universeGrid.innerHTML = options.map((option) => {
     const [name, description] = UNIVERSE_TEXT[option.id]?.[state.locale] || [option.name, option.description];
-    return `<button type="button" class="visual-card universe-card preview-${option.id} ${option.id === state.selectedUniverse ? "is-selected" : ""}" data-universe-id="${option.id}" role="radio" aria-checked="${option.id === state.selectedUniverse}"><span class="visual-card-art" style="--c1:${option.palette[0]};--c2:${option.palette[1]};--c3:${option.palette[2]}">${option.previewImage ? `<img src="${escapeHtml(option.previewImage)}" alt="" loading="lazy" />` : ""}<i></i><b></b></span><span class="visual-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span><span class="info-dot" title="${escapeHtml(description)}" aria-label="${escapeHtml(tr("information"))}">i</span></button>`;
+    return `<div class="universe-card-wrap"><button type="button" class="visual-card universe-card preview-${option.id} ${option.id === state.selectedUniverse ? "is-selected" : ""}" data-universe-id="${option.id}" role="radio" aria-checked="${option.id === state.selectedUniverse}"><span class="visual-card-art" style="--c1:${option.palette[0]};--c2:${option.palette[1]};--c3:${option.palette[2]}">${option.previewImage ? `<img class="universe-after" src="${escapeHtml(option.previewImage)}" alt="${escapeHtml(`${name} — ${ui.after.toLowerCase()}`)}" loading="lazy" />` : ""}${option.referenceImage ? `<img class="universe-before" src="${escapeHtml(option.referenceImage)}" alt="${escapeHtml(ui.before.toLowerCase())}" loading="lazy" />` : ""}<span class="universe-image-label universe-after-label">${escapeHtml(ui.after)}</span><span class="universe-image-label universe-before-label">${escapeHtml(ui.before)}</span></span><span class="visual-card-copy"><strong>${escapeHtml(name)}</strong><small>${escapeHtml(description)}</small></span></button><button type="button" class="universe-reference-toggle" data-universe-reference="${option.id}" aria-pressed="false">${escapeHtml(ui.show)}</button></div>`;
   }).join("");
   document.querySelector("#universe_id").value = state.selectedUniverse;
   document.querySelector("#universe").value = "";
+  const selected = selectedUniverseOption();
+  const contract = localizedUniverseContract(selected?.id);
+  elements.universeSelectionSummary.hidden = !selected;
+  elements.universeSelectionSummary.innerHTML = selected ? `<strong>${escapeHtml(localizedUniverseName())}</strong><span>${escapeHtml(contract?.adventure || selected.storyContract?.adventureZone || "")}</span>` : "";
   elements.universeGrid.querySelectorAll(".visual-card-art img").forEach((image) => image.addEventListener("error", () => image.remove()));
-  elements.universeGrid.querySelectorAll("[data-universe-id]").forEach((button) => button.addEventListener("click", () => { state.selectedUniverse = button.dataset.universeId; renderUniverses(); emitWooConfiguration(); }));
+  elements.universeGrid.querySelectorAll("[data-universe-id]").forEach((button) => button.addEventListener("click", () => {
+    const changed = state.selectedUniverse && state.selectedUniverse !== button.dataset.universeId;
+    state.selectedUniverse = button.dataset.universeId;
+    if (changed) {
+      state.storySuggestions = [];
+      resetStorySuggestionChoice({ preserveAnswers: true });
+    }
+    renderUniverses();
+    renderStorySuggestions();
+    emitWooConfiguration();
+  }));
+  elements.universeGrid.querySelectorAll("[data-universe-reference]").forEach((toggle) => toggle.addEventListener("click", () => {
+    const card = toggle.closest(".universe-card-wrap").querySelector(".universe-card");
+    const visible = !card.classList.contains("is-reference-visible");
+    card.classList.toggle("is-reference-visible", visible);
+    toggle.setAttribute("aria-pressed", String(visible));
+    toggle.textContent = visible ? ui.hide : ui.show;
+  }));
 }
 
 function renderStyles() {
@@ -1025,14 +1233,22 @@ function renderPhotos() {
 
 function validateStep() {
   elements.formError.textContent = "";
-  if (state.step <= 1) {
+  if (state.step === 0 && !state.selectedUniverse) {
+    elements.formError.textContent = tr("invalidUniverse");
+    return false;
+  }
+  if (state.step === 1 || state.step === 3) {
     const required = [...document.querySelector(`[data-panel="${state.step}"]`).querySelectorAll("[required]")];
     const invalid = required.filter((input) => !String(input.value).trim());
     required.forEach((input) => input.classList.toggle("is-invalid", invalid.includes(input)));
     if (invalid.length) { elements.formError.textContent = tr("invalidRequired"); invalid[0].focus(); return false; }
   }
-  if (state.step === 2 && !state.selectedStyle) { elements.formError.textContent = tr("invalidStyle"); return false; }
-  if (state.step === 3) {
+  if (state.step === 2 && !selectedStorySuggestion() && state.storySuggestionMode !== "custom") {
+    elements.formError.textContent = tr("suggestionRequired");
+    return false;
+  }
+  if (state.step === 4 && !state.selectedStyle) { elements.formError.textContent = tr("invalidStyle"); return false; }
+  if (state.step === 5) {
     if (state.photos.filter((photo) => photo.role === "child").length > 1) { elements.formError.textContent = tr("invalidChildPhoto"); return false; }
     if (state.photos.some((photo) => !photo.name.trim())) { elements.formError.textContent = tr("invalidPhotoName"); return false; }
   }
@@ -1044,17 +1260,32 @@ function localizedUniverseName() { const universe = UNIVERSE_TEXT[state.selected
 
 function renderReview() {
   const values = formValues(); const labels = ROLE_LABELS[state.locale];
-  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
+  const chosenSuggestion = selectedStorySuggestion();
+  const inspiration = chosenSuggestion?.title || (state.storySuggestionMode === "custom" ? tr("suggestionCustomSelected") : "—");
+  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewInspiration"), inspiration], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
   elements.reviewCard.innerHTML = rows.map(([label, value]) => `<div class="review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
 }
 
 function showStep(nextStep, shouldScroll = true) {
-  state.step = Math.max(0, Math.min(4, nextStep));
+  state.step = Math.max(0, Math.min(REVIEW_STEP, nextStep));
   document.querySelectorAll(".form-panel").forEach((panel) => panel.classList.toggle("is-active", Number(panel.dataset.panel) === state.step));
   document.querySelectorAll(".step").forEach((step, index) => { step.classList.toggle("is-active", index === state.step); step.classList.toggle("is-complete", index < state.step); });
-  elements.prevButton.hidden = state.step === 0; elements.nextButton.hidden = state.step === 4;
-  elements.mobileStepLabel.textContent = tr("stepLabel", { current: state.step + 1 }); elements.mobileProgressBar.style.width = `${(state.step + 1) * 20}%`; elements.formError.textContent = "";
-  if (state.step === 4) renderReview(); if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
+  elements.prevButton.hidden = state.step === 0; elements.nextButton.hidden = state.step === REVIEW_STEP;
+  elements.mobileStepLabel.textContent = tr("stepLabel", { current: state.step + 1 }); elements.mobileProgressBar.style.width = `${((state.step + 1) / STEP_COUNT) * 100}%`; elements.formError.textContent = "";
+  if (state.step === 2) requestStorySuggestions().catch(() => null);
+  if (state.step === REVIEW_STEP) renderReview();
+  if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function questionnaireFromState() {
+  const universe = selectedUniverseOption();
+  return {
+    ...formValues(),
+    ...productConfiguration(),
+    universe_details: document.querySelector("#universe_details").value,
+    universe_story_contract: universe?.storyContract || {},
+    story_suggestions: state.storySuggestions,
+  };
 }
 
 function productConfiguration() {
@@ -1470,10 +1701,12 @@ function loadSeriesDraft(project) {
   state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
   state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
+  state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
+  state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
   renderQuestions(questionnaire);
   restoreValues(questionnaire);
   document.querySelector("#language").value = questionnaire.book_language || configuration.book_language || project.locale || "FR";
-  renderUniverses(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
+  renderUniverses(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
   state.photos.forEach((photo) => { if (photo.file) URL.revokeObjectURL(photo.url); });
   state.photos = (project.photoRefs || []).map((photo) => ({
     file: null, storedRef: photo,
@@ -1529,7 +1762,7 @@ async function startGeneration(event) {
       elements.creditFeedback.textContent = tr("recoverReferencesReady");
       return;
     }
-    const questionnaire = { ...formValues(), ...productConfiguration(), universe_details: document.querySelector("#universe_details").value };
+    const questionnaire = questionnaireFromState();
     const project = await saveServerDraft(questionnaire, uploadedPhotos);
     const session = await readCustomerSession();
     if (!session.authenticated) {
@@ -1555,11 +1788,39 @@ async function startGeneration(event) {
 
 function changeLocale(locale) {
   const values = state.config ? formValues() : {}; state.locale = ["FR", "ES", "EN"].includes(locale) ? locale : "FR"; localStorage.setItem("storybook-ui-language", state.locale); applyTranslations();
-  if (state.config) { renderQuestions(values); renderUniverses(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === 4) renderReview(); showStep(state.step, false); }
+  if (state.config) { renderQuestions(values); renderUniverses(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
 }
 
 async function init() {
-  try { const response = await fetch("/api/questionnaire"); state.config = await response.json(); if (!response.ok) throw new Error("Configuration unavailable"); const saved = newBookRequested ? null : readLocalDraft(); state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount; state.selectedStyle = saved?.selectedStyle || ""; state.selectedUniverse = saved?.selectedUniverse || ""; state.fontStyle = saved?.fontStyle || state.fontStyle; state.productType = availableProductType(saved?.productType || requestedProductType || state.productType); state.projectId = saved?.projectId || ""; changeLocale(saved?.locale || state.locale); if (saved?.values) restoreValues(saved.values); if (Number.isInteger(saved?.step)) showStep(Math.max(0, Math.min(4, saved.step)), false); emitWooConfiguration(); await refreshCustomerSession(); await refreshCreditSummary("").catch(() => null); const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected"; if (authCallback) await resumePreviewAfterLogin(); else await restoreCompletedPreview(); }
+  try {
+    const response = await fetch("/api/questionnaire");
+    state.config = await response.json();
+    if (!response.ok) throw new Error("Configuration unavailable");
+    const saved = newBookRequested ? null : readLocalDraft();
+    state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount;
+    state.selectedStyle = saved?.selectedStyle || "";
+    state.selectedUniverse = saved?.selectedUniverse || "";
+    state.fontStyle = saved?.fontStyle || state.fontStyle;
+    state.productType = availableProductType(saved?.productType || requestedProductType || state.productType);
+    state.projectId = saved?.projectId || "";
+    state.storySuggestions = Array.isArray(saved?.storySuggestions) ? saved.storySuggestions : [];
+    state.storySuggestionMode = saved?.storySuggestionMode || "";
+    changeLocale(saved?.locale || state.locale);
+    if (saved?.values) restoreValues(saved.values);
+    renderStorySuggestions();
+    renderSelectedSuggestionSummary();
+    if (Number.isInteger(saved?.step)) {
+      const legacyStepMap = [1, 3, 4, 5, 6];
+      const restoredStep = saved.flowVersion === FLOW_VERSION ? saved.step : legacyStepMap[saved.step] ?? 0;
+      showStep(Math.max(0, Math.min(REVIEW_STEP, restoredStep)), false);
+    }
+    emitWooConfiguration();
+    await refreshCustomerSession();
+    await refreshCreditSummary("").catch(() => null);
+    const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected";
+    if (authCallback) await resumePreviewAfterLogin();
+    else await restoreCompletedPreview();
+  }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
 }
 
@@ -1573,6 +1834,8 @@ document.querySelectorAll(".step").forEach((step, index) => step.addEventListene
 elements.form.addEventListener("input", scheduleLocalDraft);
 elements.form.addEventListener("change", scheduleLocalDraft);
 elements.form.addEventListener("click", (event) => { if (event.target.closest("[data-style-id],[data-universe-id],[data-font-id],[data-product-type],[data-page-count]")) window.setTimeout(persistLocalDraft, 0); });
+elements.refreshStorySuggestions.addEventListener("click", () => requestStorySuggestions({ refresh: true }));
+elements.customStoryChoice.addEventListener("click", chooseCustomStory);
 elements.newBookButton.addEventListener("click", startNewBook);
 elements.resultNewBookButton.addEventListener("click", startNewBook);
 elements.redeemPromoButton.addEventListener("click", redeemPromotion);

@@ -42,7 +42,12 @@ export function scenarioCharacterRegistry(normalized = {}) {
   return registry.filter((character, index, all) => all.findIndex((candidate) => key(candidate.name) === key(character.name)) === index);
 }
 
-export function normalizeStoryScenario(candidate = {}, { pagePlan = [], canonicalCharacters = [], creatorClarifications = {} } = {}) {
+export function normalizeStoryScenario(candidate = {}, {
+  pagePlan = [],
+  canonicalCharacters = [],
+  creatorClarifications = {},
+  worldContract = {},
+} = {}) {
   const raw = candidate?.scenario || candidate;
   const expectedScenes = pagePlan.filter((page) => page.page_type === "image");
   const rawScenes = list(raw?.scenes, 30);
@@ -118,6 +123,9 @@ export function normalizeStoryScenario(candidate = {}, { pagePlan = [], canonica
     summary: text(raw?.summary),
     clarifications,
     creatorClarifications: Object.fromEntries(Object.entries(creatorClarifications || {}).map(([id, answer]) => [text(id), text(answer)]).filter(([id, answer]) => id && answer)),
+    worldContract: worldContract && typeof worldContract === "object" && !Array.isArray(worldContract)
+      ? structuredClone(worldContract)
+      : {},
     characters,
     objects,
     scenes,
@@ -310,6 +318,14 @@ export function validateStoryScenario(scenario = {}) {
       objectNames.add(objectKey);
       if (Number(objectState.quantity) !== 1 && ["worn", "held", "carried"].includes(objectState.state)) {
         issues.push(`${scene.id}: a worn or held personal object must have quantity 1`);
+      }
+      if (objectState.owner && ["worn", "held", "carried"].includes(objectState.state)) {
+        const physicalNames = new Set((scene.characterPresences || [])
+          .filter((presence) => presence.mode === "physical")
+          .map((presence) => presence.name));
+        if (!physicalNames.has(objectState.owner)) {
+          issues.push(`${scene.id}: ${objectState.owner} cannot ${objectState.state} ${objectState.name} while not physically present`);
+        }
       }
     }
     for (const tracked of trackedObjects) {

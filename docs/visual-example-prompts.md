@@ -20,7 +20,37 @@ Nom du fichier : `public/assets/examples/hero/hero-cover.webp`
 Square cover illustration for a premium personalized children's picture book. A fictional six-year-old child with curly dark-brown hair, teal jacket and mustard-yellow backpack kneels beside a small friendly red fox with a white muzzle and sage-green scarf. They discover a tiny glowing golden star in an enchanted forest at blue hour. Luminous flowers, fireflies, warm cinematic light, expressive joyful faces, gentle magical atmosphere, polished high-end children's publishing illustration, rich detail but clear focal point, safe empty space in the upper third for a title overlay. No words, no letters, no logo, no watermark, no border, no photorealism. 1:1 square composition.
 ```
 
-## Six univers
+## Six univers actuellement affichés
+
+Ces six fichiers sont les exemples actifs du premier écran du créateur :
+
+- `public/assets/examples/universes/enchanted_forest-likeness.webp`
+- `public/assets/examples/universes/starry_space-likeness.webp`
+- `public/assets/examples/universes/coral_ocean-likeness.webp`
+- `public/assets/examples/universes/cloud_castle-likeness.webp`
+- `public/assets/examples/universes/dinosaur_valley-likeness.webp`
+- `public/assets/examples/universes/wonder_city-likeness.webp`
+
+Ils ont été générés en mode **image edit** avec `public/assets/examples/styles/reference-child.webp` comme référence d'identité stricte. Consigne commune :
+
+```text
+Create a premium 3:2 children's-book universe example using the supplied fictional reference child as a strict identity and wardrobe reference. Preserve the same face, age, dark curly hair, teal jacket and mustard backpack. Show the child as the active explorer in a safe, readable story moment. Polished faithful editorial illustration with natural proportions, warm cinematic light and strong facial recognizability. No fox, no extra recurring child, no text, letters, logo, trademark, border or watermark.
+```
+
+Variantes :
+
+- **Forêt enchantée** : arche de très grands arbres moussus, sentier secret, fleurs lumineuses, lanternes et lucioles ; le passage dans l'arbre doit pouvoir déclencher l'aventure.
+- **Espace étoilé** : capsule-bulle transparente sûre, planètes colorées, nébuleuse et jardin lunaire ; le moyen de déplacement doit être clairement visible.
+- **Océan de corail** : bulle transparente de respiration et de communication autour de la tête, récif lumineux, poissons curieux et chemin de perles ; aucun téléphone ordinaire utilisé sous l'eau.
+- **Château des nuages** : pont de nuages stable, tours dorées, petits aéronefs et porte accueillante ; montrer un moyen sûr d'atteindre le château.
+- **Vallée des dinosaures** : portail lumineux découvert au premier plan, fougères géantes, cascade, dinosaures amicaux et volcan lointain calme.
+- **Ville merveilleuse** : ateliers magiques, toits colorés, ponts, lanternes et passage secret ; l'enfant suit une piste visuelle vers un atelier.
+
+Desktop révèle la photo témoin au survol ou au focus clavier ; mobile utilise le bouton explicite **Voir la photo de référence**.
+
+## Anciens exemples d'univers conservés comme ressources
+
+Les fichiers sans suffixe `-likeness` ci-dessous ne sont plus affichés par le créateur. Ils restent versionnés pour comparaison historique.
 
 Générer les six images avec la même finition : illustration 3D douce éditoriale, lumière chaleureuse, volumes arrondis et non photoréalistes. Garder le même enfant et le même renard.
 

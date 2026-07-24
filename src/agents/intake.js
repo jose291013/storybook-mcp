@@ -22,6 +22,12 @@ export async function intakeAgent(rawAnswers) {
   result.intake.font_style = rawAnswers?.font_style;
   result.intake.universe_id = rawAnswers?.universe_id;
   result.intake.universe_instructions = rawAnswers?.universe_instructions;
+  result.intake.universe_story_contract = rawAnswers?.universe_story_contract || {};
+  result.intake.story_seed_id = rawAnswers?.story_seed_id;
+  result.intake.story_seed_title = rawAnswers?.story_seed_title;
+  result.intake.story_seed_adaptation = rawAnswers?.story_seed_adaptation;
+  result.intake.story_seed_moment = rawAnswers?.story_seed_moment;
+  result.intake.story_seed_transformation = rawAnswers?.story_seed_transformation;
   result.intake.style_id = rawAnswers?.style_id;
   result.intake.style_instructions = rawAnswers?.style_instructions;
   result.intake.rendering_mode = rawAnswers?.rendering_mode;
