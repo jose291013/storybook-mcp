@@ -8,38 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/targeted-scenario-fidelity-repair`
-- Latest merged checkpoint: PR #57 — inspiration cards pre-fill the creator's editable message (`c8c6af8`)
-- Current focused checkpoint: targeted reader-text repair after whole-book scenario fidelity fails
-- Pull request: not opened yet; never merge without confirming that no generation is active
+- Current branch: `codex/deterministic-scenario-cast-guard`
+- Latest merged checkpoint: PR #58 — targeted reader-text repair and policy-5 recovery (`26495da`)
+- Current focused checkpoint: deterministic cast guard after targeted reader-text repair
+- Pull request: draft PR #59 — `Bloquer tout personnage absent après réparation`; never merge without confirming that no generation is active
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #57 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
+PR #55 through PR #58 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
 
-Project `7039d6f6-e411-44fb-ab7a-38d5aac28568` exhausted its policy-4 retry at `story:scenario-fidelity-recheck`: the whole-book repair removed the scene-4 contradiction but still mentioned Tyam in scene 5 even though the approved scene excludes him. Its questionnaire, approved scenario and draft text through page 32 remain checkpointed.
+Project `7039d6f6-e411-44fb-ab7a-38d5aac28568` exhausted its policy-5 retry at `story:scenario-fidelity-targeted-recheck`: the targeted repair removed Tyam from scene 5 but replaced him with Santi, who is also absent from the approved scene. Its questionnaire, approved scenario and draft text remain checkpointed.
 
-## Current product brick: targeted scenario-fidelity repair
+## Current product brick: deterministic absent-cast guard
 
-1. After the two whole-book planning attempts fail, Calitiki maps every remaining fidelity issue to its exact approved scene and paired reader-text page.
-2. A dedicated story repair rewrites only those pages, with the approved cast, location, event and character-presence mode locked.
-3. The same semantic and deterministic audits run again; an unresolved contradiction still stops before cover or image generation.
-4. Preview retry policy 5 makes projects exhausted under policy 4 eligible for one explicit no-charge recovery while reusing their checkpointed work.
+1. Every targeted repair receives the exhaustive canonical-character names absent from its approved scene.
+2. The repair prompt forbids every such name and explicitly forbids substituting one absent character for another.
+3. A local deterministic barrier removes any remaining sentence naming an absent character. If every generated sentence is contaminated, the page falls back to the approved scene action.
+4. The same semantic and deterministic audits still run afterward.
+5. Preview retry policy 6 makes projects exhausted under policy 5 eligible for one explicit no-charge recovery while reusing their checkpointed work.
 
 ## Verification completed locally
 
-- Server and browser syntax checks pass.
-- Focused scenario, checkpoint and structure tests: 89 passed, 0 failed.
-- Full `npm.cmd test`: 141 passed, 0 failed.
+- Server syntax check passes.
+- Focused scenario and checkpoint tests: 28 passed, 0 failed.
+- Full `npm.cmd test`: 144 passed, 0 failed.
 
 ## Next verification target
 
 1. Run the full suite and publish this focused change as a draft PR.
 2. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
-3. After deployment, reopen project `7039d6f6-e411-44fb-ab7a-38d5aac28568`; policy 5 must expose one free retry.
-4. Confirm logs reach `story:scenario-fidelity-targeted-repair` only when needed, then `story scene plan completed` before cover generation.
+3. After deployment, reopen project `7039d6f6-e411-44fb-ab7a-38d5aac28568`; policy 6 must expose one free retry.
+4. Confirm scene 5 contains neither Tyam nor Santi, then logs reach `story scene plan completed` before cover generation.
 
 ## Protected local state
 

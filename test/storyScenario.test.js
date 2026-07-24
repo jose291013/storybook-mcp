@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
-import { buildStorySceneTextRepairTargets } from "../src/agents/storySceneTextRepair.js";
+import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
@@ -210,10 +210,31 @@ test("targeted story repair maps a fidelity issue to only its paired text page",
       code: "unapproved_character_mention",
       explanation: "Tyam is absent from the approved scene.",
     }],
+    canonicalCharacters: [{ name: "Lua" }, { name: "Tyam" }, { name: "Santi" }],
   });
   assert.deepEqual(targets.map((target) => target.text_page_number), [10]);
   assert.equal(targets[0].approved_scene.sceneNumber, 5);
   assert.match(targets[0].current_text, /Tyam/);
+  assert.deepEqual(targets[0].forbidden_characters, ["Tyam", "Santi"]);
+});
+
+test("targeted story repair deterministically removes every sentence naming an absent character", () => {
+  const repaired = sanitizeStoryRepairText({
+    text: "Lua observe les indices. Santi rejoint soudain Lua. Tyam lui adresse un signe. Lua comprend enfin l'énigme.",
+    forbiddenCharacters: ["Tyam", "Santi"],
+    fallbackText: "Lua résout l'énigme.",
+  });
+  assert.equal(repaired, "Lua observe les indices. Lua comprend enfin l'énigme.");
+  assert.doesNotMatch(repaired, /Tyam|Santi/);
+});
+
+test("targeted story repair falls back to the approved action if every generated sentence is forbidden", () => {
+  const repaired = sanitizeStoryRepairText({
+    text: "Santi rejoint Tyam.",
+    forbiddenCharacters: ["Tyam", "Santi"],
+    fallbackText: "Lua résout seule l'énigme du château.",
+  });
+  assert.equal(repaired, "Lua résout seule l'énigme du château.");
 });
 
 test("invalid scenario diagnostics identify editable scenes without exposing character names", () => {

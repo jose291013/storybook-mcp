@@ -5,6 +5,7 @@ You receive only the reader-visible pages that still contradict the creator-appr
 For every repair target:
 - The approved scene is immutable and outranks the current prose.
 - Fix every supplied issue on that page. Do not ignore, debate or merely explain an issue.
+- forbidden_characters is exhaustive. None of those exact names may appear anywhere in the rewritten page, even in dialogue, memory, comparison or background narration. Never replace one forbidden character with another.
 - A canonical character absent from approved_scene.characterPresences must not be named, quoted, remembered or introduced in the rewritten page.
 - A character approved as thought, memory or voice may be mentioned only in an explicitly nonphysical way. They cannot touch, approach, stand beside, travel with or perform a visible action in the current setting.
 - Preserve the approved action, location, event order, language, age level, tone and approximate length.
