@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/credit-purchase-return`
 - Latest merged checkpoint: PR #52 — universe-first story funnel (`40e14dd`)
 - Current focused checkpoint: contextual return from WooCommerce credit purchase to the originating book and creator step
-- Pull request: not published yet; do not merge while any preview or targeted modification is generating
+- Pull request: draft PR #53 — `Add credit purchase return to the active book`; do not merge while any preview or targeted modification is generating
 - WordPress Bridge source/package: `0.6.8`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,10 +36,9 @@ Production verification after PR #52 is in progress through a real customer book
 
 ## Next verification target
 
-1. Package Bridge 0.6.8, run `npm.cmd test`, then publish a draft pull request without merging it.
-2. Finish the real book already being created against the PR #52 production checkpoint.
-3. Before any later merge, warn that Render may restart and confirm that no preview or targeted modification is generating.
-4. After deployment and Bridge 0.6.8 installation, verify one paid credit return and one abandoned-cart return from the preview credit panel.
+1. Finish the real book already being created against the PR #52 production checkpoint.
+2. Before any later merge of draft PR #53, warn that Render may restart and confirm that no preview or targeted modification is generating.
+3. After deployment and Bridge 0.6.8 installation, verify one paid credit return and one abandoned-cart return from the preview credit panel.
 
 ## Protected local state
 
