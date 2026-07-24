@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-causal-handoff`
 - Latest merged checkpoint: PR #53 — contextual credit-purchase return (`079e90f`)
 - Current focused checkpoint: causal scenario repair, approved-scenario fidelity through manuscript and illustrations, and explicit cover-approval handoff
-- Pull request: not published yet; keep it in draft and do not merge while the current customer preview is generating
+- Pull request: draft PR #54 — `Enforce causal scenario handoff and cover approval guidance`; do not merge while the current customer preview is generating
 - WordPress Bridge source/package: `0.6.8`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,7 +36,7 @@ Production confirms that the PR #53 credit-purchase return restores the originat
 
 ## Next verification target
 
-1. Publish the causal-handoff pull request as a draft and keep it unmerged while the current real book is generating.
+1. Keep draft PR #54 unmerged while the current real book is generating.
 2. Before any later merge, warn that Render may restart and confirm that no preview or targeted modification is generating.
 3. After deployment, verify a scenario with an implicit journey and a remembered guide, then confirm the cover-first waiting message and the required cover approval.
 
