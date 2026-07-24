@@ -38,11 +38,45 @@ import {
   previewRequestFingerprint,
   technicalPreviewRetryAvailable,
 } from "../services/previewGenerationCheckpoint.js";
-import { notifyPreviewReady } from "../services/previewNotification.js";
+import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 2;
+
+async function notifyPreviewMilestoneIfRequested({
+  projectId,
+  identity,
+  event,
+  eventId,
+  retryAvailable = false,
+}) {
+  const project = await projectStore.get(projectId);
+  const notification = project?.continuitySnapshot?.previewNotification || {};
+  if (!project || notification.emailRequested !== true) return false;
+  const eventIds = notification.milestoneEventIds || {};
+  if (eventIds[event] === eventId) return false;
+  await notifyPreviewMilestone({ project, identity, event, eventId, retryAvailable });
+  const refreshed = await projectStore.get(projectId);
+  const refreshedNotification = refreshed?.continuitySnapshot?.previewNotification || {};
+  await projectStore.update(projectId, {
+    continuitySnapshot: {
+      ...refreshed.continuitySnapshot,
+      previewNotification: {
+        ...refreshedNotification,
+        milestoneEventIds: {
+          ...(refreshedNotification.milestoneEventIds || {}),
+          [event]: eventId,
+        },
+        milestoneSentAt: {
+          ...(refreshedNotification.milestoneSentAt || {}),
+          [event]: new Date().toISOString(),
+        },
+      },
+    },
+  });
+  return true;
+}
 
 function previewStaleAfterMs() {
   const minutes = Number.parseInt(process.env.PREVIEW_STALE_MINUTES || "15", 10) || 15;
@@ -605,6 +639,16 @@ router.post("/preview", async (req, res) => {
           result: proofResult,
           visualProof,
         });
+        try {
+          await notifyPreviewMilestoneIfRequested({
+            projectId,
+            identity,
+            event: "cover_ready",
+            eventId: `${job.id}:cover:${visualProof.attempts}`,
+          });
+        } catch (notificationError) {
+          console.warn("[preview] cover email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
+        }
         console.info("[preview] visual proof awaiting approval", JSON.stringify({ jobId: job.id, projectId, attempts: visualProof.attempts, styleId: answers.style_id }));
         return;
       }
@@ -786,6 +830,17 @@ router.post("/preview", async (req, res) => {
           generationJobId: job.id,
           continuitySnapshot,
         });
+        try {
+          await notifyPreviewMilestoneIfRequested({
+            projectId,
+            identity,
+            event: "generation_failed",
+            eventId: `${job.id}:generation_failed`,
+            retryAvailable: !retryWasConsumed,
+          });
+        } catch (notificationError) {
+          console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
+        }
       }
     }
   })();
