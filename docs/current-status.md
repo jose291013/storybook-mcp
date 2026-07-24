@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/deterministic-scenario-cast-guard`
 - Latest merged checkpoint: PR #58 — targeted reader-text repair and policy-5 recovery (`26495da`)
 - Current focused checkpoint: deterministic cast guard after targeted reader-text repair
-- Pull request: not opened yet; never merge without confirming that no generation is active
+- Pull request: draft PR #59 — `Bloquer tout personnage absent après réparation`; never merge without confirming that no generation is active
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
