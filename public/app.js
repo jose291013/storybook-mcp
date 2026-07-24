@@ -72,11 +72,13 @@ const state = {
   previewModification: null,
   previewModificationQuote: null,
   previewModificationPoll: null,
+  creditSummary: null,
   customerSession: { authenticated: false, customer: null },
 };
 
 const LOCAL_DRAFT_KEY = "storybook-anonymous-draft-v1";
 const PENDING_PREVIEW_KEY = "storybook-pending-preview-v1";
+const PENDING_CREDIT_PURCHASE_KEY = "storybook-pending-credit-purchase-v1";
 let localDraftTimer;
 
 function consumeNewBookRequest() {
@@ -84,6 +86,7 @@ function consumeNewBookRequest() {
   if (!url.searchParams.has("newBook")) return false;
   localStorage.removeItem(LOCAL_DRAFT_KEY);
   localStorage.removeItem(PENDING_PREVIEW_KEY);
+  localStorage.removeItem(PENDING_CREDIT_PURCHASE_KEY);
   url.searchParams.delete("newBook");
   window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   return true;
@@ -100,7 +103,7 @@ const elements = {
   generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
-  mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), costNote: document.querySelector("#costNote"),
+  mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
@@ -280,16 +283,80 @@ function renderCustomerSession() {
   elements.headerCreditBalance.hidden = !connected;
 }
 
+function creditPurchaseUrl(baseUrl, context = "preview") {
+  if (!baseUrl || !state.projectId) return baseUrl || "#";
+  try {
+    const url = new URL(baseUrl, window.location.origin);
+    url.searchParams.set("calitiki_project", state.projectId);
+    url.searchParams.set("calitiki_context", ["preview", "action_center", "modification"].includes(context) ? context : "preview");
+    url.searchParams.set("calitiki_locale", state.locale);
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
+}
+
+function setCreditPurchaseLink(link, baseUrl, context) {
+  link.hidden = !baseUrl;
+  link.dataset.creditReturnContext = context;
+  if (baseUrl) link.href = creditPurchaseUrl(baseUrl, context);
+}
+
+function rememberCreditPurchase(event) {
+  if (!state.projectId) return;
+  persistLocalDraft();
+  try {
+    localStorage.setItem(PENDING_CREDIT_PURCHASE_KEY, JSON.stringify({
+      projectId: state.projectId,
+      context: event.currentTarget.dataset.creditReturnContext || "preview",
+      balanceCents: Number(state.creditSummary?.balanceCents || 0),
+      startedAt: Date.now(),
+    }));
+  } catch {
+    // The signed WooCommerce return remains authoritative if browser storage is unavailable.
+  }
+}
+
+function showCreditReturnNotice(status, summary) {
+  const normalized = ["paid", "syncing", "pending", "failed", "cancelled", "back"].includes(status) ? status : "back";
+  const key = normalized === "paid"
+    ? "creditReturnPaid"
+    : normalized === "syncing"
+      ? "creditReturnSyncing"
+      : normalized === "pending"
+        ? "creditReturnPending"
+        : ["failed", "cancelled"].includes(normalized)
+          ? "creditReturnFailed"
+          : "creditReturnBack";
+  elements.creditReturnNotice.textContent = tr(key, {
+    balance: formatPrice((summary?.balanceCents || 0) / 100),
+  });
+  elements.creditReturnNotice.className = `credit-return-notice${["syncing", "pending"].includes(normalized) ? " is-pending" : ["failed", "cancelled"].includes(normalized) ? " is-error" : ""}`;
+  elements.creditReturnNotice.hidden = false;
+}
+
+async function monitorCreditReturnBalance(projectId, previousBalanceCents) {
+  if (!Number.isFinite(previousBalanceCents)) return;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    await new Promise((resolve) => window.setTimeout(resolve, 2500));
+    const summary = await refreshCreditSummary(projectId).catch(() => null);
+    if (summary && Number(summary.balanceCents || 0) > previousBalanceCents) {
+      showCreditReturnNotice("paid", summary);
+      return;
+    }
+  }
+}
+
 function renderCreditSummary(summary, { showPanel = false } = {}) {
   const enabled = Boolean(summary?.enabled);
+  state.creditSummary = summary;
   elements.headerCreditBalanceValue.textContent = formatPrice((summary?.balanceCents || 0) / 100);
   elements.creditPanel.hidden = !showPanel;
   elements.previewCreditPrice.textContent = formatPrice((summary.requiredCents || 0) / 100);
   elements.creditBalance.textContent = formatPrice((summary.balanceCents || 0) / 100);
   elements.creditMissing.textContent = formatPrice((summary.missingCents || 0) / 100);
   elements.creditMissing.closest("div").classList.toggle("has-missing-credit", summary.missingCents > 0);
-  elements.buyCreditsLink.hidden = !summary.buyCreditsUrl;
-  if (summary.buyCreditsUrl) elements.buyCreditsLink.href = summary.buyCreditsUrl;
+  setCreditPurchaseLink(elements.buyCreditsLink, summary.buyCreditsUrl, "preview");
   if (showPanel) {
     elements.confirmPreviewButton.disabled = enabled && summary.missingCents > 0;
     elements.confirmPreviewButton.textContent = enabled ? tr("confirmPreviewDebit", { amount: formatPrice((summary.requiredCents || 0) / 100) }) : tr("confirmPreviewFree");
@@ -622,8 +689,7 @@ async function renderPreviewActionCenter({ locked = false } = {}) {
   elements.actionReadInteractive.href = `/interactive-reader/?project=${encodeURIComponent(state.projectId)}`;
   elements.actionRecoverReferences.hidden = !state.referenceRecoveryAvailable;
   elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
-  elements.actionBuyCredits.hidden = !summary?.buyCreditsUrl;
-  if (summary?.buyCreditsUrl) elements.actionBuyCredits.href = summary.buyCreditsUrl;
+  setCreditPurchaseLink(elements.actionBuyCredits, summary?.buyCreditsUrl, "action_center");
   elements.actionBuyEbook.disabled = locked;
   elements.actionBuyPrint.disabled = locked || !isProductAvailable("print");
   elements.actionBuyPrint.textContent = isProductAvailable("print") ? tr("buyPrint") : tr("printComingSoonAction");
@@ -670,8 +736,7 @@ async function loadModificationQuote({ preserveSelection = true } = {}) {
   elements.modificationPrice.textContent = formatPrice(payload.amountCents / 100);
   elements.modificationBalance.textContent = formatPrice(payload.balanceCents / 100);
   elements.modificationMissing.textContent = formatPrice(payload.missingCents / 100);
-  elements.modificationBuyCredits.hidden = !payload.buyCreditsUrl;
-  if (payload.buyCreditsUrl) elements.modificationBuyCredits.href = payload.buyCreditsUrl;
+  setCreditPurchaseLink(elements.modificationBuyCredits, payload.buyCreditsUrl, "modification");
   state.previewModificationQuote = payload;
   elements.submitModification.disabled = payload.missingCents > 0;
   setModificationStatus(payload.missingCents > 0
@@ -790,8 +855,7 @@ async function submitPreviewModification() {
     const payload = await response.json();
     if (!response.ok) {
       if (response.status === 402 && payload.buyCreditsUrl) {
-        elements.modificationBuyCredits.hidden = false;
-        elements.modificationBuyCredits.href = payload.buyCreditsUrl;
+        setCreditPurchaseLink(elements.modificationBuyCredits, payload.buyCreditsUrl, "modification");
       }
       throw new Error(payload.error || tr("generationFailed"));
     }
@@ -897,6 +961,7 @@ function startNewBook() {
   window.clearTimeout(localDraftTimer);
   localStorage.removeItem(LOCAL_DRAFT_KEY);
   localStorage.removeItem(PENDING_PREVIEW_KEY);
+  localStorage.removeItem(PENDING_CREDIT_PURCHASE_KEY);
   const reloadUrl = new URL(window.location.origin);
   reloadUrl.searchParams.set("newBook", Date.now().toString());
   reloadUrl.hash = "creator";
@@ -1674,16 +1739,35 @@ async function restoreCompletedPreview() {
 async function resumePreviewAfterLogin() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("auth") !== "connected") return;
-  const projectId = params.get("project") || localStorage.getItem(PENDING_PREVIEW_KEY) || "";
+  let pendingCreditPurchase = null;
+  try { pendingCreditPurchase = JSON.parse(localStorage.getItem(PENDING_CREDIT_PURCHASE_KEY) || "null"); }
+  catch { pendingCreditPurchase = null; }
+  if (!pendingCreditPurchase?.startedAt || Date.now() - Number(pendingCreditPurchase.startedAt) > 24 * 60 * 60 * 1000) pendingCreditPurchase = null;
+  const creditReturnContext = params.get("creditReturn") || pendingCreditPurchase?.context || "";
+  const creditReturnStatus = params.get("creditStatus") || (creditReturnContext ? "back" : "");
+  const projectId = params.get("project") || pendingCreditPurchase?.projectId || localStorage.getItem(PENDING_PREVIEW_KEY) || "";
   if (params.get("newAdventure") === "1") return resumeNextAdventure(projectId);
   window.history.replaceState({}, "", `${window.location.pathname}#creator`);
   localStorage.removeItem(PENDING_PREVIEW_KEY);
+  localStorage.removeItem(PENDING_CREDIT_PURCHASE_KEY);
   if (!projectId) return;
   state.projectId = projectId;
   persistLocalDraft();
   try {
     const restored = await restoreCompletedPreview();
     if (!restored) await preparePreviewAuthorization(projectId);
+    if (restored && creditReturnContext === "modification") await openModificationPanel();
+    if (creditReturnContext) {
+      const summary = await refreshCreditSummary(projectId).catch(() => null);
+      const previousBalanceCents = Number(pendingCreditPurchase?.balanceCents);
+      const settledDuringReturn = ["syncing", "pending"].includes(creditReturnStatus)
+        && Number.isFinite(previousBalanceCents)
+        && Number(summary?.balanceCents || 0) > previousBalanceCents;
+      showCreditReturnNotice(settledDuringReturn ? "paid" : creditReturnStatus, summary);
+      if (!settledDuringReturn && ["syncing", "pending"].includes(creditReturnStatus)) {
+        monitorCreditReturnBalance(projectId, previousBalanceCents).catch(() => null);
+      }
+    }
   } catch (error) {
     document.querySelector("#creator").hidden = false;
     elements.generationPanel.hidden = true;
@@ -1839,6 +1923,9 @@ elements.customStoryChoice.addEventListener("click", chooseCustomStory);
 elements.newBookButton.addEventListener("click", startNewBook);
 elements.resultNewBookButton.addEventListener("click", startNewBook);
 elements.redeemPromoButton.addEventListener("click", redeemPromotion);
+elements.buyCreditsLink.addEventListener("click", rememberCreditPurchase);
+elements.actionBuyCredits.addEventListener("click", rememberCreditPurchase);
+elements.modificationBuyCredits.addEventListener("click", rememberCreditPurchase);
 elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
 elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenario({ includeEdits: true }));
 elements.approveScenarioButton.addEventListener("click", approveStoryScenario);
