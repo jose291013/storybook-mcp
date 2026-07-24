@@ -2,15 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
-import { isImageSafetyRejection, objectiveSceneContractIssues, objectiveTechnicalIssues } from "../src/services/imageQualityGate.js";
+import {
+  blockingSceneContractIssues,
+  isImageSafetyRejection,
+  objectiveSceneContractIssues,
+  objectiveTechnicalIssues,
+} from "../src/services/imageQualityGate.js";
 import { sanitizeBrandSensitiveText } from "../src/services/imageRunner.js";
 
 test("image QA ignores artistic preferences and retains objective file defects", () => {
   assert.deepEqual(objectiveTechnicalIssues(["photo-realistic style, not an illustration"]), []);
   assert.deepEqual(objectiveTechnicalIssues(["different outfit and preferred composition"]), []);
   assert.deepEqual(
-    objectiveTechnicalIssues(["repeated bands and corrupted pixels", "photo-realistic style"]),
-    ["repeated bands and corrupted pixels"],
+    objectiveTechnicalIssues([
+      "repeated bands and corrupted pixels",
+      "photo-realistic style",
+      "The image fuses a human head with an animal body into a hybrid.",
+    ]),
+    ["repeated bands and corrupted pixels", "The image fuses a human head with an animal body into a hybrid."],
   );
 });
 
@@ -43,6 +52,17 @@ test("scene QA discards wardrobe-only reports but keeps narrative and object-sta
     "La vallée des dinosaures est visible conformément à l'échelle et description, avec fougères géantes.",
     "Coq en or is not visible or suggested, so no issue.",
   ]), []);
+});
+
+test("missing required cast and fused identities remain blocking after the final image attempt", () => {
+  assert.deepEqual(blockingSceneContractIssues([
+    "Required named character family member 2 is missing.",
+    "Required identities are fused into one hybrid body.",
+    "The giant bridge is not large enough.",
+  ]), [
+    "Required named character family member 2 is missing.",
+    "Required identities are fused into one hybrid body.",
+  ]);
 });
 
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {
@@ -78,6 +98,7 @@ test("the failed page 12 becomes a compact neutral visual contract without dialo
     { name: "Mathéo", alias: "family member 1" },
   ];
   const prompt = sceneContractImagePrompt({ contract, stylePrompt: "gouache douce", visualAliases });
+  assert.match(prompt, /every listed person or animal is one complete, separate individual/iu);
   assert.match(prompt, /hero child écoute et échange avec original unbranded plush-bear companion 1/iu);
   assert.match(prompt, /vallée des dinosaures avec fougères géantes/iu);
   assert.match(prompt, /casquette rouge spéciale: state worn/iu);

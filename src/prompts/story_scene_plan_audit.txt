@@ -10,6 +10,8 @@ Reject only explicit contradictions:
 - a recurring object has a different state or quantity;
 - the scene contract's visible named cast differs from the approved physical presences;
 - the manuscript and illustration contract describe different moments.
+- a child refers to a mother or father by that parent's first name inside dialogue or inner thoughts when canonical_characters supplies a preferredAddress;
+- two people or animals are fused, share or exchange anatomy, or are described as one mixed identity without an explicit approved fantasy rule.
 
 Do not reject wording, tone, style, dialogue length or harmless descriptive additions that preserve the exact approved causal facts. A remembered character may be named in prose when the text clearly presents a memory and gives that character no physical action.
 

@@ -42,7 +42,7 @@ import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewN
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 
 const router = express.Router();
-const STORY_PLAN_FIDELITY_VERSION = 1;
+const STORY_PLAN_FIDELITY_VERSION = 2;
 
 async function notifyPreviewMilestoneIfRequested({
   projectId,
@@ -514,6 +514,12 @@ router.post("/preview", async (req, res) => {
             approvedScenario,
             pageTexts: storyScenePlan.pageTexts,
             sceneContracts: storyScenePlan.sceneContracts,
+            canonicalCharacters: [
+              ...characterCanons,
+              { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
+              ...(final_blueprint.cast || []),
+            ],
+            language: final_blueprint.language,
           });
           if (planAudit.status === "approved") break;
           console.warn("[preview] story plan contradicts approved scenario", JSON.stringify({

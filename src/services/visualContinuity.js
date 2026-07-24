@@ -127,6 +127,7 @@ export function buildSceneContinuity({
       `MANDATORY VISIBLE CAST (${castNames.length}): ${castNames.join(", ")}.`,
       "Every listed character must be clearly visible, recognizable and present at the same time.",
       "Do not omit, merge, replace or transform any listed character, even when several reference images are supplied.",
+      "One listed character equals one complete separate body and one coherent identity. Never attach one character's face or head to another character's body or species.",
       "Do not add another recurring named book character who is not in the mandatory cast."
     );
   }

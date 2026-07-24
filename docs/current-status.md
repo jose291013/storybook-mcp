@@ -8,37 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/preview-milestone-emails`
-- Latest merged checkpoint: PR #54 — causal scenario handoff and cover guidance (`c195978`)
-- Current focused checkpoint: visible pre-cover progress and opt-in milestone e-mails for cover approval and generation interruption
-- Pull request: draft PR #55 — `Notify creators at preview milestones`; do not merge while project `db895f92-d075-4799-bac2-6f4a67bdf581` is generating
+- Current branch: `codex/hard-scene-fidelity`
+- Latest merged checkpoint: PR #55 — preview milestone e-mails and visible long-running stages (`9f1030b`)
+- Current focused checkpoint: deterministic reader-visible cast checks, blocking identity-fusion detection and natural parent appellations
+- Pull request: PR #56 — `Block scene cast and identity defects`, updated on the merged PR #55 checkpoint
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Production confirms that the PR #53 credit-purchase return restores the originating book correctly. PR #54 is now deployed and is being exercised by a real book. Its long whole-book planning call remains active, but the creator-facing progress stayed at 5%, making healthy work look blocked.
+Production confirms that PR #54 produces and preserves the approved three-act scenario. A completed real book nevertheless exposed three downstream defects: a parent acted physically in prose without appearing in the paired image, one illustration fused the mother's human body with the dog's head, and the child referred to her mother by her civil name inside dialogue.
 
-## Current product brick: preview milestone communication
+PR #55 is merged. It adds visible manuscript/coherence/cover stages and idempotent cover-ready, generation-failure and complete-preview e-mails through Bridge 0.6.9. The current branch preserves those changes while adding the stricter scene-fidelity rules below.
 
-1. The progress bar names whole-book harmonization, scenario fidelity checking, bounded repair and cover creation instead of appearing frozen at 5%.
-2. The existing e-mail opt-in explicitly covers three useful events: cover awaiting approval, generation interruption and complete preview ready.
-3. Cover and failure messages use a new signed Bridge endpoint so Render may deploy before Bridge 0.6.9 without an older plugin sending the wrong “book ready” copy.
-4. Each message carries a private reauthentication link to the exact persisted screen and a unique event id; repeated callbacks cannot send the same message twice.
-5. A regenerated cover or a genuinely new technical attempt may send a new notification, while notification failure never changes generation state or spends credit.
+## Current product brick: hard scene fidelity
+
+1. The final manuscript receives a deterministic comparison against the creator-approved scene presences in addition to the semantic audit.
+2. A named character absent from the approved scene cannot be introduced in its prose; thought, memory and voice characters cannot receive current physical actions.
+3. Parent relationships are retained with localized preferred appellations, so narration may say the civil name while the child's dialogue and thoughts use **Maman**, **Papa**, **Mamá** or **Dad**.
+4. Image prompts map each human or animal reference to one complete separate individual and explicitly forbid head, body, species or identity fusion.
+5. A missing required named character, wrong central actor or identity fusion remains blocking after the final image attempt. Only subjective style, likeness and minor composition differences may be retained with a warning.
+6. Story-plan fidelity version 2 rebuilds older checkpoints before reusing their manuscript and illustration contracts.
 
 ## Verification completed locally
 
-- Browser and server syntax checks pass.
-- The Bridge 0.6.9 PHP source parses successfully and its ZIP contains portable forward-slash paths.
-- Full `npm.cmd test`: 135 passed, 0 failed.
+- Server syntax checks pass.
+- Focused scenario and image-policy tests: 25 passed, 0 failed.
+- Full combined `npm.cmd test`: 139 passed, 0 failed.
 
 ## Next verification target
 
-1. Finish the current real-book test without deploying this branch.
-2. Keep draft PR #55 unmerged until the current project is complete.
-3. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
-4. After deployment and Bridge 0.6.9 installation, verify one cover-ready e-mail, one retryable-failure e-mail and the existing complete-preview e-mail.
+1. Merge PR #56; the combined tests pass and the creator confirmed that no preview or targeted modification is generating.
+2. Install Bridge 0.6.9, then verify one cover-ready e-mail, one retryable-failure e-mail and the existing complete-preview e-mail.
+3. Test one scene containing a photographed parent and animal together, plus one recalled nonphysical guide and one child line using the parent's family appellation.
 
 ## Protected local state
 

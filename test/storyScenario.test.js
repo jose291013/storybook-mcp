@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
+import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
@@ -102,6 +103,89 @@ test("scenario normalization uses the scene location for physical presences", ()
   });
   assert.equal(scenario.scenes[0].characterPresences[0].location, "la vallée");
   assert.equal(validateStoryScenario(scenario).valid, true);
+});
+
+test("scenario normalization preserves a parent's relationship and localized family address", () => {
+  const scenario = normalizeStoryScenario({ scenario: {
+    title: "Le conseil",
+    summary: "Malvina écoute sa maman.",
+    characters: [
+      { name: "Malvina", initial_location: "le jardin" },
+      { name: "Maïté", initial_location: "le jardin" },
+    ],
+    scenes: [{
+      scene_number: 1,
+      title: "Le conseil",
+      action: "Maïté conseille Malvina.",
+      location_before: "le jardin",
+      location_after: "le jardin",
+      character_presences: [
+        { name: "Malvina", mode: "physical", location: "le jardin" },
+        { name: "Maïté", mode: "physical", location: "le jardin" },
+      ],
+      transition: { kind: "none", from: "le jardin", to: "le jardin", characters: [] },
+    }],
+  } }, {
+    pagePlan: [{ page_type: "image", scene_number: 1, story_role: "character_and_desire" }],
+    canonicalCharacters: [
+      { name: "Malvina", role: "child", storyRole: "hero", relationship: "hero" },
+      { name: "Maïté", role: "other", storyRole: "guide", relationship: "mère" },
+    ],
+    language: "FR",
+  });
+  assert.equal(scenario.characters.find((character) => character.name === "Maïté").relationship, "mère");
+  assert.equal(scenario.characters.find((character) => character.name === "Maïté").preferredAddress, "Maman");
+});
+
+test("the final plan rejects an absent parent's physical action and first-name family dialogue", () => {
+  const approvedScenario = {
+    characters: [
+      { name: "Malvina", relationship: "hero" },
+      { name: "Maïté", relationship: "mère", preferredAddress: "Maman" },
+    ],
+    scenes: [{
+      sceneNumber: 3,
+      characterPresences: [{ name: "Malvina", mode: "physical", location: "le pont" }],
+    }],
+  };
+  const issues = deterministicStoryPlanIssues({
+    approvedScenario,
+    pageTexts: {
+      6: "Maïté, debout à côté de Malvina, pose une main sur son épaule. « Suivons les conseils de Maïté », pense Malvina.",
+    },
+    sceneContracts: [{
+      scene_number: 3,
+      text_page_number: 6,
+      named_characters: [{ name: "Malvina" }],
+    }],
+    canonicalCharacters: approvedScenario.characters,
+    language: "FR",
+  });
+  assert.ok(issues.some((issue) => issue.code === "unapproved_character_mention"));
+  assert.ok(issues.some((issue) => issue.code === "family_address"));
+});
+
+test("an explicitly remembered guide remains valid without a physical action", () => {
+  const issues = deterministicStoryPlanIssues({
+    approvedScenario: {
+      characters: [{ name: "Nolan" }, { name: "Alexandra" }],
+      scenes: [{
+        sceneNumber: 4,
+        characterPresences: [
+          { name: "Nolan", mode: "physical" },
+          { name: "Alexandra", mode: "memory" },
+        ],
+      }],
+    },
+    pageTexts: { 8: "Nolan se souvient des conseils d’Alexandra et reprend courage." },
+    sceneContracts: [{
+      scene_number: 4,
+      text_page_number: 8,
+      named_characters: [{ name: "Nolan" }],
+    }],
+    canonicalCharacters: [{ name: "Nolan" }, { name: "Alexandra" }],
+  });
+  assert.deepEqual(issues, []);
 });
 
 test("invalid scenario diagnostics identify editable scenes without exposing character names", () => {

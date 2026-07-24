@@ -1,5 +1,6 @@
-export const STORY_SCENARIO_VERSION = 1;
+import { enrichFamilyAddress } from "./characterRelationships.js";
 
+export const STORY_SCENARIO_VERSION = 1;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
 const TRANSITION_KINDS = new Set(["none", "discover_passage", "cross_passage", "ordinary_travel", "return_travel"]);
 const OBJECT_STATES = new Set(["worn", "held", "carried", "stored", "visible", "absent", "left_behind"]);
@@ -51,6 +52,7 @@ export function normalizeStoryScenario(candidate = {}, {
   canonicalCharacters = [],
   creatorClarifications = {},
   worldContract = {},
+  language = "FR",
 } = {}) {
   const raw = candidate?.scenario || candidate;
   const expectedScenes = pagePlan.filter((page) => page.page_type === "image");
@@ -69,13 +71,14 @@ export function normalizeStoryScenario(candidate = {}, {
   const characters = scenarioCharacters.map((canonical) => {
     const supplied = list(raw?.characters, 12).find((item) => key(item?.name) === key(canonical.name)) || {};
     const presenceMode = PRESENCE_MODES.has(supplied.default_presence_mode) ? supplied.default_presence_mode : "physical";
-    return {
+    return enrichFamilyAddress({
       name: canonical.name,
       role: canonical.role || "other",
       storyRole: canonical.storyRole || canonical.story_role || "guest",
+      relationship: canonical.relationship || supplied.relationship || "",
       initialLocation: text(supplied.initial_location),
       defaultPresenceMode: presenceMode,
-    };
+    }, language);
   });
   const objects = list(raw?.objects, 20).map((item) => ({
     name: text(item?.name),

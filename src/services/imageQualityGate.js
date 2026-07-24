@@ -30,13 +30,15 @@ function parseJson(text) {
   }
 }
 
-const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|no coherent|no recognizable|unrecognizable scene|broken pixels|pixel corruption)/iu;
+const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|no coherent|no recognizable|unrecognizable scene|broken pixels|pixel corruption|hybrid|fused|merged (?:character|identity|anatom)|human head[^.]{0,60}animal body|animal head[^.]{0,60}human body|exchanged? (?:head|face|body)|shared body|mixed species|fusionn[ée]|personnages? fusionn[ée]s?|t[êe]te humaine[^.]{0,60}corps d['’]animal|t[êe]te d['’]animal[^.]{0,60}corps humain|anatomie m[ée]lang[ée]e|h[ií]brid[oa]|personajes? fusionad[oa]s?|cabeza humana[^.]{0,60}cuerpo de animal|cabeza de animal[^.]{0,60}cuerpo humano|anatom[ií]a mezclada)/iu;
 const WARDROBE_ONLY_PATTERN = /(?:\boutfits?\b|\bwardrobe\b|\bclothing\b|\bgarments?\b|\bwears?\b|\bwore\b|\bt-?shirts?\b|\btee-?shirts?\b|\bshirts?\b|\bshorts?\b|\bshoes?\b|\bsneakers?\b|\bsandals?\b|\bcrocs?\b|\bcaps?\b|\bhats?\b|\bcasquettes?\b|\btenues?\b|\bv[êe]tements?\b|\bchemises?\b|\bd[ée]bardeurs?\b|\bchaussures?\b|\bbaskets?\b|\bsandales?\b|\bporte(?:nt)?\b|\bmotifs?\b|\blogos?\b|\binscriptions?\b|\bmarques?\b|\batuendos?\b|\bropa\b|\blleva(?:n)?\b|\bcamisetas?\b|\bpantalones?\b|\bzapatos?\b|\bgorras?\b)/iu;
 const OBJECT_STATE_CONTRADICTION_PATTERN = /(?:duplicat|two copies|twice|quantity|hold(?:s|ing)?[^.]{0,80}wear(?:s|ing)?|wear(?:s|ing)?[^.]{0,80}hold(?:s|ing)?|held[^.]{0,80}worn|worn[^.]{0,80}held|required object[^.]{0,80}(?:absent|missing)|dupliqu|deux exempl|quantit[ée]|(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main[^.]{0,80}port[ée]|port[ée][^.]{0,80}(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main|objet requis[^.]{0,80}(?:absent|manquant)|sostiene[^.]{0,80}lleva\s+puesto|lleva\s+puesto[^.]{0,80}sostiene)/iu;
 
 const NARRATIVE_CONTRADICTION_PATTERN = /(?:does not (?:perform|show|depict)|wrong (?:subject|target|central action)|required (?:named )?(?:character|creature)[^.]{0,80}(?:absent|missing)|n['\u2019](?:effectue|accomplit|ex[\u00e9e]cute|montre|repr[\u00e9e]sente) pas|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|cr[\u00e9e]ature) (?:nomm[\u00e9e](?:e)? )?requis(?:e)?[^.]{0,80}(?:absent|manquant)|no (?:realiza|muestra|representa) la acci[\u00f3o]n|(?:sujeto|objetivo|acci[\u00f3o]n principal) incorrect[oa]|(?:personaje|criatura) requerid[oa][^.]{0,80}(?:ausente|falta))/iu;
 const POSITIVE_SCENE_CONFIRMATION_PATTERN = /(?:\bno issue\b|\bno contradiction\b|\bas (?:requested|required|specified)\b|\bcorrectly\b|\bcompliant\b|\bconform[ée]ment\b|\bcomme demand[ée]\b|\bcomme pr[ée]vu\b|\bsans probl[èe]me\b|\bsin problema\b|\bseg[uú]n lo solicitado\b)/iu;
 const EXPLICIT_SCENE_CONTRADICTION_PATTERN = /(?:\babsent\b|\bmissing\b|\bomitted\b|\bwrong\b|\bincorrect\b|\bcontradict|\bdoes not\b|\bdo not\b|\bnot (?:shown|visible|present|depicted|large|small|clear|performed)\b|\bfails? to\b|\binstead\b|\bduplicat|\btwo copies\b|\btwice\b|\bquantity\b|\bscale\b[^.]{0,60}\bnot\b|\babsent(?:e)?\b|\bmanquant(?:e)?\b|\bomis(?:e)?\b|\bincorrect(?:e)?\b|\bcontradi|\bn['’]est pas\b|\bne\b[^.]{0,80}\bpas\b|\bau lieu\b|\bdupliqu|\bdeux exempl|\bquantit[ée]\b|\b[ée]chelle\b[^.]{0,60}\bpas\b|\bausente\b|\bfalta\b|\bincorrect[oa]\b|\bcontradi|\bno (?:aparece|muestra|representa|realiza|est[aá])\b|\ben lugar de\b|\bduplicad[oa]\b|\bcantidad\b|\bescala\b[^.]{0,60}\bno\b)/iu;
+
+const BLOCKING_SCENE_CONTRADICTION_PATTERN = /(?:wrong (?:subject|target|central action)|required (?:named )?(?:character|person|animal|creature)[^.]{0,100}(?:absent|missing|omitted)|mandatory (?:visible )?cast[^.]{0,100}(?:absent|missing|omitted)|substitut|replac|transform|merge|fuse|hybrid|forbidden[^.]{0,80}(?:present|visible|shown)|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|personne|animal|cr[ée]ature) (?:nomm[ée]e? )?requis(?:e)?[^.]{0,100}(?:absent|manquant|omis)|distribution obligatoire[^.]{0,100}(?:absent|manquant|omis)|remplac|transform|fusion|hybride|interdit[^.]{0,80}(?:pr[ée]sent|visible|montr[ée])|(?:sujeto|objetivo|acci[oó]n principal) incorrect[oa]|(?:personaje|persona|animal|criatura) requerid[oa][^.]{0,100}(?:ausente|falta|omitid[oa])|reparto obligatorio[^.]{0,100}(?:ausente|falta|omitid[oa])|sustitu|reemplaz|transform|fusion|h[ií]brid|prohibid[oa][^.]{0,80}(?:presente|visible|mostrad[oa]))/iu;
 
 export function objectiveTechnicalIssues(issues = []) {
   return (Array.isArray(issues) ? issues : [])
@@ -51,10 +53,19 @@ export function objectiveSceneContractIssues(issues = []) {
     .filter((issue) => !POSITIVE_SCENE_CONFIRMATION_PATTERN.test(issue))
     .filter((issue) => EXPLICIT_SCENE_CONTRADICTION_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
-      || NARRATIVE_CONTRADICTION_PATTERN.test(issue))
+      || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
+      || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue))
     .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
-      || NARRATIVE_CONTRADICTION_PATTERN.test(issue));
+      || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
+      || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue));
+}
+
+export function blockingSceneContractIssues(issues = []) {
+  return objectiveSceneContractIssues(issues).filter((issue) => (
+    BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
+    || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
+  ));
 }
 
 export function isImageSafetyRejection(error) {
@@ -112,7 +123,7 @@ export function outputImagePath(imageUrl, outputsDir = "data/outputs") {
   return path.resolve(outputsDir, decodeURIComponent(path.basename(pathname)));
 }
 
-export async function inspectGeneratedIllustration({ imagePath, pageLabel = "illustration" }) {
+export async function inspectGeneratedIllustration({ imagePath, pageLabel = "illustration", sceneContract = null }) {
   const source = await fs.readFile(imagePath);
   const metadata = await sharp(source).metadata();
   if (metadata.format !== "png" || Number(metadata.width || 0) < 512 || Number(metadata.height || 0) < 512) {
@@ -130,8 +141,11 @@ Reject only when the image has an objective technical production defect:
 - abstract noise, repeated bands or stripes such as a broken decoder output;
 - extreme accidental blur, truncated rendering or a visibly unfinished image;
 - no coherent recognizable children's-book scene at all.
+- an accidental identity or anatomy fusion: two requested people or animals share one body, exchange heads, faces or body parts, or become a human-animal hybrid. Each requested identity must remain one complete separate individual. Allow a hybrid only when the structured scene contract explicitly requests that exact fantasy being.
 
 Approve every coherent illustration, even if you would prefer a different composition, character, outfit, color, pose, style or scene interpretation. Never compare wardrobe, cast, likeness or narrative accuracy. Small preview watermarks and page-number badges are expected and are not defects.
+STRUCTURED SCENE CONTRACT (use only to distinguish an explicitly requested fantasy being from an accidental fusion):
+${JSON.stringify(sceneContract || {})}
 Return only JSON in this exact form: {"approved":true,"issues":[]} or {"approved":false,"issues":["short objective reason"]}.`;
 
   const response = await getClient().responses.create({
@@ -156,10 +170,13 @@ export async function inspectSceneFidelity({ imagePath, sceneContract, pageLabel
   const instruction = `You are checking whether one children's-book ${pageLabel} depicts its authoritative structured scene contract.
 Judge only objective, clearly visible contradictions:
 - the main action has the wrong subject or wrong target;
+- any recurring named character required by named_characters is plainly missing;
 - a recurring named character is substituted for a distinct generic character;
 - a named observer is shown performing the central action instead;
+- two requested identities are merged, fused, transformed into one another, or exchange a head, face, body, species or anatomy;
 - a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
 - an explicitly forbidden substitution is present.
+For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused."
 Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.
 SCENE CONTRACT JSON:
 ${JSON.stringify(sceneContract)}
@@ -268,6 +285,7 @@ export async function generateQualityCheckedImage({
       const inspection = await inspectGeneratedIllustration({
         imagePath: outputImagePath(imageUrl),
         pageLabel,
+        sceneContract: sceneFidelityContract,
       });
       const styleReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "continuity");
       const advisoryCheck = async (check) => {
@@ -299,7 +317,8 @@ export async function generateQualityCheckedImage({
       // Style comparison is bounded and advisory. It may request one stronger
       // regeneration, but a second coherent image must not abort an entire
       // preview because a vision model distinguishes subtle realism or polish.
-      if (inspection.approved && attempt === attemptLimit) {
+      const blockingSceneIssues = blockingSceneContractIssues(sceneInspection.issues);
+      if (inspection.approved && attempt === attemptLimit && blockingSceneIssues.length === 0) {
         onAttempt?.({
           phase: !identityInspection.approved ? "approved-with-identity-warning" : sceneInspection.approved ? "approved-with-style-warning" : "approved-with-scene-warning",
           attempt,
@@ -311,7 +330,7 @@ export async function generateQualityCheckedImage({
       }
       previousIssues = inspection.approved ? [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues] : inspection.issues;
       previousRejectionKind = inspection.approved
-        ? (!identityInspection.approved ? "identity" : sceneInspection.approved ? "style" : "scene")
+        ? (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
         : "technical";
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts: attemptLimit, pageLabel, issues: previousIssues });
     } catch (error) {
