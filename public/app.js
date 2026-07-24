@@ -1120,8 +1120,10 @@ function chooseStorySuggestion(id) {
   document.querySelector("#story_seed_transformation").value = suggestion.transformation;
   const dream = document.querySelector("#dream");
   const challenge = document.querySelector("#challenge");
+  const message = document.querySelector("#message");
   if (dream) dream.value = suggestion.dream;
   if (challenge) challenge.value = suggestion.challenge;
+  if (message) message.value = suggestion.transformation;
   renderStorySuggestions();
   renderSelectedSuggestionSummary();
   persistLocalDraft();

@@ -60,6 +60,7 @@ test("the creator exposes the seven-step universe-first funnel", async () => {
   assert.match(app, /const STEP_COUNT = 7/);
   assert.match(app, /requestStorySuggestions/);
   assert.match(app, /universe_story_contract/);
+  assert.match(app, /const message = document\.querySelector\("#message"\);[\s\S]*message\.value = suggestion\.transformation/);
   assert.match(route, /MAX_ATTEMPTS = 6/);
   assert.match(auditPrompt, /universe_story_contract/);
   assert.match(auditPrompt, /merely decorative/);

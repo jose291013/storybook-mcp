@@ -4,7 +4,7 @@ Last updated: 2026-07-24
 
 ## Product flow
 
-1. An anonymous visitor chooses the story universe first from six likeness-comparable examples built with the same synthetic child. The visitor then describes the child and receives exactly three universe-aware inspiration cards: **teamwork**, **discovery**, and **creation**. Selecting a card pre-fills the dream and gentle challenge but keeps every answer editable; **I already have my own idea** preserves fully free input. Suggestions are cached in the browser draft and are regenerated only on explicit request.
+1. An anonymous visitor chooses the story universe first from six likeness-comparable examples built with the same synthetic child. The visitor then describes the child and receives exactly three universe-aware inspiration cards: **teamwork**, **discovery**, and **creation**. Selecting a card pre-fills the dream, gentle challenge and message with the card's proposed inner realization while keeping every answer editable; **I already have my own idea** preserves fully free input. Suggestions are cached in the browser draft and are regenerated only on explicit request.
 2. The visitor completes the remaining personal story details, chooses the visual finish and format, and may add up to five photos. The selected universe carries a deterministic story contract defining its adventure zone, entry rule, physical rules and mechanisms that must appear before use.
 3. When the visitor requests an AI preview, the draft is preserved and WooCommerce authentication is required.
 4. An authenticated customer sees the exact preview price and may apply a single-use access code. This confirmation prepares the story scenario; it does not yet reserve or spend a credit.
