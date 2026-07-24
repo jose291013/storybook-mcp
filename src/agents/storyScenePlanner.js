@@ -39,14 +39,23 @@ function list(value, maximum = 20) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
 }
 
-function normalizeContract(raw, expected, canonicalCharacters) {
+export function normalizeSceneContract(raw, expected, canonicalCharacters) {
   const rawNamed = list(raw?.named_characters, 10);
-  const approvedPhysicalNames = new Set(list(expected?.approved_scene?.characterPresences, 15)
-    .filter((presence) => presence?.mode === "physical")
-    .map((presence) => key(presence?.name)));
-  const namedSource = rawNamed.length
-    ? rawNamed
-    : list(expected.planned_cast, 10).map((name) => ({ name, visual_role: "visible", action: "as stated in the paired prose" }));
+  const approvedPresences = list(expected?.approved_scene?.characterPresences, 15);
+  const approvedPhysical = approvedPresences.filter((presence) => presence?.mode === "physical");
+  const approvedPhysicalNames = new Set(approvedPhysical.map((presence) => key(presence?.name)));
+  const namedSource = expected?.approved_scene
+    ? approvedPhysical.map((presence) => {
+      const supplied = rawNamed.find((item) => key(item?.name) === key(presence?.name));
+      return supplied || {
+        name: presence.name,
+        visual_role: "visible",
+        action: presence.action || "physically present in the approved scene",
+      };
+    })
+    : rawNamed.length
+      ? rawNamed
+      : list(expected.planned_cast, 10).map((name) => ({ name, visual_role: "visible", action: "as stated in the paired prose" }));
   const named = namedSource.map((item) => {
     const name = canonicalName(item?.name, canonicalCharacters);
     if (expected?.approved_scene && !approvedPhysicalNames.has(key(name))) return null;
@@ -63,9 +72,21 @@ function normalizeContract(raw, expected, canonicalCharacters) {
     action: canonicalizeWrittenNames(item?.action, canonicalCharacters),
     must_not_resemble: [...new Set(list(item?.must_not_resemble, 10).map((name) => canonicalName(name, canonicalCharacters)).filter(Boolean))],
   }));
-  const resolveActor = (value) => canonicalName(value, canonicalCharacters)
-    || generic.find((item) => key(item.id) === key(value))?.id
-    || String(value || "");
+  const resolveActor = (value) => {
+    const canonical = canonicalName(value, canonicalCharacters);
+    if (canonical && expected?.approved_scene && !approvedPhysicalNames.has(key(canonical))) return "";
+    return canonical
+      || generic.find((item) => key(item.id) === key(value))?.id
+      || String(value || "");
+  };
+  const firstPhysicalName = named[0]?.name || "";
+  const suppliedSubject = resolveActor(raw?.main_action?.subject);
+  const suppliedTarget = resolveActor(raw?.main_action?.target);
+  const nonphysicalRules = approvedPresences
+    .filter((presence) => presence?.mode !== "physical")
+    .map((presence) => `${presence.name} is present only as ${presence.mode}; ${presence.name} must not appear physically, touch anyone, travel or perform a visible action.`);
+  const lockedSubject = suppliedSubject || firstPhysicalName;
+  const lockedTarget = key(suppliedTarget) === key(lockedSubject) ? "" : suppliedTarget;
   return {
     spread_number: expected.spread_number,
     scene_number: expected.scene_number,
@@ -75,9 +96,9 @@ function normalizeContract(raw, expected, canonicalCharacters) {
     source_prose: String(expected.prose || "").trim(),
     planned_image_context: String(expected.planned_image || "").trim(),
     main_action: {
-      subject: resolveActor(raw?.main_action?.subject),
+      subject: lockedSubject,
       verb: String(raw?.main_action?.verb || "").trim(),
-      target: resolveActor(raw?.main_action?.target),
+      target: lockedTarget,
     },
     named_characters: named,
     generic_characters: generic,
@@ -94,13 +115,23 @@ function normalizeContract(raw, expected, canonicalCharacters) {
       instruction: String(item?.instruction || "").trim(),
     })).filter((item) => item.name),
     spatial_relationships: list(raw?.spatial_relationships).map(String),
-    forbidden_elements: list(raw?.forbidden_elements).map(String),
+    forbidden_elements: [...new Set([
+      ...list(raw?.forbidden_elements).map(String),
+      ...nonphysicalRules,
+    ])],
     continuity_from_previous: String(raw?.continuity_from_previous || "").trim(),
     continuity_to_next: String(raw?.continuity_to_next || "").trim(),
   };
 }
 
-export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCanons = [], approvedScenario = null }) {
+export async function storyScenePlannerAgent({
+  blueprint,
+  pageTexts,
+  characterCanons = [],
+  approvedScenario = null,
+  previousPlan = null,
+  validationIssues = [],
+}) {
   const canonicalCharacters = [
     ...characterCanons.map((item) => ({ name: item.name, role: item.role, relationship: item.relationship })),
     { name: blueprint?.hero?.name, role: "child" },
@@ -132,6 +163,8 @@ export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCa
       page_texts: [...textByPage].map(([page_number, text]) => ({ page_number, text })),
       narrative_spreads: spreads,
       approved_scenario: approvedScenario,
+      previous_plan: previousPlan,
+      validation_issues: validationIssues,
     },
   });
   const candidate = response?.json ?? response?.data ?? response?.output ?? response;
@@ -144,7 +177,7 @@ export async function storyScenePlannerAgent({ blueprint, pageTexts, characterCa
   const sceneContracts = spreads.map((expected) => {
     const raw = rawContracts.find((item) => Number(item?.image_page_number) === Number(expected.image_page_number)
       || Number(item?.spread_number) === Number(expected.spread_number)) || {};
-    return normalizeContract({ ...raw }, {
+    return normalizeSceneContract({ ...raw }, {
       ...expected,
       // The reader-visible prose returned by the whole-book pass is the final
       // authority, never the earlier sequential draft supplied as input.

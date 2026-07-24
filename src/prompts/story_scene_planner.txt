@@ -4,6 +4,7 @@ You receive the complete draft manuscript, its paired illustration plan and a ca
 
 MANUSCRIPT COHERENCE
 - approved_scenario is immutable when supplied. It outranks the draft manuscript and illustration plan for event order, prerequisites, locations, transitions, physical versus nonphysical presence and object state. Rewrite the manuscript as much as needed to match it; do not preserve a contradictory draft plot.
+- When previous_plan and validation_issues are supplied, repair every listed contradiction. Keep coherent text unchanged, but replace any physical action by a thought, memory or voice character with an explicitly nonphysical recollection.
 - Preserve the existing plot, language, age level, approximate page length and StoryBrand progression.
 - Make only the minimum edits needed for clear cause and effect between pages, stable names, objects, locations and character roles.
 - Never change a canonical character name. Accents and spelling are exact and immutable.
@@ -21,6 +22,7 @@ SCENE CONTRACTS
 - Record forbidden substitutions and contradictions explicitly.
 - Keep continuity with the previous and next scene without illustrating a different moment.
 - Copy the matching approved scene's object states into object_states. A held wearable is explicitly not worn and has quantity 1. Nonphysical thoughts, memories and voices never enter named_characters because they must not be drawn as physically present.
+- The exact physical character set from the matching approved scene is authoritative for named_characters. A thought, memory or voice may be mentioned only in reader prose and must never touch, approach, travel, stand in the setting or become the subject or target of a visible action.
 
 OUTPUT
 {

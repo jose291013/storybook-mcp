@@ -70,26 +70,14 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
     creator_feedback: String(feedback || "").slice(0, 2000),
     previous_scenario: previousScenario || null,
   };
-  let candidate = await storyScenarioAgent(input);
-  let scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
-    normalizeStoryScenario(candidate, {
-      pagePlan,
-      canonicalCharacters,
-      creatorClarifications,
-      worldContract: normalized.answers.universe_story_contract,
-    }),
-    { sceneEdits, addedCharacters },
-  ));
-  let validation = validateStoryScenario(scenario);
-  if (validation.valid) {
-    const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
-    validation = {
-      valid: audit.status === "approved",
-      issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
-    };
-  }
-  if (!validation.valid) {
-    candidate = await storyScenarioAgent({ ...input, previous_scenario: scenario, validation_issues: validation.issues });
+  let scenario = null;
+  let validation = { valid: false, issues: ["scenario has not been generated"] };
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const candidate = await storyScenarioAgent({
+      ...input,
+      ...(scenario ? { previous_scenario: scenario, validation_issues: validation.issues } : {}),
+      structural_repair_attempt: attempt,
+    });
     scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
       normalizeStoryScenario(candidate, {
         pagePlan,
@@ -107,6 +95,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
         issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
       };
     }
+    if (validation.valid) break;
   }
   return { scenario, validation };
 }
