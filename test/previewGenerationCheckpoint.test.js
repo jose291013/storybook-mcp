@@ -52,6 +52,21 @@ test("an exhausted legacy preview gets one recovery under the safer image policy
   assert.equal(technicalPreviewRetryExhausted(current), true);
 });
 
+test("a preview exhausted under policy four receives the targeted story-repair recovery", () => {
+  const exhaustedStory = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "story-fidelity-book",
+      retryPolicyVersion: 4,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-24T18:30:00.000Z",
+      failureReason: "preview_generation_failed",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedStory), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedStory), false);
+});
+
 test("a Render interruption remains recoverable after a retry was already consumed", () => {
   const interrupted = {
     continuitySnapshot: mergeGenerationCheckpoint({}, {
@@ -73,6 +88,6 @@ test("only fully persisted draft pages are reused after an interrupted Render jo
   assert.equal(isReusableDraftPage(null), false);
 });
 
-test("the compact visual-contract recovery policy is version four", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 4);
+test("the targeted story-repair recovery policy is version five", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 5);
 });

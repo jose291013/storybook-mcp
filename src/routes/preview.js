@@ -19,6 +19,7 @@ import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
+import { storySceneTextRepairAgent } from "../agents/storySceneTextRepair.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
@@ -42,7 +43,7 @@ import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewN
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 
 const router = express.Router();
-const STORY_PLAN_FIDELITY_VERSION = 2;
+const STORY_PLAN_FIDELITY_VERSION = 3;
 
 async function notifyPreviewMilestoneIfRequested({
   projectId,
@@ -529,6 +530,36 @@ router.post("/preview", async (req, res) => {
             issues: planAudit.issues,
           }));
           if (attempt === 1) updateJob(job.id, { step: "story:scenario-fidelity-repair" });
+        }
+        if (planAudit.status !== "approved") {
+          updateJob(job.id, { step: "story:scenario-fidelity-targeted-repair" });
+          storyScenePlan = {
+            ...storyScenePlan,
+            pageTexts: await storySceneTextRepairAgent({
+              approvedScenario,
+              pageTexts: storyScenePlan.pageTexts,
+              sceneContracts: storyScenePlan.sceneContracts,
+              issues: planAudit.issues,
+              canonicalCharacters: [
+                ...characterCanons,
+                { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
+                ...(final_blueprint.cast || []),
+              ],
+              language: final_blueprint.language,
+            }),
+          };
+          updateJob(job.id, { step: "story:scenario-fidelity-targeted-recheck" });
+          planAudit = await storyScenePlanAuditAgent({
+            approvedScenario,
+            pageTexts: storyScenePlan.pageTexts,
+            sceneContracts: storyScenePlan.sceneContracts,
+            canonicalCharacters: [
+              ...characterCanons,
+              { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
+              ...(final_blueprint.cast || []),
+            ],
+            language: final_blueprint.language,
+          });
         }
         if (planAudit.status !== "approved") {
           throw new Error(`Approved scenario fidelity failed: ${planAudit.issues.map((issue) => `scene-${issue.sceneNumber}: ${issue.explanation}`).join(" | ")}`);

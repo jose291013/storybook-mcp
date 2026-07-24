@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
+import { buildStorySceneTextRepairTargets } from "../src/agents/storySceneTextRepair.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
@@ -186,6 +187,33 @@ test("an explicitly remembered guide remains valid without a physical action", (
     canonicalCharacters: [{ name: "Nolan" }, { name: "Alexandra" }],
   });
   assert.deepEqual(issues, []);
+});
+
+test("targeted story repair maps a fidelity issue to only its paired text page", () => {
+  const targets = buildStorySceneTextRepairTargets({
+    approvedScenario: {
+      scenes: [
+        { sceneNumber: 4, action: "Les amis observent le ciel.", characterPresences: [{ name: "Lua", mode: "physical" }] },
+        { sceneNumber: 5, action: "Lua résout l'énigme.", characterPresences: [{ name: "Lua", mode: "physical" }] },
+      ],
+    },
+    pageTexts: {
+      8: "Lua observe le ciel.",
+      10: "Tyam rejoint Lua et résout l'énigme.",
+    },
+    sceneContracts: [
+      { scene_number: 4, text_page_number: 8 },
+      { scene_number: 5, text_page_number: 10 },
+    ],
+    issues: [{
+      sceneNumber: 5,
+      code: "unapproved_character_mention",
+      explanation: "Tyam is absent from the approved scene.",
+    }],
+  });
+  assert.deepEqual(targets.map((target) => target.text_page_number), [10]);
+  assert.equal(targets[0].approved_scene.sceneNumber, 5);
+  assert.match(targets[0].current_text, /Tyam/);
 });
 
 test("invalid scenario diagnostics identify editable scenes without exposing character names", () => {
