@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
-import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
+import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 
 function coherentPortalScenario() {
@@ -133,6 +133,33 @@ test("scenario stabilization repairs invisible metadata without changing story e
   assert.equal(validateStoryScenario(stabilized).valid, true);
 });
 
+test("scenario stabilization infers the discovered portal crossing and its travelers", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].transition.mechanismId = "portail_bleu";
+  scenario.scenes[1].transition = {
+    kind: "none",
+    mechanism: "",
+    mechanismId: "",
+    from: "la clairiÃ¨re",
+    to: "la vallÃ©e des dinosaures",
+    characters: [],
+  };
+  const stabilized = stabilizeStoryScenario(scenario);
+  assert.equal(stabilized.scenes[1].transition.kind, "cross_passage");
+  assert.equal(stabilized.scenes[1].transition.mechanismId, "portail_bleu");
+  assert.equal(stabilized.scenes[1].transition.mechanism, "le portail bleu");
+  assert.deepEqual(stabilized.scenes[1].transition.characters, scenario.characters.slice(0, 2).map((character) => character.name));
+  assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
+test("stable passage ids allow descriptive wording to change between discovery and crossing", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].transition.mechanismId = "portail_bleu";
+  scenario.scenes[1].transition.mechanismId = "portail_bleu";
+  scenario.scenes[1].transition.mechanism = "la porte lumineuse entre les arbres";
+  assert.equal(validateStoryScenario(scenario).valid, true);
+});
+
 test("unchanged suggested clarifications can be accepted with the visible scenario", () => {
   assert.deepEqual(clarificationAnswersForApproval({
     creatorClarifications: {},
@@ -205,6 +232,35 @@ test("scene contracts tell the illustrator that a held wearable is not also worn
   assert.match(prompt, /quantity 1/);
 });
 
+test("approved nonphysical characters cannot leak into the visible scene contract", () => {
+  const contract = normalizeSceneContract({
+    main_action: { subject: "Alexandra", verb: "pose sa main sur", target: "Nolan" },
+    named_characters: [
+      { name: "Nolan", visual_role: "recipient", action: "Ã©coute" },
+      { name: "Alexandra", visual_role: "actor", action: "touche Nolan" },
+    ],
+  }, {
+    spread_number: 4,
+    scene_number: 4,
+    text_page_number: 9,
+    image_page_number: 8,
+    prose: "Nolan se souvient des conseils d'Alexandra.",
+    planned_image: "",
+    planned_cast: ["Nolan"],
+    approved_scene: {
+      characterPresences: [
+        { name: "Nolan", mode: "physical", action: "se souvient" },
+        { name: "Alexandra", mode: "memory", action: "conseil passÃ©" },
+      ],
+      objectStates: [],
+    },
+  }, [{ name: "Nolan" }, { name: "Alexandra" }]);
+  assert.deepEqual(contract.named_characters.map((character) => character.name), ["Nolan"]);
+  assert.equal(contract.main_action.subject, "Nolan");
+  assert.equal(contract.main_action.target, "");
+  assert.match(contract.forbidden_elements.join(" "), /Alexandra is present only as memory/);
+});
+
 test("the creator must approve a persisted scenario before the preview route can start", async () => {
   const [previewRoute, scenarioRoute, scenarioAgent, scenarioPrompt, app, i18n, html, bridge] = await Promise.all([
     fs.readFile("src/routes/preview.js", "utf8"),
@@ -236,7 +292,8 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /setStoryScenarioBusy\(true, initialRequest \? "prepare" : "update"\)/);
   assert.match(app, /elements\.scenarioReviewContent\.hidden = true/);
   assert.match(app, /elements\.scenarioReviewContent\.hidden = false/);
-  assert.match(app, /if \(initialRequest\) \{[\s\S]*throw error;/);
+  assert.match(app, /elements\.scenarioPreparationFeedback\.textContent = copy\.error/);
+  assert.match(app, /elements\.retryInitialScenarioButton\.hidden = false/);
   assert.match(app, /scenarioNeedsRevision/);
   assert.match(app, /scenarioHasUnansweredClarifications/);
   assert.match(app, /scenarioDefaultsReady/);
@@ -251,6 +308,7 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(html, /id="storyScenarioPanel"/);
   assert.match(html, /id="scenarioPreparingState"/);
   assert.match(html, /id="scenarioPreparingSteps"/);
+  assert.match(html, /id="retryInitialScenarioButton"/);
   assert.match(html, /id="scenarioReviewContent"/);
   assert.match(html, /id="scenarioStatus"/);
   assert.match(html, /id="scenarioDiagnostics"/);

@@ -236,6 +236,8 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .form-error { color: #a23f3a; min-height: 20px; font-size: 13px; text-align: right; }
 
 .generation-panel, .result-section { max-width: 960px; margin: 40px auto 100px; padding: 64px 24px; text-align: center; }
+.generation-next-step { max-width: 720px; margin: 18px auto; padding: 14px 18px; border: 1px solid #bfd7d2; border-radius: 14px; background: #f1f8f6; color: var(--ink); font-weight: 750; }
+.scenario-preparation-feedback { max-width: 720px; margin: 18px auto; padding: 14px 18px; border: 1px solid #efb2a7; border-radius: 14px; background: #fff4f1; color: #9a3024; font-weight: 700; }
 .visual-proof-panel { width: min(1080px, calc(100% - 40px)); margin: 42px auto 100px; padding: clamp(24px, 4vw, 48px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 420px); gap: clamp(28px, 5vw, 60px); align-items: center; border: 1px solid var(--line); border-radius: 30px; background: var(--paper); box-shadow: var(--shadow); }
 .visual-proof-copy h2 { margin: 8px 0 12px; color: var(--ink); font-family: Georgia, serif; font-size: clamp(32px, 4vw, 47px); font-weight: 500; line-height: 1.05; }
 .visual-proof-copy > p:not(.section-kicker) { color: var(--muted); line-height: 1.58; }

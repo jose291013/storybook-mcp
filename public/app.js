@@ -100,7 +100,7 @@ const elements = {
   styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
-  generationPanel: document.querySelector("#generationPanel"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
+  generationPanel: document.querySelector("#generationPanel"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
@@ -109,7 +109,7 @@ const elements = {
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -158,10 +158,28 @@ const VISUAL_PROOF_TEXT = {
   EN: { kicker: "VISUAL PROOF", title: "Check the face and rendering before the remaining illustrations", lead: "This cover uses your selected style and references. The rest of the book will only be illustrated after your approval.", checks: ["Is the character recognizable?", "Does the realism level match your choice?", "Would you like this medium across the whole book?"], approve: "Approve and illustrate the book", regenerate: "Retry this cover", note: "One additional cover proof is included. It does not use a second credit.", limit: "The included retry has been used. Approve this cover or contact Calitiki before continuing.", working: "Calitiki is preparing your request…", alt: "Cover proof awaiting approval" },
 };
 
+const GENERATION_STAGE_TEXT = {
+  FR: {
+    cover: { kicker: "COUVERTURE EN PRÉPARATION", title: "Calitiki prépare d’abord votre couverture", message: "Nous écrivons le livre et créons une première couverture avec votre style et vos références.", next: "Prochaine étape : vous devrez valider cette couverture avant que les illustrations intérieures ne commencent. Vous pouvez laisser cette page ouverte ou revenir plus tard depuis Mes créations Calitiki." },
+    regenerate: { kicker: "NOUVELLE COUVERTURE", title: "Calitiki prépare votre nouvel essai", message: "Le style et les références restent identiques pendant la création de cette seconde proposition.", next: "Vous devrez valider cette nouvelle couverture avant que les illustrations intérieures ne commencent." },
+    interior: { kicker: "ILLUSTRATIONS EN COURS", title: "Votre couverture est validée", message: "Calitiki crée maintenant les pages intérieures à partir du scénario et de la couverture approuvés.", next: "Vous pouvez laisser cette page ouverte ou revenir plus tard depuis Mes créations Calitiki. Aucun autre choix n’est requis avant l’aperçu complet." },
+  },
+  ES: {
+    cover: { kicker: "PORTADA EN PREPARACIÓN", title: "Calitiki prepara primero tu portada", message: "Estamos escribiendo el libro y creando una primera portada con tu estilo y tus referencias.", next: "Siguiente paso: tendrás que aprobar esta portada antes de que empiecen las ilustraciones interiores. Puedes dejar esta página abierta o volver más tarde desde Mis creaciones Calitiki." },
+    regenerate: { kicker: "NUEVA PORTADA", title: "Calitiki prepara tu nuevo intento", message: "El estilo y las referencias se mantienen durante la creación de esta segunda propuesta.", next: "Tendrás que aprobar esta nueva portada antes de que empiecen las ilustraciones interiores." },
+    interior: { kicker: "ILUSTRACIONES EN CURSO", title: "Tu portada está aprobada", message: "Calitiki crea ahora las páginas interiores a partir del guion y de la portada aprobados.", next: "Puedes dejar esta página abierta o volver más tarde desde Mis creaciones Calitiki. No se necesita ninguna otra decisión antes de la vista previa completa." },
+  },
+  EN: {
+    cover: { kicker: "COVER IN PROGRESS", title: "Calitiki is preparing your cover first", message: "We are writing the book and creating a first cover with your selected style and references.", next: "Next step: you will need to approve this cover before any interior illustrations begin. You can leave this page open or return later from My Calitiki creations." },
+    regenerate: { kicker: "NEW COVER", title: "Calitiki is preparing your new attempt", message: "The selected style and references remain locked while this second proposal is created.", next: "You will need to approve this new cover before any interior illustrations begin." },
+    interior: { kicker: "ILLUSTRATIONS IN PROGRESS", title: "Your cover is approved", message: "Calitiki is now creating the interior pages from the approved story plan and cover.", next: "You can leave this page open or return later from My Calitiki creations. No further decision is required before the complete preview." },
+  },
+};
+
 const SCENARIO_PREPARATION_TEXT = {
-  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.", steps: ["Organiser le début, le défi et la résolution", "Vérifier les lieux, passages et personnages", "Préparer les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Aucun crédit n'a été utilisé : vous pouvez réessayer." },
-  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara de tres actos. No se utiliza ningún crédito durante esta etapa.", steps: ["Organizar el inicio, el reto y la resolución", "Comprobar los lugares, pasos y personajes", "Preparar las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. No se utilizó ningún crédito: puedes volver a intentarlo." },
-  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. No credit is used during this step.", steps: ["Organize the beginning, challenge and resolution", "Check locations, passages and characters", "Prepare the cards you can review and edit"], error: "The first proposal could not be prepared. No credit was used, so you can try again." },
+  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.", steps: ["Organiser le début, le défi et la résolution", "Vérifier les lieux, passages et personnages", "Préparer les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Votre crédit n'a pas été utilisé et vos réponses sont conservées.", retry: "Réessayer gratuitement" },
+  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara en tres actos. No se utiliza ningún crédito durante esta etapa.", steps: ["Organizar el inicio, el reto y la resolución", "Comprobar los lugares, pasos y personajes", "Preparar las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. Tu crédito no se ha utilizado y tus respuestas están guardadas.", retry: "Reintentar gratis" },
+  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. No credit is used during this step.", steps: ["Organize the beginning, challenge and resolution", "Check locations, passages and characters", "Prepare the cards you can review and edit"], error: "The first proposal could not be prepared. Your credit was not used and your answers are saved.", retry: "Retry for free" },
 };
 
 const UNIVERSE_TEXT = {
@@ -514,6 +532,7 @@ function setStoryScenarioBusy(busy, action = "update") {
   elements.storyScenarioPanel.setAttribute("aria-busy", String(busy));
   elements.storyScenarioPanel.querySelectorAll("input, textarea, select, [data-toggle-presences]").forEach((control) => { control.disabled = busy; });
   elements.scenarioAddCharacterButton.disabled = busy;
+  elements.retryInitialScenarioButton.disabled = busy;
   elements.reviseScenarioButton.disabled = busy;
   elements.approveScenarioButton.disabled = busy || !state.storyScenario || state.storyScenarioDirty || scenarioHasUnansweredClarifications() || scenarioNeedsRevision();
   elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed ? tr("scenarioRetryUpdate") : tr("reviseScenario");
@@ -534,6 +553,10 @@ function showInitialScenarioPreparation() {
   elements.storyScenarioTitle.textContent = copy.title;
   elements.scenarioPreparingLead.textContent = copy.lead;
   elements.scenarioPreparingSteps.innerHTML = copy.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
+  elements.scenarioPreparationFeedback.textContent = "";
+  elements.scenarioPreparationFeedback.hidden = true;
+  elements.retryInitialScenarioButton.textContent = copy.retry;
+  elements.retryInitialScenarioButton.hidden = true;
   elements.scenarioPreparingState.hidden = false;
   elements.scenarioReviewContent.hidden = true;
   elements.storyScenarioPanel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -638,9 +661,11 @@ async function requestStoryScenario({ includeEdits = false } = {}) {
     renderStoryScenario(payload.scenario);
   } catch (error) {
     if (initialRequest) {
-      elements.storyScenarioPanel.hidden = true;
-      elements.scenarioPreparingState.hidden = true;
-      throw error;
+      const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
+      elements.scenarioPreparationFeedback.textContent = copy.error;
+      elements.scenarioPreparationFeedback.hidden = false;
+      elements.retryInitialScenarioButton.hidden = false;
+      return;
     }
     state.storyScenarioUpdateFailed = true;
     setScenarioStatus(error.message || tr("scenarioRevisionError"), "error");
@@ -1537,13 +1562,19 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
   paintFrame();
 }
 
-function showGenerationPanel() {
+function showGenerationPanel(stage = "cover") {
+  const stages = GENERATION_STAGE_TEXT[state.locale] || GENERATION_STAGE_TEXT.FR;
+  const copy = stages[stage] || stages.cover;
   document.querySelector("#creator").hidden = true;
   elements.storyScenarioPanel.hidden = true;
   elements.resultSection.hidden = true;
   elements.visualProofPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
   elements.generationPanel.hidden = false;
+  elements.generationKicker.textContent = copy.kicker;
+  elements.generationTitle.textContent = copy.title;
+  elements.generationMessage.textContent = copy.message;
+  elements.generationNextStep.textContent = copy.next;
   elements.generationBar.style.width = "5%";
   elements.generationStep.textContent = friendlyStep("preparing");
   elements.generationPanel.scrollIntoView({ behavior: "smooth" });
@@ -1649,7 +1680,7 @@ async function generatePreviewForProject(projectId, visualProofAction = "") {
   });
   const payload = await response.json();
   if (!response.ok) { if (payload.code === "insufficient_credit") await refreshCreditSummary(projectId); if (payload.code === "preview_interrupted") throw new TechnicalGenerationError(tr("generationFailed"), payload.code); throw new Error(payload.error || tr("startError")); }
-  showGenerationPanel();
+  showGenerationPanel(visualProofAction === "approve" ? "interior" : visualProofAction === "regenerate" ? "regenerate" : "cover");
   state.jobId = payload.jobId;
   const job = await pollJob(payload.jobId);
   if (job.status === "awaiting_visual_approval") {
@@ -1706,7 +1737,7 @@ async function restoreCompletedPreview() {
     return true;
   }
   if (project?.status === "preview_generating" && project.generationJobId) {
-    showGenerationPanel();
+    showGenerationPanel(visualProof?.status === "approved" ? "interior" : visualProof?.status === "regenerating" ? "regenerate" : "cover");
     try {
       const jobResponse = await fetch(`/api/jobs/${encodeURIComponent(project.generationJobId)}`, { cache: "no-store" });
       if (jobResponse.ok) {
@@ -1927,6 +1958,7 @@ elements.buyCreditsLink.addEventListener("click", rememberCreditPurchase);
 elements.actionBuyCredits.addEventListener("click", rememberCreditPurchase);
 elements.modificationBuyCredits.addEventListener("click", rememberCreditPurchase);
 elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
+elements.retryInitialScenarioButton.addEventListener("click", () => requestStoryScenario());
 elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenario({ includeEdits: true }));
 elements.approveScenarioButton.addEventListener("click", approveStoryScenario);
 elements.scenarioAddCharacterButton.addEventListener("click", addScenarioCharacter);

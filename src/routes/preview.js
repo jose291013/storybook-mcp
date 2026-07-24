@@ -18,6 +18,7 @@ import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
+import { storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
@@ -41,6 +42,7 @@ import { notifyPreviewReady } from "../services/previewNotification.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 
 const router = express.Router();
+const STORY_PLAN_FIDELITY_VERSION = 1;
 
 function previewStaleAfterMs() {
   const minutes = Number.parseInt(process.env.PREVIEW_STALE_MINUTES || "15", 10) || 15;
@@ -445,7 +447,11 @@ router.post("/preview", async (req, res) => {
       }
 
       updateJob(job.id, { step: "story:coherence-and-scene-contracts" });
-      let storyScenePlan = checkpoint.storyScenePlan;
+      const hasCurrentStoryScenePlan = Boolean(checkpoint.storyScenePlan)
+        && Number(checkpoint.storyScenePlanFidelityVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
+      let storyScenePlan = hasCurrentStoryScenePlan
+        ? checkpoint.storyScenePlan
+        : null;
       if (!storyScenePlan) {
         const storyScenePlanStartedAt = Date.now();
         console.info("[preview] story scene plan started", JSON.stringify({
@@ -454,12 +460,39 @@ router.post("/preview", async (req, res) => {
           pageCount: final_blueprint.pages.length,
           spreadCount: final_blueprint.pages.filter((page) => page.page_type === "image").length,
         }));
-        storyScenePlan = await storyScenePlannerAgent({
+        const planningInput = {
           blueprint: final_blueprint,
           pageTexts: Object.fromEntries(draftTextByPage),
           characterCanons,
           approvedScenario,
-        });
+        };
+        let planAudit = { status: "approved", issues: [] };
+        for (let attempt = 1; attempt <= 2; attempt += 1) {
+          storyScenePlan = await storyScenePlannerAgent({
+            ...planningInput,
+            ...(attempt > 1 ? {
+              previousPlan: storyScenePlan,
+              validationIssues: planAudit.issues,
+            } : {}),
+          });
+          updateJob(job.id, { step: attempt === 1 ? "story:scenario-fidelity-check" : "story:scenario-fidelity-recheck" });
+          planAudit = await storyScenePlanAuditAgent({
+            approvedScenario,
+            pageTexts: storyScenePlan.pageTexts,
+            sceneContracts: storyScenePlan.sceneContracts,
+          });
+          if (planAudit.status === "approved") break;
+          console.warn("[preview] story plan contradicts approved scenario", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            attempt,
+            issues: planAudit.issues,
+          }));
+          if (attempt === 1) updateJob(job.id, { step: "story:scenario-fidelity-repair" });
+        }
+        if (planAudit.status !== "approved") {
+          throw new Error(`Approved scenario fidelity failed: ${planAudit.issues.map((issue) => `scene-${issue.sceneNumber}: ${issue.explanation}`).join(" | ")}`);
+        }
         console.info("[preview] story scene plan completed", JSON.stringify({
           jobId: job.id,
           projectId,
@@ -485,9 +518,10 @@ router.post("/preview", async (req, res) => {
           textPage.cast_present = namedCast;
         }
       }
-      if (!checkpoint.storyScenePlan) {
+      if (!hasCurrentStoryScenePlan) {
         await persistCheckpoint({
           storyScenePlan,
+          storyScenePlanFidelityVersion: STORY_PLAN_FIDELITY_VERSION,
           draftTexts: Object.fromEntries(draftTextByPage),
           finalBlueprint: final_blueprint,
           phase: "scene-contracts",

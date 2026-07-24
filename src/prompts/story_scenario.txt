@@ -19,6 +19,7 @@ CAUSAL RULES
 - Every scene after the first must list the immediately previous scene id as a prerequisite.
 - A destination cannot appear before the travel or threshold crossing that reaches it.
 - A portal, gate, vehicle, tunnel or magical passage must be discovered in an earlier scene before it is crossed.
+- Give every discoverable passage one stable snake_case transition.mechanism_id and copy that exact id into its later crossing. Descriptive wording may vary, but the id never changes.
 - Every physical character starts in one explicit location. A character can appear physically in a new location only after a transition that names that character.
 - For a physical character presence, copy the scene's exact location_after string into character_presences.location. Describe any smaller position such as "beside the portal" in action, not as a different location.
 - When a scene changes location, list every physically present character who moves from location_before to location_after in transition.characters. Never list a thought, memory or voice as a traveler.
@@ -49,7 +50,7 @@ OUTPUT
       "purpose": "how this changes the story",
       "prerequisite_scene_ids": [],
       "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","location":"physical location or empty for nonphysical presence","action":"role in this exact scene"}],
-      "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel","mechanism":"named portal, route or vehicle, or empty","from":"location_before","to":"location_after","characters":["exact canonical names who travel"]},
+      "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel","mechanism_id":"stable_snake_case_id or empty","mechanism":"named portal, route or vehicle, or empty","from":"location_before","to":"location_after","characters":["exact canonical names who travel"]},
       "object_states": [{"name":"tracked object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind","quantity":1,"instruction":"unambiguous visual rule"}],
       "continuity_to_next":"state that the next scene inherits"
     }]
@@ -61,5 +62,5 @@ MANDATORY
 - Copy scene_number and story_role exactly from page_plan.
 - Use only prior scene ids such as scene-1 in prerequisite_scene_ids.
 - A discover_passage scene does not cross the passage and does not change location.
-- A cross_passage scene names every traveler and changes location from the established origin to the destination.
+- A cross_passage scene copies the exact mechanism_id from its earlier discovery, names every traveler and changes location from the established origin to the destination.
 - Nonphysical thoughts, memories and voices are narratively present but not physically visible.

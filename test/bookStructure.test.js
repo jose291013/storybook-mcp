@@ -1376,11 +1376,17 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.ok(interiorLoop > proofStep);
   assert.match(source, /visualProofAction === "approve"/);
   assert.match(source, /visualProofAction === "regenerate"/);
+  assert.match(source, /storyScenePlanAuditAgent/);
+  assert.match(source, /story:scenario-fidelity-repair/);
+  assert.match(source, /if \(!hasCurrentStoryScenePlan\)/);
   assert.match(source, /quality: "medium"/);
   assert.match(app, /awaiting_visual_approval/);
   assert.match(app, /showVisualProof/);
+  assert.match(app, /COUVERTURE EN PR/);
+  assert.match(app, /vous devrez valider cette couverture/);
   assert.match(html, /id="visualProofPanel"/);
   assert.match(html, /id="approveVisualProofButton"/);
+  assert.match(html, /id="generationNextStep"/);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

@@ -8,37 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/credit-purchase-return`
-- Latest merged checkpoint: PR #52 — universe-first story funnel (`40e14dd`)
-- Current focused checkpoint: contextual return from WooCommerce credit purchase to the originating book and creator step
-- Pull request: draft PR #53 — `Add credit purchase return to the active book`; do not merge while any preview or targeted modification is generating
+- Current branch: `codex/scenario-causal-handoff`
+- Latest merged checkpoint: PR #53 — contextual credit-purchase return (`079e90f`)
+- Current focused checkpoint: causal scenario repair, approved-scenario fidelity through manuscript and illustrations, and explicit cover-approval handoff
+- Pull request: draft PR #54 — `Enforce causal scenario handoff and cover approval guidance`; do not merge while the current customer preview is generating
 - WordPress Bridge source/package: `0.6.8`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Production verification after PR #52 is in progress through a real customer book. This branch changes only credit-purchase navigation and signed return state; generation, visual proof, book checkout and delivery remain unchanged.
+Production confirms that the PR #53 credit-purchase return restores the originating book correctly. A real PR #52 book exposed two remaining coherence gaps: an omitted beach-to-reef transition produced cascading travel errors, and a character authorized only as a thought could still become physically present in the final prose.
 
-## Current product brick: credit purchase return
+## Current product brick: causal scenario handoff
 
-1. Every creator **Buy credits** link carries the saved project id and its origin: preview authorization, completed-book action center or targeted modification.
-2. Calitiki Bridge keeps that bounded context in the WooCommerce session, cart item and order line.
-3. The credit product, cart and checkout keep a reassuring **Return to my book** action even when the purchase is abandoned.
-4. The order confirmation distinguishes credited, synchronizing, pending, failed and cancelled payments.
-5. The signed WooCommerce bridge reopens the owned project, restores the correct creator surface and refreshes the wallet balance.
-6. A bounded browser refresh detects a just-settled credit webhook without starting generation or spending credit.
+1. Every discovered passage receives a stable causal id that remains unchanged when its descriptive wording changes.
+2. A missing location transition is reconstructed deterministically, including the physical travelers, and scenario generation receives up to three bounded structural repair passes.
+3. The final manuscript and illustration contracts are audited against the approved scenario; one bounded rewrite is allowed and an unresolved contradiction stops before cover generation.
+4. Illustration contracts use exactly the approved physical cast. A character present only by thought, memory or voice cannot become visible, touch another character or travel physically.
+5. A failed initial scenario request stays on the preparation screen with saved-work reassurance and a free retry instead of returning ambiguously to credit confirmation.
+6. Preview generation now tells the creator that Calitiki is preparing the cover first, that the cover must be approved before interior illustrations, and that the page may safely be closed and reopened from **My creations**.
 
 ## Verification completed locally
 
 - Browser and server syntax checks pass.
-- WordPress Bridge 0.6.8 parses successfully with the project PHP parser.
-- Full `npm.cmd test`: 130 passed, 0 failed, including packaged Bridge path verification.
+- Focused scenario and structure tests: 79 passed, 0 failed.
+- Full `npm.cmd test`: 133 passed, 0 failed.
 
 ## Next verification target
 
-1. Finish the real book already being created against the PR #52 production checkpoint.
-2. Before any later merge of draft PR #53, warn that Render may restart and confirm that no preview or targeted modification is generating.
-3. After deployment and Bridge 0.6.8 installation, verify one paid credit return and one abandoned-cart return from the preview credit panel.
+1. Keep draft PR #54 unmerged while the current real book is generating.
+2. Before any later merge, warn that Render may restart and confirm that no preview or targeted modification is generating.
+3. After deployment, verify a scenario with an implicit journey and a remembered guide, then confirm the cover-first waiting message and the required cover approval.
 
 ## Protected local state
 

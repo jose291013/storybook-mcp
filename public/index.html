@@ -196,6 +196,8 @@
           <div class="scenario-preparing-orbit" aria-hidden="true"><span>1</span><span>2</span><span>3</span></div>
           <p id="scenarioPreparingLead">Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.</p>
           <ol id="scenarioPreparingSteps"></ol>
+          <p class="scenario-preparation-feedback" id="scenarioPreparationFeedback" role="alert" hidden></p>
+          <button type="button" class="toolbar-button" id="retryInitialScenarioButton" hidden>Réessayer gratuitement</button>
         </section>
         <div id="scenarioReviewContent">
           <p class="section-lead" id="storyScenarioSummary"></p>
@@ -236,9 +238,10 @@
 
       <section class="generation-panel" id="generationPanel" hidden>
         <div class="generation-orbit"><span>✦</span></div>
-        <p class="section-kicker" data-i18n="generationKicker">CREATION EN COURS</p>
+        <p class="section-kicker" id="generationKicker" data-i18n="generationKicker">CREATION EN COURS</p>
         <h2 id="generationTitle" data-i18n="generationTitle">Nous ecrivons une histoire unique...</h2>
         <p id="generationMessage" data-i18n="generationMessage">Le héros et son univers prennent forme.</p>
+        <p class="generation-next-step" id="generationNextStep"></p>
         <div class="generation-progress"><i id="generationBar"></i></div><small id="generationStep"></small>
         <label class="generation-notification"><input type="checkbox" id="notifyPreviewEmail" /> <span data-i18n="notifyPreviewEmail">M'envoyer un e-mail lorsque mon livre est prêt</span></label>
       </section>

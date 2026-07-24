@@ -25,6 +25,10 @@ function sceneId(sceneNumber) {
   return `scene-${Number(sceneNumber)}`;
 }
 
+function passageId(value, fallback = "") {
+  return key(value || fallback).replaceAll(" ", "_");
+}
+
 export function scenarioCharacterRegistry(normalized = {}) {
   const answers = normalized.answers || {};
   const photos = normalized.photos || [];
@@ -103,6 +107,7 @@ export function normalizeStoryScenario(candidate = {}, {
       transition: {
         kind: transitionKind,
         mechanism: text(supplied?.transition?.mechanism),
+        mechanismId: passageId(supplied?.transition?.mechanism_id || supplied?.transition?.mechanismId, supplied?.transition?.mechanism),
         from: text(supplied?.transition?.from || locationBefore),
         to: text(supplied?.transition?.to || locationAfter),
         characters: [...new Set(list(supplied?.transition?.characters, 12).map((name) => canonicalName(name, scenarioCharacters)).filter(Boolean))],
@@ -214,6 +219,7 @@ export function stabilizeStoryScenario(input = {}) {
     quantity: 1,
     instruction: "Keep exactly one visible state for this object.",
   }]));
+  const availablePassages = new Map();
   let previous = null;
 
   for (const scene of scenes) {
@@ -231,11 +237,29 @@ export function stabilizeStoryScenario(input = {}) {
     }
 
     scene.transition ||= { kind: "none", mechanism: "", characters: [] };
+    scene.transition.mechanismId = passageId(scene.transition.mechanismId, scene.transition.mechanism);
     scene.transition.from = scene.locationBefore;
     scene.transition.to = scene.locationAfter;
     const nonphysical = new Set(list(scene.characterPresences, 20).filter((presence) => presence.mode !== "physical").map((presence) => presence.name));
     const travelers = new Set(list(scene.transition.characters, 20).filter((name) => !nonphysical.has(name)));
     const changesLocation = key(scene.locationBefore) !== key(scene.locationAfter);
+    if (scene.transition.kind === "discover_passage" && scene.transition.mechanismId) {
+      availablePassages.set(scene.transition.mechanismId, {
+        mechanismId: scene.transition.mechanismId,
+        mechanism: scene.transition.mechanism,
+      });
+    }
+    if (changesLocation && scene.transition.kind === "none") {
+      const discovered = [...availablePassages.values()].at(-1);
+      if (discovered) {
+        scene.transition.kind = "cross_passage";
+        scene.transition.mechanismId = discovered.mechanismId;
+        scene.transition.mechanism = discovered.mechanism;
+      } else {
+        scene.transition.kind = "ordinary_travel";
+        scene.transition.mechanismId = "";
+      }
+    }
     if (changesLocation && scene.transition.kind !== "none") {
       for (const presence of list(scene.characterPresences, 20).filter((item) => item.mode === "physical")) {
         const knownLocation = characterLocations.get(presence.name);
@@ -244,6 +268,9 @@ export function stabilizeStoryScenario(input = {}) {
     }
     scene.transition.characters = [...travelers];
     for (const traveler of travelers) characterLocations.set(traveler, scene.locationAfter);
+    if (scene.transition.kind === "cross_passage" && scene.transition.mechanismId) {
+      availablePassages.delete(scene.transition.mechanismId);
+    }
 
     scene.objectStates ||= [];
     const explicitObjectKeys = new Set(list(scene.objectStates, 30).map((item) => key(item.name)));
@@ -291,11 +318,13 @@ export function validateStoryScenario(scenario = {}) {
     }
     if (transition.kind === "discover_passage") {
       if (!transition.mechanism) issues.push(`${scene.id} passage discovery needs a mechanism`);
-      else discoveredPassages.add(key(transition.mechanism));
+      else discoveredPassages.add(passageId(transition.mechanismId, transition.mechanism));
     }
     if (transition.kind === "cross_passage") {
-      if (!transition.mechanism || !discoveredPassages.has(key(transition.mechanism))) issues.push(`${scene.id} crosses a passage before it was discovered`);
+      const mechanismId = passageId(transition.mechanismId, transition.mechanism);
+      if (!transition.mechanism || !mechanismId || !discoveredPassages.has(mechanismId)) issues.push(`${scene.id} crosses a passage before it was discovered`);
       if (!transition.characters.length) issues.push(`${scene.id} passage crossing must name every traveler`);
+      if (mechanismId) discoveredPassages.delete(mechanismId);
     }
     for (const name of transition.characters || []) {
       const knownLocation = characterLocations.get(name);
