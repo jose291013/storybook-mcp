@@ -67,6 +67,21 @@ test("a preview exhausted under policy four receives the targeted story-repair r
   assert.equal(technicalPreviewRetryExhausted(exhaustedStory), false);
 });
 
+test("a preview exhausted under policy five receives the deterministic cast-guard recovery", () => {
+  const exhaustedStory = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "story-cast-guard-book",
+      retryPolicyVersion: 5,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-24T20:05:00.000Z",
+      failureReason: "preview_generation_failed",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedStory), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedStory), false);
+});
+
 test("a Render interruption remains recoverable after a retry was already consumed", () => {
   const interrupted = {
     continuitySnapshot: mergeGenerationCheckpoint({}, {
@@ -88,6 +103,6 @@ test("only fully persisted draft pages are reused after an interrupted Render jo
   assert.equal(isReusableDraftPage(null), false);
 });
 
-test("the targeted story-repair recovery policy is version five", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 5);
+test("the deterministic cast-guard recovery policy is version six", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 6);
 });
