@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/preview-milestone-emails`
 - Latest merged checkpoint: PR #54 — causal scenario handoff and cover guidance (`c195978`)
 - Current focused checkpoint: visible pre-cover progress and opt-in milestone e-mails for cover approval and generation interruption
-- Pull request: not published yet; do not merge while project `db895f92-d075-4799-bac2-6f4a67bdf581` is generating
+- Pull request: draft PR #55 — `Notify creators at preview milestones`; do not merge while project `db895f92-d075-4799-bac2-6f4a67bdf581` is generating
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,7 +36,7 @@ Production confirms that the PR #53 credit-purchase return restores the originat
 ## Next verification target
 
 1. Finish the current real-book test without deploying this branch.
-2. Publish the completed Bridge 0.6.9 and milestone-notification work as a draft pull request.
+2. Keep draft PR #55 unmerged until the current project is complete.
 3. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
 4. After deployment and Bridge 0.6.9 installation, verify one cover-ready e-mail, one retryable-failure e-mail and the existing complete-preview e-mail.
 
