@@ -1407,8 +1407,35 @@ async function uploadPhotos() {
   return [...inherited, ...payload.photos.map((uploaded, index) => ({ id: uploaded.id, storageKey: uploaded.storageKey, mimeType: uploaded.mimeType, size: uploaded.size, role: fresh[index].role, story_role: fresh[index].storyRole, name: fresh[index].name.trim(), relationship: fresh[index].relationship }))];
 }
 
-function generationProgress(step = "") { const match = step.match(/page:(\d+)/); if (match) return Math.min(96, 18 + Number(match[1]) * (78 / state.pageCount)); if (step.includes("photo")) return 8; if (step.includes("storybrand")) return 13; if (step.includes("blueprint")) return 17; if (step.includes("cover")) return 21; if (step.includes("done")) return 100; return 5; }
-function friendlyStep(step = "") { if (step.includes("photo")) return tr("progressPhoto"); if (step.includes("storybrand")) return tr("progressStory"); if (step.includes("blueprint")) return tr("progressBlueprint"); if (step.includes("cover")) return tr("progressCover"); const match = step.match(/page:(\d+)/); return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing"); }
+function generationProgress(step = "") {
+  if (step.includes("photo")) return 8;
+  if (step.includes("storybrand")) return 13;
+  if (step.includes("blueprint")) return 16;
+  const manuscriptMatch = step.match(/draft:text:page:(\d+)/);
+  if (manuscriptMatch) return Math.min(19, 16 + Number(manuscriptMatch[1]) * (3 / state.pageCount));
+  if (step.includes("coherence-and-scene-contracts")) return 20;
+  if (step.includes("scenario-fidelity-check")) return 21;
+  if (step.includes("scenario-fidelity-repair")) return 22;
+  if (step.includes("scenario-fidelity-recheck")) return 23;
+  if (step.includes("cover")) return 25;
+  const pageMatch = step.match(/draft:page:(\d+)/);
+  if (pageMatch) return Math.min(96, 25 + Number(pageMatch[1]) * (71 / state.pageCount));
+  if (step.includes("done")) return 100;
+  return 5;
+}
+
+function friendlyStep(step = "") {
+  if (step.includes("photo")) return tr("progressPhoto");
+  if (step.includes("storybrand")) return tr("progressStory");
+  if (step.includes("blueprint")) return tr("progressBlueprint");
+  if (step.includes("draft:text:page")) return tr("progressManuscript");
+  if (step.includes("coherence-and-scene-contracts")) return tr("progressCoherence");
+  if (step.includes("scenario-fidelity-repair")) return tr("progressFidelityRepair");
+  if (step.includes("scenario-fidelity")) return tr("progressFidelityCheck");
+  if (step.includes("cover")) return tr("progressCover");
+  const match = step.match(/draft:page:(\d+)/);
+  return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing");
+}
 
 async function pollJob(jobId) {
   for (;;) {

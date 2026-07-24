@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.6.8
+Stable tag: 0.6.9
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -28,6 +28,10 @@ La suppression est enregistrée avant le nettoyage S3 : la carte disparaît imm�
 == Validation du scénario ==
 
 Les projets dont le scénario attend une précision ou une validation apparaissent dans « Mes créations Calitiki ». Le bouton « Vérifier le scénario » reconnecte le propriétaire au générateur avant toute rédaction ou illustration.
+
+== Notifications de création ==
+
+Lorsque le client active l’option e-mail dans le créateur, WooCommerce l’avertit lorsque la couverture attend sa validation, si la génération est interrompue et lorsque l’aperçu complet est prêt. Chaque message utilise un événement signé et idempotent puis ramène le propriétaire vers l’écran privé correspondant. Une nouvelle proposition de couverture ou une nouvelle tentative technique peut envoyer un nouveau message, mais le même événement ne peut jamais être envoyé deux fois.
 
 == Produits de crédits ==
 

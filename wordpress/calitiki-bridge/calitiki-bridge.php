@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.8
+ * Version: 0.6.9
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,14 +85,16 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.8') {
-            update_option(self::VERSION_OPTION, '0.6.8');
+        if (get_option(self::VERSION_OPTION) !== '0.6.9') {
+            update_option(self::VERSION_OPTION, '0.6.9');
             flush_rewrite_rules(false);
         }
     }
 
     public static function maybe_send_preview_ready_email() {
-        if (!isset($_GET['calitiki_preview_ready'])) {
+        $is_ready_notification = isset($_GET['calitiki_preview_ready']);
+        $is_milestone_notification = isset($_GET['calitiki_preview_event']);
+        if (!$is_ready_notification && !$is_milestone_notification) {
             return;
         }
         if (strtoupper((string) $_SERVER['REQUEST_METHOD']) !== 'POST') {
@@ -109,18 +111,42 @@ final class Calitiki_Woo_Bridge {
         $customer_id = isset($payload['wooCustomerId']) ? absint($payload['wooCustomerId']) : 0;
         $project_id = isset($payload['projectId']) ? sanitize_text_field($payload['projectId']) : '';
         $generation_id = isset($payload['generationId']) ? sanitize_text_field($payload['generationId']) : '';
+        $event = $is_milestone_notification && isset($payload['event']) ? sanitize_key($payload['event']) : 'preview_ready';
+        $event_id = isset($payload['eventId']) ? sanitize_text_field($payload['eventId']) : $generation_id;
+        $retry_available = !empty($payload['retryAvailable']);
         $ready_url = isset($payload['readyUrl']) ? esc_url_raw($payload['readyUrl']) : '';
         $user = $customer_id ? get_user_by('id', $customer_id) : false;
-        if (!$user || !$project_id || !$ready_url) {
+        if (!$user || !$project_id || !$ready_url || !$event_id || !in_array($event, array('preview_ready', 'cover_ready', 'generation_failed'), true)) {
             wp_send_json_error(array('error' => 'Invalid notification payload'), 400);
         }
-        $dedupe_key = 'calitiki_preview_' . md5($project_id . '|' . $generation_id);
+        $dedupe_key = 'calitiki_preview_' . md5($project_id . '|' . $event . '|' . $event_id);
         if (get_transient($dedupe_key)) {
             wp_send_json_success(array('sent' => true, 'duplicate' => true));
         }
         $locale = strtoupper(isset($payload['locale']) ? sanitize_text_field($payload['locale']) : 'FR');
         $title = isset($payload['title']) ? sanitize_text_field($payload['title']) : 'Calitiki';
-        if ($locale === 'ES') {
+        if ($event === 'cover_ready' && $locale === 'ES') {
+            $subject = 'La portada de tu libro Calitiki está lista';
+            $message = "La portada de «{$title}» está lista. Las ilustraciones interiores esperan tu aprobación.\n\nRevisar mi portada: {$ready_url}\n\nTus fotos y tu libro permanecen privados.";
+        } elseif ($event === 'cover_ready' && $locale === 'EN') {
+            $subject = 'Your Calitiki cover is ready to review';
+            $message = "The cover of “{$title}” is ready. Interior illustrations will wait for your approval.\n\nReview my cover: {$ready_url}\n\nYour photos and book remain private.";
+        } elseif ($event === 'cover_ready') {
+            $subject = 'Votre couverture Calitiki est prête à être validée';
+            $message = "La couverture de « {$title} » est prête. Les illustrations intérieures attendent votre validation.\n\nVérifier ma couverture : {$ready_url}\n\nVos photos et votre livre restent privés.";
+        } elseif ($event === 'generation_failed' && $locale === 'ES') {
+            $subject = 'Tu creación Calitiki necesita tu atención';
+            $next_step = $retry_available ? 'Puedes retomar el libro gratuitamente desde el primer paso pendiente.' : 'No se realizará ningún nuevo intento automático; Calitiki deberá intervenir.';
+            $message = "No hemos podido continuar «{$title}» esta vez. Tu trabajo está guardado y no se ha utilizado ningún crédito nuevo.\n\n{$next_step}\n\nVolver a mi creación: {$ready_url}";
+        } elseif ($event === 'generation_failed' && $locale === 'EN') {
+            $subject = 'Your Calitiki creation needs your attention';
+            $next_step = $retry_available ? 'You can resume the book for free from the first missing step.' : 'No further attempt will start automatically; Calitiki support will need to intervene.';
+            $message = "We could not continue “{$title}” this time. Your work is saved and no new credit was used.\n\n{$next_step}\n\nReturn to my creation: {$ready_url}";
+        } elseif ($event === 'generation_failed') {
+            $subject = 'Votre création Calitiki a besoin de votre attention';
+            $next_step = $retry_available ? 'Vous pouvez reprendre gratuitement le livre à la première étape manquante.' : 'Aucun nouvel essai ne sera lancé automatiquement ; Calitiki devra intervenir.';
+            $message = "Nous n’avons pas pu poursuivre « {$title} » cette fois-ci. Votre travail est conservé et aucun nouveau crédit n’a été utilisé.\n\n{$next_step}\n\nRevenir à ma création : {$ready_url}";
+        } elseif ($locale === 'ES') {
             $subject = 'Tu libro Calitiki está listo';
             $message = "¡Buenas noticias! La vista previa de «{$title}» está lista.\n\nAbrir mi libro: {$ready_url}\n\nTus fotos y tu libro permanecen privados.";
         } elseif ($locale === 'EN') {

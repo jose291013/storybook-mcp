@@ -8,37 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-causal-handoff`
-- Latest merged checkpoint: PR #53 — contextual credit-purchase return (`079e90f`)
-- Current focused checkpoint: causal scenario repair, approved-scenario fidelity through manuscript and illustrations, and explicit cover-approval handoff
-- Pull request: draft PR #54 — `Enforce causal scenario handoff and cover approval guidance`; do not merge while the current customer preview is generating
-- WordPress Bridge source/package: `0.6.8`
+- Current branch: `codex/preview-milestone-emails`
+- Latest merged checkpoint: PR #54 — causal scenario handoff and cover guidance (`c195978`)
+- Current focused checkpoint: visible pre-cover progress and opt-in milestone e-mails for cover approval and generation interruption
+- Pull request: draft PR #55 — `Notify creators at preview milestones`; do not merge while project `db895f92-d075-4799-bac2-6f4a67bdf581` is generating
+- WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Production confirms that the PR #53 credit-purchase return restores the originating book correctly. A real PR #52 book exposed two remaining coherence gaps: an omitted beach-to-reef transition produced cascading travel errors, and a character authorized only as a thought could still become physically present in the final prose.
+Production confirms that the PR #53 credit-purchase return restores the originating book correctly. PR #54 is now deployed and is being exercised by a real book. Its long whole-book planning call remains active, but the creator-facing progress stayed at 5%, making healthy work look blocked.
 
-## Current product brick: causal scenario handoff
+## Current product brick: preview milestone communication
 
-1. Every discovered passage receives a stable causal id that remains unchanged when its descriptive wording changes.
-2. A missing location transition is reconstructed deterministically, including the physical travelers, and scenario generation receives up to three bounded structural repair passes.
-3. The final manuscript and illustration contracts are audited against the approved scenario; one bounded rewrite is allowed and an unresolved contradiction stops before cover generation.
-4. Illustration contracts use exactly the approved physical cast. A character present only by thought, memory or voice cannot become visible, touch another character or travel physically.
-5. A failed initial scenario request stays on the preparation screen with saved-work reassurance and a free retry instead of returning ambiguously to credit confirmation.
-6. Preview generation now tells the creator that Calitiki is preparing the cover first, that the cover must be approved before interior illustrations, and that the page may safely be closed and reopened from **My creations**.
+1. The progress bar names whole-book harmonization, scenario fidelity checking, bounded repair and cover creation instead of appearing frozen at 5%.
+2. The existing e-mail opt-in explicitly covers three useful events: cover awaiting approval, generation interruption and complete preview ready.
+3. Cover and failure messages use a new signed Bridge endpoint so Render may deploy before Bridge 0.6.9 without an older plugin sending the wrong “book ready” copy.
+4. Each message carries a private reauthentication link to the exact persisted screen and a unique event id; repeated callbacks cannot send the same message twice.
+5. A regenerated cover or a genuinely new technical attempt may send a new notification, while notification failure never changes generation state or spends credit.
 
 ## Verification completed locally
 
 - Browser and server syntax checks pass.
-- Focused scenario and structure tests: 79 passed, 0 failed.
-- Full `npm.cmd test`: 133 passed, 0 failed.
+- The Bridge 0.6.9 PHP source parses successfully and its ZIP contains portable forward-slash paths.
+- Full `npm.cmd test`: 135 passed, 0 failed.
 
 ## Next verification target
 
-1. Keep draft PR #54 unmerged while the current real book is generating.
-2. Before any later merge, warn that Render may restart and confirm that no preview or targeted modification is generating.
-3. After deployment, verify a scenario with an implicit journey and a remembered guide, then confirm the cover-first waiting message and the required cover approval.
+1. Finish the current real-book test without deploying this branch.
+2. Keep draft PR #55 unmerged until the current project is complete.
+3. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
+4. After deployment and Bridge 0.6.9 installation, verify one cover-ready e-mail, one retryable-failure e-mail and the existing complete-preview e-mail.
 
 ## Protected local state
 

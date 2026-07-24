@@ -719,7 +719,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.6\.8/);
+  assert.match(plugin, /Version: 0\.6\.9/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -729,6 +729,10 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /configuration SMTP/);
   assert.match(plugin, /WC\(\)->mailer\(\)/);
   assert.match(plugin, /maybe_send_preview_ready_email/);
+  assert.match(plugin, /calitiki_preview_event/);
+  assert.match(plugin, /cover_ready/);
+  assert.match(plugin, /generation_failed/);
+  assert.match(plugin, /retry_available/);
   assert.match(plugin, /hash_equals\(\$expected_signature, \$provided_signature\)/);
   assert.match(plugin, /wp_mail\(\$user->user_email/);
   assert.match(plugin, /store_ebook_resend_notice/);
@@ -749,7 +753,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Aperçu personnalisé/);
   assert.match(plugin, /Voir mon livre/);
   assert.match(plugin, /Vérifier le scénario/);
-  assert.match(plugin, /Version: 0\.6\.8/);
+  assert.match(plugin, /Version: 0\.6\.9/);
   assert.match(plugin, /Partager avec la famille/);
   assert.match(plugin, /'destination' => 'family_share'/);
   assert.match(plugin, /family_share_bridge_url/);
@@ -778,10 +782,13 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(creatorApp, /calitiki_project/);
   assert.match(creatorApp, /PENDING_CREDIT_PURCHASE_KEY/);
   assert.match(creatorApp, /showCreditReturnNotice/);
+  assert.match(creatorApp, /progressCoherence/);
+  assert.match(creatorApp, /progressFidelityCheck/);
+  assert.match(creatorApp, /progressFidelityRepair/);
   const commerceCredits = await fs.readFile("src/routes/commerceCredits.js", "utf8");
   assert.match(commerceCredits, /creations\|\$\{wooCustomerId\}\|\$\{timestamp\}/);
   assert.match(commerceCredits, /listCustomerCreations/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.8.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.9.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
@@ -1379,6 +1386,9 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /storyScenePlanAuditAgent/);
   assert.match(source, /story:scenario-fidelity-repair/);
   assert.match(source, /if \(!hasCurrentStoryScenePlan\)/);
+  assert.match(source, /event: "cover_ready"/);
+  assert.match(source, /event: "generation_failed"/);
+  assert.match(source, /milestoneEventIds/);
   assert.match(source, /quality: "medium"/);
   assert.match(app, /awaiting_visual_approval/);
   assert.match(app, /showVisualProof/);
