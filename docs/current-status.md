@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/prefill-story-message`
 - Latest merged checkpoint: PR #56 — hard scene fidelity on top of preview milestone e-mails (`07ab4a6`)
 - Current focused checkpoint: pre-fill the creator's moral/message from the selected inspiration card
-- Pull request: not opened yet; do not merge while the creator's current real-book test is active
+- Pull request: draft PR #57 — `Préremplir le message depuis l’inspiration`; do not merge while the creator's current real-book test is active
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
