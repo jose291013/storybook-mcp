@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.6.7
+Stable tag: 0.6.8
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -34,6 +34,7 @@ Les projets dont le scénario attend une précision ou une validation apparaisse
 Créez un produit WooCommerce simple et virtuel, par exemple « Crédit Calitiki 2,50 € ».
 Dans les données générales du produit, renseignez « Crédits Calitiki (centimes) » avec 250.
 Après paiement, l’extension envoie un webhook signé au générateur. Un même numéro de commande ne peut créditer le portefeuille qu’une seule fois.
+Lorsqu’un achat de crédits commence depuis un livre, le projet et l’étape d’origine sont conservés dans le panier puis dans la commande. Le panier et la page de confirmation proposent « Revenir à mon livre » ; ce retour signé rouvre le bon projet et actualise son solde, que le paiement soit confirmé, en attente, annulé ou échoué.
 
 == Livres personnalisés ==
 

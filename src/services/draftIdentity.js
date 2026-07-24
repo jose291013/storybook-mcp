@@ -78,13 +78,35 @@ export function verifyWooCustomerToken(token, secret = process.env.WOOCOMMERCE_B
   return { wooCustomerId: String(data.sub), email: String(data.email || "") };
 }
 
-export function createWooAuthState({ projectId, destination = "creator", expiresInSeconds = 600 }, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
+const WOO_AUTH_DESTINATIONS = ["interactive_reader", "family_share", "narration", "new_adventure", "credit_return"];
+const CREDIT_RETURN_CONTEXTS = ["preview", "action_center", "modification"];
+const CREDIT_RETURN_STATUSES = ["paid", "syncing", "pending", "failed", "cancelled", "back"];
+
+function safeCreditReturnContext(value) {
+  return CREDIT_RETURN_CONTEXTS.includes(value) ? value : "preview";
+}
+
+function safeCreditReturnStatus(value) {
+  return CREDIT_RETURN_STATUSES.includes(value) ? value : "back";
+}
+
+export function createWooAuthState({
+  projectId,
+  destination = "creator",
+  creditContext = "preview",
+  creditStatus = "back",
+  expiresInSeconds = 600,
+}, secret = process.env.WOOCOMMERCE_BRIDGE_SECRET) {
   if (!projectId) throw new Error("Missing project id");
-  const safeDestination = ["interactive_reader", "family_share", "narration", "new_adventure"].includes(destination) ? destination : "creator";
+  const safeDestination = WOO_AUTH_DESTINATIONS.includes(destination) ? destination : "creator";
   return createSignedPayload({
     type: "woocommerce_auth",
     projectId: String(projectId),
     destination: safeDestination,
+    ...(safeDestination === "credit_return" ? {
+      creditContext: safeCreditReturnContext(creditContext),
+      creditStatus: safeCreditReturnStatus(creditStatus),
+    } : {}),
     nonce: crypto.randomBytes(18).toString("base64url"),
     exp: Math.floor(Date.now() / 1000) + expiresInSeconds,
   }, secret);
@@ -97,7 +119,9 @@ export function verifyWooAuthState(token, secret = process.env.WOOCOMMERCE_BRIDG
   return {
     projectId: String(data.projectId),
     nonce: String(data.nonce),
-    destination: ["interactive_reader", "family_share", "narration", "new_adventure"].includes(data.destination) ? data.destination : "creator",
+    destination: WOO_AUTH_DESTINATIONS.includes(data.destination) ? data.destination : "creator",
+    creditContext: safeCreditReturnContext(data.creditContext),
+    creditStatus: safeCreditReturnStatus(data.creditStatus),
   };
 }
 

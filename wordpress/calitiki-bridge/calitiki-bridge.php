@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.7
+ * Version: 0.6.8
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -29,6 +29,7 @@ final class Calitiki_Woo_Bridge {
         add_action('admin_menu', array(__CLASS__, 'admin_menu'));
         add_action('template_redirect', array(__CLASS__, 'maybe_connect_customer'));
         add_action('template_redirect', array(__CLASS__, 'maybe_send_preview_ready_email'), 1);
+        add_action('template_redirect', array(__CLASS__, 'capture_credit_return'), 5);
         add_action('template_redirect', array(__CLASS__, 'maybe_add_personalized_checkout'));
         add_filter('woocommerce_login_redirect', array(__CLASS__, 'login_redirect'), 10, 2);
         add_filter('woocommerce_registration_redirect', array(__CLASS__, 'registration_redirect'));
@@ -36,6 +37,12 @@ final class Calitiki_Woo_Bridge {
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array(__CLASS__, 'settings_link'));
         add_action('woocommerce_product_options_general_product_data', array(__CLASS__, 'credit_product_field'));
         add_action('woocommerce_process_product_meta', array(__CLASS__, 'save_credit_product_field'));
+        add_filter('woocommerce_add_cart_item_data', array(__CLASS__, 'credit_return_cart_item_data'), 10, 3);
+        add_action('woocommerce_checkout_create_order_line_item', array(__CLASS__, 'credit_return_order_item_data'), 10, 4);
+        add_action('woocommerce_after_add_to_cart_form', array(__CLASS__, 'render_credit_return_navigation'), 20);
+        add_action('woocommerce_before_cart', array(__CLASS__, 'render_credit_return_navigation'), 5);
+        add_action('woocommerce_before_checkout_form', array(__CLASS__, 'render_credit_return_navigation'), 5);
+        add_action('woocommerce_thankyou', array(__CLASS__, 'render_credit_return_after_order'), 20);
         add_action('woocommerce_payment_complete', array(__CLASS__, 'grant_order_credits'));
         add_action('woocommerce_order_status_processing', array(__CLASS__, 'grant_order_credits'));
         add_action('woocommerce_order_status_completed', array(__CLASS__, 'grant_order_credits'));
@@ -78,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.7') {
-            update_option(self::VERSION_OPTION, '0.6.7');
+        if (get_option(self::VERSION_OPTION) !== '0.6.8') {
+            update_option(self::VERSION_OPTION, '0.6.8');
             flush_rewrite_rules(false);
         }
     }
@@ -689,6 +696,30 @@ final class Calitiki_Woo_Bridge {
         return add_query_arg(array('calitiki_connect' => '1', 'state' => $payload . '.' . $signature), home_url('/'));
     }
 
+    private static function credit_return_bridge_url($project_id, $context = 'preview', $status = 'back') {
+        $project_id = sanitize_text_field((string) $project_id);
+        $contexts = array('preview', 'action_center', 'modification');
+        $statuses = array('paid', 'syncing', 'pending', 'failed', 'cancelled', 'back');
+        $context = in_array($context, $contexts, true) ? $context : 'preview';
+        $status = in_array($status, $statuses, true) ? $status : 'back';
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
+        if (!$project_id || !preg_match('/^[A-Za-z0-9_-]{6,128}$/', $project_id) || strlen($secret) < 32 || !$generator_url) {
+            return '';
+        }
+        $payload = self::base64url_encode(wp_json_encode(array(
+            'type' => 'woocommerce_auth',
+            'projectId' => $project_id,
+            'destination' => 'credit_return',
+            'creditContext' => $context,
+            'creditStatus' => $status,
+            'nonce' => wp_generate_password(24, false, false),
+            'exp' => time() + HOUR_IN_SECONDS,
+        )));
+        $signature = self::base64url_encode(hash_hmac('sha256', $payload, $secret, true));
+        return add_query_arg(array('calitiki_connect' => '1', 'state' => $payload . '.' . $signature), home_url('/'));
+    }
+
     private static function interactive_reader_bridge_url($project_id) {
         $project_id = sanitize_text_field((string) $project_id);
         $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
@@ -1279,6 +1310,170 @@ final class Calitiki_Woo_Bridge {
         if (self::pending_state()) {
             wc_print_notice(__('Connectez-vous ou créez votre compte pour sauvegarder ce livre et générer son aperçu.', 'calitiki-bridge'), 'notice');
         }
+    }
+
+    private static function sanitize_credit_return($value) {
+        $project_id = sanitize_text_field((string) ($value['projectId'] ?? $value['project'] ?? ''));
+        $context = sanitize_key((string) ($value['context'] ?? 'preview'));
+        if (!$project_id || !preg_match('/^[A-Za-z0-9_-]{6,128}$/', $project_id)) {
+            return array();
+        }
+        if (!in_array($context, array('preview', 'action_center', 'modification'), true)) {
+            $context = 'preview';
+        }
+        return array('projectId' => $project_id, 'context' => $context);
+    }
+
+    public static function capture_credit_return() {
+        if (!isset($_GET['calitiki_project']) || !function_exists('WC') || !WC()->session) {
+            return;
+        }
+        $return = self::sanitize_credit_return(array(
+            'project' => wp_unslash($_GET['calitiki_project']),
+            'context' => isset($_GET['calitiki_context']) ? wp_unslash($_GET['calitiki_context']) : 'preview',
+        ));
+        if ($return) {
+            $return['createdAt'] = time();
+            WC()->session->set('calitiki_credit_return', $return);
+        }
+    }
+
+    private static function credit_product_amount($product_id, $variation_id = 0) {
+        if (!function_exists('wc_get_product')) {
+            return 0;
+        }
+        $product = wc_get_product($variation_id ?: $product_id);
+        $amount = $product ? absint($product->get_meta('_calitiki_credit_cents', true)) : 0;
+        if (!$amount && $variation_id) {
+            $parent = wc_get_product($product_id);
+            $amount = $parent ? absint($parent->get_meta('_calitiki_credit_cents', true)) : 0;
+        }
+        return $amount;
+    }
+
+    private static function current_credit_return() {
+        if (!function_exists('WC') || !WC()->session) {
+            return array();
+        }
+        $stored = (array) WC()->session->get('calitiki_credit_return', array());
+        $created_at = absint($stored['createdAt'] ?? 0);
+        if (!$created_at || time() - $created_at > DAY_IN_SECONDS) {
+            WC()->session->__unset('calitiki_credit_return');
+            return array();
+        }
+        return self::sanitize_credit_return($stored);
+    }
+
+    public static function credit_return_cart_item_data($cart_item_data, $product_id, $variation_id) {
+        if (self::credit_product_amount($product_id, $variation_id) < 50) {
+            return $cart_item_data;
+        }
+        $return = self::current_credit_return();
+        if ($return) {
+            $cart_item_data['calitiki_credit_return_project'] = $return['projectId'];
+            $cart_item_data['calitiki_credit_return_context'] = $return['context'];
+        }
+        return $cart_item_data;
+    }
+
+    public static function credit_return_order_item_data($item, $cart_item_key, $values, $order) {
+        $return = self::sanitize_credit_return(array(
+            'projectId' => $values['calitiki_credit_return_project'] ?? '',
+            'context' => $values['calitiki_credit_return_context'] ?? 'preview',
+        ));
+        if (!$return) {
+            return;
+        }
+        $item->add_meta_data('_calitiki_credit_return_project', $return['projectId'], true);
+        $item->add_meta_data('_calitiki_credit_return_context', $return['context'], true);
+    }
+
+    private static function cart_credit_return() {
+        if (function_exists('WC') && WC()->cart) {
+            foreach (WC()->cart->get_cart() as $cart_item) {
+                $return = self::sanitize_credit_return(array(
+                    'projectId' => $cart_item['calitiki_credit_return_project'] ?? '',
+                    'context' => $cart_item['calitiki_credit_return_context'] ?? 'preview',
+                ));
+                if ($return) {
+                    return $return;
+                }
+            }
+        }
+        return self::current_credit_return();
+    }
+
+    private static function order_credit_return($order) {
+        if (!$order) {
+            return array();
+        }
+        foreach ($order->get_items() as $item) {
+            $return = self::sanitize_credit_return(array(
+                'projectId' => $item->get_meta('_calitiki_credit_return_project', true),
+                'context' => $item->get_meta('_calitiki_credit_return_context', true),
+            ));
+            if ($return) {
+                return $return;
+            }
+        }
+        return array();
+    }
+
+    public static function render_credit_return_navigation() {
+        $return = self::cart_credit_return();
+        if (!$return) {
+            return;
+        }
+        if (function_exists('is_product') && is_product()) {
+            global $product;
+            if (!$product || self::credit_product_amount($product->get_id(), 0) < 50) {
+                return;
+            }
+        }
+        $return_url = self::credit_return_bridge_url($return['projectId'], $return['context'], 'back');
+        if (!$return_url) {
+            return;
+        }
+        echo '<aside class="woocommerce-info calitiki-credit-return" role="status">';
+        echo '<span>' . esc_html__('Votre livre reste bien conservé pendant l’achat des crédits.', 'calitiki-bridge') . '</span> ';
+        echo '<a class="button" href="' . esc_url($return_url) . '">' . esc_html__('Revenir à mon livre', 'calitiki-bridge') . '</a>';
+        echo '</aside>';
+    }
+
+    public static function render_credit_return_after_order($order_id) {
+        if (!function_exists('wc_get_order')) {
+            return;
+        }
+        $order = wc_get_order($order_id);
+        $return = self::order_credit_return($order);
+        if (!$return) {
+            return;
+        }
+        if ($order->get_meta('_calitiki_credit_granted')) {
+            $status = 'paid';
+            $message = __('Vos crédits Calitiki sont disponibles. Revenez à votre livre pour continuer.', 'calitiki-bridge');
+        } elseif ($order->has_status(array('processing', 'completed'))) {
+            $status = 'syncing';
+            $message = __('Votre paiement est reçu. Les crédits sont en cours d’ajout à votre solde.', 'calitiki-bridge');
+        } elseif ($order->has_status(array('failed', 'cancelled'))) {
+            $status = $order->has_status('cancelled') ? 'cancelled' : 'failed';
+            $message = __('Le paiement n’a pas abouti, mais votre livre reste bien conservé.', 'calitiki-bridge');
+        } else {
+            $status = 'pending';
+            $message = __('Votre paiement est encore en attente. Votre livre reste bien conservé.', 'calitiki-bridge');
+        }
+        $return_url = self::credit_return_bridge_url($return['projectId'], $return['context'], $status);
+        if (!$return_url) {
+            return;
+        }
+        if (function_exists('WC') && WC()->session) {
+            WC()->session->__unset('calitiki_credit_return');
+        }
+        echo '<section class="woocommerce-order-details calitiki-credit-return-after-order">';
+        echo '<h2>' . esc_html__('Reprendre la création de votre livre', 'calitiki-bridge') . '</h2>';
+        echo '<p>' . esc_html($message) . '</p>';
+        echo '<p><a class="button alt" href="' . esc_url($return_url) . '">' . esc_html__('Revenir à mon livre', 'calitiki-bridge') . '</a></p>';
+        echo '</section>';
     }
 
     public static function credit_product_field() {

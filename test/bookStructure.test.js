@@ -199,6 +199,28 @@ test("WooCommerce login state binds the callback to one saved project", () => {
   assert.ok(verified.nonce.length >= 20);
   const readerState = createWooAuthState({ projectId: "project-291013", destination: "interactive_reader" }, secret);
   assert.equal(verifyWooAuthState(readerState, secret).destination, "interactive_reader");
+  const creditReturnState = createWooAuthState({
+    projectId: "project-291013",
+    destination: "credit_return",
+    creditContext: "modification",
+    creditStatus: "paid",
+  }, secret);
+  assert.deepEqual(
+    {
+      destination: verifyWooAuthState(creditReturnState, secret).destination,
+      context: verifyWooAuthState(creditReturnState, secret).creditContext,
+      status: verifyWooAuthState(creditReturnState, secret).creditStatus,
+    },
+    { destination: "credit_return", context: "modification", status: "paid" },
+  );
+  const sanitizedCreditReturn = createWooAuthState({
+    projectId: "project-291013",
+    destination: "credit_return",
+    creditContext: "https://example.com",
+    creditStatus: "forged",
+  }, secret);
+  assert.equal(verifyWooAuthState(sanitizedCreditReturn, secret).creditContext, "preview");
+  assert.equal(verifyWooAuthState(sanitizedCreditReturn, secret).creditStatus, "back");
   const unsafeState = createWooAuthState({ projectId: "project-291013", destination: "https://example.com" }, secret);
   assert.equal(verifyWooAuthState(unsafeState, secret).destination, "creator");
   assert.throws(() => verifyWooAuthState(`${state}x`, secret), /signature/);
@@ -697,7 +719,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.6\.7/);
+  assert.match(plugin, /Version: 0\.6\.8/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -727,7 +749,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Aperçu personnalisé/);
   assert.match(plugin, /Voir mon livre/);
   assert.match(plugin, /Vérifier le scénario/);
-  assert.match(plugin, /Version: 0\.6\.7/);
+  assert.match(plugin, /Version: 0\.6\.8/);
   assert.match(plugin, /Partager avec la famille/);
   assert.match(plugin, /'destination' => 'family_share'/);
   assert.match(plugin, /family_share_bridge_url/);
@@ -740,15 +762,26 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Choisir une narration IA/);
   assert.match(plugin, /calitiki_narration_voice/);
   assert.match(plugin, /product_type.*narration|product_type', 'narration|array\('ebook', 'print', 'narration'\)/);
+  assert.match(plugin, /woocommerce_add_cart_item_data/);
+  assert.match(plugin, /woocommerce_thankyou/);
+  assert.match(plugin, /_calitiki_credit_return_project/);
+  assert.match(plugin, /'destination' => 'credit_return'/);
+  assert.match(plugin, /Revenir à mon livre/);
   const authRoute = await fs.readFile("src/routes/woocommerceAuth.js", "utf8");
   assert.match(authRoute, /projectStore\.getForCustomer\(state\.projectId, identity\)/);
   assert.match(authRoute, /\/interactive-reader\/\?\$\{params\.toString\(\)\}/);
   assert.match(authRoute, /router\.get\("\/auth\/woocommerce\/reader"/);
   assert.match(authRoute, /destination: "interactive_reader"/);
+  assert.match(authRoute, /destination === "credit_return"/);
+  assert.match(authRoute, /creditReturn/);
+  const creatorApp = await fs.readFile("public/app.js", "utf8");
+  assert.match(creatorApp, /calitiki_project/);
+  assert.match(creatorApp, /PENDING_CREDIT_PURCHASE_KEY/);
+  assert.match(creatorApp, /showCreditReturnNotice/);
   const commerceCredits = await fs.readFile("src/routes/commerceCredits.js", "utf8");
   assert.match(commerceCredits, /creations\|\$\{wooCustomerId\}\|\$\{timestamp\}/);
   assert.match(commerceCredits, /listCustomerCreations/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.7.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.6.8.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });

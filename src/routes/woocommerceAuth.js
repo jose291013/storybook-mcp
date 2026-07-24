@@ -17,11 +17,16 @@ function currentIdentity(req) {
   catch { return null; }
 }
 
-function safeReturnPath(projectId, status = "connected", destination = "creator") {
+function safeReturnPath(projectId, status = "connected", destination = "creator", details = {}) {
   const params = new URLSearchParams({ auth: status, project: projectId });
   if (destination === "interactive_reader") return `/interactive-reader/?${params.toString()}`;
   if (destination === "family_share") return `/share-family/?${params.toString()}`;
   if (destination === "narration") return `/narration/?${params.toString()}`;
+  if (destination === "credit_return") {
+    params.set("creditReturn", details.creditContext || "preview");
+    params.set("creditStatus", details.creditStatus || "back");
+    return `/?${params.toString()}#creator`;
+  }
   if (destination === "new_adventure") {
     params.set("newAdventure", "1");
     return `/?${params.toString()}#creator`;
@@ -121,7 +126,7 @@ router.get("/auth/woocommerce/callback", async (req, res) => {
     if (!project) return res.status(403).send("Draft access denied");
 
     setWooCustomerSession(req, res, identity);
-    return res.redirect(302, safeReturnPath(state.projectId, "connected", state.destination));
+    return res.redirect(302, safeReturnPath(state.projectId, "connected", state.destination, state));
   } catch (error) {
     return res.status(401).send(`Authentication failed: ${String(error?.message || error)}`);
   }

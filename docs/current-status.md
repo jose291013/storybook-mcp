@@ -8,37 +8,38 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/universe-first-story-funnel`
-- Latest merged checkpoint: PR #51 — targeted paid preview modifications (`e95545b`)
-- Current focused checkpoint: universe-first seven-step creator, universe-aware inspiration cards and causal universe validation
-- Pull request: draft PR #52 — `Add universe-first story funnel`; do not merge while any preview or targeted modification is generating
-- WordPress Bridge source/package: `0.6.7`
+- Current branch: `codex/credit-purchase-return`
+- Latest merged checkpoint: PR #52 — universe-first story funnel (`40e14dd`)
+- Current focused checkpoint: contextual return from WooCommerce credit purchase to the originating book and creator step
+- Pull request: not published yet; do not merge while any preview or targeted modification is generating
+- WordPress Bridge source/package: `0.6.8`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Production verification after PR #51 remains the known-good baseline. This branch changes only the pre-preview funnel and scenario validation; commerce, visual proof, generation, purchase and delivery remain unchanged.
+Production verification after PR #52 is in progress through a real customer book. This branch changes only credit-purchase navigation and signed return state; generation, visual proof, book checkout and delivery remain unchanged.
 
-## Current product brick: universe-first story funnel
+## Current product brick: credit purchase return
 
-1. The creator chooses one of six universes before answering questions about the child.
-2. Every universe card compares the same fictional reference child against a real universe example.
-3. After four essential child answers, Calitiki proposes exactly three tailored seeds: teamwork, discovery and creation; free input remains available.
-4. The selected seed pre-fills the dream and challenge but every field remains editable.
-5. A server-owned universe contract is persisted in the scenario and shown to the creator.
-6. Deterministic validation plus semantic audit reject decorative universes, missing entry/safety mechanisms, impossible objects and nonphysical characters performing physical actions.
+1. Every creator **Buy credits** link carries the saved project id and its origin: preview authorization, completed-book action center or targeted modification.
+2. Calitiki Bridge keeps that bounded context in the WooCommerce session, cart item and order line.
+3. The credit product, cart and checkout keep a reassuring **Return to my book** action even when the purchase is abandoned.
+4. The order confirmation distinguishes credited, synchronizing, pending, failed and cancelled payments.
+5. The signed WooCommerce bridge reopens the owned project, restores the correct creator surface and refreshes the wallet balance.
+6. A bounded browser refresh detects a just-settled credit webhook without starting generation or spending credit.
 
 ## Verification completed locally
 
 - Browser and server syntax checks pass.
-- Focused funnel/scenario suite: 16 passed, 0 failed.
-- Full `npm.cmd test`: 130 passed, 0 failed.
+- WordPress Bridge 0.6.8 parses successfully with the project PHP parser.
+- Full `npm.cmd test`: 130 passed, 0 failed, including packaged Bridge path verification.
 
 ## Next verification target
 
-1. Publish the focused draft pull request; the desktop universe screen has been visually inspected locally and responsive layout rules are covered by the same mobile breakpoint as the existing style cards.
-2. Before any merge, warn that Render may restart and confirm that no preview or targeted modification is generating.
-3. In production, create one FR book through a generated suggestion and one ES book through free input. Verify that universe rules are visible in scenario review, that untouched valid scenarios approve directly, and that generation/purchase remain unchanged.
+1. Package Bridge 0.6.8, run `npm.cmd test`, then publish a draft pull request without merging it.
+2. Finish the real book already being created against the PR #52 production checkpoint.
+3. Before any later merge, warn that Render may restart and confirm that no preview or targeted modification is generating.
+4. After deployment and Bridge 0.6.8 installation, verify one paid credit return and one abandoned-cart return from the preview credit panel.
 
 ## Protected local state
 
