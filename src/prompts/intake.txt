@@ -14,6 +14,12 @@ Normalize the ten simple questionnaire answers into exactly this structure:
     "universe": "",
     "universe_id": "",
     "universe_instructions": "",
+    "universe_story_contract": {},
+    "story_seed_id": "",
+    "story_seed_title": "",
+    "story_seed_adaptation": "",
+    "story_seed_moment": "",
+    "story_seed_transformation": "",
     "signature_object": "",
     "important_people": "",
     "companion": "",
@@ -33,7 +39,7 @@ RULES
 - If language is EN, translate every descriptive field into English and set intake.language to EN.
 - If language is FR, write every descriptive field in French and set intake.language to FR.
 - Preserve names exactly.
-- Preserve universe_id, universe_instructions, page_count and font_style exactly; these are product configuration values, not prose to reinterpret.
+- Preserve universe_id, universe_instructions, universe_story_contract, every story_seed_* field, page_count and font_style exactly; these are product configuration values, not prose to reinterpret.
 - Do not invent missing personal information; use an empty string.
 - Correct obvious encoding artifacts.
 - Keep the creator's meaning but translate descriptive answers into the requested language.

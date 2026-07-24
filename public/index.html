@@ -46,11 +46,13 @@
 
       <section class="creator-shell" id="creator">
         <aside class="steps" aria-label="Étapes de création">
-          <button class="step is-active" data-step-target="0"><span>1</span><div><strong data-i18n="stepChild">L'enfant</strong><small data-i18n="stepChildSub">Son univers personnel</small></div></button>
-          <button class="step" data-step-target="1"><span>2</span><div><strong data-i18n="stepStory">L'histoire</strong><small data-i18n="stepStorySub">Son aventure StoryBrand</small></div></button>
-          <button class="step" data-step-target="2"><span>3</span><div><strong data-i18n="stepDesign">Le livre</strong><small data-i18n="stepDesignSub">Decor, style et format</small></div></button>
-          <button class="step" data-step-target="3"><span>4</span><div><strong data-i18n="stepPhotos">Les photos</strong><small data-i18n="stepPhotosSub">Jusqu'a 5 references</small></div></button>
-          <button class="step" data-step-target="4"><span>5</span><div><strong data-i18n="stepReview">Verification</strong><small data-i18n="stepReviewSub">Avant la generation</small></div></button>
+          <button class="step is-active" data-step-target="0"><span>1</span><div><strong data-i18n="stepUniverse">L'univers</strong><small data-i18n="stepUniverseSub">Le monde de l'aventure</small></div></button>
+          <button class="step" data-step-target="1"><span>2</span><div><strong data-i18n="stepChild">L'enfant</strong><small data-i18n="stepChildSub">Ce qui le rend unique</small></div></button>
+          <button class="step" data-step-target="2"><span>3</span><div><strong data-i18n="stepInspiration">L'inspiration</strong><small data-i18n="stepInspirationSub">Trois histoires adaptées</small></div></button>
+          <button class="step" data-step-target="3"><span>4</span><div><strong data-i18n="stepStory">L'histoire</strong><small data-i18n="stepStorySub">Vos détails personnels</small></div></button>
+          <button class="step" data-step-target="4"><span>5</span><div><strong data-i18n="stepDesign">Le livre</strong><small data-i18n="stepDesignSub">Style et format</small></div></button>
+          <button class="step" data-step-target="5"><span>6</span><div><strong data-i18n="stepPhotos">Les photos</strong><small data-i18n="stepPhotosSub">Jusqu'à 5 références</small></div></button>
+          <button class="step" data-step-target="6"><span>7</span><div><strong data-i18n="stepReview">Vérification</strong><small data-i18n="stepReviewSub">Avant la génération</small></div></button>
         </aside>
 
         <div class="form-card">
@@ -63,35 +65,58 @@
             <strong data-i18n="seriesDraftTitle">Une nouvelle aventure, avec ses repères familiers</strong>
             <p data-i18n="seriesDraftMessage">Nous avons repris les réponses, personnages et choix du livre précédent. Modifiez librement le nouveau défi, les rôles ou les photos avant de continuer.</p>
           </section>
-          <div class="mobile-progress"><span id="mobileStepLabel">Étape 1 sur 5</span><div><i id="mobileProgressBar"></i></div></div>
+          <div class="mobile-progress"><span id="mobileStepLabel">Étape 1 sur 7</span><div><i id="mobileProgressBar"></i></div></div>
           <form id="bookForm" novalidate>
             <section class="form-panel is-active" data-panel="0">
+              <p class="section-kicker" data-i18n="universeKicker">LE POINT DE DÉPART</p>
+              <h2 data-i18n="universeScreenTitle">Dans quel monde l'aventure commence-t-elle ?</h2>
+              <p class="section-lead" data-i18n="universeScreenLead">Choisissez d'abord un univers : il guidera ensuite les idées de rêve, de défi et d'aventure.</p>
+              <div class="universe-selection-summary" id="universeSelectionSummary" hidden></div>
+              <div class="visual-choice-grid universe-grid" id="universeGrid" role="radiogroup"></div>
+              <p class="universe-example-note" data-i18n="universeExampleNote">Chaque exemple utilise le même enfant fictif : vous comparez donc bien les univers, pas des visages différents.</p>
+              <input type="hidden" id="universe_id" name="universe_id" />
+              <input type="hidden" id="universe" name="universe" />
+              <label class="optional-detail"><span data-i18n="universeDetailLabel">Un détail à ajouter à ce décor (facultatif)</span><textarea id="universe_details" name="universe_details" data-i18n-placeholder="universeDetailPlaceholder" placeholder="Une cabane, un village, un lieu familier..."></textarea></label>
+            </section>
+
+            <section class="form-panel" data-panel="1">
               <p class="section-kicker" data-i18n="childKicker">FAISONS CONNAISSANCE</p>
               <h2 data-i18n="childTitle">Parlez-nous de l'enfant</h2>
               <p class="section-lead" data-i18n="childLead">Ces details permettent d'ecrire avec des mots qui lui ressemblent.</p>
               <div class="question-grid" id="childQuestions"></div>
             </section>
 
-            <section class="form-panel" data-panel="1">
+            <section class="form-panel" data-panel="2">
+              <p class="section-kicker" data-i18n="inspirationKicker">TROIS PISTES POUR VOUS INSPIRER</p>
+              <h2 data-i18n="inspirationTitle">Choisissez le cœur de son aventure</h2>
+              <p class="section-lead" data-i18n="inspirationLead">Calitiki relie l'univers choisi à ce que vous venez de nous dire sur l'enfant. Vous pourrez encore modifier chaque réponse.</p>
+              <div class="suggestion-universe-summary" id="suggestionUniverseSummary"></div>
+              <div class="suggestion-loading" id="suggestionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="suggestionLoading">Nous imaginons trois aventures vraiment différentes…</strong></div>
+              <div class="story-suggestion-grid" id="storySuggestionGrid"></div>
+              <div class="suggestion-actions">
+                <button type="button" class="toolbar-button" id="refreshStorySuggestions" data-i18n="refreshIdeas">Proposer trois autres idées</button>
+                <button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button>
+              </div>
+              <p class="suggestion-choice-status" id="suggestionChoiceStatus" aria-live="polite"></p>
+              <input type="hidden" id="story_seed_id" name="story_seed_id" />
+              <input type="hidden" id="story_seed_title" name="story_seed_title" />
+              <input type="hidden" id="story_seed_adaptation" name="story_seed_adaptation" />
+              <input type="hidden" id="story_seed_moment" name="story_seed_moment" />
+              <input type="hidden" id="story_seed_transformation" name="story_seed_transformation" />
+            </section>
+
+            <section class="form-panel" data-panel="3">
               <p class="section-kicker" data-i18n="storyKicker">LA MATIERE DE SON AVENTURE</p>
               <h2 data-i18n="storyTitle">Construisons son histoire</h2>
               <p class="section-lead" data-i18n="storyLead">Ses rêves deviennent l'objectif du héros, sa difficulté devient le défi et votre message devient sa transformation finale.</p>
+              <div class="selected-suggestion-summary" id="selectedSuggestionSummary" hidden></div>
               <div class="question-grid" id="storyQuestions"></div>
             </section>
 
-            <section class="form-panel" data-panel="2">
+            <section class="form-panel" data-panel="4">
               <p class="section-kicker" data-i18n="designKicker">DIRECTION DU LIVRE</p>
-              <h2 data-i18n="designTitle">Imaginez son monde</h2>
+              <h2 data-i18n="designTitle">Choisissez le rendu du livre</h2>
               <p class="section-lead" data-i18n="designLead">Choisissez avec des apercus visuels. Ces choix restent independants de la langue du livre.</p>
-
-              <div class="choice-section">
-                <h3 id="universeTitle" data-i18n="universeTitle">Dans quel univers se passe l'aventure ?</h3>
-                <p data-i18n="universeLead">Survolez le symbole d'information pour comprendre chaque decor.</p>
-                <div class="visual-choice-grid universe-grid" id="universeGrid" role="radiogroup"></div>
-                <input type="hidden" id="universe_id" name="universe_id" />
-                <input type="hidden" id="universe" name="universe" />
-                <label class="optional-detail"><span data-i18n="universeDetailLabel">Un detail a ajouter a ce decor (facultatif)</span><textarea id="universe_details" name="universe_details" data-i18n-placeholder="universeDetailPlaceholder" placeholder="Une cabane, un village, un lieu familier..."></textarea></label>
-              </div>
 
               <div class="choice-section">
                 <h3 data-i18n="styleTitle">Quel rendu pour les illustrations ?</h3>
@@ -118,7 +143,7 @@
               </div>
             </section>
 
-            <section class="form-panel" data-panel="3">
+            <section class="form-panel" data-panel="5">
               <p class="section-kicker" data-i18n="photosKicker">LES PERSONNAGES</p>
               <h2 data-i18n="photosTitle">Ajoutez jusqu'a cinq photos</h2>
               <p class="section-lead" data-i18n="photosLead">Une photo de l'enfant, de sa mascotte, de ses amis ou de sa famille aide a conserver leurs traits.</p>
@@ -133,7 +158,7 @@
               <div class="photo-list" id="photoList"></div>
             </section>
 
-            <section class="form-panel" data-panel="4">
+            <section class="form-panel" data-panel="6">
               <p class="section-kicker" data-i18n="reviewKicker">DERNIERE ETAPE</p>
               <h2 data-i18n="reviewTitle">Votre livre est pret a etre imagine</h2>
               <p class="section-lead" id="reviewLead" data-i18n="reviewLead">Verifiez les choix ci-dessous avant la generation economique du brouillon.</p>
@@ -172,6 +197,7 @@
         </section>
         <div id="scenarioReviewContent">
           <p class="section-lead" id="storyScenarioSummary"></p>
+          <section class="scenario-world-contract" id="scenarioWorldContract" hidden></section>
           <section class="scenario-diagnostics" id="scenarioDiagnostics" hidden>
             <h3 data-i18n="scenarioDiagnosticsTitle">Ce scénario provisoire a besoin de quelques corrections</h3>
             <p data-i18n="scenarioDiagnosticsLead">Relisez les cartes encadrées ci-dessous. Vous pouvez modifier leur lieu ou leur action, ou préciser qui traverse et qui apparaît seulement en pensée.</p>

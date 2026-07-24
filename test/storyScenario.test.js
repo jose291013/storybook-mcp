@@ -73,6 +73,19 @@ test("scenario validation rejects two simultaneous states for one personal objec
   assert.ok(result.issues.some((issue) => issue.includes("two simultaneous states")));
 });
 
+test("scenario validation rejects an object held by an absent owner", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[2].objectStates = [{
+    name: "carnet",
+    owner: "Alexandra",
+    state: "held",
+    quantity: 1,
+  }];
+  const result = validateStoryScenario(scenario);
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.includes("Alexandra cannot held carnet while not physically present")));
+});
+
 test("scenario normalization uses the scene location for physical presences", () => {
   const scenario = normalizeStoryScenario({ scenario: {
     title: "Le portail", summary: "Une traversée cohérente.",

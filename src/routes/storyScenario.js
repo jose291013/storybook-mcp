@@ -1,5 +1,6 @@
 import express from "express";
 import { storyScenarioAgent } from "../agents/storyScenario.js";
+import { storyScenarioAuditAgent } from "../agents/storyScenarioAudit.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
@@ -71,17 +72,41 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
   };
   let candidate = await storyScenarioAgent(input);
   let scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
-    normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }),
+    normalizeStoryScenario(candidate, {
+      pagePlan,
+      canonicalCharacters,
+      creatorClarifications,
+      worldContract: normalized.answers.universe_story_contract,
+    }),
     { sceneEdits, addedCharacters },
   ));
   let validation = validateStoryScenario(scenario);
+  if (validation.valid) {
+    const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
+    validation = {
+      valid: audit.status === "approved",
+      issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
+    };
+  }
   if (!validation.valid) {
     candidate = await storyScenarioAgent({ ...input, previous_scenario: scenario, validation_issues: validation.issues });
     scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
-      normalizeStoryScenario(candidate, { pagePlan, canonicalCharacters, creatorClarifications }),
+      normalizeStoryScenario(candidate, {
+        pagePlan,
+        canonicalCharacters,
+        creatorClarifications,
+        worldContract: normalized.answers.universe_story_contract,
+      }),
       { sceneEdits, addedCharacters },
     ));
     validation = validateStoryScenario(scenario);
+    if (validation.valid) {
+      const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
+      validation = {
+        valid: audit.status === "approved",
+        issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
+      };
+    }
   }
   return { scenario, validation };
 }
@@ -179,7 +204,14 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
     if (!scenario || scenario.fingerprint !== fingerprint) {
       return res.status(409).json({ error: "The scenario no longer matches this project", code: "scenario_stale" });
     }
-    const validation = validateStoryScenario(scenario);
+    let validation = validateStoryScenario(scenario);
+    if (validation.valid) {
+      const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
+      validation = {
+        valid: audit.status === "approved",
+        issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
+      };
+    }
     if (!validation.valid) {
       console.warn("[story-scenario] approval validation failed", { projectId: project.id, issueCount: validation.issues.length });
       return res.status(422).json({ error: "The scenario needs another update before approval", code: "scenario_invalid", retryable: true });
