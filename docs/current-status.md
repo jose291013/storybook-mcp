@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/hard-scene-fidelity`
 - Latest merged checkpoint: PR #54 — causal scenario handoff and cover guidance (`c195978`)
 - Current focused checkpoint: deterministic reader-visible cast checks, blocking identity-fusion detection and natural parent appellations
-- Pull request: not opened yet; draft PR #55 for preview milestone e-mails remains separate on `codex/preview-milestone-emails`
+- Pull request: draft PR #56 — `Block scene cast and identity defects`; draft PR #55 for preview milestone e-mails remains separate on `codex/preview-milestone-emails`
 - WordPress Bridge source/package: `0.6.8`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
