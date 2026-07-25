@@ -5,6 +5,7 @@ import { generateImage } from "./imageRunner.js";
 import { createOpenAIClient } from "./openaiClient.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
+import { isTransientOpenAIError } from "./openaiErrorPolicy.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "qa" });
@@ -78,12 +79,7 @@ export function isImageSafetyRejection(error) {
 }
 
 export function isTransientImageGenerationError(error) {
-  const status = Number(error?.status || error?.statusCode || error?.response?.status || 0);
-  if ([408, 409, 425, 429, 500, 502, 503, 504].includes(status)) return true;
-  const code = String(error?.code || error?.cause?.code || "").trim();
-  if (/^(?:ETIMEDOUT|ECONNRESET|ECONNABORTED|ECONNREFUSED|EAI_AGAIN|ENETUNREACH)$/iu.test(code)) return true;
-  return /(server had an error processing your request|internal server error|server_error|temporar(?:y|ily) unavailable|service unavailable|overloaded|rate limit|too many requests|request timed out|timed out|timeout|connection (?:reset|closed|aborted)|bad gateway|gateway timeout)/iu
-    .test(String(error?.message || error || ""));
+  return isTransientOpenAIError(error);
 }
 
 async function referenceSource(reference) {

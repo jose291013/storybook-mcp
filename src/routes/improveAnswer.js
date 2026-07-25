@@ -36,14 +36,25 @@ router.post("/improve-answer", async (req, res) => {
   if (!IMPROVABLE_QUESTION_IDS.has(questionId)) return res.status(400).json({ error: "Unsupported question" });
   if (!answer) return res.status(400).json({ error: "Write an answer before improving it" });
   if (answer.length > 1800) return res.status(400).json({ error: "Answer is too long" });
-  if (!consumeAttempt(req.ip || "unknown")) return res.status(429).json({ error: "Too many improvement requests" });
+  if (!consumeAttempt(req.ip || "unknown")) {
+    return res.status(429).json({ error: "Too many improvement requests", code: "improve_rate_limited" });
+  }
 
   try {
     const improvedAnswer = await improveQuestionnaireAnswer({ question, answer, locale });
     res.json({ improvedAnswer });
   } catch (error) {
-    console.error("improve-answer failed", error);
-    res.status(502).json({ error: "Answer improvement is temporarily unavailable" });
+    console.error("improve-answer failed", {
+      status: Number(error?.status || error?.statusCode || 0) || undefined,
+      type: error?.type || error?.error?.type || undefined,
+      code: error?.code || undefined,
+      requestId: error?.request_id || error?.requestId || undefined,
+      message: String(error?.message || error),
+    });
+    res.status(502).json({
+      error: "Answer improvement is temporarily unavailable",
+      code: "improve_temporarily_unavailable",
+    });
   }
 });
 
