@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/transient-image-attempt-retry`
 - Latest merged checkpoint: PR #61 — relation-first cast classification and explicit relationship/story-role choices (`2789f22`)
 - Current focused checkpoint: consume the next bounded image attempt after a transient provider failure
-- Pull request: not published yet; never merge while a preview is generating
+- Pull request: draft PR #62; never merge while a preview is generating
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -38,9 +38,8 @@ PR #55 through PR #61 are merged. Bridge 0.6.9 remains the required WordPress pa
 
 ## Next verification target
 
-1. Publish the transient-image retry correction as a focused draft PR.
-2. Before merging it, confirm that no preview or targeted modification is generating.
-3. After deployment, resume project `49b89fd2-3034-40de-ae5b-231b94bff444` from page 3 and confirm that a temporary attempt-1 provider error proceeds to attempt 2 without exceeding the configured ceiling.
+1. Before merging draft PR #62, confirm that no preview or targeted modification is generating.
+2. After deployment, resume project `49b89fd2-3034-40de-ae5b-231b94bff444` from page 3 and confirm that a temporary attempt-1 provider error proceeds to attempt 2 without exceeding the configured ceiling.
 
 ## Protected local state
 
