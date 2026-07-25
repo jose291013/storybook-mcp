@@ -299,6 +299,13 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .quality-review-comparison figure { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
 .quality-review-comparison figcaption { margin-bottom: 8px; font-weight: 800; text-align: center; }
 .quality-review-comparison img { display: block; width: 100%; height: auto; border-radius: 9px; }
+.quality-review-text-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 16px; }
+.quality-review-text-comparison article { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.quality-review-text-comparison article p { margin-top: 10px; color: var(--ink); white-space: pre-wrap; }
+.quality-review-correction-form { margin-top: 18px; padding: 16px; border: 1px solid rgba(72,111,103,.25); border-radius: 14px; background: rgba(125,168,156,.09); }
+.quality-review-correction-form .quality-review-instruction { margin-top: 10px; }
+.quality-review-scope-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.quality-review-scope-actions .secondary-button { margin: 0; }
 .quality-review-feedback { min-height: 1.4em; color: #8b3d2e !important; font-weight: 700; }
 .quality-review-support { color: var(--muted); font-weight: 700; }
 .reader-page.is-quality-review { outline: 3px solid #d9a85d; outline-offset: -3px; }
@@ -310,6 +317,8 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
   .quality-review-page-actions .secondary-button,
   .quality-review-page-actions .primary-button { width: 100%; }
   .quality-review-comparison { grid-template-columns: 1fr; }
+  .quality-review-text-comparison { grid-template-columns: 1fr; }
+  .quality-review-scope-actions .secondary-button { width: 100%; }
 }
 .story-scenario-panel { width: min(1120px, calc(100% - 40px)); margin: 38px auto; padding: clamp(24px, 4vw, 48px); border: 1px solid var(--line); border-radius: 30px; background: var(--paper); box-shadow: var(--shadow); }
 .story-scenario-panel > h2 { margin: 8px 0 10px; color: var(--ink); font: 700 clamp(1.7rem, 3vw, 2.5rem)/1.1 Georgia, serif; }

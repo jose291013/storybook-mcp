@@ -178,28 +178,35 @@ const QUALITY_REVIEW_TEXT = {
     badge: "Illustration en vérification",
     reason: "Vérifiez que les personnages et l’action correspondent bien au texte.",
     view: "Voir cette page",
-    approve: "Conserver cette illustration",
-    repair: "Créer une proposition alternative gratuite",
+    approve: "Conserver cette double-page",
+    repairImage: "Ajuster l’illustration",
+    repairText: "Ajuster le texte à cette image",
+    correctionQuestion: "Que faut-il ajuster ?",
     detectedTitle: "Pourquoi Calitiki vous demande de vérifier :",
     issueMissing: "Un personnage prévu dans cette scène semble absent.",
     issueAction: "L’action principale ne semble pas assez fidèle au texte.",
     issueFusion: "Deux personnages ou leurs traits semblent avoir été mélangés.",
     issueGeneric: "La composition visuelle ne permet pas de confirmer toute la scène avec suffisamment de certitude.",
-    instructionLabel: "Que souhaitez-vous améliorer ? (facultatif)",
-    instructionPlaceholder: "Par exemple : montrer plus clairement la présence de Maman, tout en gardant la même scène.",
-    instructionHelp: "Votre indication guide le rendu visuel, sans modifier le scénario, les personnages prévus ni l’action.",
+    instructionLabel: "Expliquez ce qui ne correspond pas",
+    instructionPlaceholder: "Par exemple : l’image est belle, mais Maïté devrait avoir la main sur l’épaule de Malvina comme dans le texte.",
+    instructionHelp: "Cette explication est obligatoire avant toute correction. Elle ne peut pas changer les personnages, le lieu, la chronologie ni l’événement principal.",
+    instructionRequired: "Décrivez en quelques mots ce qui ne correspond pas avant de créer une proposition.",
     current: "Illustration actuelle",
-    proposed: "Nouvelle proposition",
-    candidateReady: "La nouvelle proposition est prête. Comparez les deux images avant de choisir.",
-    keepOriginal: "Conserver l’originale",
-    useCandidate: "Utiliser la nouvelle",
-    keepConfirm: "Conserver l’illustration actuelle et écarter la nouvelle proposition pour cette page ? Les deux resteront archivées dans le projet.",
-    useConfirm: "Remplacer l’illustration actuelle par cette nouvelle proposition ? L’originale reste conservée dans l’historique du projet.",
-    approveConfirm: "Confirmez-vous que cette illustration vous convient ? Cette décision permettra de poursuivre lorsque toutes les pages seront validées.",
+    proposed: "Nouvelle illustration proposée",
+    currentText: "Texte actuel",
+    proposedText: "Nouveau texte proposé",
+    candidateReady: "Une proposition est prête. Comparez-la avec la version actuelle avant de choisir.",
+    keepOriginal: "Conserver la double-page actuelle",
+    useImageCandidate: "Utiliser la nouvelle illustration",
+    useTextCandidate: "Utiliser le nouveau texte",
+    keepConfirm: "Conserver la double-page actuelle et écarter les propositions pour cette page ? Toutes les versions resteront archivées dans le projet.",
+    useImageConfirm: "Remplacer l’illustration actuelle par cette nouvelle proposition ? L’originale reste conservée dans l’historique du projet.",
+    useTextConfirm: "Remplacer le texte actuel par cette nouvelle formulation ? Le texte original reste conservé dans l’historique du projet.",
+    approveConfirm: "Confirmez-vous que cette double-page vous convient ? Cette décision permettra de poursuivre lorsque toutes les pages seront validées.",
     approving: "Validation en cours…",
-    repairing: "Création d’une nouvelle proposition pour la page {page}… L’illustration actuelle reste inchangée.",
+    repairing: "Création d’une proposition pour la page {page}… La double-page actuelle reste inchangée.",
     choosing: "Enregistrement de votre choix…",
-    repairExhausted: "La correction automatique n’a pas suffi. Vous pouvez accepter l’image si elle vous convient ou contacter Calitiki.",
+    repairExhausted: "La proposition gratuite pour ce type de correction a déjà été utilisée. Vous pouvez choisir une proposition existante, conserver la double-page ou contacter Calitiki.",
     actionError: "La décision n’a pas pu être enregistrée. Votre livre reste conservé ; réessayez.",
   },
   ES: {
@@ -211,28 +218,35 @@ const QUALITY_REVIEW_TEXT = {
     badge: "Ilustración en revisión",
     reason: "Comprueba que los personajes y la acción correspondan al texto.",
     view: "Ver esta página",
-    approve: "Conservar esta ilustración",
-    repair: "Crear una propuesta alternativa gratuita",
+    approve: "Conservar esta doble página",
+    repairImage: "Ajustar la ilustración",
+    repairText: "Ajustar el texto a esta imagen",
+    correctionQuestion: "¿Qué hay que ajustar?",
     detectedTitle: "Por qué Calitiki te pide que la revises:",
     issueMissing: "Parece faltar un personaje previsto en esta escena.",
     issueAction: "La acción principal no parece suficientemente fiel al texto.",
     issueFusion: "Dos personajes o sus rasgos parecen haberse mezclado.",
     issueGeneric: "La composición visual no permite confirmar toda la escena con suficiente seguridad.",
-    instructionLabel: "¿Qué te gustaría mejorar? (opcional)",
-    instructionPlaceholder: "Por ejemplo: mostrar más claramente la presencia de Mamá, manteniendo la misma escena.",
-    instructionHelp: "Tu indicación guía el resultado visual sin cambiar el guion, los personajes previstos ni la acción.",
+    instructionLabel: "Explica qué no coincide",
+    instructionPlaceholder: "Por ejemplo: la imagen es bonita, pero Maïté debería apoyar la mano en el hombro de Malvina como dice el texto.",
+    instructionHelp: "Esta explicación es obligatoria antes de corregir. No puede cambiar los personajes, el lugar, la cronología ni el acontecimiento principal.",
+    instructionRequired: "Describe brevemente qué no coincide antes de crear una propuesta.",
     current: "Ilustración actual",
-    proposed: "Nueva propuesta",
-    candidateReady: "La nueva propuesta está lista. Compara las dos imágenes antes de elegir.",
-    keepOriginal: "Conservar la original",
-    useCandidate: "Usar la nueva",
-    keepConfirm: "¿Conservar la ilustración actual y descartar la nueva propuesta para esta página? Ambas quedarán archivadas en el proyecto.",
-    useConfirm: "¿Sustituir la ilustración actual por esta nueva propuesta? La original seguirá guardada en el historial del proyecto.",
-    approveConfirm: "¿Confirmas que esta ilustración te gusta? El libro podrá continuar cuando se validen todas las páginas.",
+    proposed: "Nueva ilustración propuesta",
+    currentText: "Texto actual",
+    proposedText: "Nuevo texto propuesto",
+    candidateReady: "Hay una propuesta lista. Compárala con la versión actual antes de elegir.",
+    keepOriginal: "Conservar la doble página actual",
+    useImageCandidate: "Usar la nueva ilustración",
+    useTextCandidate: "Usar el nuevo texto",
+    keepConfirm: "¿Conservar la doble página actual y descartar las propuestas para esta página? Todas las versiones quedarán archivadas en el proyecto.",
+    useImageConfirm: "¿Sustituir la ilustración actual por esta nueva propuesta? La original seguirá guardada en el historial del proyecto.",
+    useTextConfirm: "¿Sustituir el texto actual por esta nueva redacción? El texto original seguirá guardado en el historial del proyecto.",
+    approveConfirm: "¿Confirmas que esta doble página te gusta? El libro podrá continuar cuando se validen todas las páginas.",
     approving: "Validando…",
-    repairing: "Creando una nueva propuesta para la página {page}… La ilustración actual no cambiará.",
+    repairing: "Creando una propuesta para la página {page}… La doble página actual no cambiará.",
     choosing: "Guardando tu elección…",
-    repairExhausted: "La corrección automática no ha sido suficiente. Puedes aceptar la imagen si te gusta o contactar con Calitiki.",
+    repairExhausted: "Ya se ha utilizado la propuesta gratuita para este tipo de corrección. Puedes elegir una propuesta existente, conservar la doble página o contactar con Calitiki.",
     actionError: "No se ha podido guardar la decisión. Tu libro sigue guardado; inténtalo de nuevo.",
   },
   EN: {
@@ -244,28 +258,35 @@ const QUALITY_REVIEW_TEXT = {
     badge: "Illustration under review",
     reason: "Check that the characters and main action match the text.",
     view: "View this page",
-    approve: "Keep this illustration",
-    repair: "Create a free alternative",
+    approve: "Keep this spread",
+    repairImage: "Adjust the illustration",
+    repairText: "Adjust the text to this image",
+    correctionQuestion: "What needs adjusting?",
     detectedTitle: "Why Calitiki is asking you to review it:",
     issueMissing: "A character expected in this scene appears to be missing.",
     issueAction: "The main action may not match the story closely enough.",
     issueFusion: "Two characters or their features appear to have been mixed.",
     issueGeneric: "The visual composition does not let Calitiki confirm the whole scene with enough confidence.",
-    instructionLabel: "What would you like to improve? (optional)",
-    instructionPlaceholder: "For example: show Mum more clearly while keeping the same scene.",
-    instructionHelp: "Your note guides the visual result without changing the approved story, cast or action.",
+    instructionLabel: "Explain what does not match",
+    instructionPlaceholder: "For example: the image is lovely, but Maïté should place her hand on Malvina’s shoulder as stated in the text.",
+    instructionHelp: "This explanation is required before a correction. It cannot change the characters, location, chronology or main event.",
+    instructionRequired: "Briefly describe what does not match before creating a proposal.",
     current: "Current illustration",
-    proposed: "New proposal",
-    candidateReady: "The new proposal is ready. Compare both images before choosing.",
-    keepOriginal: "Keep the original",
-    useCandidate: "Use the new one",
-    keepConfirm: "Keep the current illustration and reject the new proposal for this page? Both will remain archived in the project.",
-    useConfirm: "Replace the current illustration with this new proposal? The original remains preserved in the project history.",
-    approveConfirm: "Do you confirm that this illustration works for you? The book can continue once every page is approved.",
+    proposed: "Proposed new illustration",
+    currentText: "Current text",
+    proposedText: "Proposed new text",
+    candidateReady: "A proposal is ready. Compare it with the current version before choosing.",
+    keepOriginal: "Keep the current spread",
+    useImageCandidate: "Use the new illustration",
+    useTextCandidate: "Use the new text",
+    keepConfirm: "Keep the current spread and reject the proposals for this page? Every version will remain archived in the project.",
+    useImageConfirm: "Replace the current illustration with this new proposal? The original remains preserved in the project history.",
+    useTextConfirm: "Replace the current text with this new wording? The original text remains preserved in the project history.",
+    approveConfirm: "Do you confirm that this spread works for you? The book can continue once every page is approved.",
     approving: "Saving approval…",
-    repairing: "Creating a new proposal for page {page}… The current illustration remains unchanged.",
+    repairing: "Creating a proposal for page {page}… The current spread remains unchanged.",
     choosing: "Saving your choice…",
-    repairExhausted: "The automatic correction was not sufficient. You may accept the image if it works for you or contact Calitiki.",
+    repairExhausted: "The free proposal for this correction type has already been used. You can choose an existing proposal, keep the spread or contact Calitiki.",
     actionError: "The decision could not be saved. Your book remains safe; please retry.",
   },
 };
@@ -2022,6 +2043,15 @@ function localizedQualityIssues(issues, copy) {
   return labels.length ? [...new Set(labels)] : [copy.issueGeneric];
 }
 
+function qualityCandidateMap(page) {
+  const candidates = { ...(page?.qualityReviewCandidates || {}) };
+  if (page?.qualityReviewCandidate?.status === "ready") {
+    const scope = page.qualityReviewCandidate.scope || "illustration";
+    if (!candidates[scope]) candidates[scope] = page.qualityReviewCandidate;
+  }
+  return candidates;
+}
+
 function showQualityReview(job, { scroll = true } = {}) {
   const copy = QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR;
   const pages = job?.qualityReview?.pages
@@ -2039,11 +2069,18 @@ function showQualityReview(job, { scroll = true } = {}) {
       const draftPage = job?.result?.draftPages?.find((candidate) => (
         Number(candidate.page_number) === Number(page.pageNumber)
       ));
-      const candidate = draftPage?.qualityReviewCandidate?.status === "ready"
-        ? draftPage.qualityReviewCandidate
+      const candidates = qualityCandidateMap(draftPage);
+      const imageCandidate = candidates.illustration?.status === "ready"
+        ? candidates.illustration
         : null;
+      const textCandidate = candidates.text?.status === "ready"
+        ? candidates.text
+        : null;
+      const hasCandidate = Boolean(imageCandidate || textCandidate);
       const issueLabels = localizedQualityIssues(draftPage?.qualityIssues || page.issues, copy);
-      const repairExhausted = Number(draftPage?.qualityReviewRepairCount || page.repairCount || 0) >= 1;
+      const imageExhausted = Number(draftPage?.qualityReviewRepairCount || page.repairCount || 0) >= 1;
+      const textExhausted = Number(draftPage?.qualityReviewTextRepairCount || page.textRepairCount || 0) >= 1;
+      const canRequestAlternative = !imageExhausted || !textExhausted;
       return `<li class="quality-review-page-card" data-quality-page="${Number(page.pageNumber)}">
         <div>
           <strong>${escapeHtml(copy.page.replace("{page}", String(page.pageNumber)))}</strong>
@@ -2051,36 +2088,53 @@ function showQualityReview(job, { scroll = true } = {}) {
             <span>${escapeHtml(copy.detectedTitle)}</span>
             <ul>${issueLabels.map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>
           </div>
-          ${candidate ? `<div class="quality-review-comparison">
+          ${imageCandidate ? `<div class="quality-review-comparison">
             <figure>
               <figcaption>${escapeHtml(copy.current)}</figcaption>
-              <img src="${escapeHtml(draftPage.previewUrl)}" alt="${escapeHtml(copy.current)}" />
+              <img src="${escapeHtml(imageCandidate.original?.previewUrl || draftPage.previewUrl)}" alt="${escapeHtml(copy.current)}" />
             </figure>
             <figure>
               <figcaption>${escapeHtml(copy.proposed)}</figcaption>
-              <img src="${escapeHtml(candidate.previewUrl)}" alt="${escapeHtml(copy.proposed)}" />
+              <img src="${escapeHtml(imageCandidate.previewUrl)}" alt="${escapeHtml(copy.proposed)}" />
             </figure>
           </div>` : ""}
-          ${!candidate && !repairExhausted ? `<label class="quality-review-instruction">
+          ${textCandidate ? `<div class="quality-review-text-comparison">
+            <article>
+              <strong>${escapeHtml(copy.currentText)}</strong>
+              <p>${escapeHtml(textCandidate.original?.text || "")}</p>
+            </article>
+            <article>
+              <strong>${escapeHtml(copy.proposedText)}</strong>
+              <p>${escapeHtml(textCandidate.text || "")}</p>
+            </article>
+          </div>` : ""}
+          ${canRequestAlternative ? `<div class="quality-review-correction-form">
+            <strong>${escapeHtml(copy.correctionQuestion)}</strong>
+            <label class="quality-review-instruction">
             <span>${escapeHtml(copy.instructionLabel)}</span>
-            <textarea rows="3" maxlength="500" data-quality-instruction="${Number(page.pageNumber)}" placeholder="${escapeHtml(copy.instructionPlaceholder)}"></textarea>
+            <textarea rows="3" minlength="8" maxlength="500" required data-quality-instruction="${Number(page.pageNumber)}" placeholder="${escapeHtml(copy.instructionPlaceholder)}"></textarea>
             <small>${escapeHtml(copy.instructionHelp)}</small>
-          </label>` : ""}
+            </label>
+            <div class="quality-review-scope-actions">
+              ${imageExhausted ? "" : `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}" data-quality-scope="illustration">${escapeHtml(copy.repairImage)}</button>`}
+              ${textExhausted ? "" : `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}" data-quality-scope="text">${escapeHtml(copy.repairText)}</button>`}
+            </div>
+          </div>` : ""}
           <p class="quality-review-feedback" data-quality-feedback="${Number(page.pageNumber)}">${
-            candidate
+            hasCandidate
               ? escapeHtml(copy.candidateReady)
-              : repairExhausted
+              : !canRequestAlternative
                 ? escapeHtml(copy.repairExhausted)
                 : ""
           }</p>
         </div>
         <div class="quality-review-page-actions">
           <button type="button" class="secondary-button" data-quality-view="${Number(page.pageNumber)}">${escapeHtml(copy.view)}</button>
-          ${candidate
+          ${hasCandidate
             ? `<button type="button" class="secondary-button" data-quality-keep-original="${Number(page.pageNumber)}">${escapeHtml(copy.keepOriginal)}</button>
-              <button type="button" class="primary-button" data-quality-use-candidate="${Number(page.pageNumber)}">${escapeHtml(copy.useCandidate)}</button>`
-            : `<button type="button" class="secondary-button" data-quality-approve="${Number(page.pageNumber)}">${escapeHtml(copy.approve)}</button>
-              ${repairExhausted ? "" : `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}">${escapeHtml(copy.repair)}</button>`}`
+              ${imageCandidate ? `<button type="button" class="primary-button" data-quality-use-candidate="${Number(page.pageNumber)}" data-quality-scope="illustration">${escapeHtml(copy.useImageCandidate)}</button>` : ""}
+              ${textCandidate ? `<button type="button" class="primary-button" data-quality-use-candidate="${Number(page.pageNumber)}" data-quality-scope="text">${escapeHtml(copy.useTextCandidate)}</button>` : ""}`
+            : `<button type="button" class="secondary-button" data-quality-approve="${Number(page.pageNumber)}">${escapeHtml(copy.approve)}</button>`
           }
         </div>
       </li>`;
@@ -2113,16 +2167,23 @@ function showQualityReview(job, { scroll = true } = {}) {
   elements.qualityReviewPages.querySelectorAll("[data-quality-repair]").forEach((button) => {
     button.addEventListener("click", async () => {
       const pageNumber = Number(button.dataset.qualityRepair);
+      const scope = button.dataset.qualityScope;
       const card = button.closest(".quality-review-page-card");
-      card?.querySelectorAll("button, textarea").forEach((candidate) => { candidate.disabled = true; });
+      const instructionField = card?.querySelector(`[data-quality-instruction="${pageNumber}"]`);
+      const instruction = instructionField?.value.trim() || "";
       const feedback = card?.querySelector(".quality-review-feedback");
+      if (instruction.length < 8) {
+        if (feedback) feedback.textContent = copy.instructionRequired;
+        instructionField?.focus();
+        return;
+      }
+      card?.querySelectorAll("button, textarea").forEach((candidate) => { candidate.disabled = true; });
       if (feedback) feedback.textContent = copy.repairing.replace("{page}", String(pageNumber));
       try {
-        const instruction = card?.querySelector(`[data-quality-instruction="${pageNumber}"]`)?.value || "";
         const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/quality-review/pages/${pageNumber}/repair`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ instruction }),
+          body: JSON.stringify({ instruction, scope }),
         });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || copy.actionError);
@@ -2161,13 +2222,19 @@ function showQualityReview(job, { scroll = true } = {}) {
   elements.qualityReviewPages.querySelectorAll("[data-quality-use-candidate]").forEach((button) => {
     button.addEventListener("click", async () => {
       const pageNumber = Number(button.dataset.qualityUseCandidate);
-      if (!window.confirm(copy.useConfirm)) return;
+      const scope = button.dataset.qualityScope || "illustration";
+      const confirmation = scope === "text" ? copy.useTextConfirm : copy.useImageConfirm;
+      if (!window.confirm(confirmation)) return;
       const card = button.closest(".quality-review-page-card");
       card?.querySelectorAll("button, textarea").forEach((candidate) => { candidate.disabled = true; });
       const feedback = card?.querySelector(".quality-review-feedback");
       if (feedback) feedback.textContent = copy.choosing;
       try {
-        const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/quality-review/pages/${pageNumber}/use-candidate`, { method: "POST" });
+        const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/quality-review/pages/${pageNumber}/use-candidate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scope }),
+        });
         const payload = await response.json();
         if (!response.ok) throw new Error(payload.error || copy.actionError);
         await refreshAfterQualityDecision(pageNumber);
