@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/quality-review-candidate-choice`
-- Latest merged checkpoint: PR #68 — actionable page-by-page quality review and durable progress display
-- Current focused checkpoint: generate a private correction candidate, compare it with the preserved original, then require an explicit creator choice
-- Pull request: focused draft PR on the current branch; do not merge until the user confirms that no preview or quality correction is running
+- Current branch: `main` after PR #69 merge
+- Latest merged checkpoint: PR #69 — private quality-correction candidate with before/after creator choice
+- Current focused checkpoint: verify the candidate-choice flow on the preserved production quality-review pages
+- Pull request: PR #69 explicitly authorized for merge after the user confirmed that no preview or quality correction was running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #68 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
+PR #55 through PR #69 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
 
 ## Current product brick: durable preview stabilization
 
@@ -45,8 +45,8 @@ PR #55 through PR #68 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 
 ## Next verification target
 
-1. Publish the focused candidate-choice pull request without merging it.
-2. After deployment and only when no correction is running, verify the preserved production project pages 15, 31 and 35: generating an alternative must leave the current page unchanged across a refresh, and each explicit decision must unlock only the chosen page.
+1. After Render deploys PR #69, verify the preserved production project pages 15, 31 and 35: generating an alternative must leave the current page unchanged across a refresh, and each explicit decision must unlock only the chosen page.
+2. Capture creator feedback on the usefulness of the optional instruction and the before/after comparison before changing the one-free-candidate limit.
 
 ## Protected local state
 
