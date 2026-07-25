@@ -24,6 +24,7 @@ import { familyShareStore } from "./services/familyShareStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
 import { interactiveReaderInstallManifest } from "./services/interactiveReaderInstallManifest.js";
 import { startProjectDeletionCleanupWorker } from "./services/projectDeletion.js";
+import { generationRunStore } from "./services/generationRunStore.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
@@ -70,6 +71,7 @@ app.use(familySharesRouter);
 
 const port = process.env.PORT || 3000;
 await projectStore.initialize();
+await generationRunStore.initialize();
 await familyShareStore.initialize();
 startProjectDeletionCleanupWorker();
 app.listen(port, () => {

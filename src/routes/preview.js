@@ -41,9 +41,38 @@ import {
 } from "../services/previewGenerationCheckpoint.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
+import { generationRunStore } from "../services/generationRunStore.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 3;
+const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
+
+function generationWorkerId(jobId) {
+  return `render:${process.pid}:${jobId}`;
+}
+
+async function updateGenerationRun(jobId, patch = {}) {
+  return generationRunStore.updateRun(jobId, {
+    ...patch,
+    heartbeatAt: new Date().toISOString(),
+    ...(patch.status === "running" ? {
+      leaseOwner: generationWorkerId(jobId),
+      leaseExpiresAt: new Date(Date.now() + GENERATION_RUN_LEASE_MS).toISOString(),
+    } : {}),
+  });
+}
+
+function startGenerationRunHeartbeat(jobId) {
+  const timer = setInterval(() => {
+    generationRunStore.heartbeatRun(jobId, generationWorkerId(jobId), GENERATION_RUN_LEASE_MS)
+      .catch((error) => console.error("[preview] durable heartbeat failed", JSON.stringify({
+        jobId,
+        error: String(error?.message || error),
+      })));
+  }, 30000);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
 
 async function notifyPreviewMilestoneIfRequested({
   projectId,
@@ -91,6 +120,13 @@ function isActivePreviewJob(job) {
   return Number.isFinite(updatedAt) && Date.now() - updatedAt < previewStaleAfterMs();
 }
 
+function isActiveDurableRun(run) {
+  if (run?.status === "waiting_input") return true;
+  if (!run || run.status !== "running") return false;
+  const leaseExpiresAt = Date.parse(run.leaseExpiresAt || "");
+  return Number.isFinite(leaseExpiresAt) && leaseExpiresAt > Date.now();
+}
+
 function reportImageAttempt(jobId, stepPrefix) {
   return ({ phase, attempt, maximumAttempts, error = "", issues = [], model = "", safetyFallback = false }) => {
     const step = `${stepPrefix}:attempt:${attempt}/${maximumAttempts}:${phase}`;
@@ -108,8 +144,22 @@ function reportImageAttempt(jobId, stepPrefix) {
 
 async function recoverAbandonedPreview({ project, identity }) {
   const existingJob = project.generationJobId ? getJob(project.generationJobId) : null;
+  const durableRun = project.generationJobId
+    ? await generationRunStore.getRun(project.generationJobId).catch(() => null)
+    : null;
   if (existingJob && !["done", "failed"].includes(existingJob.status)) {
     updateJob(existingJob.id, { status: "failed", step: "preview:abandoned", error: "Preview generation became unresponsive" });
+  }
+  if (durableRun && !["completed", "failed", "cancelled"].includes(durableRun.status)) {
+    await updateGenerationRun(durableRun.id, {
+      status: "failed",
+      currentStep: "preview:abandoned",
+      errorCode: "preview_interrupted",
+      errorMessage: "Preview generation became unresponsive",
+      completedAt: new Date().toISOString(),
+      leaseOwner: "",
+      leaseExpiresAt: null,
+    });
   }
   const released = await creditStore.releasePreviewForProject(identity, { projectId: project.id });
   const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
@@ -206,6 +256,9 @@ router.post("/preview", async (req, res) => {
   const pendingVisualProof = generationCheckpoint(project)?.visualProof;
   if (project.status === "preview_generating") {
     const existingJob = project.generationJobId ? getJob(project.generationJobId) : null;
+    const durableRun = project.generationJobId
+      ? await generationRunStore.getRun(project.generationJobId).catch(() => null)
+      : null;
     if (pendingVisualProof?.status === "awaiting_approval") {
       if (!["approve", "regenerate"].includes(visualProofAction)) {
         return res.status(409).json({
@@ -219,6 +272,15 @@ router.post("/preview", async (req, res) => {
       }
       if (existingJob && existingJob.status === "awaiting_visual_approval") {
         updateJob(existingJob.id, { status: "done", step: `visual-proof:${visualProofAction}` });
+      }
+      if (durableRun?.status === "waiting_input") {
+        await updateGenerationRun(durableRun.id, {
+          status: "completed",
+          currentStep: `visual-proof:${visualProofAction}`,
+          completedAt: new Date().toISOString(),
+          leaseOwner: "",
+          leaseExpiresAt: null,
+        });
       }
       const visualProof = {
         ...pendingVisualProof,
@@ -236,8 +298,8 @@ router.post("/preview", async (req, res) => {
           visualProof,
         }),
       }) || project;
-    } else if (isActivePreviewJob(existingJob)) {
-      return res.json({ jobId: existingJob.id, resumed: true });
+    } else if (isActiveDurableRun(durableRun) || isActivePreviewJob(existingJob)) {
+      return res.json({ jobId: durableRun?.id || existingJob.id, resumed: true });
     } else {
       return res.status(409).json({
         error: "Preview generation was interrupted. Confirm the free technical retry before continuing.",
@@ -345,6 +407,30 @@ router.post("/preview", async (req, res) => {
       woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
     },
   });
+  try {
+    await generationRunStore.createRun({
+      id: job.id,
+      projectId,
+      kind: "preview",
+      status: "running",
+      currentStep: "started",
+      inputFingerprint: fingerprint,
+      metadata: {
+        creditReservationId: creditReservation?.id || null,
+        pageCount: normalized.answers.page_count,
+        renderingMode: normalized.answers.rendering_mode,
+        styleId: normalized.answers.style_id,
+      },
+    });
+    await updateGenerationRun(job.id, { status: "running", currentStep: "started" });
+  } catch (error) {
+    updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+    if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
+    return res.status(503).json({
+      error: "The durable generation queue is temporarily unavailable. No credit was used.",
+      code: "generation_queue_unavailable",
+    });
+  }
   const initialCheckpoint = existingCheckpoint || { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION };
   let checkpoint = initialCheckpoint;
   const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = project.continuitySnapshot || {};
@@ -356,17 +442,35 @@ router.post("/preview", async (req, res) => {
     failureReason: null,
     failedAt: null,
   });
-  await projectStore.updateForCustomer(projectId, identity, {
-    status: "preview_generating",
-    generationJobId: job.id,
-    continuitySnapshot: initialSnapshot,
-    previewResult: existingCheckpoint ? project.previewResult : null,
-    finalBlueprint: existingCheckpoint ? project.finalBlueprint : null,
-  });
+  try {
+    await projectStore.updateForCustomer(projectId, identity, {
+      status: "preview_generating",
+      generationJobId: job.id,
+      continuitySnapshot: initialSnapshot,
+      previewResult: existingCheckpoint ? project.previewResult : null,
+      finalBlueprint: existingCheckpoint ? project.finalBlueprint : null,
+    });
+  } catch (error) {
+    await updateGenerationRun(job.id, {
+      status: "failed",
+      errorCode: "project_start_failed",
+      errorMessage: String(error?.message || error),
+      completedAt: new Date().toISOString(),
+      leaseOwner: "",
+      leaseExpiresAt: null,
+    }).catch(() => null);
+    updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+    if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
+    return res.status(503).json({
+      error: "The preview could not be queued safely. No credit was used.",
+      code: "generation_queue_unavailable",
+    });
+  }
   console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
   res.json({ jobId: job.id });
 
   (async () => {
+    const stopHeartbeat = startGenerationRunHeartbeat(job.id);
     try {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const { answers, photos } = normalized;
@@ -374,10 +478,33 @@ router.post("/preview", async (req, res) => {
       const persistCheckpoint = async (patch, projectPatch = {}) => {
         const latest = await projectStore.get(job.projectId);
         checkpoint = { ...checkpoint, ...patch, fingerprint };
-        return projectStore.update(job.projectId, {
+        const persisted = await projectStore.update(job.projectId, {
           ...projectPatch,
           continuitySnapshot: mergeGenerationCheckpoint(latest?.continuitySnapshot || project.continuitySnapshot, checkpoint),
         });
+        const stepKey = `checkpoint:${checkpoint.phase || "started"}`;
+        const { step } = await generationRunStore.upsertStep(job.id, {
+          stepKey,
+          stepType: String(checkpoint.phase || "checkpoint").split(":")[0],
+          status: "completed",
+          maxAttempts: 1,
+          inputFingerprint: fingerprint,
+          output: { phase: checkpoint.phase || "started" },
+        });
+        if (step.status !== "completed") {
+          await generationRunStore.updateStep(step.id, {
+            status: "completed",
+            output: { phase: checkpoint.phase || "started" },
+            completedAt: new Date().toISOString(),
+            leaseOwner: "",
+            leaseExpiresAt: null,
+          });
+        }
+        await updateGenerationRun(job.id, {
+          status: "running",
+          currentStep: checkpoint.phase || "started",
+        });
+        return persisted;
       };
 
       updateJob(job.id, { step: "intake" });
@@ -670,6 +797,17 @@ router.post("/preview", async (req, res) => {
           result: proofResult,
           visualProof,
         });
+        await updateGenerationRun(job.id, {
+          status: "waiting_input",
+          currentStep: "draft:cover:review",
+          metadata: {
+            creditReservationId: creditReservation?.id || null,
+            pageCount: normalized.answers.page_count,
+            visualProof,
+          },
+          leaseOwner: "",
+          leaseExpiresAt: null,
+        });
         try {
           await notifyPreviewMilestoneIfRequested({
             projectId,
@@ -787,6 +925,15 @@ router.post("/preview", async (req, res) => {
         final_blueprint,
         result: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
       });
+      await updateGenerationRun(job.id, {
+        status: "completed",
+        currentStep: "draft:done",
+        completedAt: new Date().toISOString(),
+        leaseOwner: "",
+        leaseExpiresAt: null,
+        errorCode: "",
+        errorMessage: "",
+      });
       if (job.projectId) {
         if (creditReservation?.id) await creditStore.capturePreview(creditReservation.id);
         const latest = await projectStore.get(job.projectId);
@@ -828,6 +975,15 @@ router.post("/preview", async (req, res) => {
       console.info("[preview] completed", JSON.stringify({ jobId: job.id, projectId, pageCount: draftPages.length }));
     } catch (error) {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+      await updateGenerationRun(job.id, {
+        status: "failed",
+        currentStep: getJob(job.id)?.step || checkpoint?.phase || "unknown",
+        errorCode: "preview_generation_failed",
+        errorMessage: String(error?.message || error),
+        completedAt: new Date().toISOString(),
+        leaseOwner: "",
+        leaseExpiresAt: null,
+      }).catch(() => null);
       const failedJob = getJob(job.id);
       console.error("[preview] failed", JSON.stringify({
         jobId: job.id,
@@ -873,6 +1029,8 @@ router.post("/preview", async (req, res) => {
           console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
         }
       }
+    } finally {
+      stopHeartbeat();
     }
   })();
 });

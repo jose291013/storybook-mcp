@@ -12,6 +12,8 @@ data/family-shares.json
 data/family-shares.json.tmp
 data/preview-revisions.json
 data/preview-revisions.json.tmp
+data/generation-runs.json
+data/generation-runs.json.tmp
 data/private/
 dist/*.zip
 !data/outputs/.gitkeep
