@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/quality-review-resolution`
 - Latest merged checkpoint: PR #67 — customer-facing quality review, commerce lock, milestone e-mail and abandoned-lease recovery
 - Current focused checkpoint: make `preview_quality_review` actionable page by page and correct durable progress display
-- Pull request: not published yet; do not merge until the user confirms that no preview or quality repair is running
+- Pull request: draft PR #68; do not merge until the user confirms that no preview or quality repair is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -44,8 +44,8 @@ PR #55 through PR #67 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 
 ## Next verification target
 
-1. Publish the quality-review resolution PR.
-2. After explicit confirmation that no repair is running, merge it and resolve pages 15, 31 and 35 on the preserved production project.
+1. After explicit confirmation that no repair is running, mark PR #68 ready and merge it.
+2. Resolve pages 15, 31 and 35 on the preserved production project.
 
 ## Protected local state
 
