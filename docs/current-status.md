@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/animal-cast-image-contract`
 - Latest merged checkpoint: PR #60 — parent-intention assistant before story inspiration (`061dfca`)
 - Current focused checkpoint: lock non-human companion species in image contracts
-- Pull request: not published yet; never merge while a preview is generating
+- Pull request: draft PR #61; never merge while a preview is generating
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,8 +35,8 @@ PR #55 through PR #60 are merged. Bridge 0.6.9 remains the required WordPress pa
 
 ## Next verification target
 
-1. Publish the focused fix as a draft PR without merging while project `49b89fd2-3034-40de-ae5b-231b94bff444` is generating or awaiting recovery.
-2. After deployment, resume that project from page 3 and confirm that both companions remain distinct non-human animals.
+1. Before merging draft PR #61, confirm that no preview or targeted modification is generating.
+2. After deployment, resume project `49b89fd2-3034-40de-ae5b-231b94bff444` from page 3 and confirm that both companions remain distinct non-human animals.
 3. Continue the PR #60 live check: verify that the generated story preserves its intention, progressive attempts and earned reward.
 
 ## Protected local state
