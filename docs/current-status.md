@@ -27,12 +27,13 @@ PR #55 through PR #60 are merged. Bridge 0.6.9 remains the required WordPress pa
 4. Generation prompts and scene-fidelity contracts explicitly forbid replacing a genuine non-human companion with a child, teenager or adult.
 5. Missing tiny jewelry remains in the visual prompt but is advisory in QA; it cannot by itself consume a retry or abort a book.
 6. Retry policy 7 gives projects exhausted under the former cast-classification contract one checkpointed recovery.
+7. The creator no longer silently labels every secondary reference photo as a friend. Each secondary person or animal requires an explicit relationship choice; selecting Family or Other also requires a concrete relationship such as brother, sister or mother.
 
 ## Verification completed locally
 
 - Server syntax check passes.
-- Focused image-contract, book-structure and retry tests: 81 passed, 0 failed.
-- Full `npm.cmd test`: 149 passed, 0 failed.
+- Focused relationship-choice funnel tests: 7 passed, 0 failed.
+- Full `npm.cmd test`: 150 passed, 0 failed.
 
 ## Next verification target
 
