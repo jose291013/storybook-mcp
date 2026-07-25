@@ -35,7 +35,9 @@ router.get("/jobs/:id", async (req, res) => {
       projectId: durableRun.projectId,
       kind: durableRun.kind,
       status,
-      step: durableRun.currentStep || localJob?.step || "",
+      step: localJob?.status === "running" && localJob?.step
+        ? localJob.step
+        : durableRun.currentStep || localJob?.step || "",
       error: durableRun.errorMessage || localJob?.error || undefined,
       qualityReview: localJob?.qualityReview || durableRun.metadata?.qualityReview || undefined,
       createdAt: durableRun.createdAt,
