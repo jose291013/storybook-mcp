@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/calitiki-intention-assistant`
 - Latest merged checkpoint: PR #59 — deterministic absent-cast guard and policy-6 recovery (`3ec0b44`)
 - Current focused checkpoint: parent-intention assistant before story inspiration
-- Pull request: not published yet; never merge without confirming that no generation is active
+- Pull request: draft PR #60; never merge without confirming that no generation is active
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -37,9 +37,8 @@ PR #55 through PR #59 are merged. Bridge 0.6.9 remains the required WordPress pa
 
 ## Next verification target
 
-1. Publish this focused change as a draft PR.
-2. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
-3. After deployment, confirm that selecting an intention launches exactly one set of three matching adventures and that the approved scenario preserves the first step, attempts and reward.
+1. Before merging draft PR #60, warn that Render may restart and confirm that no preview or targeted modification is generating.
+2. After deployment, confirm that selecting an intention launches exactly one set of three matching adventures and that the approved scenario preserves the first step, attempts and reward.
 
 ## Protected local state
 
