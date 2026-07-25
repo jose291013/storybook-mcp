@@ -1059,7 +1059,11 @@ async function improveAnswer(button) {
   try {
     const response = await fetch("/api/improve-answer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ questionId, question, answer: input.value, locale: state.locale }) });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || tr("improveError"));
+    if (!response.ok) {
+      if (payload.code === "improve_rate_limited") throw new Error(tr("improveRateLimit"));
+      if (payload.code === "improve_temporarily_unavailable") throw new Error(tr("improveError"));
+      throw new Error(payload.error || tr("improveError"));
+    }
     input.value = payload.improvedAnswer;
     input.classList.remove("is-invalid");
     input.focus();
