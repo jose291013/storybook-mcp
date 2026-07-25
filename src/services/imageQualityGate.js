@@ -33,6 +33,8 @@ function parseJson(text) {
 const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|no coherent|no recognizable|unrecognizable scene|broken pixels|pixel corruption|hybrid|fused|merged (?:character|identity|anatom)|human head[^.]{0,60}animal body|animal head[^.]{0,60}human body|exchanged? (?:head|face|body)|shared body|mixed species|fusionn[ée]|personnages? fusionn[ée]s?|t[êe]te humaine[^.]{0,60}corps d['’]animal|t[êe]te d['’]animal[^.]{0,60}corps humain|anatomie m[ée]lang[ée]e|h[ií]brid[oa]|personajes? fusionad[oa]s?|cabeza humana[^.]{0,60}cuerpo de animal|cabeza de animal[^.]{0,60}cuerpo humano|anatom[ií]a mezclada)/iu;
 const WARDROBE_ONLY_PATTERN = /(?:\boutfits?\b|\bwardrobe\b|\bclothing\b|\bgarments?\b|\bwears?\b|\bwore\b|\bt-?shirts?\b|\btee-?shirts?\b|\bshirts?\b|\bshorts?\b|\bshoes?\b|\bsneakers?\b|\bsandals?\b|\bcrocs?\b|\bcaps?\b|\bhats?\b|\bcasquettes?\b|\btenues?\b|\bv[êe]tements?\b|\bchemises?\b|\bd[ée]bardeurs?\b|\bchaussures?\b|\bbaskets?\b|\bsandales?\b|\bporte(?:nt)?\b|\bmotifs?\b|\blogos?\b|\binscriptions?\b|\bmarques?\b|\batuendos?\b|\bropa\b|\blleva(?:n)?\b|\bcamisetas?\b|\bpantalones?\b|\bzapatos?\b|\bgorras?\b)/iu;
 const OBJECT_STATE_CONTRADICTION_PATTERN = /(?:duplicat|two copies|twice|quantity|hold(?:s|ing)?[^.]{0,80}wear(?:s|ing)?|wear(?:s|ing)?[^.]{0,80}hold(?:s|ing)?|held[^.]{0,80}worn|worn[^.]{0,80}held|required object[^.]{0,80}(?:absent|missing)|dupliqu|deux exempl|quantit[ée]|(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main[^.]{0,80}port[ée]|port[ée][^.]{0,80}(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main|objet requis[^.]{0,80}(?:absent|manquant)|sostiene[^.]{0,80}lleva\s+puesto|lleva\s+puesto[^.]{0,80}sostiene)/iu;
+const MINOR_ACCESSORY_PATTERN = /(?:necklace|pendant|bracelet|earring|tiny charm|small charm|collier|pendentif|bracelet|boucle d['’]oreille|petit c[œoe]ur|collar|colgante|pulsera|pendiente|peque[ñn]o coraz[oó]n)/iu;
+const MISSING_OR_OBSCURED_PATTERN = /(?:not visible|not shown|missing|absent|omitted|hidden|obscured|pas visible|non visible|manquant|absent|omis|cach[ée]|no visible|no aparece|falta|ausente|ocult[oa])/iu;
 
 const NARRATIVE_CONTRADICTION_PATTERN = /(?:does not (?:perform|show|depict)|wrong (?:subject|target|central action)|required (?:named )?(?:character|creature)[^.]{0,80}(?:absent|missing)|n['\u2019](?:effectue|accomplit|ex[\u00e9e]cute|montre|repr[\u00e9e]sente) pas|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|cr[\u00e9e]ature) (?:nomm[\u00e9e](?:e)? )?requis(?:e)?[^.]{0,80}(?:absent|manquant)|no (?:realiza|muestra|representa) la acci[\u00f3o]n|(?:sujeto|objetivo|acci[\u00f3o]n principal) incorrect[oa]|(?:personaje|criatura) requerid[oa][^.]{0,80}(?:ausente|falta))/iu;
 const POSITIVE_SCENE_CONFIRMATION_PATTERN = /(?:\bno issue\b|\bno contradiction\b|\bas (?:requested|required|specified)\b|\bcorrectly\b|\bcompliant\b|\bconform[ée]ment\b|\bcomme demand[ée]\b|\bcomme pr[ée]vu\b|\bsans probl[èe]me\b|\bsin problema\b|\bseg[uú]n lo solicitado\b)/iu;
@@ -51,6 +53,9 @@ export function objectiveSceneContractIssues(issues = []) {
     .map(String)
     .filter(Boolean)
     .filter((issue) => !POSITIVE_SCENE_CONFIRMATION_PATTERN.test(issue))
+    .filter((issue) => !(MINOR_ACCESSORY_PATTERN.test(issue)
+      && MISSING_OR_OBSCURED_PATTERN.test(issue)
+      && !OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)))
     .filter((issue) => EXPLICIT_SCENE_CONTRADICTION_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
@@ -176,6 +181,7 @@ Judge only objective, clearly visible contradictions:
 - two requested identities are merged, fused, transformed into one another, or exchange a head, face, body, species or anatomy;
 - a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
 - an explicitly forbidden substitution is present.
+Tiny jewelry and small personal accessories may be partly hidden by pose, hair, framing or clothing. A missing tiny necklace, pendant, bracelet, earring or charm alone is advisory and MUST NOT cause rejection. Object duplication or a held-versus-worn contradiction remains rejectable.
 For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused."
 Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.
 SCENE CONTRACT JSON:
@@ -356,5 +362,7 @@ export async function generateQualityCheckedImage({
       throw error;
     }
   }
-  throw new Error(`Illustration rejected after ${attemptLimit} attempts: ${previousIssues.join(" | ") || "visual quality failure"}`);
+  const finalBlockingIssues = blockingSceneContractIssues(previousIssues);
+  const reportedFailureIssues = finalBlockingIssues.length ? finalBlockingIssues : previousIssues;
+  throw new Error(`Illustration rejected after ${attemptLimit} attempts: ${reportedFailureIssues.join(" | ") || "visual quality failure"}`);
 }

@@ -69,7 +69,8 @@ export function buildSceneContinuity({
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
   const visualAliases = buildImageCharacterAliases({ blueprint, characterCanons, castPresent });
   const safe = (value) => neutralizeImageText(value, visualAliases).trim();
-  const aliasFor = (name) => visualAliases.find((item) => sameCharacter(item.name, name))?.alias || safe(name);
+  const identityFor = (name) => visualAliases.find((item) => sameCharacter(item.name, name));
+  const aliasFor = (name) => identityFor(name)?.alias || safe(name);
   const characterFingerprints = [];
   const referenceImages = [];
 
@@ -81,8 +82,13 @@ export function buildSceneContinuity({
       ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
       : (character.outfit_lock || photoCanon?.outfit_lock || "");
     const visualAlias = aliasFor(character.name);
+    const visualIdentity = identityFor(character.name);
     const rules = [
       `[${role.toUpperCase()} ${visualAlias}]`,
+      visualIdentity?.entity_type === "animal"
+        && `NON-HUMAN ANIMAL IDENTITY: depict one complete ${visualIdentity.species || "animal"} body with species-correct head, face, limbs and proportions. Never depict this companion as a human child or person.`,
+      visualIdentity?.entity_type === "plush_toy"
+        && `PLUSH TOY IDENTITY: depict one complete ${visualIdentity.species || "animal"} plush toy body. Never depict this companion as a human child, living person or human-animal hybrid.`,
       traits && `IDENTITY: ${safe(traits)}`,
       outfit && `FIXED OUTFIT: ${safe(outfit)}. Keep every generic color, garment and accessory exactly unchanged on every page.`,
       role === "mascot" && "SPECIES LOCK: keep the exact same animal species, coat colors, markings, ears, muzzle, tail and accessories; never reinterpret it as another animal or a famous character.",
@@ -131,9 +137,18 @@ export function buildSceneContinuity({
       "Do not add another recurring named book character who is not in the mandatory cast."
     );
   }
+  const nonHumanCast = selected
+    .map((character) => identityFor(character.name))
+    .filter((identity) => ["animal", "plush_toy"].includes(identity?.entity_type));
+  if (nonHumanCast.length) {
+    sceneRules.push(
+      `NON-HUMAN CAST LOCK (${nonHumanCast.length}): ${nonHumanCast.map((identity) => `${identity.alias}${identity.species ? ` = ${identity.species}` : ""}`).join(", ")}.`,
+      "Every listed non-human companion must remain visibly non-human with one complete species-correct animal or plush-toy body. Never substitute a human child, teenager or adult for any of them."
+    );
+  }
   if (visualState?.directive) sceneRules.push(safe(visualState.directive));
   const underwaterScene = isFullyUnderwaterScene(`${pairedText} ${scenePrompt}`);
-  const underwaterPeople = selected.filter((character) => character.role !== "mascot");
+  const underwaterPeople = selected.filter((character) => !["animal", "plush_toy"].includes(identityFor(character.name)?.entity_type));
   if (underwaterScene && underwaterPeople.length) {
     const names = underwaterPeople.map((character) => aliasFor(character.name)).filter(Boolean);
     sceneRules.push(

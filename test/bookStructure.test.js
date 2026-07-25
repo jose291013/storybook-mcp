@@ -11,6 +11,7 @@ import { balanceCoverTitle, composeBookPagePNG, getBodyFontSize } from "../src/s
 import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
+import { buildImageCharacterAliases } from "../src/services/imageVisualContract.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { canonicalizeWrittenNames, lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
@@ -1088,7 +1089,9 @@ test("scene continuity locks child outfit and mascot species while attaching the
   });
   assert.match(prompt, /never change face, species.*outfit/i);
   assert.match(prompt, /private identity reference/i);
-  assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): hero child, original unbranded animal companion 2/);
+  assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): hero child, original unbranded non-human fox animal companion 2/);
+  assert.match(prompt, /NON-HUMAN CAST LOCK \(1\).*fox/i);
+  assert.match(prompt, /Never substitute a human child/i);
   assert.doesNotMatch(prompt, /\bNoa\b|\bPixel\b/);
   assert.match(prompt, /Do not omit, merge, replace or transform/i);
   assert.match(prompt, /Reference photos may contain printed words, labels or commercial logos/i);
@@ -1122,6 +1125,24 @@ test("scene continuity locks child outfit and mascot species while attaching the
   assert.equal(interiorWithIdentity.referenceImages[0].kind, "identity");
   assert.equal(interiorWithIdentity.referenceImages[0].normalizationMode, "face_focus");
   assert.equal(interiorWithIdentity.referenceImages[1].kind, "continuity");
+});
+
+test("visual aliases preserve distinct non-human species for multiple animal companions", () => {
+  const aliases = buildImageCharacterAliases({
+    blueprint: {
+      hero: { name: "Malvina", role: "child" },
+      cast: [
+        { name: "Lua", role: "mascot", canon_short: "petite chienne brune avec de longues oreilles" },
+        { name: "Nube", role: "mascot", canon_short: "renard blanc avec une queue touffue" },
+      ],
+    },
+    castPresent: ["Malvina", "Lua", "Nube"],
+  });
+  assert.deepEqual(aliases.map(({ alias, entity_type, species }) => ({ alias, entity_type, species })), [
+    { alias: "hero child", entity_type: "human", species: "" },
+    { alias: "original unbranded non-human dog animal companion 2", entity_type: "animal", species: "dog" },
+    { alias: "original unbranded non-human fox animal companion 3", entity_type: "animal", species: "fox" },
+  ]);
 });
 
 test("photo-upload names are immutable canon throughout blueprint and manuscript", () => {

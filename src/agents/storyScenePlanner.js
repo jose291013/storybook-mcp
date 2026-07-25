@@ -201,7 +201,7 @@ export function sceneContractImagePrompt({
   if (!contract) return neutralizeImageText(fallbackPrompt, aliases).trim();
   const compact = compactImageSceneContract(contract, aliases, { safetyFallback });
   const named = list(compact.named_characters, 10)
-    .map((item) => `${item.name}: ${item.visual_role || "visible"}; action: ${item.action || "present in the scene"}`)
+    .map((item) => `${item.name}: entity type ${item.entity_type || "unspecified"}${item.species ? `; species ${item.species}` : ""}; ${item.visual_role || "visible"}; action: ${item.action || "present in the scene"}`)
     .join(" | ");
   const generic = list(compact.generic_characters, 12)
     .map((item) => `${item.id}: ${item.description}; action: ${item.action}; must remain visually distinct from ${(item.must_not_resemble || []).join(", ") || "all recurring characters"}`)
@@ -226,5 +226,6 @@ export function sceneContractImagePrompt({
     stylePrompt ? `LOCKED RENDERING STYLE: ${neutralizeImageText(stylePrompt, aliases)}` : "",
     "Show one readable focal action, coherent physical scale and the exact requested number of people or objects. Do not render dialogue or written story text. No text, captions, logos, trademarks or watermarks inside the illustration.",
     "IDENTITY SEPARATION: every listed person or animal is one complete, separate individual with one coherent head and body. Never fuse, splice, morph or exchange faces, heads, bodies, limbs, species, clothing or markings between characters or reference images.",
+    "ENTITY TYPE LOCK: every character marked as a non-human animal or plush toy must remain visibly non-human. Never replace it with a human child, teenager or adult.",
   ].filter(Boolean).join("\n");
 }

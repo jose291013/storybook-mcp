@@ -103,6 +103,21 @@ test("only fully persisted draft pages are reused after an interrupted Render jo
   assert.equal(isReusableDraftPage(null), false);
 });
 
-test("the deterministic cast-guard recovery policy is version six", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 6);
+test("a preview exhausted under policy six receives the non-human animal-cast recovery", () => {
+  const exhaustedImage = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "animal-cast-book",
+      retryPolicyVersion: 6,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-25T07:30:00.000Z",
+      failureReason: "preview_generation_failed",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedImage), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedImage), false);
+});
+
+test("the non-human animal-cast recovery policy is version seven", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 7);
 });
