@@ -17,9 +17,22 @@ Normalize the ten simple questionnaire answers into exactly this structure:
     "universe_story_contract": {},
     "story_seed_id": "",
     "story_seed_title": "",
+    "story_seed_first_step": "",
+    "story_seed_effort": "",
+    "story_seed_reward": "",
     "story_seed_adaptation": "",
     "story_seed_moment": "",
     "story_seed_transformation": "",
+    "creator_situation": "",
+    "story_intent_id": "",
+    "story_intent_title": "",
+    "story_intent_understanding": "",
+    "story_intent_desired_change": "",
+    "story_intent_protective_doubt": "",
+    "story_intent_first_step": "",
+    "story_intent_motivation": "",
+    "story_intent_reward": "",
+    "story_intent_message": "",
     "signature_object": "",
     "important_people": "",
     "companion": "",
@@ -39,9 +52,10 @@ RULES
 - If language is EN, translate every descriptive field into English and set intake.language to EN.
 - If language is FR, write every descriptive field in French and set intake.language to FR.
 - Preserve names exactly.
-- Preserve universe_id, universe_instructions, universe_story_contract, every story_seed_* field, page_count and font_style exactly; these are product configuration values, not prose to reinterpret.
+- Preserve universe_id, universe_instructions, universe_story_contract, creator_situation, every story_intent_* field, every story_seed_* field, page_count and font_style exactly; these are creator-approved or product configuration values, not prose to reinterpret.
 - Do not invent missing personal information; use an empty string.
 - Correct obvious encoding artifacts.
 - Keep the creator's meaning but translate descriptive answers into the requested language.
 - Keep the challenge gentle and appropriate for a child.
-- The questionnaire supplies the StoryBrand ingredients: dream = desire, challenge = problem, important_people/companion = possible guide, message = moral and transformation.
+- When story_intent_id is present, the confirmed intention is authoritative: desired_change = desire, protective_doubt = internal problem, first_step = beginning of the plan, motivation = positive anticipation, reward = success, and story_intent_message = transformation.
+- Legacy questionnaires without a confirmed intention still use dream = desire, challenge = problem, important_people/companion = possible guide, message = moral and transformation.

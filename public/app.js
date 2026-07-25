@@ -12,7 +12,7 @@ try {
 const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLocale : referrerLocale;
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
-const FLOW_VERSION = 2;
+const FLOW_VERSION = 3;
 const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
 
@@ -50,6 +50,8 @@ const state = {
   step: 0,
   selectedStyle: "",
   selectedUniverse: "",
+  storyIntentions: [],
+  storyIntentionsBusy: false,
   storySuggestions: [],
   storySuggestionMode: "",
   storySuggestionsBusy: false,
@@ -97,7 +99,7 @@ const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams
 
 const elements = {
   form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
@@ -118,15 +120,21 @@ class TechnicalGenerationError extends Error {
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
 
+const INTENTION_EXAMPLES = {
+  FR: ["Il abandonne quand quelque chose lui paraît difficile.", "Elle n'ose pas aller vers les autres.", "Il aimerait apprendre quelque chose, mais il a peur de ne pas réussir.", "Je ne sais pas exactement : aidez-moi à trouver."],
+  ES: ["Abandona cuando algo le parece difícil.", "No se atreve a acercarse a los demás.", "Le gustaría aprender algo, pero teme no conseguirlo.", "No lo sé exactamente: ayúdame a encontrarlo."],
+  EN: ["They give up when something feels difficult.", "They do not dare to approach other children.", "They would like to learn something but fear not succeeding.", "I am not quite sure: help me work it out."],
+};
+
 const QUESTION_TEXT = {
   FR: {
-    hero_name: ["Comment s'appelle l'enfant ?", "Le prénom qui apparaîtra dans l'histoire."], age: ["Quel âge a l'enfant ?", "Cela adapte la longueur des phrases et le vocabulaire."], favorite_activities: ["Qu'est-ce qu'il ou elle adore faire ?", "Jeux, passions, animaux, musique, sport ou activité favorite."], personality: ["Quels mots décrivent le mieux l'enfant ?", "Par exemple : curieux, drôle, sensible, courageux ou rêveur."], dream: ["Quel rêve aimerait-il réaliser ?", "Ce souhait devient l'objectif du héros."], challenge: ["Quelle petite difficulté aimerait-il dépasser ?", "Une peur douce, un apprentissage ou un manque de confiance."], message: ["Quel message souhaitez-vous lui transmettre ?", "Par exemple : croire en soi, partager ou persévérer."], signature_object: ["Quel objet spécial doit accompagner l'enfant ?", "Un doudou, un sac, un instrument ou un objet inventé."], important_people: ["Qui doit l'accompagner dans l'histoire ?", "Mascotte, ami, frère, sœur ou autre proche."],
+    hero_name: ["Comment s'appelle l'enfant ?", "Le prénom qui apparaîtra dans l'histoire."], age: ["Quel âge a l'enfant ?", "Cela adapte la longueur des phrases et le vocabulaire."], favorite_activities: ["Qu'est-ce qu'il ou elle adore faire ?", "Jeux, passions, animaux, musique, sport ou activité favorite."], personality: ["Quels mots décrivent le mieux l'enfant ?", "Par exemple : curieux, drôle, sensible, courageux ou rêveur."], dream: ["Quel objectif lui donnera envie d'avancer ?", "Ce souhait devient l'objectif concret du héros."], challenge: ["Qu'est-ce qui pourrait le faire hésiter ?", "Une peur ou un doute protecteur, jamais présenté comme un défaut."], message: ["Qu'aimeriez-vous qu'il découvre grâce à ses essais ?", "Par exemple : chaque tentative me fait avancer."], signature_object: ["Quel objet spécial doit accompagner l'enfant ?", "Un doudou, un sac, un instrument ou un objet inventé."], important_people: ["Qui doit l'accompagner dans l'histoire ?", "Mascotte, ami, frère, sœur ou autre proche."],
   },
   ES: {
-    hero_name: ["¿Cómo se llama el niño?", "El nombre que aparecerá en la historia."], age: ["¿Qué edad tiene?", "Adapta el vocabulario y la longitud de las frases."], favorite_activities: ["¿Qué le encanta hacer?", "Juegos, aficiones, animales, música o deporte."], personality: ["¿Qué palabras le describen mejor?", "Por ejemplo: curioso, divertido, sensible o valiente."], dream: ["¿Qué sueño le gustaría cumplir?", "Este deseo se convierte en el objetivo del protagonista."], challenge: ["¿Qué pequeña dificultad le gustaría superar?", "Un miedo suave, un aprendizaje o falta de confianza."], message: ["¿Qué mensaje quieres transmitirle?", "Por ejemplo: creer en sí mismo, compartir o perseverar."], signature_object: ["¿Qué objeto especial debe acompañarle?", "Un peluche, bolso, instrumento u objeto inventado."], important_people: ["¿Quién debe acompañarle en la historia?", "Mascota, amigo, hermano, hermana u otro ser querido."],
+    hero_name: ["¿Cómo se llama el niño?", "El nombre que aparecerá en la historia."], age: ["¿Qué edad tiene?", "Adapta el vocabulario y la longitud de las frases."], favorite_activities: ["¿Qué le encanta hacer?", "Juegos, aficiones, animales, música o deporte."], personality: ["¿Qué palabras le describen mejor?", "Por ejemplo: curioso, divertido, sensible o valiente."], dream: ["¿Qué objetivo le dará ganas de avanzar?", "Este deseo se convierte en el objetivo concreto del protagonista."], challenge: ["¿Qué podría hacerle dudar?", "Un miedo o duda protectora, nunca presentada como un defecto."], message: ["¿Qué te gustaría que descubriera gracias a sus intentos?", "Por ejemplo: cada intento me ayuda a avanzar."], signature_object: ["¿Qué objeto especial debe acompañarle?", "Un peluche, bolso, instrumento u objeto inventado."], important_people: ["¿Quién debe acompañarle en la historia?", "Mascota, amigo, hermano, hermana u otro ser querido."],
   },
   EN: {
-    hero_name: ["What is the child's name?", "The name that will appear in the story."], age: ["How old is the child?", "This adapts vocabulary and sentence length."], favorite_activities: ["What do they love doing?", "Games, hobbies, animals, music, sport or a favorite activity."], personality: ["Which words describe the child best?", "For example: curious, funny, sensitive, brave or dreamy."], dream: ["What dream would they love to achieve?", "This wish becomes the hero's goal."], challenge: ["What small difficulty would they like to overcome?", "A gentle fear, a new skill or a lack of confidence."], message: ["What message would you like to give them?", "For example: believe in yourself, share or persevere."], signature_object: ["What special object should travel with the child?", "A comfort toy, bag, instrument or invented object."], important_people: ["Who should join them in the story?", "A mascot, friend, sibling or another loved one."],
+    hero_name: ["What is the child's name?", "The name that will appear in the story."], age: ["How old is the child?", "This adapts vocabulary and sentence length."], favorite_activities: ["What do they love doing?", "Games, hobbies, animals, music, sport or a favorite activity."], personality: ["Which words describe the child best?", "For example: curious, funny, sensitive, brave or dreamy."], dream: ["What goal will make them want to move forward?", "This wish becomes the hero's concrete goal."], challenge: ["What might make them hesitate?", "A protective fear or doubt, never presented as a flaw."], message: ["What would you like them to discover through their attempts?", "For example: every attempt helps me move forward."], signature_object: ["What special object should travel with the child?", "A comfort toy, bag, instrument or invented object."], important_people: ["Who should join them in the story?", "A mascot, friend, sibling or another loved one."],
   },
 };
 
@@ -255,7 +263,7 @@ function persistLocalDraft() {
   localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
     flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
-    productType: state.productType, projectId: state.projectId, storySuggestions: state.storySuggestions,
+    productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions, storySuggestions: state.storySuggestions,
     storySuggestionMode: state.storySuggestionMode, updatedAt: new Date().toISOString(),
   }));
 }
@@ -936,11 +944,12 @@ async function beginReferenceRecovery() {
     state.selectedUniverse = questionnaire.universe_id || project.productConfiguration?.universe_id || state.selectedUniverse;
     state.fontStyle = questionnaire.font_style || project.productConfiguration?.font_style || state.fontStyle;
     state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
+    state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
     state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
     state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
     renderQuestions(questionnaire);
     restoreValues(questionnaire);
-    renderUniverses(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
+    renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
     state.photos.forEach((photo) => URL.revokeObjectURL(photo.url));
     state.photos = [];
     state.referenceRecoveryMode = true;
@@ -1080,6 +1089,131 @@ function selectedUniverseOption() {
   return state.config?.universeOptions?.find((option) => option.id === state.selectedUniverse);
 }
 
+const INTENTION_FIELD_MAP = {
+  id: "story_intent_id",
+  title: "story_intent_title",
+  understanding: "story_intent_understanding",
+  desired_change: "story_intent_desired_change",
+  protective_doubt: "story_intent_protective_doubt",
+  first_step: "story_intent_first_step",
+  motivation: "story_intent_motivation",
+  reward: "story_intent_reward",
+  message: "story_intent_message",
+};
+
+function selectedStoryIntention() {
+  const selectedId = document.querySelector("#story_intent_id")?.value || "";
+  return state.storyIntentions.find((intention) => intention.id === selectedId) || null;
+}
+
+function clearIntentionChoice({ preserveSituation = true } = {}) {
+  Object.values(INTENTION_FIELD_MAP).forEach((id) => {
+    const input = document.querySelector(`#${id}`);
+    if (input) input.value = "";
+  });
+  state.storyIntentions = [];
+  if (!preserveSituation) {
+    const situation = document.querySelector("#creator_situation");
+    if (situation) situation.value = "";
+  }
+}
+
+function renderStoryIntentions() {
+  const selectedId = document.querySelector("#story_intent_id")?.value || "";
+  const examples = INTENTION_EXAMPLES[state.locale] || INTENTION_EXAMPLES.FR;
+  const intentionBusy = state.storyIntentionsBusy || state.storySuggestionsBusy;
+  elements.intentionExampleList.innerHTML = examples.map((example) => `<button type="button" class="intention-example" data-intention-example="${escapeHtml(example)}" ${intentionBusy ? "disabled" : ""}>${escapeHtml(example)}</button>`).join("");
+  elements.intentionExampleList.querySelectorAll("[data-intention-example]").forEach((button) => button.addEventListener("click", () => {
+    document.querySelector("#creator_situation").value = button.dataset.intentionExample;
+    document.querySelector("#creator_situation").focus();
+    clearIntentionChoice({ preserveSituation: true });
+    resetStorySuggestionChoice({ preserveAnswers: true });
+    renderStoryIntentions();
+    renderStorySuggestions();
+    persistLocalDraft();
+  }));
+  elements.intentionLoading.hidden = !state.storyIntentionsBusy;
+  elements.interpretIntentionButton.disabled = intentionBusy;
+  elements.customStoryChoice.disabled = intentionBusy;
+  document.querySelector("#creator_situation").readOnly = intentionBusy;
+  elements.storyIntentionGrid.innerHTML = state.storyIntentions.map((intention) => `
+    <article class="story-intention-card ${intention.id === selectedId ? "is-selected" : ""}">
+      <h3>${escapeHtml(intention.title)}</h3>
+      <p>${escapeHtml(intention.understanding)}</p>
+      <dl>
+        <div><dt>${escapeHtml(tr("intentionFirstStep"))}</dt><dd>${escapeHtml(intention.first_step)}</dd></div>
+        <div><dt>${escapeHtml(tr("intentionMotivation"))}</dt><dd>${escapeHtml(intention.motivation)}</dd></div>
+        <div><dt>${escapeHtml(tr("intentionReward"))}</dt><dd>${escapeHtml(intention.reward)}</dd></div>
+      </dl>
+      <button type="button" class="primary-button" data-story-intention="${escapeHtml(intention.id)}" ${intentionBusy ? "disabled" : ""}>${escapeHtml(intention.id === selectedId ? tr("intentionChosen") : tr("chooseIntention"))}</button>
+    </article>`).join("");
+  elements.storyIntentionGrid.querySelectorAll("[data-story-intention]").forEach((button) => button.addEventListener("click", () => chooseStoryIntention(button.dataset.storyIntention)));
+  elements.intentionChoiceStatus.textContent = selectedId ? tr("intentionConfirmed") : "";
+  elements.customStoryChoice.classList.toggle("is-selected", state.storySuggestionMode === "custom");
+  elements.adventureProposals.hidden = !(selectedId || state.storySuggestions.length || state.storySuggestionMode === "suggestion");
+}
+
+async function requestStoryIntentions() {
+  if (state.storyIntentionsBusy || !state.selectedUniverse) return;
+  const values = formValues();
+  if (![values.hero_name, values.age, values.favorite_activities, values.personality, values.creator_situation].every((value) => String(value || "").trim())) {
+    elements.intentionChoiceStatus.textContent = tr("intentionNeedsSituation");
+    document.querySelector("#creator_situation")?.focus();
+    return;
+  }
+  state.storyIntentionsBusy = true;
+  state.storyIntentions = [];
+  resetStorySuggestionChoice({ preserveAnswers: true });
+  elements.intentionChoiceStatus.textContent = "";
+  renderStoryIntentions();
+  renderStorySuggestions();
+  try {
+    const response = await fetch("/api/story-intentions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        heroName: values.hero_name,
+        age: values.age,
+        favoriteActivities: values.favorite_activities,
+        personality: values.personality,
+        creatorSituation: values.creator_situation,
+        universeId: state.selectedUniverse,
+        locale: state.locale,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
+    state.storyIntentions = payload.intentions;
+    persistLocalDraft();
+  } catch (error) {
+    elements.intentionChoiceStatus.textContent = error.message || tr("intentionError");
+  } finally {
+    state.storyIntentionsBusy = false;
+    renderStoryIntentions();
+  }
+}
+
+function chooseStoryIntention(id) {
+  const intention = state.storyIntentions.find((item) => item.id === id);
+  if (!intention) return;
+  Object.entries(INTENTION_FIELD_MAP).forEach(([key, fieldId]) => {
+    document.querySelector(`#${fieldId}`).value = intention[key] || "";
+  });
+  state.storySuggestions = [];
+  state.storySuggestionMode = "";
+  resetStorySuggestionChoice({ preserveAnswers: true });
+  const dream = document.querySelector("#dream");
+  const challenge = document.querySelector("#challenge");
+  const message = document.querySelector("#message");
+  if (dream) dream.value = intention.desired_change;
+  if (challenge) challenge.value = intention.protective_doubt;
+  if (message) message.value = intention.message;
+  renderStoryIntentions();
+  renderStorySuggestions();
+  persistLocalDraft();
+  requestStorySuggestions().catch(() => null);
+}
+
 function selectedStorySuggestion() {
   const selectedId = document.querySelector("#story_seed_id")?.value || "";
   return state.storySuggestions.find((suggestion) => suggestion.id === selectedId) || null;
@@ -1087,7 +1221,7 @@ function selectedStorySuggestion() {
 
 function resetStorySuggestionChoice({ preserveAnswers = true } = {}) {
   state.storySuggestionMode = "";
-  ["story_seed_id", "story_seed_title", "story_seed_adaptation", "story_seed_moment", "story_seed_transformation"].forEach((id) => {
+  ["story_seed_id", "story_seed_title", "story_seed_first_step", "story_seed_effort", "story_seed_reward", "story_seed_adaptation", "story_seed_moment", "story_seed_transformation"].forEach((id) => {
     const input = document.querySelector(`#${id}`);
     if (input) input.value = "";
   });
@@ -1106,7 +1240,7 @@ function renderSelectedSuggestionSummary() {
     elements.selectedSuggestionSummary.innerHTML = "";
     return;
   }
-  elements.selectedSuggestionSummary.innerHTML = `<strong>${escapeHtml(tr("suggestionSelected"))} : ${escapeHtml(suggestion.title)}</strong><span>${escapeHtml(suggestion.adventure)}</span>`;
+  elements.selectedSuggestionSummary.innerHTML = `<strong>${escapeHtml(tr("suggestionSelected"))} : ${escapeHtml(suggestion.title)}</strong><span>${escapeHtml(suggestion.adventure)}</span><span><b>${escapeHtml(tr("intentionFirstStep"))} :</b> ${escapeHtml(suggestion.first_step || "")}</span><span><b>${escapeHtml(tr("intentionReward"))} :</b> ${escapeHtml(suggestion.reward || "")}</span>`;
 }
 
 function chooseStorySuggestion(id) {
@@ -1115,6 +1249,9 @@ function chooseStorySuggestion(id) {
   state.storySuggestionMode = "suggestion";
   document.querySelector("#story_seed_id").value = suggestion.id;
   document.querySelector("#story_seed_title").value = suggestion.title;
+  document.querySelector("#story_seed_first_step").value = suggestion.first_step;
+  document.querySelector("#story_seed_effort").value = suggestion.effort;
+  document.querySelector("#story_seed_reward").value = suggestion.reward;
   document.querySelector("#story_seed_adaptation").value = suggestion.adventure;
   document.querySelector("#story_seed_moment").value = suggestion.moment;
   document.querySelector("#story_seed_transformation").value = suggestion.transformation;
@@ -1130,10 +1267,13 @@ function chooseStorySuggestion(id) {
 }
 
 function chooseCustomStory() {
+  clearIntentionChoice({ preserveSituation: true });
+  state.storySuggestions = [];
   state.storySuggestionMode = "custom";
   resetStorySuggestionChoice({ preserveAnswers: true });
   state.storySuggestionMode = "custom";
   renderStorySuggestions();
+  renderStoryIntentions();
   renderSelectedSuggestionSummary();
   persistLocalDraft();
 }
@@ -1146,8 +1286,8 @@ function renderStorySuggestions() {
     ? `<strong>${escapeHtml(localizedUniverseName())}</strong><span>${escapeHtml(contract?.adventure || universe.storyContract?.adventureZone || "")}</span>`
     : "";
   elements.suggestionLoading.hidden = !state.storySuggestionsBusy;
-  elements.refreshStorySuggestions.disabled = state.storySuggestionsBusy;
-  elements.customStoryChoice.disabled = state.storySuggestionsBusy;
+  elements.refreshStorySuggestions.disabled = state.storySuggestionsBusy || !selectedStoryIntention();
+  elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy;
   elements.storySuggestionGrid.innerHTML = state.storySuggestions.map((suggestion) => `
     <article class="story-suggestion-card ${suggestion.id === selectedId ? "is-selected" : ""}">
       <span class="story-suggestion-lane">${escapeHtml(tr(`suggestionLane_${suggestion.id}`))}</span>
@@ -1155,6 +1295,9 @@ function renderStorySuggestions() {
       <dl>
         <div><dt>${escapeHtml(tr("suggestionDream"))}</dt><dd>${escapeHtml(suggestion.dream)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionChallenge"))}</dt><dd>${escapeHtml(suggestion.challenge)}</dd></div>
+        <div><dt>${escapeHtml(tr("intentionFirstStep"))}</dt><dd>${escapeHtml(suggestion.first_step)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionEffort"))}</dt><dd>${escapeHtml(suggestion.effort)}</dd></div>
+        <div><dt>${escapeHtml(tr("intentionReward"))}</dt><dd>${escapeHtml(suggestion.reward)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionAdventure"))}</dt><dd>${escapeHtml(suggestion.adventure)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionMoment"))}</dt><dd>${escapeHtml(suggestion.moment)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionTransformation"))}</dt><dd>${escapeHtml(suggestion.transformation)}</dd></div>
@@ -1173,13 +1316,15 @@ function renderStorySuggestions() {
 async function requestStorySuggestions({ refresh = false } = {}) {
   if (state.storySuggestionsBusy || !state.selectedUniverse) return;
   const values = formValues();
-  if (![values.hero_name, values.age, values.favorite_activities, values.personality].every((value) => String(value || "").trim())) return;
+  const intention = selectedStoryIntention();
+  if (!intention || ![values.hero_name, values.age, values.favorite_activities, values.personality, values.creator_situation].every((value) => String(value || "").trim())) return;
   if (state.storySuggestions.length && !refresh) {
     renderStorySuggestions();
     return;
   }
   state.storySuggestionsBusy = true;
   elements.suggestionChoiceStatus.textContent = "";
+  renderStoryIntentions();
   renderStorySuggestions();
   try {
     const response = await fetch("/api/story-suggestions", {
@@ -1190,6 +1335,8 @@ async function requestStorySuggestions({ refresh = false } = {}) {
         age: values.age,
         favoriteActivities: values.favorite_activities,
         personality: values.personality,
+        creatorSituation: values.creator_situation,
+        selectedIntention: intention,
         universeId: state.selectedUniverse,
         locale: state.locale,
       }),
@@ -1203,7 +1350,11 @@ async function requestStorySuggestions({ refresh = false } = {}) {
     elements.suggestionChoiceStatus.textContent = error.message || tr("suggestionError");
   } finally {
     state.storySuggestionsBusy = false;
+    renderStoryIntentions();
     renderStorySuggestions();
+    if (state.storySuggestions.length && selectedStoryIntention()) {
+      elements.adventureProposals.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 }
 
@@ -1225,10 +1376,12 @@ function renderUniverses() {
     const changed = state.selectedUniverse && state.selectedUniverse !== button.dataset.universeId;
     state.selectedUniverse = button.dataset.universeId;
     if (changed) {
+      clearIntentionChoice({ preserveSituation: true });
       state.storySuggestions = [];
       resetStorySuggestionChoice({ preserveAnswers: true });
     }
     renderUniverses();
+    renderStoryIntentions();
     renderStorySuggestions();
     emitWooConfiguration();
   }));
@@ -1353,8 +1506,9 @@ function localizedUniverseName() { const universe = UNIVERSE_TEXT[state.selected
 function renderReview() {
   const values = formValues(); const labels = ROLE_LABELS[state.locale];
   const chosenSuggestion = selectedStorySuggestion();
+  const chosenIntention = selectedStoryIntention();
   const inspiration = chosenSuggestion?.title || (state.storySuggestionMode === "custom" ? tr("suggestionCustomSelected") : "—");
-  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewInspiration"), inspiration], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
+  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewIntention"), chosenIntention?.title || tr("suggestionCustomSelected")], [tr("reviewInspiration"), inspiration], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewFirstStep"), values.story_seed_first_step || values.story_intent_first_step || "—"], [tr("reviewReward"), values.story_seed_reward || values.story_intent_reward || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
   elements.reviewCard.innerHTML = rows.map(([label, value]) => `<div class="review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
 }
 
@@ -1364,7 +1518,10 @@ function showStep(nextStep, shouldScroll = true) {
   document.querySelectorAll(".step").forEach((step, index) => { step.classList.toggle("is-active", index === state.step); step.classList.toggle("is-complete", index < state.step); });
   elements.prevButton.hidden = state.step === 0; elements.nextButton.hidden = state.step === REVIEW_STEP;
   elements.mobileStepLabel.textContent = tr("stepLabel", { current: state.step + 1 }); elements.mobileProgressBar.style.width = `${((state.step + 1) / STEP_COUNT) * 100}%`; elements.formError.textContent = "";
-  if (state.step === 2) requestStorySuggestions().catch(() => null);
+  if (state.step === 2) {
+    renderStoryIntentions();
+    renderStorySuggestions();
+  }
   if (state.step === REVIEW_STEP) renderReview();
   if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1376,6 +1533,7 @@ function questionnaireFromState() {
     ...productConfiguration(),
     universe_details: document.querySelector("#universe_details").value,
     universe_story_contract: universe?.storyContract || {},
+    story_intentions: state.storyIntentions,
     story_suggestions: state.storySuggestions,
   };
 }
@@ -1848,12 +2006,13 @@ function loadSeriesDraft(project) {
   state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
   state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
+  state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
   state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
   state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
   renderQuestions(questionnaire);
   restoreValues(questionnaire);
   document.querySelector("#language").value = questionnaire.book_language || configuration.book_language || project.locale || "FR";
-  renderUniverses(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
+  renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
   state.photos.forEach((photo) => { if (photo.file) URL.revokeObjectURL(photo.url); });
   state.photos = (project.photoRefs || []).map((photo) => ({
     file: null, storedRef: photo,
@@ -1935,7 +2094,7 @@ async function startGeneration(event) {
 
 function changeLocale(locale) {
   const values = state.config ? formValues() : {}; state.locale = ["FR", "ES", "EN"].includes(locale) ? locale : "FR"; localStorage.setItem("storybook-ui-language", state.locale); applyTranslations();
-  if (state.config) { renderQuestions(values); renderUniverses(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
+  if (state.config) { renderQuestions(values); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
 }
 
 async function init() {
@@ -1950,15 +2109,17 @@ async function init() {
     state.fontStyle = saved?.fontStyle || state.fontStyle;
     state.productType = availableProductType(saved?.productType || requestedProductType || state.productType);
     state.projectId = saved?.projectId || "";
+    state.storyIntentions = Array.isArray(saved?.storyIntentions) ? saved.storyIntentions : [];
     state.storySuggestions = Array.isArray(saved?.storySuggestions) ? saved.storySuggestions : [];
     state.storySuggestionMode = saved?.storySuggestionMode || "";
     changeLocale(saved?.locale || state.locale);
     if (saved?.values) restoreValues(saved.values);
+    renderStoryIntentions();
     renderStorySuggestions();
     renderSelectedSuggestionSummary();
     if (Number.isInteger(saved?.step)) {
       const legacyStepMap = [1, 3, 4, 5, 6];
-      const restoredStep = saved.flowVersion === FLOW_VERSION ? saved.step : legacyStepMap[saved.step] ?? 0;
+      const restoredStep = Number(saved.flowVersion || 0) >= 2 ? saved.step : legacyStepMap[saved.step] ?? 0;
       showStep(Math.max(0, Math.min(REVIEW_STEP, restoredStep)), false);
     }
     emitWooConfiguration();
@@ -1982,7 +2143,17 @@ elements.form.addEventListener("input", scheduleLocalDraft);
 elements.form.addEventListener("change", scheduleLocalDraft);
 elements.form.addEventListener("click", (event) => { if (event.target.closest("[data-style-id],[data-universe-id],[data-font-id],[data-product-type],[data-page-count]")) window.setTimeout(persistLocalDraft, 0); });
 elements.refreshStorySuggestions.addEventListener("click", () => requestStorySuggestions({ refresh: true }));
+elements.interpretIntentionButton.addEventListener("click", () => requestStoryIntentions());
 elements.customStoryChoice.addEventListener("click", chooseCustomStory);
+document.querySelector("#creator_situation").addEventListener("change", () => {
+  if (!state.storyIntentions.length && !selectedStoryIntention()) return;
+  clearIntentionChoice({ preserveSituation: true });
+  state.storySuggestions = [];
+  resetStorySuggestionChoice({ preserveAnswers: true });
+  renderStoryIntentions();
+  renderStorySuggestions();
+  persistLocalDraft();
+});
 elements.newBookButton.addEventListener("click", startNewBook);
 elements.resultNewBookButton.addEventListener("click", startNewBook);
 elements.redeemPromoButton.addEventListener("click", redeemPromotion);
