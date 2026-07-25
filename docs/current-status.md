@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/quality-review-resolution`
-- Latest merged checkpoint: PR #67 — customer-facing quality review, commerce lock, milestone e-mail and abandoned-lease recovery
-- Current focused checkpoint: make `preview_quality_review` actionable page by page and correct durable progress display
-- Pull request: draft PR #68; do not merge until the user confirms that no preview or quality repair is running
+- Current branch: `main` after PR #69 merge
+- Latest merged checkpoint: PR #69 — private quality-correction candidate with before/after creator choice
+- Current focused checkpoint: verify the candidate-choice flow on the preserved production quality-review pages
+- Pull request: PR #69 explicitly authorized for merge after the user confirmed that no preview or quality correction was running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #67 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
+PR #55 through PR #69 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
 
 ## Current product brick: durable preview stabilization
 
@@ -32,6 +32,7 @@ PR #55 through PR #67 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 9. Production project `370c9392-ce8a-4dda-bf1d-a6adee309c9c` completed with pages 15, 31 and 35 awaiting review. The first quality-review UI preserved the book but offered no resolution, so the customer could not continue.
 10. The focused resolution brick adds per-page navigation, explicit creator approval and one bounded free creator-requested repair. The credit is captured and commerce unlocks only after the last flagged page is resolved.
 11. While a Render-local job exists, the customer job endpoint now prefers its precise live image step. Durable fallback steps such as `page:31` are also recognized by the progress bar after a restart.
+12. The focused candidate-choice brick keeps a creator-requested repair separate from the current illustration, accepts one optional visual instruction, persists the private alternative, shows a before/after comparison and changes the book only after **Keep the original** or **Use the new one**.
 
 ## Verification completed locally
 
@@ -40,12 +41,12 @@ PR #55 through PR #67 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 - Focused durable-ledger, lease and idempotency tests: 2 passed, 0 failed.
 - Focused page-quarantine and bounded-repair tests: passed.
 - Focused expired-lease recovery and localized quality-review tests: passed.
-- Complete test suite after the quality-review resolution brick: 163 passed, 0 failed.
+- Complete test suite after the private candidate-choice brick: 166 passed, 0 failed.
 
 ## Next verification target
 
-1. After explicit confirmation that no repair is running, mark PR #68 ready and merge it.
-2. Resolve pages 15, 31 and 35 on the preserved production project.
+1. After Render deploys PR #69, verify the preserved production project pages 15, 31 and 35: generating an alternative must leave the current page unchanged across a refresh, and each explicit decision must unlock only the chosen page.
+2. Capture creator feedback on the usefulness of the optional instruction and the before/after comparison before changing the one-free-candidate limit.
 
 ## Protected local state
 
