@@ -52,6 +52,10 @@ test("scene QA discards wardrobe-only reports but keeps narrative and object-sta
     "La vallée des dinosaures est visible conformément à l'échelle et description, avec fougères géantes.",
     "Coq en or is not visible or suggested, so no issue.",
   ]), []);
+  assert.deepEqual(objectiveSceneContractIssues([
+    "Collier avec un tout petit cœur visible autour du cou of hero child is not visible.",
+    "The tiny necklace pendant is hidden by the child's pose.",
+  ]), []);
 });
 
 test("missing required cast and fused identities remain blocking after the final image attempt", () => {

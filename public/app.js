@@ -1456,8 +1456,9 @@ function updateBookMetrics() {
 function addPhotos(files) {
   const remaining = 5 - state.photos.length;
   [...files].filter((file) => file.type.startsWith("image/")).slice(0, remaining).forEach((file) => {
-    const role = state.photos.some((photo) => photo.role === "child") ? "friend" : "child";
-    state.photos.push({ file, url: URL.createObjectURL(file), role, storyRole: defaultStoryRole(role), name: "", relationship: "" });
+    const role = state.photos.some((photo) => photo.role === "child") ? "" : "child";
+    const storyRole = role === "child" ? "hero" : "";
+    state.photos.push({ file, url: URL.createObjectURL(file), role, storyRole, name: "", relationship: "" });
   });
   renderPhotos();
 }
@@ -1465,10 +1466,20 @@ function addPhotos(files) {
 function renderPhotos() {
   const labels = ROLE_LABELS[state.locale];
   elements.photoCount.textContent = state.photos.length;
-  elements.photoList.innerHTML = state.photos.map((photo, index) => `<article class="photo-item" data-photo-index="${index}"><img src="${photo.url}" alt="${escapeHtml(tr("photoPreview", { name: photo.file?.name || photo.name || "" }))}" /><div class="photo-meta"><select data-field="role">${["child", "mascot", "friend", "family", "other"].map((value) => `<option value="${value}" ${value === photo.role ? "selected" : ""}>${labels[value]}</option>`).join("")}</select><select data-field="storyRole">${["hero", "guide", "ally", "companion", "supporter", "guest"].map((value) => `<option value="${value}" ${value === photo.storyRole ? "selected" : ""} ${(photo.role === "child" && value !== "hero") || (photo.role !== "child" && value === "hero") ? "disabled" : ""}>${labels[value]}</option>`).join("")}</select><input data-field="name" value="${escapeHtml(photo.name)}" placeholder="${escapeHtml(tr("photoName"))}" /><input data-field="relationship" value="${escapeHtml(photo.relationship)}" placeholder="${escapeHtml(tr("relationship"))}" /></div><button type="button" class="remove-photo" aria-label="${escapeHtml(tr("removePhoto"))}">×</button></article>`).join("");
+  elements.photoList.innerHTML = state.photos.map((photo, index) => {
+    const roleOptions = ["child", "mascot", "friend", "family", "other"].map((value) => `<option value="${value}" ${value === photo.role ? "selected" : ""}>${labels[value]}</option>`).join("");
+    const storyRoleOptions = ["hero", "guide", "ally", "companion", "supporter", "guest"].map((value) => `<option value="${value}" ${value === photo.storyRole ? "selected" : ""} ${(photo.role === "child" && value !== "hero") || (photo.role !== "child" && value === "hero") ? "disabled" : ""}>${labels[value]}</option>`).join("");
+    return `<article class="photo-item" data-photo-index="${index}"><img src="${photo.url}" alt="${escapeHtml(tr("photoPreview", { name: photo.file?.name || photo.name || "" }))}" /><div class="photo-meta"><label class="photo-meta-field"><span>${escapeHtml(tr("photoRelationshipLabel"))}</span><select data-field="role" required aria-required="true"><option value="" ${photo.role ? "" : "selected"}>${escapeHtml(tr("photoRoleChoice"))}</option>${roleOptions}</select></label><label class="photo-meta-field"><span>${escapeHtml(tr("photoStoryRoleLabel"))}</span><select data-field="storyRole" ${photo.role === "child" ? "disabled" : 'required aria-required="true"'}><option value="" ${photo.storyRole ? "" : "selected"}>${escapeHtml(tr("photoStoryRoleChoice"))}</option>${storyRoleOptions}</select></label><input data-field="name" value="${escapeHtml(photo.name)}" placeholder="${escapeHtml(tr("photoName"))}" /><input data-field="relationship" value="${escapeHtml(photo.relationship)}" placeholder="${escapeHtml(tr("relationship"))}" ${["family", "other"].includes(photo.role) ? 'required aria-required="true"' : ""} /></div><button type="button" class="remove-photo" aria-label="${escapeHtml(tr("removePhoto"))}">×</button></article>`;
+  }).join("");
   elements.photoList.querySelectorAll(".photo-item").forEach((item) => {
     const index = Number(item.dataset.photoIndex);
-    item.querySelector('[data-field="role"]').addEventListener("change", (event) => { const previous = state.photos[index].role; state.photos[index].role = event.target.value; if (event.target.value === "child" || state.photos[index].storyRole === defaultStoryRole(previous)) state.photos[index].storyRole = defaultStoryRole(event.target.value); renderPhotos(); });
+    item.querySelector('[data-field="role"]').addEventListener("change", (event) => {
+      const previous = state.photos[index].role;
+      state.photos[index].role = event.target.value;
+      if (event.target.value === "child") state.photos[index].storyRole = "hero";
+      else if (previous === "child") state.photos[index].storyRole = "";
+      renderPhotos();
+    });
     item.querySelector('[data-field="storyRole"]').addEventListener("change", (event) => { state.photos[index].storyRole = event.target.value; });
     item.querySelector('[data-field="name"]').addEventListener("input", (event) => { state.photos[index].name = event.target.value; });
     item.querySelector('[data-field="relationship"]').addEventListener("input", (event) => { state.photos[index].relationship = event.target.value; });
@@ -1496,6 +1507,9 @@ function validateStep() {
   if (state.step === 5) {
     if (state.photos.filter((photo) => photo.role === "child").length > 1) { elements.formError.textContent = tr("invalidChildPhoto"); return false; }
     if (state.photos.some((photo) => !photo.name.trim())) { elements.formError.textContent = tr("invalidPhotoName"); return false; }
+    if (state.photos.some((photo) => !photo.role)) { elements.formError.textContent = tr("invalidPhotoRole"); return false; }
+    if (state.photos.some((photo) => !photo.storyRole)) { elements.formError.textContent = tr("invalidPhotoStoryRole"); return false; }
+    if (state.photos.some((photo) => ["family", "other"].includes(photo.role) && !photo.relationship.trim())) { elements.formError.textContent = tr("invalidPhotoRelationship"); return false; }
   }
   return true;
 }

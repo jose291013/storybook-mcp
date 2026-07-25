@@ -26,20 +26,64 @@ function characterDescriptor(character = {}) {
   ].filter(Boolean).join(" ");
 }
 
-function visualRole(character = {}, index = 0, heroName = "") {
+const ANIMAL_SPECIES = [
+  ["dog", /\b(dog|chien|chienne|chiot|puppy|perro|perrito)\b/u],
+  ["cat", /\b(cat|chat|chaton|kitten|gato|gatito)\b/u],
+  ["fox", /\b(fox|renard|zorro)\b/u],
+  ["bear", /\b(bear|ours|oso)\b/u],
+  ["rabbit", /\b(rabbit|bunny|lapin|conejo)\b/u],
+  ["bird", /\b(bird|oiseau|pajaro|ave)\b/u],
+  ["turtle", /\b(turtle|tortue|tortuga)\b/u],
+  ["dinosaur", /\b(dinosaur|dinosaure|dinosaurio)\b/u],
+  ["lion", /\b(lion|leon)\b/u],
+  ["tiger", /\b(tiger|tigre)\b/u],
+  ["horse", /\b(horse|cheval|caballo)\b/u],
+  ["unicorn", /\b(unicorn|licorne|unicornio)\b/u],
+  ["wolf", /\b(wolf|loup|lobo)\b/u],
+  ["otter", /\b(otter|loutre|nutria)\b/u],
+  ["panda", /\bpanda\b/u],
+  ["dragon", /\bdragon\b/u],
+  ["monkey", /\b(monkey|singe|mono)\b/u],
+  ["elephant", /\b(elephant|elefante)\b/u],
+  ["mouse", /\b(mouse|souris|raton)\b/u],
+  ["fish", /\b(fish|poisson|pez)\b/u],
+];
+
+function detectedAnimalSpecies(descriptor = "") {
+  return ANIMAL_SPECIES.find(([, pattern]) => pattern.test(descriptor))?.[0] || "";
+}
+
+function visualIdentity(character = {}, index = 0, heroName = "") {
   const role = normalizedKey(character.role);
   const descriptor = normalizedKey(characterDescriptor(character));
-  if (normalizedKey(character.name) === normalizedKey(heroName) || role === "child") return "hero child";
+  if (normalizedKey(character.name) === normalizedKey(heroName) || role === "child") {
+    return { alias: "hero child", entity_type: "human", species: "" };
+  }
+  // Explicit creator-supplied human roles and family relationships are
+  // authoritative. Incidental animal words in a shirt, hobby or scene
+  // description must never turn a sibling or friend into an animal.
+  if (role === "family" || /(family|famille|frere|soeur|brother|sister|sibling|parent|mother|father|maman|papa|hermano|hermana|madre|padre)/u.test(descriptor)) {
+    return { alias: `family member ${index + 1}`, entity_type: "human", species: "" };
+  }
+  if (role === "friend") {
+    return { alias: `human friend ${index + 1}`, entity_type: "human", species: "" };
+  }
   if (/(plush|peluche|teddy|ours en peluche|stuffed bear)/u.test(descriptor)) {
-    return `original unbranded plush-bear companion ${index + 1}`;
+    return {
+      alias: `original unbranded non-human plush bear toy companion ${index + 1}`,
+      entity_type: "plush_toy",
+      species: "bear",
+    };
   }
+  const species = detectedAnimalSpecies(descriptor);
   if (role === "mascot" || /(animal|chien|dog|chat|cat|fox|renard|ours|bear|mascotte)/u.test(descriptor)) {
-    return `original unbranded animal companion ${index + 1}`;
+    return {
+      alias: `original unbranded non-human ${species ? `${species} ` : ""}animal companion ${index + 1}`,
+      entity_type: "animal",
+      species,
+    };
   }
-  if (/(family|famille|frere|soeur|brother|sister|parent|mother|father|maman|papa)/u.test(`${role} ${descriptor}`)) {
-    return `family member ${index + 1}`;
-  }
-  return `recurring story companion ${index + 1}`;
+  return { alias: `recurring story companion ${index + 1}`, entity_type: "", species: "" };
 }
 
 export function buildImageCharacterAliases({ blueprint = {}, characterCanons = [], castPresent = [] } = {}) {
@@ -58,7 +102,7 @@ export function buildImageCharacterAliases({ blueprint = {}, characterCanons = [
   }
   return [...byName.values()].map((character, index) => ({
     name: String(character.name),
-    alias: visualRole(character, index, heroName),
+    ...visualIdentity(character, index, heroName),
   }));
 }
 
@@ -105,11 +149,16 @@ export function neutralizeImageText(value, aliases = []) {
 
 export function compactImageSceneContract(contract = {}, aliases = [], { safetyFallback = false } = {}) {
   const safe = (value) => neutralizeImageText(value, aliases).replace(/\s+/g, " ").trim();
-  const namedCharacters = list(contract.named_characters, 10).map((item) => ({
-    name: safe(item.name),
-    visual_role: safe(item.visual_role || "visible"),
-    action: safe(item.action || "present in the scene"),
-  }));
+  const namedCharacters = list(contract.named_characters, 10).map((item) => {
+    const identity = aliases.find((alias) => normalizedKey(alias?.name) === normalizedKey(item?.name));
+    return {
+      name: safe(item.name),
+      entity_type: safe(identity?.entity_type || item.entity_type),
+      species: safe(identity?.species || item.species),
+      visual_role: safe(item.visual_role || "visible"),
+      action: safe(item.action || "present in the scene"),
+    };
+  });
   const genericCharacters = list(contract.generic_characters, 12).map((item) => ({
     id: safe(item.id),
     description: safe(item.description),

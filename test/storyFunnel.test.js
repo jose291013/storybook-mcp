@@ -100,3 +100,20 @@ test("the creator exposes the seven-step universe-first intention funnel", async
   assert.match(auditPrompt, /decisive action instead of the child/);
   assert.match(auditPrompt, /merely decorative/);
 });
+
+test("secondary reference photos require an explicit relationship and narrative role", async () => {
+  const app = await fs.readFile("public/app.js", "utf8");
+
+  assert.match(app, /state\.photos\.some\(\(photo\) => photo\.role === "child"\) \? "" : "child"/);
+  assert.match(app, /const storyRole = role === "child" \? "hero" : ""/);
+  assert.match(app, /<option value=""[\s\S]*photoRoleChoice/);
+  assert.match(app, /state\.photos\.some\(\(photo\) => !photo\.role\)/);
+  assert.match(app, /state\.photos\.some\(\(photo\) => !photo\.storyRole\)/);
+  assert.match(app, /\["family", "other"\]\.includes\(photo\.role\) && !photo\.relationship\.trim\(\)/);
+
+  for (const locale of ["FR", "ES", "EN"]) {
+    for (const key of ["photoRelationshipLabel", "photoRoleChoice", "photoStoryRoleLabel", "photoStoryRoleChoice", "invalidPhotoRole", "invalidPhotoStoryRole", "invalidPhotoRelationship"]) {
+      assert.ok(UI_TEXT[locale][key], `${locale}.${key}`);
+    }
+  }
+});

@@ -239,7 +239,7 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .drop-zone small, .photo-count { color: var(--muted); font-size: 12px; }.photo-count { margin: 10px 0; text-align: right; }
 .photo-list { display: grid; gap: 11px; }.photo-item { display: grid; grid-template-columns: 74px 1fr auto; gap: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; align-items: center; }
 .photo-item img { width: 74px; height: 74px; object-fit: cover; border-radius: 10px; background: var(--cream); }
-.photo-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.photo-meta input, .photo-meta select { padding: 9px 10px; font-size: 13px; }
+.photo-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }.photo-meta input, .photo-meta select { padding: 9px 10px; font-size: 13px; }.photo-meta-field { display: grid; gap: 5px; }.photo-meta-field span { color: var(--muted); font-size: 12px; font-weight: 700; }
 .remove-photo { border: 0; color: #aa5550; background: #faece9; width: 32px; height: 32px; border-radius: 50%; }
 
 .review-card { display: grid; gap: 0; border: 1px solid var(--line); border-radius: 17px; overflow: hidden; margin-bottom: 20px; }
