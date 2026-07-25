@@ -90,18 +90,39 @@
 
             <section class="form-panel" data-panel="2">
               <p class="section-kicker" data-i18n="inspirationKicker">TROIS PISTES POUR VOUS INSPIRER</p>
-              <h2 data-i18n="inspirationTitle">Choisissez le cœur de son aventure</h2>
-              <p class="section-lead" data-i18n="inspirationLead">Calitiki relie l'univers choisi à ce que vous venez de nous dire sur l'enfant. Vous pourrez encore modifier chaque réponse.</p>
-              <div class="suggestion-universe-summary" id="suggestionUniverseSummary"></div>
-              <div class="suggestion-loading" id="suggestionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="suggestionLoading">Nous imaginons trois aventures vraiment différentes…</strong></div>
-              <div class="story-suggestion-grid" id="storySuggestionGrid"></div>
-              <div class="suggestion-actions">
-                <button type="button" class="toolbar-button" id="refreshStorySuggestions" data-i18n="refreshIdeas">Proposer trois autres idées</button>
-                <button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button>
-              </div>
-              <p class="suggestion-choice-status" id="suggestionChoiceStatus" aria-live="polite"></p>
+              <h2 data-i18n="inspirationTitle">Racontez-nous ce que vous souhaitez l'aider à vivre</h2>
+              <p class="section-lead" data-i18n="inspirationLead">Parlez simplement de la situation. Calitiki vous aidera à choisir une intention, puis une aventure.</p>
+              <section class="intention-assistant" id="intentionAssistant">
+                <label class="intention-situation"><span data-i18n="intentionQuestion">Que souhaitez-vous aider votre enfant à vivre, essayer ou surmonter ?</span><textarea id="creator_situation" name="creator_situation" maxlength="1600" data-i18n-placeholder="intentionPlaceholder" placeholder="Expliquez-le simplement, comme si vous en parliez à un proche."></textarea></label>
+                <div class="intention-example-list" id="intentionExampleList"></div>
+                <div class="intention-actions"><button type="button" class="primary-button" id="interpretIntentionButton" data-i18n="interpretIntention">Aidez-moi à clarifier mon intention</button><button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button></div>
+                <div class="suggestion-loading" id="intentionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="intentionLoading">Calitiki cherche trois manières positives d'aborder cette situation…</strong></div>
+                <div class="story-intention-grid" id="storyIntentionGrid"></div>
+                <p class="suggestion-choice-status" id="intentionChoiceStatus" aria-live="polite"></p>
+              </section>
+              <section class="adventure-proposals" id="adventureProposals" hidden>
+                <div class="suggestion-universe-summary" id="suggestionUniverseSummary"></div>
+                <h3 data-i18n="adventureProposalTitle">Choisissez maintenant la manière de vivre cette intention</h3>
+                <p data-i18n="adventureProposalLead">Ces trois aventures suivent l'approche que vous venez de valider.</p>
+                <div class="suggestion-loading" id="suggestionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="suggestionLoading">Nous imaginons trois aventures vraiment différentes…</strong></div>
+                <div class="story-suggestion-grid" id="storySuggestionGrid"></div>
+                <div class="suggestion-actions"><button type="button" class="toolbar-button" id="refreshStorySuggestions" data-i18n="refreshIdeas">Proposer trois autres idées</button></div>
+                <p class="suggestion-choice-status" id="suggestionChoiceStatus" aria-live="polite"></p>
+              </section>
+              <input type="hidden" id="story_intent_id" name="story_intent_id" />
+              <input type="hidden" id="story_intent_title" name="story_intent_title" />
+              <input type="hidden" id="story_intent_understanding" name="story_intent_understanding" />
+              <input type="hidden" id="story_intent_desired_change" name="story_intent_desired_change" />
+              <input type="hidden" id="story_intent_protective_doubt" name="story_intent_protective_doubt" />
+              <input type="hidden" id="story_intent_first_step" name="story_intent_first_step" />
+              <input type="hidden" id="story_intent_motivation" name="story_intent_motivation" />
+              <input type="hidden" id="story_intent_reward" name="story_intent_reward" />
+              <input type="hidden" id="story_intent_message" name="story_intent_message" />
               <input type="hidden" id="story_seed_id" name="story_seed_id" />
               <input type="hidden" id="story_seed_title" name="story_seed_title" />
+              <input type="hidden" id="story_seed_first_step" name="story_seed_first_step" />
+              <input type="hidden" id="story_seed_effort" name="story_seed_effort" />
+              <input type="hidden" id="story_seed_reward" name="story_seed_reward" />
               <input type="hidden" id="story_seed_adaptation" name="story_seed_adaptation" />
               <input type="hidden" id="story_seed_moment" name="story_seed_moment" />
               <input type="hidden" id="story_seed_transformation" name="story_seed_transformation" />

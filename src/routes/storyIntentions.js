@@ -1,7 +1,6 @@
 import express from "express";
 import { findUniverse } from "../config/bookOptions.js";
-import { normalizeStoryIntentions } from "../services/storyIntentions.js";
-import { createStorySuggestions } from "../services/storySuggestions.js";
+import { createStoryIntentions } from "../services/storyIntentions.js";
 
 const router = express.Router();
 const attemptsByIp = new Map();
@@ -17,42 +16,38 @@ function consumeAttempt(ip) {
   return true;
 }
 
-router.post("/story-suggestions", async (req, res) => {
+router.post("/story-intentions", async (req, res) => {
   const body = req.body || {};
   const heroName = String(body.heroName || "").trim().slice(0, 120);
   const age = String(body.age || "").trim().slice(0, 20);
   const favoriteActivities = String(body.favoriteActivities || "").trim().slice(0, 800);
   const personality = String(body.personality || "").trim().slice(0, 800);
   const creatorSituation = String(body.creatorSituation || "").trim().slice(0, 1600);
-  const selectedIntention = body.selectedIntention && typeof body.selectedIntention === "object"
-    ? normalizeStoryIntentions({ intentions: [body.selectedIntention] })[0]
-    : null;
   const locale = ["FR", "ES", "EN"].includes(body.locale) ? body.locale : "FR";
   const universe = findUniverse(String(body.universeId || ""));
 
-  if (!heroName || !age || !favoriteActivities || !personality || !creatorSituation || !selectedIntention?.id) {
-    return res.status(400).json({ error: "Confirm the parent intention before requesting story suggestions" });
+  if (!heroName || !age || !favoriteActivities || !personality || !creatorSituation) {
+    return res.status(400).json({ error: "Complete the child information and describe the situation before requesting help" });
   }
-  if (!consumeAttempt(req.ip || "unknown")) return res.status(429).json({ error: "Too many inspiration requests" });
+  if (!consumeAttempt(req.ip || "unknown")) return res.status(429).json({ error: "Too many intention requests" });
 
   try {
-    const suggestions = await createStorySuggestions({
+    const intentions = await createStoryIntentions({
       heroName,
       age,
       favoriteActivities,
       personality,
       creatorSituation,
-      selectedIntention,
       locale,
       universeId: universe.id,
       universe: universe.name,
       universeStoryContract: universe.storyContract,
     });
     res.set("Cache-Control", "no-store");
-    res.json({ suggestions, universeId: universe.id });
+    res.json({ intentions, universeId: universe.id });
   } catch (error) {
-    console.error("story-suggestions failed", error);
-    res.status(502).json({ error: "Story suggestions are temporarily unavailable" });
+    console.error("story-intentions failed", error);
+    res.status(502).json({ error: "Story intentions are temporarily unavailable" });
   }
 });
 

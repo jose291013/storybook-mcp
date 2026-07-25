@@ -25,9 +25,16 @@ export async function intakeAgent(rawAnswers) {
   result.intake.universe_story_contract = rawAnswers?.universe_story_contract || {};
   result.intake.story_seed_id = rawAnswers?.story_seed_id;
   result.intake.story_seed_title = rawAnswers?.story_seed_title;
+  result.intake.story_seed_first_step = rawAnswers?.story_seed_first_step;
+  result.intake.story_seed_effort = rawAnswers?.story_seed_effort;
+  result.intake.story_seed_reward = rawAnswers?.story_seed_reward;
   result.intake.story_seed_adaptation = rawAnswers?.story_seed_adaptation;
   result.intake.story_seed_moment = rawAnswers?.story_seed_moment;
   result.intake.story_seed_transformation = rawAnswers?.story_seed_transformation;
+  result.intake.creator_situation = rawAnswers?.creator_situation;
+  for (const key of ["id", "title", "understanding", "desired_change", "protective_doubt", "first_step", "motivation", "reward", "message"]) {
+    result.intake[`story_intent_${key}`] = rawAnswers?.[`story_intent_${key}`];
+  }
   result.intake.style_id = rawAnswers?.style_id;
   result.intake.style_instructions = rawAnswers?.style_instructions;
   result.intake.rendering_mode = rawAnswers?.rendering_mode;

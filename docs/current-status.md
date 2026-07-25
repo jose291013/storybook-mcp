@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,39 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/deterministic-scenario-cast-guard`
-- Latest merged checkpoint: PR #58 — targeted reader-text repair and policy-5 recovery (`26495da`)
-- Current focused checkpoint: deterministic cast guard after targeted reader-text repair
-- Pull request: draft PR #59 — `Bloquer tout personnage absent après réparation`; never merge without confirming that no generation is active
+- Current branch: `codex/calitiki-intention-assistant`
+- Latest merged checkpoint: PR #59 — deterministic absent-cast guard and policy-6 recovery (`3ec0b44`)
+- Current focused checkpoint: parent-intention assistant before story inspiration
+- Pull request: draft PR #60; never merge without confirming that no generation is active
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #58 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
+PR #55 through PR #59 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
 
-Project `7039d6f6-e411-44fb-ab7a-38d5aac28568` exhausted its policy-5 retry at `story:scenario-fidelity-targeted-recheck`: the targeted repair removed Tyam from scene 5 but replaced him with Santi, who is also absent from the approved scene. Its questionnaire, approved scenario and draft text remain checkpointed.
+## Current product brick: parent-intention assistant
 
-## Current product brick: deterministic absent-cast guard
-
-1. Every targeted repair receives the exhaustive canonical-character names absent from its approved scene.
-2. The repair prompt forbids every such name and explicitly forbids substituting one absent character for another.
-3. A local deterministic barrier removes any remaining sentence naming an absent character. If every generated sentence is contaminated, the page falls back to the approved scene action.
-4. The same semantic and deterministic audits still run afterward.
-5. Preview retry policy 6 makes projects exhausted under policy 5 eligible for one explicit no-charge recovery while reusing their checkpointed work.
+1. The seven-step, universe-first funnel remains stable.
+2. The former inspiration panel now asks the parent to describe one situation in ordinary words or select a concrete example.
+3. A dedicated no-credit call proposes exactly three positive, non-diagnostic interpretations. The parent confirms one before any adventure call.
+4. The confirmed intention locks the desired change, protective doubt, first small step, motivation, reward and inner message.
+5. Only then does Calitiki propose the three teamwork, discovery and creation adventures. Each proposal carries progressive attempts and a reward caused by the child's own decision.
+6. Legacy drafts can still use **I already have my own idea** and retain their historical dream/challenge/message fields.
 
 ## Verification completed locally
 
 - Server syntax check passes.
-- Focused scenario and checkpoint tests: 28 passed, 0 failed.
-- Full `npm.cmd test`: 144 passed, 0 failed.
+- Focused intention-funnel tests: 6 passed, 0 failed.
+- Full `npm.cmd test`: 146 passed, 0 failed.
+- Browser smoke test: the French seven-step funnel reaches the intention screen, renders four examples, then a mocked no-cost flow renders three intention cards and three matching adventure cards with no console error. FR/ES/EN intention copy is covered by the focused suite.
 
 ## Next verification target
 
-1. Run the full suite and publish this focused change as a draft PR.
-2. Before merging, warn that Render may restart and confirm that no preview or targeted modification is generating.
-3. After deployment, reopen project `7039d6f6-e411-44fb-ab7a-38d5aac28568`; policy 6 must expose one free retry.
-4. Confirm scene 5 contains neither Tyam nor Santi, then logs reach `story scene plan completed` before cover generation.
+1. Before merging draft PR #60, warn that Render may restart and confirm that no preview or targeted modification is generating.
+2. After deployment, confirm that selecting an intention launches exactly one set of three matching adventures and that the approved scenario preserves the first step, attempts and reward.
 
 ## Protected local state
 

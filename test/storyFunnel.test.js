@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 import { normalizeStorySuggestions } from "../src/services/storySuggestions.js";
+import { normalizeStoryIntentions } from "../src/services/storyIntentions.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
+import { UI_TEXT } from "../public/i18n.js";
 
 test("every universe has a likeness example and a causal story contract", async () => {
   assert.equal(UNIVERSE_OPTIONS.length, 6);
@@ -21,12 +23,30 @@ test("every universe has a likeness example and a causal story contract", async 
 
 test("story suggestions require all three distinct inspiration lanes", () => {
   const complete = normalizeStorySuggestions({ suggestions: [
-    { id: "creation", title: "C", dream: "d", challenge: "c", adventure: "a", moment: "m", transformation: "t" },
-    { id: "teamwork", title: "T", dream: "d", challenge: "c", adventure: "a", moment: "m", transformation: "t" },
-    { id: "discovery", title: "D", dream: "d", challenge: "c", adventure: "a", moment: "m", transformation: "t" },
+    { id: "creation", title: "C", dream: "d", challenge: "c", first_step: "f", effort: "e", reward: "r", adventure: "a", moment: "m", transformation: "t" },
+    { id: "teamwork", title: "T", dream: "d", challenge: "c", first_step: "f", effort: "e", reward: "r", adventure: "a", moment: "m", transformation: "t" },
+    { id: "discovery", title: "D", dream: "d", challenge: "c", first_step: "f", effort: "e", reward: "r", adventure: "a", moment: "m", transformation: "t" },
   ] });
   assert.deepEqual(complete.map((suggestion) => suggestion.id), ["teamwork", "discovery", "creation"]);
   assert.equal(normalizeStorySuggestions({ suggestions: complete.slice(0, 2) }).length, 2);
+});
+
+test("parent situation is normalized into exactly three intention approaches", () => {
+  const complete = normalizeStoryIntentions({ intentions: [
+    { id: "approach_3", title: "C", understanding: "u", desired_change: "d", protective_doubt: "p", first_step: "f", motivation: "m", reward: "r", message: "x" },
+    { id: "approach_1", title: "A", understanding: "u", desired_change: "d", protective_doubt: "p", first_step: "f", motivation: "m", reward: "r", message: "x" },
+    { id: "approach_2", title: "B", understanding: "u", desired_change: "d", protective_doubt: "p", first_step: "f", motivation: "m", reward: "r", message: "x" },
+  ] });
+  assert.deepEqual(complete.map((intention) => intention.id), ["approach_1", "approach_2", "approach_3"]);
+  assert.equal(normalizeStoryIntentions({ intentions: complete.slice(0, 2) }).length, 2);
+});
+
+test("the intention assistant is fully localized in French, Spanish and English", () => {
+  for (const locale of ["FR", "ES", "EN"]) {
+    for (const key of ["intentionQuestion", "interpretIntention", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
+      assert.ok(UI_TEXT[locale][key], `${locale}.${key}`);
+    }
+  }
 });
 
 test("normalized intake locks the selected universe contract and story seed", () => {
@@ -36,32 +56,47 @@ test("normalized intake locks the selected universe contract and story seed", ()
     universe_id: "coral_ocean",
     story_seed_id: "discovery",
     story_seed_title: "Le jardin des voix",
+    story_seed_first_step: "Écouter une note.",
+    story_seed_effort: "Lina essaie, hésite et recommence.",
+    story_seed_reward: "Elle rejoint le concert du récif.",
     story_seed_adaptation: "Lina suit une mélodie dans le récif.",
     story_seed_moment: "Elle ouvre le passage.",
     story_seed_transformation: "Elle ose demander de l'aide.",
+    creator_situation: "Lina n'ose pas demander de l'aide.",
+    story_intent_id: "approach_1",
+    story_intent_title: "Oser demander",
+    story_intent_first_step: "Dire un mot à une personne de confiance.",
+    story_intent_reward: "Se sentir entourée.",
   } });
   assert.equal(normalized.answers.story_seed_id, "discovery");
   assert.equal(normalized.answers.story_seed_title, "Le jardin des voix");
+  assert.equal(normalized.answers.story_intent_id, "approach_1");
+  assert.equal(normalized.answers.story_seed_reward, "Elle rejoint le concert du récif.");
   assert.match(normalized.answers.universe_story_contract.id, /coral_ocean/);
   assert.ok(normalized.answers.universe_story_contract.requiredMechanisms.length);
 });
 
-test("the creator exposes the seven-step universe-first funnel", async () => {
-  const [html, app, route, auditPrompt] = await Promise.all([
+test("the creator exposes the seven-step universe-first intention funnel", async () => {
+  const [html, app, intentionRoute, suggestionRoute, auditPrompt] = await Promise.all([
     fs.readFile("public/index.html", "utf8"),
     fs.readFile("public/app.js", "utf8"),
+    fs.readFile("src/routes/storyIntentions.js", "utf8"),
     fs.readFile("src/routes/storySuggestions.js", "utf8"),
     fs.readFile("src/prompts/story_scenario_audit.txt", "utf8"),
   ]);
   assert.equal((html.match(/data-panel="/g) || []).length, 7);
   assert.match(html, /data-panel="0"[\s\S]*id="universeGrid"/);
-  assert.match(html, /data-panel="2"[\s\S]*id="storySuggestionGrid"/);
+  assert.match(html, /data-panel="2"[\s\S]*id="creator_situation"[\s\S]*id="storyIntentionGrid"[\s\S]*id="storySuggestionGrid"/);
   assert.match(html, /id="scenarioWorldContract"/);
   assert.match(app, /const STEP_COUNT = 7/);
-  assert.match(app, /requestStorySuggestions/);
+  assert.match(app, /requestStoryIntentions/);
+  assert.match(app, /selectedIntention: intention/);
   assert.match(app, /universe_story_contract/);
   assert.match(app, /const message = document\.querySelector\("#message"\);[\s\S]*message\.value = suggestion\.transformation/);
-  assert.match(route, /MAX_ATTEMPTS = 6/);
+  assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
+  assert.match(suggestionRoute, /selectedIntention/);
   assert.match(auditPrompt, /universe_story_contract/);
+  assert.match(auditPrompt, /confirmed story intention/);
+  assert.match(auditPrompt, /decisive action instead of the child/);
   assert.match(auditPrompt, /merely decorative/);
 });
