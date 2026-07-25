@@ -25,6 +25,7 @@ import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
 import { interactiveReaderInstallManifest } from "./services/interactiveReaderInstallManifest.js";
 import { startProjectDeletionCleanupWorker } from "./services/projectDeletion.js";
 import { generationRunStore } from "./services/generationRunStore.js";
+import { startGenerationRecoveryWorker } from "./services/generationRecoveryWorker.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
@@ -74,6 +75,7 @@ await projectStore.initialize();
 await generationRunStore.initialize();
 await familyShareStore.initialize();
 startProjectDeletionCleanupWorker();
+startGenerationRecoveryWorker();
 app.listen(port, () => {
   logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
   console.log(`✅ Server listening on port ${port}`);

@@ -70,7 +70,7 @@ export async function notifyPreviewMilestone({
   eventId,
   retryAvailable = false,
 }) {
-  if (!["cover_ready", "generation_failed"].includes(event)) {
+  if (!["cover_ready", "generation_failed", "quality_review_required"].includes(event)) {
     throw new Error("Unsupported preview notification event");
   }
   return postNotification({

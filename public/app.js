@@ -105,6 +105,7 @@ const elements = {
   generationPanel: document.querySelector("#generationPanel"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
+  qualityReviewNotice: document.querySelector("#qualityReviewNotice"), qualityReviewKicker: document.querySelector("#qualityReviewKicker"), qualityReviewTitle: document.querySelector("#qualityReviewTitle"), qualityReviewMessage: document.querySelector("#qualityReviewMessage"), qualityReviewPages: document.querySelector("#qualityReviewPages"), qualityReviewSupport: document.querySelector("#qualityReviewSupport"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
@@ -164,6 +165,33 @@ const VISUAL_PROOF_TEXT = {
   FR: { kicker: "PREUVE VISUELLE", title: "Vérifiez le visage et le rendu avant les autres illustrations", lead: "Cette couverture utilise votre style et vos références. Le reste du livre ne sera illustré qu'après votre validation.", checks: ["Le personnage est-il reconnaissable ?", "Le niveau de réalisme correspond-il à votre choix ?", "La technique vous convient-elle pour tout le livre ?"], approve: "Valider et illustrer le livre", regenerate: "Réessayer cette couverture", note: "Un nouvel essai de couverture est inclus. Il ne consomme pas un second crédit.", limit: "Le nouvel essai inclus a été utilisé. Validez cette couverture ou contactez Calitiki avant de poursuivre.", working: "Calitiki prépare votre demande…", alt: "Couverture d'essai à valider" },
   ES: { kicker: "PRUEBA VISUAL", title: "Comprueba el rostro y el acabado antes de las demás ilustraciones", lead: "Esta portada utiliza tu estilo y tus referencias. El resto del libro solo se ilustrará después de tu aprobación.", checks: ["¿El personaje es reconocible?", "¿El nivel de realismo corresponde a tu elección?", "¿Te gusta esta técnica para todo el libro?"], approve: "Aprobar e ilustrar el libro", regenerate: "Reintentar esta portada", note: "Se incluye un nuevo intento de portada. No consume un segundo crédito.", limit: "Ya se ha utilizado el nuevo intento incluido. Aprueba esta portada o contacta con Calitiki.", working: "Calitiki está preparando tu solicitud…", alt: "Portada de prueba para aprobar" },
   EN: { kicker: "VISUAL PROOF", title: "Check the face and rendering before the remaining illustrations", lead: "This cover uses your selected style and references. The rest of the book will only be illustrated after your approval.", checks: ["Is the character recognizable?", "Does the realism level match your choice?", "Would you like this medium across the whole book?"], approve: "Approve and illustrate the book", regenerate: "Retry this cover", note: "One additional cover proof is included. It does not use a second credit.", limit: "The included retry has been used. Approve this cover or contact Calitiki before continuing.", working: "Calitiki is preparing your request…", alt: "Cover proof awaiting approval" },
+};
+
+const QUALITY_REVIEW_TEXT = {
+  FR: {
+    kicker: "VÉRIFICATION DE QUALITÉ",
+    title: "Votre livre est conservé, quelques illustrations doivent encore être vérifiées",
+    message: "Toutes les pages ont été créées. Calitiki a isolé les illustrations ci-dessous au lieu d’interrompre ou de recommencer votre livre.",
+    page: "Page {page} · vérification en cours",
+    support: "Aucun achat n’est possible tant que ces pages ne sont pas validées. Votre crédit reste réservé, il n’est pas débité une seconde fois.",
+    badge: "Illustration en vérification",
+  },
+  ES: {
+    kicker: "CONTROL DE CALIDAD",
+    title: "Tu libro está guardado; aún debemos revisar algunas ilustraciones",
+    message: "Todas las páginas han sido creadas. Calitiki ha aislado las ilustraciones indicadas en lugar de interrumpir o reiniciar el libro.",
+    page: "Página {page} · revisión en curso",
+    support: "No se puede comprar el libro hasta validar estas páginas. Tu crédito sigue reservado y no se cobrará una segunda vez.",
+    badge: "Ilustración en revisión",
+  },
+  EN: {
+    kicker: "QUALITY REVIEW",
+    title: "Your book is safely saved; a few illustrations still need review",
+    message: "Every page has been created. Calitiki isolated the illustrations below instead of interrupting or rebuilding your book.",
+    page: "Page {page} · review in progress",
+    support: "Purchase remains unavailable until these pages are approved. Your credit stays reserved and will not be charged a second time.",
+    badge: "Illustration under review",
+  },
 };
 
 const GENERATION_STAGE_TEXT = {
@@ -716,14 +744,25 @@ async function redeemPromotion() {
   finally { elements.redeemPromoButton.disabled = false; }
 }
 
-async function renderPreviewActionCenter({ locked = false } = {}) {
+async function renderPreviewActionCenter({ locked = false, qualityReview = false } = {}) {
+  if (qualityReview) {
+    elements.previewActionCenter.hidden = true;
+    return;
+  }
   const summary = await refreshCreditSummary().catch(() => null);
   elements.previewActionCenter.hidden = false;
-  elements.actionReadInteractive.href = `/interactive-reader/?project=${encodeURIComponent(state.projectId)}`;
+  if (locked) {
+    elements.actionReadInteractive.removeAttribute("href");
+    elements.actionReadInteractive.setAttribute("aria-disabled", "true");
+  } else {
+    elements.actionReadInteractive.href = `/interactive-reader/?project=${encodeURIComponent(state.projectId)}`;
+    elements.actionReadInteractive.removeAttribute("aria-disabled");
+  }
   elements.actionRecoverReferences.hidden = !state.referenceRecoveryAvailable;
   elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
   setCreditPurchaseLink(elements.actionBuyCredits, summary?.buyCreditsUrl, "action_center");
   elements.actionBuyEbook.disabled = locked;
+  elements.actionRequestChange.disabled = locked;
   elements.actionBuyPrint.disabled = locked || !isProductAvailable("print");
   elements.actionBuyPrint.textContent = isProductAvailable("print") ? tr("buyPrint") : tr("printComingSoonAction");
 }
@@ -1625,7 +1664,7 @@ async function pollJob(jobId) {
     if (!response.ok) throw new TechnicalGenerationError(tr("generationFailed"), "preview_interrupted");
     elements.generationBar.style.width = `${generationProgress(job.step)}%`;
     elements.generationStep.textContent = friendlyStep(job.step);
-    if (["done", "awaiting_visual_approval"].includes(job.status)) return job;
+    if (["done", "awaiting_visual_approval", "quality_review_required"].includes(job.status)) return job;
     if (job.status === "failed") throw new TechnicalGenerationError(tr("generationFailed"));
     await new Promise((resolve) => setTimeout(resolve, 2200));
   }
@@ -1648,7 +1687,11 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     if (closing) frames.push([closing]);
     return frames;
   };
-  const pageMarkup = (page) => `<figure class="reader-page ${page.isCover ? "reader-cover" : ""}"><img src="${escapeHtml(page.previewUrl)}" alt="${escapeHtml(page.isCover ? tr("readerCover") : tr("readerPage", { page: page.page_number }))}" draggable="false" /><span>${page.isCover ? escapeHtml(tr("readerCover")) : escapeHtml(tr("readerPage", { page: page.page_number }))}</span><em>${escapeHtml(tr("previewWatermark"))}</em></figure>`;
+  const pageMarkup = (page) => {
+    const qualityReview = page.qualityStatus === "review_required";
+    const reviewCopy = QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR;
+    return `<figure class="reader-page ${page.isCover ? "reader-cover" : ""} ${qualityReview ? "is-quality-review" : ""}"><img src="${escapeHtml(page.previewUrl)}" alt="${escapeHtml(page.isCover ? tr("readerCover") : tr("readerPage", { page: page.page_number }))}" draggable="false" /><span>${page.isCover ? escapeHtml(tr("readerCover")) : escapeHtml(tr("readerPage", { page: page.page_number }))}</span><em>${escapeHtml(tr("previewWatermark"))}</em>${qualityReview ? `<strong class="reader-quality-badge">${escapeHtml(reviewCopy.badge)}</strong>` : ""}</figure>`;
+  };
 
   elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div><div class="reader-curl" id="readerCurl" aria-hidden="true"><div class="reader-curl-face reader-curl-front" id="readerCurlFront"></div><div class="reader-curl-face reader-curl-back" id="readerCurlBack"></div></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><button type="button" class="reader-repair" id="repairCurrentIllustration" hidden></button><p class="reader-repair-feedback" id="readerRepairFeedback" aria-live="polite"></p><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
 
@@ -1847,14 +1890,38 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   elements.generationFailurePanel.hidden = true;
   elements.visualProofPanel.hidden = true;
   elements.resultSection.hidden = false;
+  elements.qualityReviewNotice.hidden = true;
   state.referenceRecoveryAvailable = Boolean(job.referenceRecoveryAvailable);
   state.currentPreview = job;
   renderBook(job, { initialPageNumber });
   setPreviewComplete(true);
-  renderPreviewActionCenter({ locked: job.projectStatus === "preview_repairing" })
+  renderPreviewActionCenter({
+    locked: ["preview_repairing", "preview_quality_review"].includes(job.projectStatus),
+    qualityReview: job.projectStatus === "preview_quality_review",
+  })
     .then(() => refreshLatestModification())
     .catch(() => null);
   if (scroll) elements.resultSection.scrollIntoView({ behavior: "smooth" });
+}
+
+function showQualityReview(job, { scroll = true } = {}) {
+  const copy = QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR;
+  const pages = job?.qualityReview?.pages
+    || job?.continuitySnapshot?.generationCheckpoint?.qualityReview?.pages
+    || job?.result?.draftPages
+      ?.filter((page) => page.qualityStatus === "review_required")
+      .map((page) => ({ pageNumber: page.page_number }))
+    || [];
+  showCompletedPreview({ ...job, projectStatus: "preview_quality_review" }, { scroll: false });
+  elements.qualityReviewKicker.textContent = copy.kicker;
+  elements.qualityReviewTitle.textContent = copy.title;
+  elements.qualityReviewMessage.textContent = copy.message;
+  elements.qualityReviewPages.innerHTML = pages
+    .map((page) => `<li>${escapeHtml(copy.page.replace("{page}", String(page.pageNumber)))}</li>`)
+    .join("");
+  elements.qualityReviewSupport.textContent = copy.support;
+  elements.qualityReviewNotice.hidden = false;
+  if (scroll) elements.qualityReviewNotice.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function showVisualProof(job, { scroll = true, attempts = 1 } = {}) {
@@ -1893,6 +1960,10 @@ async function generatePreviewForProject(projectId, visualProofAction = "") {
   const job = await pollJob(payload.jobId);
   if (job.status === "awaiting_visual_approval") {
     showVisualProof(job, { attempts: job.visualProof?.attempts || 1 });
+    return;
+  }
+  if (job.status === "quality_review_required") {
+    showQualityReview(job);
     return;
   }
   elements.generationBar.style.width = "100%";
@@ -1951,7 +2022,8 @@ async function restoreCompletedPreview() {
       if (jobResponse.ok) {
         const job = await pollJob(project.generationJobId);
         elements.generationBar.style.width = "100%";
-        showCompletedPreview(job, { scroll: false });
+        if (job.status === "quality_review_required") showQualityReview(job, { scroll: false });
+        else showCompletedPreview(job, { scroll: false });
       } else {
         await fetch(`/api/projects/${encodeURIComponent(project.id)}/preview-recover`, { method: "POST" });
         await showGenerationFailure();
@@ -1959,6 +2031,15 @@ async function restoreCompletedPreview() {
     } catch (error) {
       await showGenerationFailure();
     }
+    return true;
+  }
+  if (project?.status === "preview_quality_review" && project.previewResult) {
+    showQualityReview({
+      result: project.previewResult,
+      final_blueprint: project.finalBlueprint,
+      projectStatus: project.status,
+      qualityReview: project.continuitySnapshot?.generationCheckpoint?.qualityReview,
+    }, { scroll: false });
     return true;
   }
   if (project?.status === "preview_failed") {

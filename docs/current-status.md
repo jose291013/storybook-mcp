@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/page-quarantine-repair-sweep`
-- Latest merged checkpoint: PR #65 — preview runs, steps, leases and image candidates are persisted (`bd55c33`)
-- Current focused checkpoint: quarantine an unresolved page and repair it after every unaffected page is complete
+- Current branch: `codex/quality-review-experience`
+- Latest merged checkpoint: PR #66 — unresolved pages are quarantined and receive one bounded repair sweep (`1f7999b`)
+- Current focused checkpoint: customer-facing quality review, commerce lock, milestone e-mail and abandoned-lease recovery
 - Pull request: not published yet; the user confirmed that no preview is generating and authorized the complete stabilization sequence
-- WordPress Bridge source/package: `0.6.9`
+- WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #65 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
+PR #55 through PR #66 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
 
 ## Current product brick: durable preview stabilization
 
@@ -27,6 +27,8 @@ PR #55 through PR #65 are merged. Bridge 0.6.9 remains the required WordPress pa
 4. PR #65 adds PostgreSQL generation runs, idempotent steps, expiring worker leases and preserved candidate records. The customer job endpoint can recover its status after the Render-local job file disappears.
 5. The focused page-isolation brick copies every candidate to private storage before its verdict, quarantines an unresolved page, finishes every unaffected page and launches one targeted repair candidate at the end.
 6. A successful repair completes the preview normally. A still unresolved page produces `preview_quality_review` with all work preserved and no credit captured, rather than `preview_failed`.
+7. The focused experience brick shows those pages in a localized review notice, disables interactive reading, modifications and checkout, and sends one idempotent milestone e-mail through Bridge 0.7.0.
+8. A startup/polling recovery worker converts an expired Render lease into a free resumable interruption, releases its reservation and prevents a permanently frozen progress screen.
 
 ## Verification completed locally
 
@@ -34,11 +36,12 @@ PR #55 through PR #65 are merged. Bridge 0.6.9 remains the required WordPress pa
 - Focused image quality policy tests: 8 passed, 0 failed.
 - Focused durable-ledger, lease and idempotency tests: 2 passed, 0 failed.
 - Focused page-quarantine and bounded-repair tests: passed.
+- Focused expired-lease recovery and localized quality-review tests: passed.
 
 ## Next verification target
 
-1. Run the complete test suite, publish and merge the page-isolation PR.
-2. Add the customer-facing quality-review state, purchasing lock and milestone notification.
+1. Run the complete test suite, publish and merge the quality-review/recovery PR.
+2. Install Calitiki Bridge 0.7.0 in WordPress before testing the new quality-review e-mail.
 
 ## Protected local state
 
