@@ -77,6 +77,15 @@ export function isImageSafetyRejection(error) {
   return /(rejected by the safety system|safety system|safety rejection)/iu.test(String(error?.message || error || ""));
 }
 
+export function isTransientImageGenerationError(error) {
+  const status = Number(error?.status || error?.statusCode || error?.response?.status || 0);
+  if ([408, 409, 425, 429, 500, 502, 503, 504].includes(status)) return true;
+  const code = String(error?.code || error?.cause?.code || "").trim();
+  if (/^(?:ETIMEDOUT|ECONNRESET|ECONNABORTED|ECONNREFUSED|EAI_AGAIN|ENETUNREACH)$/iu.test(code)) return true;
+  return /(server had an error processing your request|internal server error|server_error|temporar(?:y|ily) unavailable|service unavailable|overloaded|rate limit|too many requests|request timed out|timed out|timeout|connection (?:reset|closed|aborted)|bad gateway|gateway timeout)/iu
+    .test(String(error?.message || error || ""));
+}
+
 async function referenceSource(reference) {
   if (!reference) return null;
   if (Buffer.isBuffer(reference.buffer)) return reference.buffer;
@@ -357,6 +366,11 @@ export async function generateQualityCheckedImage({
         // normal attempt, allow exactly one continuity-only replacement call.
         // `omitReferenceImages` prevents this bounded extension from repeating.
         if (attempt === attemptLimit) attemptLimit += 1;
+        continue;
+      }
+      if (attempt < attemptLimit && isTransientImageGenerationError(error)) {
+        previousRejectionKind = "technical";
+        previousIssues = [];
         continue;
       }
       throw error;

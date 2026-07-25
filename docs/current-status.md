@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/animal-cast-image-contract`
-- Latest merged checkpoint: PR #60 — parent-intention assistant before story inspiration (`061dfca`)
-- Current focused checkpoint: relation-first human/animal classification in image contracts
-- Pull request: draft PR #61; never merge while a preview is generating
+- Current branch: `codex/transient-image-attempt-retry`
+- Latest merged checkpoint: PR #61 — relation-first cast classification and explicit relationship/story-role choices (`2789f22`)
+- Current focused checkpoint: consume the next bounded image attempt after a transient provider failure
+- Pull request: not published yet; never merge while a preview is generating
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #60 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
+PR #55 through PR #61 are merged. Bridge 0.6.9 remains the required WordPress package for cover-ready and generation-failure e-mails.
 
 ## Current product brick: relation-first image cast classification
 
@@ -28,18 +28,19 @@ PR #55 through PR #60 are merged. Bridge 0.6.9 remains the required WordPress pa
 5. Missing tiny jewelry remains in the visual prompt but is advisory in QA; it cannot by itself consume a retry or abort a book.
 6. Retry policy 7 gives projects exhausted under the former cast-classification contract one checkpointed recovery.
 7. The creator no longer silently labels every secondary reference photo as a friend or derives its narrative function. Each secondary person or animal requires both an explicit relationship choice and an explicit story role such as Guide, Ally, Companion, Supporter or Guest; selecting Family or Other also requires a concrete relationship such as brother, sister or mother.
+8. Live project `49b89fd2-3034-40de-ae5b-231b94bff444` resumed correctly from its saved cover and page-2 checkpoint, but a transient OpenAI server error on image attempt 1/2 stopped the job instead of consuming attempt 2/2. The focused fix keeps the existing two-attempt ceiling and advances only for server, network, timeout or rate-limit failures.
 
 ## Verification completed locally
 
 - Server syntax check passes.
-- Focused relationship and narrative-role tests: 74 passed, 0 failed.
-- Full `npm.cmd test`: 151 passed, 0 failed.
+- Focused transient-image policy tests: 8 passed, 0 failed.
+- Full `npm.cmd test`: 152 passed, 0 failed.
 
 ## Next verification target
 
-1. Before merging draft PR #61, confirm that no preview or targeted modification is generating.
-2. After deployment, resume project `49b89fd2-3034-40de-ae5b-231b94bff444` from page 3 and confirm that both brothers remain distinct human children.
-3. Continue the PR #60 live check: verify that the generated story preserves its intention, progressive attempts and earned reward.
+1. Publish the transient-image retry correction as a focused draft PR.
+2. Before merging it, confirm that no preview or targeted modification is generating.
+3. After deployment, resume project `49b89fd2-3034-40de-ae5b-231b94bff444` from page 3 and confirm that a temporary attempt-1 provider error proceeds to attempt 2 without exceeding the configured ceiling.
 
 ## Protected local state
 

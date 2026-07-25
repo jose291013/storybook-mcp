@@ -5,6 +5,7 @@ import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import {
   blockingSceneContractIssues,
   isImageSafetyRejection,
+  isTransientImageGenerationError,
   objectiveSceneContractIssues,
   objectiveTechnicalIssues,
 } from "../src/services/imageQualityGate.js";
@@ -26,6 +27,18 @@ test("image QA ignores artistic preferences and retains objective file defects",
 test("OpenAI safety rejections are identified for a safer continuity-only retry", () => {
   assert.equal(isImageSafetyRejection(new Error("Your request was rejected by the safety system.")), true);
   assert.equal(isImageSafetyRejection(new Error("Network timeout")), false);
+});
+
+test("temporary image-service failures consume the next bounded image attempt", async () => {
+  assert.equal(isTransientImageGenerationError(Object.assign(new Error("request failed"), { status: 500 })), true);
+  assert.equal(isTransientImageGenerationError(Object.assign(new Error("request failed"), { status: 429 })), true);
+  assert.equal(isTransientImageGenerationError(Object.assign(new Error("request failed"), { code: "ECONNRESET" })), true);
+  assert.equal(isTransientImageGenerationError(new Error("The server had an error processing your request. Sorry about that!")), true);
+  assert.equal(isTransientImageGenerationError(new Error("The request is invalid and cannot be processed.")), false);
+  assert.equal(isTransientImageGenerationError(new Error("Your request was rejected by the safety system.")), false);
+
+  const qualityGate = await fs.readFile("src/services/imageQualityGate.js", "utf8");
+  assert.match(qualityGate, /attempt < attemptLimit && isTransientImageGenerationError\(error\)/);
 });
 
 test("scene QA discards wardrobe-only reports but keeps narrative and object-state contradictions", () => {
