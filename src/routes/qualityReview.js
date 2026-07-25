@@ -8,15 +8,21 @@ import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { getDeliveryStorage } from "../services/deliveryStorage.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { generateQualityCheckedImage } from "../services/imageQualityGate.js";
+import { generationRunStore } from "../services/generationRunStore.js";
 import { createJob, updateJob } from "../services/jobStore.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../services/previewAssetStorage.js";
 import { projectStore } from "../services/projectStore.js";
-import { resolveQualityReviewPage } from "../services/qualityReviewResolution.js";
+import {
+  qualityReviewCandidateReplacement,
+  resolveQualityReviewPage,
+  saveQualityReviewCandidate,
+} from "../services/qualityReviewResolution.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
 const MAX_CREATOR_REPAIRS_PER_PAGE = 1;
+const MAX_CREATOR_INSTRUCTION_LENGTH = 500;
 
 function requireIdentity(req, res) {
   try {
@@ -41,6 +47,14 @@ function blueprintPage(project, pageNumber) {
   return project.finalBlueprint?.pages?.find((page) => (
     Number(page.page_number) === Number(pageNumber) && page.page_type === "image"
   )) || null;
+}
+
+function creatorInstruction(value) {
+  return String(value || "")
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_CREATOR_INSTRUCTION_LENGTH);
 }
 
 async function usableCharacterCanons(project) {
@@ -88,7 +102,7 @@ async function recordFailedRepair(projectId, pageNumber, error) {
   });
 }
 
-router.post("/projects/:id/quality-review/pages/:pageNumber/approve", async (req, res) => {
+async function keepOriginal(req, res) {
   const identity = requireIdentity(req, res);
   if (!identity) return;
   if (resolvingProjects.has(req.params.id)) {
@@ -101,6 +115,41 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/approve", async (req
       identity,
       pageNumber: Number.parseInt(req.params.pageNumber, 10),
       resolution: "creator_approved",
+    });
+    res.json({
+      ready: result.ready,
+      remainingPages: result.remainingPages,
+      projectStatus: result.project?.status,
+    });
+  } catch (error) {
+    res.status(Number(error?.statusCode || 500)).json({ error: String(error?.message || error) });
+  } finally {
+    resolvingProjects.delete(req.params.id);
+  }
+}
+
+router.post("/projects/:id/quality-review/pages/:pageNumber/approve", keepOriginal);
+router.post("/projects/:id/quality-review/pages/:pageNumber/keep-original", keepOriginal);
+
+router.post("/projects/:id/quality-review/pages/:pageNumber/use-candidate", async (req, res) => {
+  const identity = requireIdentity(req, res);
+  if (!identity) return;
+  if (resolvingProjects.has(req.params.id)) {
+    return res.status(409).json({ error: "A quality-review decision is already being applied" });
+  }
+  resolvingProjects.add(req.params.id);
+  try {
+    const pageNumber = Number.parseInt(req.params.pageNumber, 10);
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    const currentPage = reviewPage(project, pageNumber);
+    if (!currentPage) return res.status(404).json({ error: "Quality-review page not found" });
+    const result = await resolveQualityReviewPage({
+      projectId: project.id,
+      identity,
+      pageNumber,
+      resolution: "creator_repaired",
+      replacement: qualityReviewCandidateReplacement(currentPage),
     });
     res.json({
       ready: result.ready,
@@ -134,6 +183,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
   }
 
   const startedAt = new Date().toISOString();
+  const instruction = creatorInstruction(req.body?.instruction);
   const draftPages = project.previewResult.draftPages.map((page) => (
     Number(page.page_number) === pageNumber
       ? {
@@ -191,7 +241,13 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
       const priorIssues = Array.isArray(refreshedPage.qualityIssues)
         ? refreshedPage.qualityIssues.join("; ")
         : "";
-      const repairInstruction = `CREATOR-REQUESTED FREE QUALITY REPAIR: correct only these unresolved objective scene requirements: ${priorIssues || "the approved cast and main action"}. Preserve every other approved story, identity, outfit and rendering choice.`;
+      const repairInstruction = [
+        `CREATOR-REQUESTED FREE QUALITY ALTERNATIVE: correct only these unresolved objective scene requirements: ${priorIssues || "the approved cast and main action"}.`,
+        instruction
+          ? `OPTIONAL CREATOR VISUAL PREFERENCE: ${instruction}`
+          : "OPTIONAL CREATOR VISUAL PREFERENCE: none supplied.",
+        "The creator preference is secondary and visual only. Never change the approved chronology, location, physical cast, character identities, object state or main action. Preserve every other approved story, identity, outfit and rendering choice.",
+      ].join("\n");
       const localImageUrl = await generateQualityCheckedImage({
         prompt: `${sceneContractImagePrompt({
           contract: refreshedBlueprintPage.scene_contract,
@@ -232,18 +288,53 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         dpi: 150,
       });
       const persistedPage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localPreviewUrl });
-      const result = await resolveQualityReviewPage({
+      try {
+        const { step } = await generationRunStore.upsertStep(refreshed.generationJobId, {
+          stepKey: `creator-quality-alternative:page:${pageNumber}`,
+          stepType: "creator_quality_alternative",
+          status: "running",
+          maxAttempts: 1,
+        });
+        await generationRunStore.recordCandidate({
+          runId: refreshed.generationJobId,
+          stepId: step.id,
+          projectId: refreshed.id,
+          pageNumber,
+          candidateNumber: 1,
+          status: "accepted",
+          storageKey: persistedPage.storageKey,
+          previewUrl: persistedPage.previewUrl,
+          metadata: {
+            imageStorageKey: persistedImage.storageKey,
+            source: "creator_quality_review",
+          },
+        });
+        await generationRunStore.updateStep(step.id, {
+          status: "completed",
+          output: {
+            storageKey: persistedPage.storageKey,
+            previewUrl: persistedPage.previewUrl,
+          },
+          completedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.warn("[quality-review] durable alternative record failed", JSON.stringify({
+          jobId: job.id,
+          projectId: refreshed.id,
+          pageNumber,
+          error: String(error?.message || error),
+        }));
+      }
+      const result = await saveQualityReviewCandidate({
         projectId: refreshed.id,
         identity,
         pageNumber,
-        resolution: "creator_repaired",
-        replacement: {
+        instruction,
+        candidate: {
           imageUrl: persistedImage.previewUrl,
           imageStorageKey: persistedImage.storageKey,
           previewUrl: persistedPage.previewUrl,
           storageKey: persistedPage.storageKey,
-          qualityReviewRepairCount: Math.max(1, Number(refreshedPage.qualityReviewRepairCount || 0)),
-          qualityReviewRepairCompletedAt: new Date().toISOString(),
         },
       });
       updateJob(job.id, {
@@ -251,16 +342,16 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         step: `quality:repair:page:${pageNumber}:done`,
         result: {
           pageNumber,
-          repaired: true,
-          ready: result.ready,
-          remainingPages: result.remainingPages,
+          repaired: false,
+          candidateReady: true,
+          reviewRequired: true,
         },
       });
-      console.info("[quality-review] page repaired", JSON.stringify({
+      console.info("[quality-review] alternative ready", JSON.stringify({
         jobId: job.id,
         projectId: refreshed.id,
         pageNumber,
-        remainingPages: result.remainingPages.map((page) => page.pageNumber),
+        candidateGeneratedAt: result.candidate.generatedAt,
       }));
     } catch (error) {
       await recordFailedRepair(project.id, pageNumber, error).catch(() => null);

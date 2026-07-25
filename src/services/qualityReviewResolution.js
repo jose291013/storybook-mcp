@@ -21,6 +21,13 @@ function unresolvedPages(draftPages = []) {
 
 function resolvedPage(page, resolution, replacement = {}) {
   const resolvedAt = new Date().toISOString();
+  const qualityReviewCandidate = page.qualityReviewCandidate
+    ? {
+        ...page.qualityReviewCandidate,
+        decision: resolution === "creator_repaired" ? "selected" : "original_kept",
+        decidedAt: resolvedAt,
+      }
+    : undefined;
   return {
     ...page,
     ...replacement,
@@ -34,6 +41,100 @@ function resolvedPage(page, resolution, replacement = {}) {
       type: resolution,
       resolvedAt,
     },
+    ...(qualityReviewCandidate ? { qualityReviewCandidate } : {}),
+  };
+}
+
+function candidatePage(project, pageNumber) {
+  return project.previewResult?.draftPages?.find((page) => (
+    Number(page.page_number) === Number(pageNumber)
+    && page.page_type === "image"
+    && page.qualityStatus === "review_required"
+  )) || null;
+}
+
+export function qualityReviewCandidateReplacement(page) {
+  const candidate = page?.qualityReviewCandidate;
+  if (!candidate || candidate.status !== "ready") {
+    const error = new Error("No quality-review alternative is ready for this page");
+    error.statusCode = 409;
+    throw error;
+  }
+  return {
+    imageUrl: candidate.imageUrl,
+    imageStorageKey: candidate.imageStorageKey,
+    previewUrl: candidate.previewUrl,
+    storageKey: candidate.storageKey,
+    qualityReviewRepairCount: Math.max(1, Number(page.qualityReviewRepairCount || 0)),
+    qualityReviewRepairCompletedAt: candidate.generatedAt || new Date().toISOString(),
+  };
+}
+
+export async function saveQualityReviewCandidate({
+  projectId,
+  identity,
+  pageNumber,
+  candidate,
+  instruction = "",
+  dependencies = {},
+}) {
+  const projects = dependencies.projects || projectStore;
+  const project = await projects.getForCustomer(projectId, identity);
+  if (!project) {
+    const error = new Error("Project not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (project.status !== "preview_quality_review" || !project.previewResult) {
+    const error = new Error("This preview is not awaiting quality review");
+    error.statusCode = 409;
+    throw error;
+  }
+  const currentPage = candidatePage(project, pageNumber);
+  if (!currentPage) {
+    const error = new Error("Quality-review page not found");
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!candidate?.previewUrl || !candidate?.storageKey || !candidate?.imageUrl || !candidate?.imageStorageKey) {
+    const error = new Error("Quality-review alternative is incomplete");
+    error.statusCode = 500;
+    throw error;
+  }
+  const generatedAt = new Date().toISOString();
+  const qualityReviewCandidate = {
+    status: "ready",
+    generatedAt,
+    instruction: String(instruction || ""),
+    original: {
+      imageUrl: currentPage.imageUrl,
+      imageStorageKey: currentPage.imageStorageKey,
+      previewUrl: currentPage.previewUrl,
+      storageKey: currentPage.storageKey,
+    },
+    imageUrl: candidate.imageUrl,
+    imageStorageKey: candidate.imageStorageKey,
+    previewUrl: candidate.previewUrl,
+    storageKey: candidate.storageKey,
+  };
+  const draftPages = project.previewResult.draftPages.map((page) => (
+    Number(page.page_number) === Number(pageNumber)
+      ? {
+          ...page,
+          qualityReviewCandidate,
+          qualityReviewRepairCompletedAt: generatedAt,
+          qualityReviewRepairError: "",
+        }
+      : page
+  ));
+  const updated = await projects.updateForCustomer(project.id, identity, {
+    status: "preview_quality_review",
+    previewResult: { ...project.previewResult, draftPages },
+  });
+  return {
+    project: updated,
+    candidate: qualityReviewCandidate,
+    page: candidatePage(updated, pageNumber),
   };
 }
 
