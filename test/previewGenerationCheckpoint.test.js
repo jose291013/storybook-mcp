@@ -103,10 +103,10 @@ test("only fully persisted draft pages are reused after an interrupted Render jo
   assert.equal(isReusableDraftPage(null), false);
 });
 
-test("a preview exhausted under policy six receives the non-human animal-cast recovery", () => {
+test("a preview exhausted under policy six receives the relation-first cast recovery", () => {
   const exhaustedImage = {
     continuitySnapshot: mergeGenerationCheckpoint({}, {
-      fingerprint: "animal-cast-book",
+      fingerprint: "sibling-cast-book",
       retryPolicyVersion: 6,
       retryAvailable: false,
       retryExhausted: true,
@@ -118,6 +118,6 @@ test("a preview exhausted under policy six receives the non-human animal-cast re
   assert.equal(technicalPreviewRetryExhausted(exhaustedImage), false);
 });
 
-test("the non-human animal-cast recovery policy is version seven", () => {
+test("the relation-first cast recovery policy is version seven", () => {
   assert.equal(PREVIEW_RETRY_POLICY_VERSION, 7);
 });

@@ -59,6 +59,15 @@ function visualIdentity(character = {}, index = 0, heroName = "") {
   if (normalizedKey(character.name) === normalizedKey(heroName) || role === "child") {
     return { alias: "hero child", entity_type: "human", species: "" };
   }
+  // Explicit creator-supplied human roles and family relationships are
+  // authoritative. Incidental animal words in a shirt, hobby or scene
+  // description must never turn a sibling or friend into an animal.
+  if (role === "family" || /(family|famille|frere|soeur|brother|sister|sibling|parent|mother|father|maman|papa|hermano|hermana|madre|padre)/u.test(descriptor)) {
+    return { alias: `family member ${index + 1}`, entity_type: "human", species: "" };
+  }
+  if (role === "friend") {
+    return { alias: `human friend ${index + 1}`, entity_type: "human", species: "" };
+  }
   if (/(plush|peluche|teddy|ours en peluche|stuffed bear)/u.test(descriptor)) {
     return {
       alias: `original unbranded non-human plush bear toy companion ${index + 1}`,
@@ -73,9 +82,6 @@ function visualIdentity(character = {}, index = 0, heroName = "") {
       entity_type: "animal",
       species,
     };
-  }
-  if (/(family|famille|frere|soeur|brother|sister|parent|mother|father|maman|papa)/u.test(`${role} ${descriptor}`)) {
-    return { alias: `family member ${index + 1}`, entity_type: "human", species: "" };
   }
   return { alias: `recurring story companion ${index + 1}`, entity_type: "", species: "" };
 }

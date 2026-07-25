@@ -1145,6 +1145,24 @@ test("visual aliases preserve distinct non-human species for multiple animal com
   ]);
 });
 
+test("family roles stay human even when their visual description mentions animals", () => {
+  const aliases = buildImageCharacterAliases({
+    blueprint: {
+      hero: { name: "Tyam", role: "child" },
+      cast: [
+        { name: "Santi", role: "family", relationship: "frère", canon_short: "jeune garçon avec un t-shirt montrant un renard" },
+        { name: "Malvina", role: "other", relationship: "hermana", canon_short: "niña qui adore les animaux et porte un pendentif ours" },
+      ],
+    },
+    castPresent: ["Tyam", "Santi", "Malvina"],
+  });
+  assert.deepEqual(aliases.map(({ alias, entity_type, species }) => ({ alias, entity_type, species })), [
+    { alias: "hero child", entity_type: "human", species: "" },
+    { alias: "family member 2", entity_type: "human", species: "" },
+    { alias: "family member 3", entity_type: "human", species: "" },
+  ]);
+});
+
 test("photo-upload names are immutable canon throughout blueprint and manuscript", () => {
   const blueprint = {
     hero: { name: "Nolan", outfit_lock: "red jacket" },
