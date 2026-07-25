@@ -13,6 +13,12 @@ import { sanitizeBrandSensitiveText } from "../src/services/imageRunner.js";
 
 test("image QA ignores artistic preferences and retains objective file defects", () => {
   assert.deepEqual(objectiveTechnicalIssues(["photo-realistic style, not an illustration"]), []);
+  assert.deepEqual(objectiveTechnicalIssues([
+    "No coherent children's-book illustration scene; image is a photo of real people rather than an illustrated scene",
+  ]), []);
+  assert.deepEqual(objectiveTechnicalIssues([
+    "The subjects are recognizable, but the result uses photographic rendering instead of soft watercolor",
+  ]), []);
   assert.deepEqual(objectiveTechnicalIssues(["different outfit and preferred composition"]), []);
   assert.deepEqual(
     objectiveTechnicalIssues([
