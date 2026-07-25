@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import test from "node:test";
 import {
+  qualityReviewCandidateSelection,
   qualityReviewCandidateReplacement,
   resolveQualityReviewPage,
   saveQualityReviewCandidate,
@@ -19,6 +20,7 @@ function qualityProject() {
         {
           page_number: 15,
           page_type: "image",
+          spread_number: 8,
           previewUrl: "/15",
           qualityStatus: "review_required",
           qualityKind: "scene",
@@ -27,10 +29,19 @@ function qualityProject() {
         {
           page_number: 31,
           page_type: "image",
+          spread_number: 16,
           previewUrl: "/31",
           qualityStatus: "review_required",
           qualityKind: "scene",
           qualityIssues: ["Main action unclear"],
+        },
+        {
+          page_number: 14,
+          page_type: "text",
+          spread_number: 8,
+          text: "Maïté pose doucement sa main sur l’épaule de Malvina.",
+          previewUrl: "/14",
+          storageKey: "private/page-14",
         },
       ],
     },
@@ -170,6 +181,74 @@ test("keeping the original rejects only the alternative and preserves the curren
   assert.equal(page.qualityReviewCandidate.decision, "original_kept");
 });
 
+test("a text alternative coexists with the image candidate and changes only the paired text after selection", async () => {
+  let stored = qualityProject();
+  stored.previewResult.draftPages[0].qualityReviewRepairCount = 1;
+  stored.previewResult.draftPages[0].qualityReviewCandidate = {
+    status: "ready",
+    scope: "illustration",
+    generatedAt: "2026-07-25T12:00:00.000Z",
+    imageUrl: "/candidate-image",
+    imageStorageKey: "private/candidate-image",
+    previewUrl: "/candidate-page",
+    storageKey: "private/candidate-page",
+  };
+  const originalImagePreview = stored.previewResult.draftPages[0].previewUrl;
+  const originalText = stored.previewResult.draftPages[2].text;
+  const projects = {
+    async getForCustomer() {
+      return structuredClone(stored);
+    },
+    async updateForCustomer(projectId, identity, patch) {
+      stored = { ...stored, ...structuredClone(patch) };
+      return structuredClone(stored);
+    },
+  };
+  await saveQualityReviewCandidate({
+    projectId: stored.id,
+    identity: { wooCustomerId: "42" },
+    pageNumber: 15,
+    instruction: "Adapter le petit geste au rendu déjà réussi.",
+    candidate: {
+      scope: "text",
+      textPageNumber: 14,
+      text: "Maïté joint doucement les mains pour rassurer Malvina.",
+      previewUrl: "/candidate-text-page",
+      storageKey: "private/candidate-text-page",
+    },
+    dependencies: { projects },
+  });
+
+  const pendingImagePage = stored.previewResult.draftPages[0];
+  assert.equal(pendingImagePage.previewUrl, originalImagePreview);
+  assert.equal(stored.previewResult.draftPages[2].text, originalText);
+  assert.equal(pendingImagePage.qualityReviewCandidates.illustration.previewUrl, "/candidate-page");
+  assert.equal(pendingImagePage.qualityReviewCandidates.text.previewUrl, "/candidate-text-page");
+
+  const selection = qualityReviewCandidateSelection(pendingImagePage, "text");
+  await resolveQualityReviewPage({
+    projectId: stored.id,
+    identity: { wooCustomerId: "42" },
+    pageNumber: 15,
+    resolution: "creator_repaired",
+    replacement: selection.pageReplacement,
+    pairedTextReplacement: selection.pairedTextReplacement,
+    selectedScope: selection.scope,
+    dependencies: {
+      projects,
+      credits: { async capturePreview() {} },
+      runs: { async updateRun() {} },
+      notify: async () => {},
+    },
+  });
+
+  const selectedImagePage = stored.previewResult.draftPages[0];
+  assert.equal(selectedImagePage.previewUrl, originalImagePreview);
+  assert.equal(stored.previewResult.draftPages[2].text, "Maïté joint doucement les mains pour rassurer Malvina.");
+  assert.equal(selectedImagePage.qualityReviewCandidates.text.decision, "selected");
+  assert.equal(selectedImagePage.qualityReviewCandidates.illustration.decision, "original_kept");
+});
+
 test("creator approval resolves quality-review pages one by one and captures credit only after the last page", async () => {
   let stored = qualityProject();
   const captures = [];
@@ -234,10 +313,11 @@ test("creator approval resolves quality-review pages one by one and captures cre
   assert.ok(stored.continuitySnapshot.previewNotification.sentAt);
 });
 
-test("quality-review UI exposes a private before/after choice while durable progress remains visible", async () => {
-  const [route, service, app, jobs, server] = await Promise.all([
+test("quality-review UI requires a reason and offers private text or image alternatives", async () => {
+  const [route, service, rewrite, app, jobs, server] = await Promise.all([
     fs.readFile("src/routes/qualityReview.js", "utf8"),
     fs.readFile("src/services/qualityReviewResolution.js", "utf8"),
+    fs.readFile("src/services/rewriteApprovedSpreadText.js", "utf8"),
     fs.readFile("public/app.js", "utf8"),
     fs.readFile("src/routes/jobs.js", "utf8"),
     fs.readFile("src/server.js", "utf8"),
@@ -248,14 +328,25 @@ test("quality-review UI exposes a private before/after choice while durable prog
   assert.match(route, /quality-review\/pages\/:pageNumber\/use-candidate/);
   assert.match(route, /MAX_CREATOR_REPAIRS_PER_PAGE = 1/);
   assert.match(route, /MAX_CREATOR_INSTRUCTION_LENGTH = 500/);
+  assert.match(route, /MIN_CREATOR_INSTRUCTION_LENGTH = 8/);
   assert.match(route, /maximumAttempts: 1/);
   assert.match(route, /saveQualityReviewCandidate/);
+  assert.match(route, /rewriteApprovedSpreadText/);
+  assert.match(route, /deterministicStoryPlanIssues/);
+  assert.match(route, /Choose whether to adjust the text or the illustration/);
+  assert.match(route, /instruction\.length < MIN_CREATOR_INSTRUCTION_LENGTH/);
+  assert.match(rewrite, /minor gesture may be reworded/);
+  assert.match(rewrite, /Preserve every established plot fact, chronology, location, physical cast, object state and outcome/);
   assert.match(service, /capturePreview\(checkpoint\.creditReservationId\)/);
   assert.match(service, /status: "preview_ready"/);
   assert.match(app, /data-quality-view/);
   assert.match(app, /data-quality-approve/);
   assert.match(app, /data-quality-repair/);
   assert.match(app, /data-quality-instruction/);
+  assert.match(app, /data-quality-scope="text"/);
+  assert.match(app, /data-quality-scope="illustration"/);
+  assert.match(app, /instructionRequired/);
+  assert.match(app, /quality-review-text-comparison/);
   assert.match(app, /data-quality-keep-original/);
   assert.match(app, /data-quality-use-candidate/);
   assert.match(app, /quality-review-comparison/);

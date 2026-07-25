@@ -16,15 +16,40 @@ function unresolvedPages(draftPages = []) {
       kind: page.qualityKind || "scene",
       issues: Array.isArray(page.qualityIssues) ? page.qualityIssues : [],
       repairCount: Number(page.qualityReviewRepairCount || 0),
+      textRepairCount: Number(page.qualityReviewTextRepairCount || 0),
     }));
 }
 
-function resolvedPage(page, resolution, replacement = {}) {
+function candidateMap(page) {
+  const candidates = { ...(page?.qualityReviewCandidates || {}) };
+  if (page?.qualityReviewCandidate?.status === "ready") {
+    const legacyScope = page.qualityReviewCandidate.scope || "illustration";
+    if (!candidates[legacyScope]) candidates[legacyScope] = page.qualityReviewCandidate;
+  }
+  return candidates;
+}
+
+function resolvedPage(page, resolution, replacement = {}, selectedScope = "") {
   const resolvedAt = new Date().toISOString();
+  const qualityReviewCandidates = Object.fromEntries(
+    Object.entries(candidateMap(page)).map(([scope, candidate]) => [
+      scope,
+      {
+        ...candidate,
+        decision: resolution === "creator_repaired" && scope === selectedScope
+          ? "selected"
+          : "original_kept",
+        decidedAt: resolvedAt,
+      },
+    ]),
+  );
   const qualityReviewCandidate = page.qualityReviewCandidate
     ? {
         ...page.qualityReviewCandidate,
-        decision: resolution === "creator_repaired" ? "selected" : "original_kept",
+        decision: resolution === "creator_repaired"
+          && (page.qualityReviewCandidate.scope || "illustration") === selectedScope
+          ? "selected"
+          : "original_kept",
         decidedAt: resolvedAt,
       }
     : undefined;
@@ -39,8 +64,10 @@ function resolvedPage(page, resolution, replacement = {}) {
     qualityKind: "",
     qualityResolution: {
       type: resolution,
+      scope: selectedScope || "original",
       resolvedAt,
     },
+    ...(Object.keys(qualityReviewCandidates).length ? { qualityReviewCandidates } : {}),
     ...(qualityReviewCandidate ? { qualityReviewCandidate } : {}),
   };
 }
@@ -53,21 +80,49 @@ function candidatePage(project, pageNumber) {
   )) || null;
 }
 
-export function qualityReviewCandidateReplacement(page) {
-  const candidate = page?.qualityReviewCandidate;
+export function qualityReviewCandidateSelection(page, requestedScope = "") {
+  const candidates = candidateMap(page);
+  const scope = requestedScope || page?.qualityReviewCandidate?.scope || "illustration";
+  const candidate = candidates[scope];
   if (!candidate || candidate.status !== "ready") {
     const error = new Error("No quality-review alternative is ready for this page");
     error.statusCode = 409;
     throw error;
   }
+  if (scope === "text") {
+    return {
+      scope,
+      pageReplacement: {
+        qualityReviewTextRepairCount: Math.max(1, Number(page.qualityReviewTextRepairCount || 0)),
+        qualityReviewTextRepairCompletedAt: candidate.generatedAt || new Date().toISOString(),
+      },
+      pairedTextReplacement: {
+        pageNumber: Number(candidate.textPageNumber),
+        replacement: {
+          text: candidate.text,
+          previewUrl: candidate.previewUrl,
+          storageKey: candidate.storageKey,
+          qualityReviewModifiedAt: candidate.generatedAt || new Date().toISOString(),
+        },
+      },
+    };
+  }
   return {
-    imageUrl: candidate.imageUrl,
-    imageStorageKey: candidate.imageStorageKey,
-    previewUrl: candidate.previewUrl,
-    storageKey: candidate.storageKey,
-    qualityReviewRepairCount: Math.max(1, Number(page.qualityReviewRepairCount || 0)),
-    qualityReviewRepairCompletedAt: candidate.generatedAt || new Date().toISOString(),
+    scope: "illustration",
+    pageReplacement: {
+      imageUrl: candidate.imageUrl,
+      imageStorageKey: candidate.imageStorageKey,
+      previewUrl: candidate.previewUrl,
+      storageKey: candidate.storageKey,
+      qualityReviewRepairCount: Math.max(1, Number(page.qualityReviewRepairCount || 0)),
+      qualityReviewRepairCompletedAt: candidate.generatedAt || new Date().toISOString(),
+    },
+    pairedTextReplacement: null,
   };
+}
+
+export function qualityReviewCandidateReplacement(page) {
+  return qualityReviewCandidateSelection(page, "illustration").pageReplacement;
 }
 
 export async function saveQualityReviewCandidate({
@@ -96,7 +151,17 @@ export async function saveQualityReviewCandidate({
     error.statusCode = 404;
     throw error;
   }
-  if (!candidate?.previewUrl || !candidate?.storageKey || !candidate?.imageUrl || !candidate?.imageStorageKey) {
+  const scope = candidate?.scope === "text" ? "text" : "illustration";
+  const pairedTextPage = scope === "text"
+    ? project.previewResult.draftPages.find((page) => (
+        Number(page.page_number) === Number(candidate.textPageNumber)
+        && ["text", "opening_text", "closing_text"].includes(page.page_type)
+      ))
+    : null;
+  const candidateComplete = scope === "text"
+    ? candidate?.text && candidate?.previewUrl && candidate?.storageKey && pairedTextPage
+    : candidate?.previewUrl && candidate?.storageKey && candidate?.imageUrl && candidate?.imageStorageKey;
+  if (!candidateComplete) {
     const error = new Error("Quality-review alternative is incomplete");
     error.statusCode = 500;
     throw error;
@@ -104,26 +169,53 @@ export async function saveQualityReviewCandidate({
   const generatedAt = new Date().toISOString();
   const qualityReviewCandidate = {
     status: "ready",
+    scope,
     generatedAt,
     instruction: String(instruction || ""),
-    original: {
-      imageUrl: currentPage.imageUrl,
-      imageStorageKey: currentPage.imageStorageKey,
-      previewUrl: currentPage.previewUrl,
-      storageKey: currentPage.storageKey,
-    },
-    imageUrl: candidate.imageUrl,
-    imageStorageKey: candidate.imageStorageKey,
+    original: scope === "text"
+      ? {
+          textPageNumber: Number(pairedTextPage.page_number),
+          text: pairedTextPage.text,
+          previewUrl: pairedTextPage.previewUrl,
+          storageKey: pairedTextPage.storageKey,
+        }
+      : {
+          imageUrl: currentPage.imageUrl,
+          imageStorageKey: currentPage.imageStorageKey,
+          previewUrl: currentPage.previewUrl,
+          storageKey: currentPage.storageKey,
+        },
+    ...(scope === "text"
+      ? {
+          textPageNumber: Number(candidate.textPageNumber),
+          text: String(candidate.text),
+        }
+      : {
+          imageUrl: candidate.imageUrl,
+          imageStorageKey: candidate.imageStorageKey,
+        }),
     previewUrl: candidate.previewUrl,
     storageKey: candidate.storageKey,
+  };
+  const qualityReviewCandidates = {
+    ...candidateMap(currentPage),
+    [scope]: qualityReviewCandidate,
   };
   const draftPages = project.previewResult.draftPages.map((page) => (
     Number(page.page_number) === Number(pageNumber)
       ? {
           ...page,
           qualityReviewCandidate,
-          qualityReviewRepairCompletedAt: generatedAt,
-          qualityReviewRepairError: "",
+          qualityReviewCandidates,
+          ...(scope === "text"
+            ? {
+                qualityReviewTextRepairCompletedAt: generatedAt,
+                qualityReviewTextRepairError: "",
+              }
+            : {
+                qualityReviewRepairCompletedAt: generatedAt,
+                qualityReviewRepairError: "",
+              }),
         }
       : page
   ));
@@ -144,6 +236,8 @@ export async function resolveQualityReviewPage({
   pageNumber,
   resolution,
   replacement = {},
+  pairedTextReplacement = null,
+  selectedScope = "",
   dependencies = {},
 }) {
   const projects = dependencies.projects || projectStore;
@@ -183,7 +277,32 @@ export async function resolveQualityReviewPage({
     };
   }
 
-  draftPages[index] = resolvedPage(draftPages[index], resolution, replacement);
+  if (pairedTextReplacement) {
+    const textIndex = draftPages.findIndex((page) => (
+      Number(page.page_number) === Number(pairedTextReplacement.pageNumber)
+      && ["text", "opening_text", "closing_text"].includes(page.page_type)
+    ));
+    if (textIndex < 0) {
+      const error = new Error("Paired preview text not found");
+      error.statusCode = 404;
+      throw error;
+    }
+    draftPages[textIndex] = {
+      ...draftPages[textIndex],
+      ...pairedTextReplacement.replacement,
+    };
+  }
+  const resolutionScope = selectedScope || (
+    resolution === "creator_repaired"
+      ? draftPages[index].qualityReviewCandidate?.scope || "illustration"
+      : ""
+  );
+  draftPages[index] = resolvedPage(
+    draftPages[index],
+    resolution,
+    replacement,
+    resolutionScope,
+  );
   const remainingPages = unresolvedPages(draftPages);
   const previewResult = { ...project.previewResult, draftPages };
   const checkpoint = generationCheckpoint(project) || {};

@@ -1,6 +1,5 @@
 import crypto from "crypto";
 import express from "express";
-import { runAgent } from "../services/agentRunner.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { creditStore, InsufficientCreditError } from "../services/creditStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
@@ -13,6 +12,7 @@ import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { previewModificationPriceCents } from "../config/previewModificationPricing.js";
+import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -90,46 +90,6 @@ function failureCode(error) {
   if (message.includes("safety system") || message.includes("safety rejection")) return "image_safety_rejection";
   if (message.includes("timed out") || message.includes("timeout")) return "upstream_timeout";
   return "generation_failed";
-}
-
-async function rewriteSpreadText({ project, spread, instruction, modificationId }) {
-  const blueprintPage = project.finalBlueprint.pages.find((page) => Number(page.page_number) === spread.textPageNumber);
-  const currentWords = String(spread.currentText || "").trim().split(/\s+/).filter(Boolean).length;
-  const language = String(project.finalBlueprint.language || project.questionnaire?.book_language || project.locale || "FR");
-  const result = await runAgent({
-    name: "targeted-preview-text-revision",
-    clientKind: "story",
-    system: [
-      "You revise exactly one already-approved children's-book spread.",
-      `Write only in the authoritative book language ${language}.`,
-      "Preserve every established plot fact, chronology, location, character presence, object state and outcome.",
-      "Do not introduce a new event, character, object, portal crossing, discovery, promise or contradiction.",
-      "Apply only the creator's local wording request. Keep the same reading age, warm tone and approximate length.",
-      "Return JSON exactly as {\"text\":\"...\"}.",
-    ].join("\n"),
-    user: () => JSON.stringify({
-      request_id: modificationId,
-      creator_request: instruction,
-      current_text: spread.currentText,
-      target_words: currentWords,
-      approved_scene: {
-        title: blueprintPage?.scene_title || "",
-        location: blueprintPage?.scene_location || "",
-        action: blueprintPage?.scene_action || "",
-        cast: blueprintPage?.cast_present || [],
-        scene_contract: blueprintPage?.scene_contract || null,
-      },
-    }),
-  });
-  const text = String(result?.text || "").replace(/\s+/g, " ").trim();
-  if (!text) throw new Error("The revised spread text is empty");
-  if (currentWords > 20) {
-    const words = text.split(/\s+/).length;
-    if (words < Math.floor(currentWords * 0.65) || words > Math.ceil(currentWords * 1.35)) {
-      throw new Error("The revised spread text does not fit the existing page");
-    }
-  }
-  return text;
 }
 
 function continuityStorageKey(project, spread) {
@@ -214,11 +174,15 @@ async function buildCandidate(modification, jobId) {
 
   if (["text", "both"].includes(modification.changeScope)) {
     updateJob(jobId, { step: `modification:spread:${spread.spreadNumber}:text` });
-    pairedText = await rewriteSpreadText({
+    const blueprintPage = project.finalBlueprint.pages.find((page) => (
+      Number(page.page_number) === spread.imagePageNumber
+    ));
+    pairedText = await rewriteApprovedSpreadText({
       project,
-      spread,
+      blueprintPage,
+      currentText: spread.currentText,
       instruction: modification.instruction,
-      modificationId: modification.id,
+      requestId: modification.id,
     });
     const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
     const composedTextUrl = await composeBookPagePNG({
