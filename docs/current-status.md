@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/improve-answer-transient-retry`
 - Latest merged checkpoint: PR #62 — bounded retry after a transient image-provider failure (`e2cfa45`)
 - Current focused checkpoint: one bounded retry and localized feedback for AI answer improvement
-- Pull request: not published yet; never merge while a preview is generating
+- Pull request: draft PR #63; never merge while a preview is generating
 - WordPress Bridge source/package: `0.6.9`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -39,9 +39,8 @@ PR #55 through PR #62 are merged. Bridge 0.6.9 remains the required WordPress pa
 
 ## Next verification target
 
-1. Publish the AI-improvement retry correction as a focused draft PR.
-2. Before merging it, confirm that no preview or targeted modification is generating.
-3. After deployment, retry one questionnaire improvement and confirm that a first transient 500 is absorbed without exposing an English infrastructure message.
+1. Before merging draft PR #63, confirm that no preview or targeted modification is generating.
+2. After deployment, retry one questionnaire improvement and confirm that a first transient 500 is absorbed without exposing an English infrastructure message.
 
 ## Protected local state
 
