@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/quality-review-text-or-image`
 - Latest merged checkpoint: PR #69 — private quality-correction candidate with before/after creator choice
 - Current focused checkpoint: require a creator explanation and allow either a text or illustration candidate for one flagged spread
-- Pull request: not published yet; do not merge until the user confirms that no preview or quality correction is running
+- Pull request: draft PR #70 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -46,8 +46,8 @@ PR #55 through PR #69 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 
 ## Next verification target
 
-1. Publish the focused text-or-illustration quality-review PR without merging it.
-2. After deployment, verify the preserved production page with the Maïté gesture mismatch: the existing image candidate must remain available, a text proposal must be creatable from a required explanation, and applying it must change only the paired text.
+1. Review draft PR #70 without merging it.
+2. After an explicitly authorized deployment, verify the preserved production page with the Maïté gesture mismatch: the existing image candidate must remain available, a text proposal must be creatable from a required explanation, and applying it must change only the paired text.
 
 ## Protected local state
 
