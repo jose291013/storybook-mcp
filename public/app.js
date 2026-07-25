@@ -71,6 +71,7 @@ const state = {
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
   currentPreview: null,
+  readerGoToPage: null,
   previewModification: null,
   previewModificationQuote: null,
   previewModificationPoll: null,
@@ -175,6 +176,15 @@ const QUALITY_REVIEW_TEXT = {
     page: "Page {page} · vérification en cours",
     support: "Aucun achat n’est possible tant que ces pages ne sont pas validées. Votre crédit reste réservé, il n’est pas débité une seconde fois.",
     badge: "Illustration en vérification",
+    reason: "Vérifiez que les personnages et l’action correspondent bien au texte.",
+    view: "Voir cette page",
+    approve: "Cette illustration me convient",
+    repair: "Demander une correction gratuite",
+    approveConfirm: "Confirmez-vous que cette illustration vous convient ? Cette décision permettra de poursuivre lorsque toutes les pages seront validées.",
+    approving: "Validation en cours…",
+    repairing: "Correction de la page {page} en cours…",
+    repairExhausted: "La correction automatique n’a pas suffi. Vous pouvez accepter l’image si elle vous convient ou contacter Calitiki.",
+    actionError: "La décision n’a pas pu être enregistrée. Votre livre reste conservé ; réessayez.",
   },
   ES: {
     kicker: "CONTROL DE CALIDAD",
@@ -183,6 +193,15 @@ const QUALITY_REVIEW_TEXT = {
     page: "Página {page} · revisión en curso",
     support: "No se puede comprar el libro hasta validar estas páginas. Tu crédito sigue reservado y no se cobrará una segunda vez.",
     badge: "Ilustración en revisión",
+    reason: "Comprueba que los personajes y la acción correspondan al texto.",
+    view: "Ver esta página",
+    approve: "Esta ilustración me gusta",
+    repair: "Solicitar una corrección gratuita",
+    approveConfirm: "¿Confirmas que esta ilustración te gusta? El libro podrá continuar cuando se validen todas las páginas.",
+    approving: "Validando…",
+    repairing: "Corrigiendo la página {page}…",
+    repairExhausted: "La corrección automática no ha sido suficiente. Puedes aceptar la imagen si te gusta o contactar con Calitiki.",
+    actionError: "No se ha podido guardar la decisión. Tu libro sigue guardado; inténtalo de nuevo.",
   },
   EN: {
     kicker: "QUALITY REVIEW",
@@ -191,6 +210,15 @@ const QUALITY_REVIEW_TEXT = {
     page: "Page {page} · review in progress",
     support: "Purchase remains unavailable until these pages are approved. Your credit stays reserved and will not be charged a second time.",
     badge: "Illustration under review",
+    reason: "Check that the characters and main action match the text.",
+    view: "View this page",
+    approve: "This illustration works for me",
+    repair: "Request a free correction",
+    approveConfirm: "Do you confirm that this illustration works for you? The book can continue once every page is approved.",
+    approving: "Saving approval…",
+    repairing: "Correcting page {page}…",
+    repairExhausted: "The automatic correction was not sufficient. You may accept the image if it works for you or contact Calitiki.",
+    actionError: "The decision could not be saved. Your book remains safe; please retry.",
   },
 };
 
@@ -1637,7 +1665,8 @@ function generationProgress(step = "") {
   if (step.includes("scenario-fidelity-targeted-repair")) return 23;
   if (step.includes("scenario-fidelity-targeted-recheck")) return 24;
   if (step.includes("cover")) return 25;
-  const pageMatch = step.match(/draft:page:(\d+)/);
+  if (step.includes("quality:repair:page") || step.includes("draft:repair:page")) return 97;
+  const pageMatch = step.match(/^(?:draft:)?page:(\d+)/);
   if (pageMatch) return Math.min(96, 25 + Number(pageMatch[1]) * (71 / state.pageCount));
   if (step.includes("done")) return 100;
   return 5;
@@ -1653,7 +1682,8 @@ function friendlyStep(step = "") {
   if (step.includes("scenario-fidelity-repair")) return tr("progressFidelityRepair");
   if (step.includes("scenario-fidelity")) return tr("progressFidelityCheck");
   if (step.includes("cover")) return tr("progressCover");
-  const match = step.match(/draft:page:(\d+)/);
+  if (step.includes("quality:repair:page") || step.includes("draft:repair:page")) return tr("progressQualityRepair");
+  const match = step.match(/^(?:draft:)?page:(\d+)/);
   return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing");
 }
 
@@ -1755,6 +1785,14 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
       readerCurlBack.innerHTML = "";
       turning = false;
     }, 780);
+  };
+  state.readerGoToPage = (pageNumber) => {
+    const target = frames.findIndex((frame) => frame.some((page) => Number(page.page_number) === Number(pageNumber)));
+    if (target < 0) return false;
+    frameIndex = target;
+    paintFrame();
+    elements.bookPreview.scrollIntoView({ behavior: "smooth", block: "center" });
+    return true;
   };
   previousButton.addEventListener("click", () => turn(-1));
   nextButton.addEventListener("click", () => turn(1));
@@ -1904,6 +1942,29 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   if (scroll) elements.resultSection.scrollIntoView({ behavior: "smooth" });
 }
 
+async function refreshAfterQualityDecision(pageNumber, feedback = "") {
+  const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || "quality_review_refresh_failed");
+  const project = payload.project;
+  const preview = {
+    result: project.previewResult,
+    final_blueprint: project.finalBlueprint,
+    projectStatus: project.status,
+    qualityReview: project.continuitySnapshot?.generationCheckpoint?.qualityReview,
+  };
+  if (project.status === "preview_ready") {
+    showCompletedPreview(preview, { initialPageNumber: pageNumber });
+    return project;
+  }
+  showQualityReview(preview, { scroll: false });
+  if (feedback) {
+    const target = elements.qualityReviewPages.querySelector(`[data-quality-feedback="${Number(pageNumber)}"]`);
+    if (target) target.textContent = feedback;
+  }
+  return project;
+}
+
 function showQualityReview(job, { scroll = true } = {}) {
   const copy = QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR;
   const pages = job?.qualityReview?.pages
@@ -1917,10 +1978,70 @@ function showQualityReview(job, { scroll = true } = {}) {
   elements.qualityReviewTitle.textContent = copy.title;
   elements.qualityReviewMessage.textContent = copy.message;
   elements.qualityReviewPages.innerHTML = pages
-    .map((page) => `<li>${escapeHtml(copy.page.replace("{page}", String(page.pageNumber)))}</li>`)
+    .map((page) => {
+      const draftPage = job?.result?.draftPages?.find((candidate) => (
+        Number(candidate.page_number) === Number(page.pageNumber)
+      ));
+      const repairExhausted = Number(draftPage?.qualityReviewRepairCount || page.repairCount || 0) >= 1;
+      return `<li class="quality-review-page-card" data-quality-page="${Number(page.pageNumber)}">
+        <div>
+          <strong>${escapeHtml(copy.page.replace("{page}", String(page.pageNumber)))}</strong>
+          <p>${escapeHtml(copy.reason)}</p>
+          <p class="quality-review-feedback" data-quality-feedback="${Number(page.pageNumber)}">${repairExhausted ? escapeHtml(copy.repairExhausted) : ""}</p>
+        </div>
+        <div class="quality-review-page-actions">
+          <button type="button" class="secondary-button" data-quality-view="${Number(page.pageNumber)}">${escapeHtml(copy.view)}</button>
+          <button type="button" class="secondary-button" data-quality-approve="${Number(page.pageNumber)}">${escapeHtml(copy.approve)}</button>
+          ${repairExhausted ? "" : `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}">${escapeHtml(copy.repair)}</button>`}
+        </div>
+      </li>`;
+    })
     .join("");
   elements.qualityReviewSupport.textContent = copy.support;
   elements.qualityReviewNotice.hidden = false;
+  elements.qualityReviewPages.querySelectorAll("[data-quality-view]").forEach((button) => {
+    button.addEventListener("click", () => state.readerGoToPage?.(Number(button.dataset.qualityView)));
+  });
+  elements.qualityReviewPages.querySelectorAll("[data-quality-approve]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const pageNumber = Number(button.dataset.qualityApprove);
+      if (!window.confirm(copy.approveConfirm)) return;
+      const card = button.closest(".quality-review-page-card");
+      card?.querySelectorAll("button").forEach((candidate) => { candidate.disabled = true; });
+      const feedback = card?.querySelector(".quality-review-feedback");
+      if (feedback) feedback.textContent = copy.approving;
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/quality-review/pages/${pageNumber}/approve`, { method: "POST" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || copy.actionError);
+        await refreshAfterQualityDecision(pageNumber);
+      } catch {
+        card?.querySelectorAll("button").forEach((candidate) => { candidate.disabled = false; });
+        if (feedback) feedback.textContent = copy.actionError;
+      }
+    });
+  });
+  elements.qualityReviewPages.querySelectorAll("[data-quality-repair]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const pageNumber = Number(button.dataset.qualityRepair);
+      const card = button.closest(".quality-review-page-card");
+      card?.querySelectorAll("button").forEach((candidate) => { candidate.disabled = true; });
+      const feedback = card?.querySelector(".quality-review-feedback");
+      if (feedback) feedback.textContent = copy.repairing.replace("{page}", String(pageNumber));
+      try {
+        const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/quality-review/pages/${pageNumber}/repair`, { method: "POST" });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || copy.actionError);
+        const repairJob = await pollJob(payload.jobId);
+        await refreshAfterQualityDecision(pageNumber, repairJob.result?.repaired ? "" : copy.repairExhausted);
+      } catch {
+        await refreshAfterQualityDecision(pageNumber, copy.actionError).catch(() => {
+          card?.querySelectorAll("button").forEach((candidate) => { candidate.disabled = false; });
+          if (feedback) feedback.textContent = copy.actionError;
+        });
+      }
+    });
+  });
   if (scroll) elements.qualityReviewNotice.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 

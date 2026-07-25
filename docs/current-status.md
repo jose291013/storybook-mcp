@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch after delivery: `main`
+- Current branch: `codex/quality-review-resolution`
 - Latest merged checkpoint: PR #67 — customer-facing quality review, commerce lock, milestone e-mail and abandoned-lease recovery
-- Current focused checkpoint: install Bridge 0.7.0 and verify the quality-review/recovery journey on production
-- Pull request: #67 merged after the user confirmed that no preview was generating and authorized the complete stabilization sequence
+- Current focused checkpoint: make `preview_quality_review` actionable page by page and correct durable progress display
+- Pull request: draft PR #68; do not merge until the user confirms that no preview or quality repair is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -29,6 +29,9 @@ PR #55 through PR #67 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 6. A successful repair completes the preview normally. A still unresolved page produces `preview_quality_review` with all work preserved and no credit captured, rather than `preview_failed`.
 7. The focused experience brick shows those pages in a localized review notice, disables interactive reading, modifications and checkout, and sends one idempotent milestone e-mail through Bridge 0.7.0.
 8. A startup/polling recovery worker converts an expired Render lease into a free resumable interruption, releases its reservation and prevents a permanently frozen progress screen.
+9. Production project `370c9392-ce8a-4dda-bf1d-a6adee309c9c` completed with pages 15, 31 and 35 awaiting review. The first quality-review UI preserved the book but offered no resolution, so the customer could not continue.
+10. The focused resolution brick adds per-page navigation, explicit creator approval and one bounded free creator-requested repair. The credit is captured and commerce unlocks only after the last flagged page is resolved.
+11. While a Render-local job exists, the customer job endpoint now prefers its precise live image step. Durable fallback steps such as `page:31` are also recognized by the progress bar after a restart.
 
 ## Verification completed locally
 
@@ -37,12 +40,12 @@ PR #55 through PR #67 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 - Focused durable-ledger, lease and idempotency tests: 2 passed, 0 failed.
 - Focused page-quarantine and bounded-repair tests: passed.
 - Focused expired-lease recovery and localized quality-review tests: passed.
-- Complete test suite: 161 passed, 0 failed.
+- Complete test suite after the quality-review resolution brick: 163 passed, 0 failed.
 
 ## Next verification target
 
-1. Install Calitiki Bridge 0.7.0 in WordPress.
-2. Verify one production preview, including the quality-review e-mail only if a page is quarantined.
+1. After explicit confirmation that no repair is running, mark PR #68 ready and merge it.
+2. Resolve pages 15, 31 and 35 on the preserved production project.
 
 ## Protected local state
 
