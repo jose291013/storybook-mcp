@@ -75,6 +75,10 @@ export class JsonProjectStore {
     const customer = { id: crypto.randomUUID(), wooCustomerId: key, email, createdAt: now(), updatedAt: now() };
     store.customers[customer.id] = customer; this.write(store); return customer;
   }
+  async getCustomerIdentity(customerId) {
+    const customer = this.read().customers[customerId];
+    return customer ? { wooCustomerId: customer.wooCustomerId, email: customer.email || "" } : null;
+  }
   async create(input) {
     const store = this.read(); const project = createRecord(input);
     store.projects[project.id] = project; this.write(store); return project;
@@ -216,6 +220,16 @@ export class PostgresProjectStore {
        RETURNING *`, [crypto.randomUUID(), wooCustomerId, email]
     );
     return { id: rows[0].id, wooCustomerId: String(rows[0].woo_customer_id), email: rows[0].email || "" };
+  }
+  async getCustomerIdentity(customerId) {
+    const { rows } = await this.database.query(
+      "SELECT woo_customer_id,email FROM app_customers WHERE id=$1",
+      [customerId],
+    );
+    return rows[0] ? {
+      wooCustomerId: String(rows[0].woo_customer_id),
+      email: rows[0].email || "",
+    } : null;
   }
   async create(input) {
     const p = createRecord(input);

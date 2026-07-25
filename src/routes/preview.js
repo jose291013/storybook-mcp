@@ -1207,6 +1207,20 @@ router.post("/preview", async (req, res) => {
           projectId,
           pages: unresolvedQualityPages.map((item) => item.pageNumber),
         }));
+        try {
+          await notifyPreviewMilestoneIfRequested({
+            projectId,
+            identity,
+            event: "quality_review_required",
+            eventId: `${job.id}:quality_review_required`,
+            retryAvailable: false,
+          });
+        } catch (notificationError) {
+          console.warn("[preview] quality review email failed", JSON.stringify({
+            projectId,
+            error: String(notificationError?.message || notificationError),
+          }));
+        }
         return;
       }
 

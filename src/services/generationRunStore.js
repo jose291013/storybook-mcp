@@ -190,6 +190,26 @@ export class JsonGenerationRunStore {
     return run;
   }
 
+  async claimAbandonedRuns({ limit = 10 } = {}) {
+    const store = this.read();
+    const timestamp = Date.now();
+    const abandoned = Object.values(store.runs)
+      .filter((run) => run.kind === "preview" && run.status === "running" && Date.parse(run.leaseExpiresAt || 0) <= timestamp)
+      .sort((left, right) => String(left.leaseExpiresAt || "").localeCompare(String(right.leaseExpiresAt || "")))
+      .slice(0, Math.max(1, Math.min(50, Number(limit) || 10)));
+    for (const run of abandoned) {
+      run.status = "failed";
+      run.errorCode = "preview_interrupted";
+      run.errorMessage = "The generation worker lease expired before completion.";
+      run.completedAt = now();
+      run.leaseOwner = "";
+      run.leaseExpiresAt = null;
+      run.updatedAt = now();
+    }
+    if (abandoned.length) this.write(store);
+    return abandoned;
+  }
+
   async upsertStep(runId, input) {
     const store = this.read();
     const existing = Object.values(store.steps).find((step) => step.runId === runId && step.stepKey === input.stepKey);
@@ -398,6 +418,27 @@ export class PostgresGenerationRunStore {
       [id, workerId, boundedLease],
     );
     return runFromRow(rows[0]);
+  }
+
+  async claimAbandonedRuns({ limit = 10 } = {}) {
+    const boundedLimit = Math.max(1, Math.min(50, Number(limit) || 10));
+    const { rows } = await this.database.query(
+      `WITH abandoned AS (
+         SELECT id FROM generation_runs
+         WHERE kind='preview' AND status='running' AND lease_expires_at<=now()
+         ORDER BY lease_expires_at ASC
+         FOR UPDATE SKIP LOCKED
+         LIMIT $1
+       )
+       UPDATE generation_runs AS run
+       SET status='failed',error_code='preview_interrupted',
+           error_message='The generation worker lease expired before completion.',
+           completed_at=now(),lease_owner=NULL,lease_expires_at=NULL,updated_at=now()
+       FROM abandoned WHERE run.id=abandoned.id
+       RETURNING run.*`,
+      [boundedLimit],
+    );
+    return rows.map(runFromRow);
   }
 
   async upsertStep(runId, input) {

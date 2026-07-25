@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.6.9
+ * Version: 0.7.0
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.6.9') {
-            update_option(self::VERSION_OPTION, '0.6.9');
+        if (get_option(self::VERSION_OPTION) !== '0.7.0') {
+            update_option(self::VERSION_OPTION, '0.7.0');
             flush_rewrite_rules(false);
         }
     }
@@ -116,7 +116,7 @@ final class Calitiki_Woo_Bridge {
         $retry_available = !empty($payload['retryAvailable']);
         $ready_url = isset($payload['readyUrl']) ? esc_url_raw($payload['readyUrl']) : '';
         $user = $customer_id ? get_user_by('id', $customer_id) : false;
-        if (!$user || !$project_id || !$ready_url || !$event_id || !in_array($event, array('preview_ready', 'cover_ready', 'generation_failed'), true)) {
+        if (!$user || !$project_id || !$ready_url || !$event_id || !in_array($event, array('preview_ready', 'cover_ready', 'generation_failed', 'quality_review_required'), true)) {
             wp_send_json_error(array('error' => 'Invalid notification payload'), 400);
         }
         $dedupe_key = 'calitiki_preview_' . md5($project_id . '|' . $event . '|' . $event_id);
@@ -134,6 +134,15 @@ final class Calitiki_Woo_Bridge {
         } elseif ($event === 'cover_ready') {
             $subject = 'Votre couverture Calitiki est prête à être validée';
             $message = "La couverture de « {$title} » est prête. Les illustrations intérieures attendent votre validation.\n\nVérifier ma couverture : {$ready_url}\n\nVos photos et votre livre restent privés.";
+        } elseif ($event === 'quality_review_required' && $locale === 'ES') {
+            $subject = 'Tu libro Calitiki está guardado y en revisión';
+            $message = "Todas las páginas de «{$title}» están guardadas. Calitiki ha aislado algunas ilustraciones para verificarlas sin reiniciar el libro.\n\nNo se puede comprar el libro hasta terminar esta revisión y tu crédito no se cobrará una segunda vez.\n\nVer mi creación: {$ready_url}";
+        } elseif ($event === 'quality_review_required' && $locale === 'EN') {
+            $subject = 'Your Calitiki book is saved and under review';
+            $message = "Every page of “{$title}” is safely saved. Calitiki isolated a few illustrations for review instead of rebuilding the book.\n\nPurchase remains unavailable until the review is complete, and your credit will not be charged a second time.\n\nView my creation: {$ready_url}";
+        } elseif ($event === 'quality_review_required') {
+            $subject = 'Votre livre Calitiki est conservé et en vérification';
+            $message = "Toutes les pages de « {$title} » sont conservées. Calitiki a isolé quelques illustrations pour les vérifier sans recommencer le livre.\n\nL’achat reste indisponible jusqu’à la fin de cette vérification et votre crédit ne sera pas débité une seconde fois.\n\nVoir ma création : {$ready_url}";
         } elseif ($event === 'generation_failed' && $locale === 'ES') {
             $subject = 'Tu creación Calitiki necesita tu atención';
             $next_step = $retry_available ? 'Puedes retomar el libro gratuitamente desde el primer paso pendiente.' : 'No se realizará ningún nuevo intento automático; Calitiki deberá intervenir.';
@@ -353,6 +362,7 @@ final class Calitiki_Woo_Bridge {
                 'scenario_needs_clarification' => __('Scénario à préciser', 'calitiki-bridge'),
                 'scenario_review' => __('Scénario à valider', 'calitiki-bridge'),
                 'preview_generating' => __('Génération en cours', 'calitiki-bridge'),
+                'preview_quality_review' => __('Illustrations en vérification', 'calitiki-bridge'),
                 'preview_failed' => __('Génération interrompue', 'calitiki-bridge'),
                 'preview_ready' => __('Aperçu prêt', 'calitiki-bridge'),
                 'preview_repairing' => __('Correction en cours', 'calitiki-bridge'),
@@ -368,13 +378,17 @@ final class Calitiki_Woo_Bridge {
             $found = true;
             $title = sanitize_text_field((string) ($project['title'] ?? 'Calitiki'));
             $pages = absint($project['pageCount'] ?? 0);
-            $button_label = in_array($status, array('preview_ready', 'purchased'), true)
-                ? __('Voir mon livre', 'calitiki-bridge')
-                : ($status === 'preview_failed'
-                    ? __('Reprendre mon projet', 'calitiki-bridge')
-                    : (in_array($status, array('scenario_needs_clarification', 'scenario_review'), true)
-                        ? __('Vérifier le scénario', 'calitiki-bridge')
-                        : __('Suivre la génération', 'calitiki-bridge')));
+            if ($status === 'preview_quality_review') {
+                $button_label = __('Voir la vérification', 'calitiki-bridge');
+            } else {
+                $button_label = in_array($status, array('preview_ready', 'purchased'), true)
+                    ? __('Voir mon livre', 'calitiki-bridge')
+                    : ($status === 'preview_failed'
+                        ? __('Reprendre mon projet', 'calitiki-bridge')
+                        : (in_array($status, array('scenario_needs_clarification', 'scenario_review'), true)
+                            ? __('Vérifier le scénario', 'calitiki-bridge')
+                            : __('Suivre la génération', 'calitiki-bridge')));
+            }
             echo '<article class="calitiki-creation-card calitiki-preview-card"><span>' . esc_html__('Aperçu personnalisé', 'calitiki-bridge') . '</span>';
             echo '<h3>' . esc_html($title ?: 'Calitiki') . '</h3><p>' . esc_html($pages ? sprintf(__('%1$s · %2$d pages', 'calitiki-bridge'), $status_labels[$status], $pages) : $status_labels[$status]) . '</p>';
             echo '<a class="button alt" href="' . esc_url($project_url) . '">' . esc_html($button_label) . '</a>';

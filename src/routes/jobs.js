@@ -37,6 +37,7 @@ router.get("/jobs/:id", async (req, res) => {
       status,
       step: durableRun.currentStep || localJob?.step || "",
       error: durableRun.errorMessage || localJob?.error || undefined,
+      qualityReview: localJob?.qualityReview || durableRun.metadata?.qualityReview || undefined,
       createdAt: durableRun.createdAt,
       updatedAt: durableRun.updatedAt,
       durable: true,
