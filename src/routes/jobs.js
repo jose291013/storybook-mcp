@@ -24,6 +24,8 @@ router.get("/jobs/:id", async (req, res) => {
       ? "done"
       : durableRun.status === "waiting_input"
         ? "awaiting_visual_approval"
+        : durableRun.status === "repair_pending"
+          ? "quality_review_required"
         : durableRun.status === "failed"
           ? "failed"
           : durableRun.status;

@@ -1,6 +1,10 @@
 import express from "express";
 import { createJob, getJob, updateJob } from "../services/jobStore.js";
-import { generateQualityCheckedImage, outputImagePath } from "../services/imageQualityGate.js";
+import {
+  generateQualityCheckedImage,
+  IllustrationQualityError,
+  outputImagePath,
+} from "../services/imageQualityGate.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
@@ -72,6 +76,56 @@ function startGenerationRunHeartbeat(jobId) {
   }, 30000);
   timer.unref?.();
   return () => clearInterval(timer);
+}
+
+function createImageCandidateRecorder({
+  jobId,
+  projectId,
+  pageNumber = null,
+  stepKey,
+  assetCache,
+}) {
+  return async ({
+    imageUrl,
+    attempt,
+    maximumAttempts,
+    status,
+    rejectionKind = "",
+    issues = [],
+    warning = false,
+  }) => {
+    const persisted = await persistPreviewAsset({ projectId, assetUrl: imageUrl });
+    assetCache.set(imageUrl, persisted);
+    const { step } = await generationRunStore.upsertStep(jobId, {
+      stepKey,
+      stepType: pageNumber == null ? "cover_image" : "page_image",
+      status: "running",
+      maxAttempts: maximumAttempts,
+    });
+    await generationRunStore.recordCandidate({
+      runId: jobId,
+      stepId: step.id,
+      projectId,
+      pageNumber,
+      candidateNumber: attempt,
+      status,
+      storageKey: persisted.storageKey,
+      previewUrl: persisted.previewUrl,
+      rejectionKind,
+      issues,
+      metadata: { warning },
+    });
+    await generationRunStore.updateStep(step.id, {
+      status: status === "accepted"
+        ? "completed"
+        : status === "quarantined"
+          ? "repair_pending"
+          : "running",
+      maxAttempts: maximumAttempts,
+      diagnostics: { rejectionKind, issues, warning },
+      ...(status === "accepted" ? { completedAt: new Date().toISOString() } : {}),
+    });
+  };
 }
 
 async function notifyPreviewMilestoneIfRequested({
@@ -474,6 +528,7 @@ router.post("/preview", async (req, res) => {
     try {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const { answers, photos } = normalized;
+      const candidateAssetCache = new Map();
 
       const persistCheckpoint = async (patch, projectPatch = {}) => {
         const latest = await projectStore.get(job.projectId);
@@ -748,6 +803,12 @@ router.post("/preview", async (req, res) => {
           castPresent: final_blueprint.cover.cast_present || [],
           pageLabel: "book cover illustration",
           onAttempt: reportImageAttempt(job.id, "draft:cover"),
+          onCandidate: createImageCandidateRecorder({
+            jobId: job.id,
+            projectId,
+            stepKey: "image:cover",
+            assetCache: candidateAssetCache,
+          }),
           ...coverContinuity,
           size: "1024x1024",
           quality: "medium",
@@ -763,7 +824,8 @@ router.post("/preview", async (req, res) => {
           pageType: "cover",
           dpi: 150,
         });
-        const persistedCoverImage = await persistPreviewAsset({ projectId, assetUrl: localCoverImageUrl });
+        const persistedCoverImage = candidateAssetCache.get(localCoverImageUrl)
+          || await persistPreviewAsset({ projectId, assetUrl: localCoverImageUrl });
         const persistedCover = await persistPreviewAsset({ projectId, assetUrl: localCoverPreviewUrl });
         coverImageUrl = persistedCoverImage.previewUrl;
         coverImageStorageKey = persistedCoverImage.storageKey;
@@ -825,6 +887,32 @@ router.post("/preview", async (req, res) => {
       const draftPages = (priorResult.draftPages || []).filter(isReusableDraftPage);
       const completedPageNumbers = new Set(draftPages.map((page) => Number(page.page_number)));
       const coverReferencePath = localCoverImageUrl ? outputImagePath(localCoverImageUrl) : "";
+      const buildPageVisualRequest = (page) => {
+        const pairedTextPage = final_blueprint.pages.find((candidate) => (
+          candidate.spread_number === page.spread_number
+          && ["text", "opening_text", "closing_text"].includes(candidate.page_type)
+        ));
+        const pairedText = pairedTextPage ? draftTextByPage.get(pairedTextPage.page_number) || "" : "";
+        const sceneContinuity = buildSceneContinuity({
+          blueprint: final_blueprint,
+          characterCanons,
+          castPresent: page.cast_present || [],
+          scenePrompt: page.image_prompt,
+          visualState: page.visual_state || {},
+          ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
+          ...(!coverReferencePath && coverImageStorageKey ? { continuityImageStorageKey: coverImageStorageKey } : {}),
+          pairedText,
+          structuredSceneContract: page.scene_contract || null,
+          referenceAssets,
+        });
+        const visualPrompt = sceneContractImagePrompt({
+          contract: page.scene_contract,
+          stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+          fallbackPrompt: page.image_prompt,
+          visualAliases: sceneContinuity.visualAliases,
+        });
+        return { pairedText, sceneContinuity, visualPrompt };
+      };
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
         if (completedPageNumbers.has(Number(page.page_number))) {
@@ -835,54 +923,58 @@ router.post("/preview", async (req, res) => {
         let imageUrl = "";
         let imageStorageKey = "";
         let localImageUrl = "";
+        let qualityStatus = "accepted";
+        let qualityIssues = [];
+        let qualityKind = "";
 
         if (["text", "opening_text", "closing_text"].includes(page.page_type)) {
           text = draftTextByPage.get(page.page_number) || "";
         } else if (page.page_type === "image") {
-          const pairedTextPage = final_blueprint.pages.find((candidate) => (
-            candidate.spread_number === page.spread_number
-            && ["text", "opening_text", "closing_text"].includes(candidate.page_type)
-          ));
-          const pairedText = pairedTextPage ? draftTextByPage.get(pairedTextPage.page_number) || "" : "";
-          const sceneContinuity = buildSceneContinuity({
-            blueprint: final_blueprint,
-            characterCanons,
-            castPresent: page.cast_present || [],
-            scenePrompt: page.image_prompt,
-            visualState: page.visual_state || {},
-            ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
-            ...(!coverReferencePath && coverImageStorageKey ? { continuityImageStorageKey: coverImageStorageKey } : {}),
-            pairedText,
-            structuredSceneContract: page.scene_contract || null,
-            referenceAssets,
-          });
-          const visualPrompt = sceneContractImagePrompt({
-            contract: page.scene_contract,
-            stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
-            fallbackPrompt: page.image_prompt,
-            visualAliases: sceneContinuity.visualAliases,
-          });
-          localImageUrl = await generateQualityCheckedImage({
-            prompt: visualPrompt,
-            safetyFallbackPrompt: sceneContractImagePrompt({
-              contract: page.scene_contract,
-              stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
-              fallbackPrompt: page.image_prompt,
-              visualAliases: sceneContinuity.visualAliases,
-              safetyFallback: true,
-            }),
-            outName: `draft-page${page.page_number}-${job.id}`,
-            castPresent: page.cast_present || [],
-            pageLabel: `interior illustration for page ${page.page_number}`,
-            onAttempt: reportImageAttempt(job.id, `draft:page:${page.page_number}`),
-            ...sceneContinuity,
-            size: "1024x1024",
-            quality: "low",
-            renderingMode: answers.rendering_mode,
-            likenessGoal: answers.likeness_goal,
-            model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
-          });
-          const persistedImage = await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
+          const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
+          try {
+            localImageUrl = await generateQualityCheckedImage({
+              prompt: visualPrompt,
+              safetyFallbackPrompt: sceneContractImagePrompt({
+                contract: page.scene_contract,
+                stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+                fallbackPrompt: page.image_prompt,
+                visualAliases: sceneContinuity.visualAliases,
+                safetyFallback: true,
+              }),
+              outName: `draft-page${page.page_number}-${job.id}`,
+              castPresent: page.cast_present || [],
+              pageLabel: `interior illustration for page ${page.page_number}`,
+              onAttempt: reportImageAttempt(job.id, `draft:page:${page.page_number}`),
+              onCandidate: createImageCandidateRecorder({
+                jobId: job.id,
+                projectId,
+                pageNumber: page.page_number,
+                stepKey: `image:page:${page.page_number}`,
+                assetCache: candidateAssetCache,
+              }),
+              ...sceneContinuity,
+              size: "1024x1024",
+              quality: "low",
+              renderingMode: answers.rendering_mode,
+              likenessGoal: answers.likeness_goal,
+              model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+            });
+          } catch (error) {
+            if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;
+            localImageUrl = error.candidateImageUrl;
+            qualityStatus = "repair_pending";
+            qualityIssues = error.issues;
+            qualityKind = error.rejectionKind;
+            console.warn("[preview] page quarantined for repair", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              pageNumber: page.page_number,
+              rejectionKind: qualityKind,
+              issues: qualityIssues,
+            }));
+          }
+          const persistedImage = candidateAssetCache.get(localImageUrl)
+            || await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
           imageUrl = persistedImage.previewUrl;
           imageStorageKey = persistedImage.storageKey;
         }
@@ -909,12 +1001,213 @@ router.post("/preview", async (req, res) => {
           imageStorageKey,
           previewUrl: persistedPage.previewUrl,
           storageKey: persistedPage.storageKey,
+          ...(page.page_type === "image" ? {
+            qualityStatus,
+            qualityIssues,
+            qualityKind,
+          } : {}),
         });
         draftPages.sort((left, right) => Number(left.page_number) - Number(right.page_number));
         completedPageNumbers.add(Number(page.page_number));
         const partialResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
         updateJob(job.id, { result: partialResult });
         await persistCheckpoint({ phase: `page:${page.page_number}` }, { previewResult: partialResult, finalBlueprint: final_blueprint });
+      }
+
+      const unresolvedQualityPages = draftPages
+        .filter((page) => page.page_type === "image" && page.qualityStatus === "review_required")
+        .map((page) => ({
+          pageNumber: Number(page.page_number),
+          kind: page.qualityKind || "scene",
+          issues: page.qualityIssues || [],
+        }));
+      const pendingRepairPages = draftPages.filter((page) => (
+        page.page_type === "image" && page.qualityStatus === "repair_pending"
+      ));
+      for (const pendingPage of pendingRepairPages) {
+        const page = final_blueprint.pages.find((candidate) => (
+          Number(candidate.page_number) === Number(pendingPage.page_number)
+        ));
+        if (!page) continue;
+        const stepKey = `repair:page:${page.page_number}`;
+        const { step: repairStep } = await generationRunStore.upsertStep(job.id, {
+          stepKey,
+          stepType: "page_repair",
+          status: "running",
+          maxAttempts: 1,
+          inputFingerprint: fingerprint,
+          diagnostics: {
+            priorKind: pendingPage.qualityKind || "scene",
+            priorIssues: pendingPage.qualityIssues || [],
+          },
+        });
+        updateJob(job.id, { step: `draft:repair:page:${page.page_number}` });
+        await updateGenerationRun(job.id, {
+          status: "running",
+          currentStep: `draft:repair:page:${page.page_number}`,
+        });
+        const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
+        try {
+          const repairedLocalImageUrl = await generateQualityCheckedImage({
+            prompt: `${visualPrompt}\n\nFINAL TARGETED REPAIR: the previous candidates were quarantined because ${(pendingPage.qualityIssues || []).join("; ")}. Correct only these objective contradictions while preserving the approved cover medium and every other scene requirement.`,
+            safetyFallbackPrompt: sceneContractImagePrompt({
+              contract: page.scene_contract,
+              stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+              fallbackPrompt: page.image_prompt,
+              visualAliases: sceneContinuity.visualAliases,
+              safetyFallback: true,
+            }),
+            outName: `draft-page${page.page_number}-repair-${job.id}`,
+            castPresent: page.cast_present || [],
+            pageLabel: `targeted repair for page ${page.page_number}`,
+            maximumAttempts: 1,
+            onAttempt: reportImageAttempt(job.id, `draft:repair:page:${page.page_number}`),
+            onCandidate: createImageCandidateRecorder({
+              jobId: job.id,
+              projectId,
+              pageNumber: page.page_number,
+              stepKey,
+              assetCache: candidateAssetCache,
+            }),
+            ...sceneContinuity,
+            size: "1024x1024",
+            quality: "low",
+            renderingMode: answers.rendering_mode,
+            likenessGoal: answers.likeness_goal,
+            model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+          });
+          const persistedImage = candidateAssetCache.get(repairedLocalImageUrl)
+            || await persistPreviewAsset({ projectId, assetUrl: repairedLocalImageUrl });
+          const repairedPreviewUrl = await composeBookPagePNG({
+            baseUrl,
+            imageUrl: repairedLocalImageUrl,
+            outName: `draft-page${page.page_number}-repair-layout-${job.id}`,
+            pageType: page.page_type,
+            pageNumber: page.page_number,
+            fontStyle: final_blueprint.typography?.id,
+            readerAge: final_blueprint.hero?.age,
+            dpi: 150,
+          });
+          const persistedPage = await persistPreviewAsset({ projectId, assetUrl: repairedPreviewUrl });
+          const index = draftPages.findIndex((candidate) => Number(candidate.page_number) === Number(page.page_number));
+          draftPages[index] = {
+            ...draftPages[index],
+            imageUrl: persistedImage.previewUrl,
+            imageStorageKey: persistedImage.storageKey,
+            previewUrl: persistedPage.previewUrl,
+            storageKey: persistedPage.storageKey,
+            qualityStatus: "accepted_after_repair",
+            qualityIssues: [],
+            qualityKind: "",
+            repairedAt: new Date().toISOString(),
+          };
+          await generationRunStore.updateStep(repairStep.id, {
+            status: "completed",
+            completedAt: new Date().toISOString(),
+            output: {
+              pageNumber: page.page_number,
+              storageKey: persistedImage.storageKey,
+              previewUrl: persistedPage.previewUrl,
+            },
+          });
+          const repairedResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+          updateJob(job.id, { result: repairedResult });
+          await persistCheckpoint({ phase: `repair:page:${page.page_number}` }, {
+            previewResult: repairedResult,
+            finalBlueprint: final_blueprint,
+          });
+          console.info("[preview] quarantined page repaired", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            pageNumber: page.page_number,
+          }));
+        } catch (error) {
+          const qualityError = error instanceof IllustrationQualityError;
+          const issues = qualityError
+            ? error.issues
+            : [`The image provider could not complete the targeted repair: ${String(error?.message || error)}`];
+          const index = draftPages.findIndex((candidate) => Number(candidate.page_number) === Number(page.page_number));
+          draftPages[index] = {
+            ...draftPages[index],
+            qualityStatus: "review_required",
+            qualityIssues: issues,
+            qualityKind: qualityError ? error.rejectionKind : "provider",
+          };
+          unresolvedQualityPages.push({
+            pageNumber: Number(page.page_number),
+            kind: qualityError ? error.rejectionKind : "provider",
+            issues,
+          });
+          await generationRunStore.updateStep(repairStep.id, {
+            status: "repair_pending",
+            diagnostics: { issues, kind: qualityError ? error.rejectionKind : "provider" },
+            errorCode: qualityError ? "quality_review_required" : "provider_repair_failed",
+            errorMessage: issues.join(" | "),
+          });
+          const reviewResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+          updateJob(job.id, { result: reviewResult });
+          await persistCheckpoint({ phase: `review:page:${page.page_number}` }, {
+            previewResult: reviewResult,
+            finalBlueprint: final_blueprint,
+          });
+          console.warn("[preview] page requires quality review", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            pageNumber: page.page_number,
+            kind: qualityError ? error.rejectionKind : "provider",
+            issues,
+          }));
+        }
+      }
+
+      if (unresolvedQualityPages.length) {
+        const reviewResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+        const qualityReview = {
+          status: "required",
+          pages: unresolvedQualityPages,
+          requestedAt: new Date().toISOString(),
+        };
+        updateJob(job.id, {
+          status: "quality_review_required",
+          step: "draft:quality-review",
+          final_blueprint,
+          result: reviewResult,
+          qualityReview,
+        });
+        await updateGenerationRun(job.id, {
+          status: "repair_pending",
+          currentStep: "draft:quality-review",
+          metadata: {
+            creditReservationId: creditReservation?.id || null,
+            pageCount: normalized.answers.page_count,
+            qualityReview,
+          },
+          leaseOwner: "",
+          leaseExpiresAt: null,
+        });
+        const latest = await projectStore.get(job.projectId);
+        await projectStore.update(job.projectId, {
+          status: "preview_quality_review",
+          finalBlueprint: final_blueprint,
+          previewResult: reviewResult,
+          generationJobId: job.id,
+          continuitySnapshot: mergeGenerationCheckpoint(
+            latest?.continuitySnapshot || project.continuitySnapshot,
+            {
+              ...checkpoint,
+              phase: "quality-review",
+              qualityReview,
+              retryAvailable: false,
+              retryExhausted: false,
+            },
+          ),
+        });
+        console.warn("[preview] completed with pages awaiting quality review", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          pages: unresolvedQualityPages.map((item) => item.pageNumber),
+        }));
+        return;
       }
 
       updateJob(job.id, {

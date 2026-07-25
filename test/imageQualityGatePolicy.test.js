@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import {
   blockingSceneContractIssues,
+  IllustrationQualityError,
   isImageSafetyRejection,
   isTransientImageGenerationError,
   objectiveSceneContractIssues,
@@ -86,6 +87,20 @@ test("missing required cast and fused identities remain blocking after the final
     "Required named character family member 2 is missing.",
     "Required identities are fused into one hybrid body.",
   ]);
+});
+
+test("an unresolved page-quality decision carries its preserved candidate into targeted repair", () => {
+  const error = new IllustrationQualityError({
+    candidateImageUrl: "/outputs/page-7-attempt2.png",
+    rejectionKind: "scene",
+    issues: ["Required named character Maïté is missing."],
+    attemptCount: 2,
+  });
+  assert.equal(error.code, "illustration_quality_review");
+  assert.equal(error.candidateImageUrl, "/outputs/page-7-attempt2.png");
+  assert.equal(error.rejectionKind, "scene");
+  assert.equal(error.attemptCount, 2);
+  assert.deepEqual(error.issues, ["Required named character Maïté is missing."]);
 });
 
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {

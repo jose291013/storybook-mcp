@@ -82,6 +82,19 @@ export function isTransientImageGenerationError(error) {
   return isTransientOpenAIError(error);
 }
 
+export class IllustrationQualityError extends Error {
+  constructor({ candidateImageUrl = "", rejectionKind = "technical", issues = [], attemptCount = 0 } = {}) {
+    const normalizedIssues = (Array.isArray(issues) ? issues : []).map(String).filter(Boolean);
+    super(`Illustration requires targeted repair after ${attemptCount} attempts: ${normalizedIssues.join(" | ") || "visual quality failure"}`);
+    this.name = "IllustrationQualityError";
+    this.code = "illustration_quality_review";
+    this.candidateImageUrl = candidateImageUrl;
+    this.rejectionKind = rejectionKind;
+    this.issues = normalizedIssues;
+    this.attemptCount = attemptCount;
+  }
+}
+
 async function referenceSource(reference) {
   if (!reference) return null;
   if (Buffer.isBuffer(reference.buffer)) return reference.buffer;
@@ -260,6 +273,7 @@ export async function generateQualityCheckedImage({
   pageLabel = "illustration",
   maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "2", 10) || 2),
   onAttempt = null,
+  onCandidate = null,
   sceneFidelityContract = null,
   ...generationOptions
 }) {
@@ -268,6 +282,7 @@ export async function generateQualityCheckedImage({
   let omitReferenceImages = false;
   let safetyFallbackActive = false;
   let attemptLimit = maximumAttempts;
+  let lastCandidateImageUrl = "";
   for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
     const referenceImagesForAttempt = omitReferenceImages
       ? generationOptions.referenceImages?.filter((reference) => reference?.kind === "continuity")
@@ -292,6 +307,7 @@ export async function generateQualityCheckedImage({
         prompt: `${safetyFallbackActive && safetyFallbackPrompt ? safetyFallbackPrompt : prompt}${repairNote}`,
         outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
       });
+      lastCandidateImageUrl = imageUrl;
       onAttempt?.({ phase: "generated", attempt, maximumAttempts: attemptLimit, pageLabel });
       const inspection = await inspectGeneratedIllustration({
         imagePath: outputImagePath(imageUrl),
@@ -322,6 +338,14 @@ export async function generateQualityCheckedImage({
         ])
         : [{ approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }];
       if (inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved) {
+        await onCandidate?.({
+          imageUrl,
+          attempt,
+          maximumAttempts: attemptLimit,
+          status: "accepted",
+          rejectionKind: "",
+          issues: [],
+        });
         onAttempt?.({ phase: "approved", attempt, maximumAttempts: attemptLimit, pageLabel });
         return imageUrl;
       }
@@ -330,12 +354,22 @@ export async function generateQualityCheckedImage({
       // preview because a vision model distinguishes subtle realism or polish.
       const blockingSceneIssues = blockingSceneContractIssues(sceneInspection.issues);
       if (inspection.approved && attempt === attemptLimit && blockingSceneIssues.length === 0) {
+        const warningIssues = [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues];
+        await onCandidate?.({
+          imageUrl,
+          attempt,
+          maximumAttempts: attemptLimit,
+          status: "accepted",
+          rejectionKind: !identityInspection.approved ? "identity" : !sceneInspection.approved ? "scene" : "style",
+          issues: warningIssues,
+          warning: true,
+        });
         onAttempt?.({
           phase: !identityInspection.approved ? "approved-with-identity-warning" : sceneInspection.approved ? "approved-with-style-warning" : "approved-with-scene-warning",
           attempt,
           maximumAttempts: attemptLimit,
           pageLabel,
-          issues: [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues],
+          issues: warningIssues,
         });
         return imageUrl;
       }
@@ -343,6 +377,14 @@ export async function generateQualityCheckedImage({
       previousRejectionKind = inspection.approved
         ? (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
         : "technical";
+      await onCandidate?.({
+        imageUrl,
+        attempt,
+        maximumAttempts: attemptLimit,
+        status: attempt === attemptLimit ? "quarantined" : "rejected",
+        rejectionKind: previousRejectionKind,
+        issues: previousIssues,
+      });
       onAttempt?.({ phase: "rejected", attempt, maximumAttempts: attemptLimit, pageLabel, issues: previousIssues });
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts: attemptLimit, pageLabel, error: String(error?.message || error) });
@@ -374,5 +416,10 @@ export async function generateQualityCheckedImage({
   }
   const finalBlockingIssues = blockingSceneContractIssues(previousIssues);
   const reportedFailureIssues = finalBlockingIssues.length ? finalBlockingIssues : previousIssues;
-  throw new Error(`Illustration rejected after ${attemptLimit} attempts: ${reportedFailureIssues.join(" | ") || "visual quality failure"}`);
+  throw new IllustrationQualityError({
+    candidateImageUrl: lastCandidateImageUrl,
+    rejectionKind: previousRejectionKind,
+    issues: reportedFailureIssues,
+    attemptCount: attemptLimit,
+  });
 }
