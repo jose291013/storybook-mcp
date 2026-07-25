@@ -951,6 +951,19 @@ test("new request format accepts up to five typed photo references", () => {
   assert.equal(normalized.photos[1].story_role, "guide");
 });
 
+test("every creator-selected secondary narrative role remains authoritative", () => {
+  for (const storyRole of ["guide", "ally", "companion", "supporter", "guest"]) {
+    const normalized = normalizeBookRequest({
+      questionnaire: { hero_name: "Lina", age: 6, language: "fr" },
+      photos: [
+        { id: "lina.png", role: "child", story_role: "hero", name: "Lina" },
+        { id: `${storyRole}.png`, role: "family", story_role: storyRole, relationship: "frère", name: "Nino" },
+      ],
+    });
+    assert.equal(normalized.photos[1].story_role, storyRole);
+  }
+});
+
 test("request rejects a sixth photo", () => {
   const photos = Array.from({ length: 6 }, (_, index) => ({
     id: `photo-${index}.png`,
