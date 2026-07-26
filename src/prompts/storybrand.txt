@@ -18,6 +18,7 @@ Map the answers explicitly:
 - intake.universe, universe_instructions and signature_object -> concrete adventure elements
 
 The child must make imperfect attempts before success. Magic and the guide may support the plan but must never perform the decisive action for the child.
+The family's private meaning must remain implicit: make the adventure understandable on its own without unnecessary psychological or family exposition. The child demonstrates the message through choices and consequences before it is expressed briefly near the resolution.
 
 When approved_scenario is supplied, it is authoritative for event order, locations, travel, character presence modes and object states. StoryBrand describes that exact approved story and must never replace, reorder or skip its events.
 

@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,46 +8,38 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/quality-review-text-or-image`
-- Latest merged checkpoint: PR #69 — private quality-correction candidate with before/after creator choice
-- Current focused checkpoint: require a creator explanation and allow either a text or illustration candidate for one flagged spread
-- Pull request: draft PR #70 published; do not merge until the user confirms that no preview or quality correction is running
+- Current branch: `codex/narrative-depth-age-guidance`
+- Latest merged checkpoint: PR #70 — creator-directed text-or-illustration quality correction
+- Current focused checkpoint: narrative depth, age guidance and protected family meaning from external reader feedback
+- Pull request: draft PR #71 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #69 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
+PR #55 through PR #70 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
 
-## Current product brick: durable preview stabilization
+## Current product brick: narrative depth and age guidance
 
-1. Live project `370c9392-ce8a-4dda-bf1d-a6adee309c9c` exposed a false technical rejection: a coherent photographic rendering was described as “no coherent children's-book illustration” and aborted the whole preview.
-2. PR #64 makes technical image QA own only file corruption, blank/incomplete output and accidental anatomy or identity fusion. A photograph, painting, cartoon or other coherent rendering is technically complete.
-3. Rendering-family disagreement remains in the separate bounded style check and cannot abort a book after the final coherent attempt.
-4. PR #65 adds PostgreSQL generation runs, idempotent steps, expiring worker leases and preserved candidate records. The customer job endpoint can recover its status after the Render-local job file disappears.
-5. The focused page-isolation brick copies every candidate to private storage before its verdict, quarantines an unresolved page, finishes every unaffected page and launches one targeted repair candidate at the end.
-6. A successful repair completes the preview normally. A still unresolved page produces `preview_quality_review` with all work preserved and no credit captured, rather than `preview_failed`.
-7. The focused experience brick shows those pages in a localized review notice, disables interactive reading, modifications and checkout, and sends one idempotent milestone e-mail through Bridge 0.7.0.
-8. A startup/polling recovery worker converts an expired Render lease into a free resumable interruption, releases its reservation and prevents a permanently frozen progress screen.
-9. Production project `370c9392-ce8a-4dda-bf1d-a6adee309c9c` completed with pages 15, 31 and 35 awaiting review. The first quality-review UI preserved the book but offered no resolution, so the customer could not continue.
-10. The focused resolution brick adds per-page navigation, explicit creator approval and one bounded free creator-requested repair. The credit is captured and commerce unlocks only after the last flagged page is resolved.
-11. While a Render-local job exists, the customer job endpoint now prefers its precise live image step. Durable fallback steps such as `page:31` are also recognized by the progress bar after a restart.
-12. The focused candidate-choice brick keeps a creator-requested repair separate from the current illustration, accepts one optional visual instruction, persists the private alternative, shows a before/after comparison and changes the book only after **Keep the original** or **Use the new one**.
-13. Production feedback showed that an optional inline instruction could be missed and that a correct illustration may conflict only with a minor gesture in the paired prose. The focused follow-up makes the explanation mandatory and offers separate, bounded **Adjust the illustration** and **Adjust the text to this image** candidates. Both may coexist, and neither changes the spread before explicit selection.
+1. External reading feedback confirms that Calitiki's causal continuity foundation is useful but that a strong children's book also needs controlled private depth, distinct scene functions, emotional variation and less repeated explanation.
+2. The three adventure proposals keep their stable legacy ids but become genuinely different approaches: relational/help, symbolic/magical mystery and concrete/action challenge. Each exposes a starting point, active role, resolution, message shown through action and emotional tone.
+3. The scenario gains an optional versioned editorial contract. New scenarios define implicit personal depth, action-before-moral delivery, one primary plus at most two secondary symbols, and per-scene narrative function, dominant emotion, emotional shift and observable story change. Legacy persisted scenarios remain valid.
+4. Deterministic validation rejects missing or exactly duplicated progression metadata and undeclared symbols. The semantic scenario audit handles clear passive, repetitive, privacy, symbol and age defects during the existing bounded repair cycle rather than creating a new late generation gate.
+5. The whole-book scene planner removes repeated explanations and moral formulas, realizes each approved emotional shift and repurposes long-book spreads into meaningful events instead of filler.
+6. The creator sees each scene's function, emotion and change during three-act review, plus the protected-depth and symbol contract.
+7. Page-count choices now show age-aware recommendations, scene count, estimated reading duration and one-sitting or multi-moment use. All lengths remain selectable.
 
 ## Verification completed locally
 
-- Exact regression test for the live photographic-style false rejection: passed.
-- Focused image quality policy tests: 8 passed, 0 failed.
-- Focused durable-ledger, lease and idempotency tests: 2 passed, 0 failed.
-- Focused page-quarantine and bounded-repair tests: passed.
-- Focused expired-lease recovery and localized quality-review tests: passed.
-- Complete test suite after the text-or-illustration quality brick: 167 passed, 0 failed.
+- Narrative funnel and scenario tests: 30 passed, 0 failed.
+- Focused age/page guidance tests: 2 passed, 0 failed.
+- Complete test suite: 170 passed, 0 failed.
 
 ## Next verification target
 
-1. Review draft PR #70 without merging it.
-2. After an explicitly authorized deployment, verify the preserved production page with the Maïté gesture mismatch: the existing image candidate must remain available, a text proposal must be creatable from a required explanation, and applying it must change only the paired text.
+1. Review draft PR #71 without merging it.
+2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
+3. After deployment, create one age-8 test book and verify that the three proposals differ in structure, the selected length advice is clear, scenario scenes show distinct changes/emotions, and the resulting manuscript does not repeat the moral.
 
 ## Protected local state
 

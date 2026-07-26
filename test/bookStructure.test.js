@@ -10,6 +10,7 @@ import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
 import { balanceCoverTitle, composeBookPagePNG, getBodyFontSize } from "../src/services/composeBookPagePNG.js";
 import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
+import { buildReadingGuidanceProfiles, readingGuidanceForAge } from "../src/config/readingGuidance.js";
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import { buildImageCharacterAliases } from "../src/services/imageVisualContract.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
@@ -889,6 +890,20 @@ test("illustration catalog separates realism from medium with truthful compariso
 test("story pages use richer word targets while opening and closing stay concise", () => {
   assert.deepEqual(getWordsTargetByAge("6", "text"), { target: 70, tolerance: 11 });
   assert.deepEqual(getWordsTargetByAge("6", "opening_text"), { target: 41, tolerance: 8 });
+});
+
+test("page guidance recommends an age-appropriate length while preserving every parent choice", () => {
+  const shortBook = readingGuidanceForAge(8, 24);
+  const longBook = readingGuidanceForAge(8, 40);
+  assert.equal(shortBook.recommended, true);
+  assert.equal(longBook.recommended, false);
+  assert.equal(shortBook.sceneCount, 11);
+  assert.equal(longBook.sceneCount, 19);
+  assert.ok(longBook.estimatedWords > shortBook.estimatedWords);
+  assert.ok(longBook.minutesMax > shortBook.minutesMax);
+  const profile = buildReadingGuidanceProfiles().find((item) => item.minAge === 8);
+  assert.deepEqual(profile.recommendedPageCounts, [24, 28, 32]);
+  assert.deepEqual(profile.options.map((option) => option.pageCount), ALLOWED_PAGE_COUNTS);
 });
 
 test("six distinct book fonts are bundled with their licenses", async () => {

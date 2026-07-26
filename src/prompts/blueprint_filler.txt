@@ -6,11 +6,15 @@ NARRATIVE
 - intake.language is authoritative for the entire book, regardless of the language used in the original questionnaire answers. Translate source details and output all reader-visible text and prompts only in that language.
 - Use the supplied StoryBrand structure. The child is the hero, never the guide.
 - When approved_scenario is supplied, it is the immutable causal outline. Map every approved scene to the page-plan scene with the same scene_number. Never move an arrival before its journey, add a physical character who is only a thought/memory/voice, or change an object's approved state.
-- The core StoryBrand spreads cover character/desire, external problem, internal problem, guide, three-step plan, call to action, attempts, choice, climax, success/transformation and return home/moral. Longer books use the additional page_plan roles to deepen the same causal story without filler or repetition.
+- Its narrative_contract and each scene's narrative_function, dominant_emotion, emotional_shift, story_change and symbol_use are also authoritative. Make each spread perform its unique function through observable action and consequence.
+- The core StoryBrand spreads cover character/desire, external problem, internal problem, guide, three-step plan, call to action, attempts, choice, climax, success/transformation and return home/moral. Longer books add meaningful events, attempts, decisions and consequences; never pad them with repeated explanations, generic encouragement or decorative wandering.
 - The text page and image page sharing a scene_number describe the same story moment.
 - Page 1 is a short welcoming introduction. The final page is a warm personalized closing or dedication addressed directly to the child hero as the reader. Use second person (tu/tú/you), never describe the hero in the third person as if the message were for someone else.
 - Keep language, vocabulary and text length appropriate to the child's age.
 - Use questionnaire details naturally. Do not force every detail into every scene.
+- Keep sensitive personal meaning implicit: the adventure is clear to every reader, while only the child and family need to recognize its full personal depth.
+- Limit recurring symbolism to the approved primary symbol and at most two approved secondary symbols. Do not accumulate generic symbols, and let a recurring symbol's meaning evolve.
+- Show the lesson through the child's action before expressing it once, briefly, near the resolution.
 - Turn extra_notes into one or two recognizable story details when provided: a familiar phrase, habit, memory, place or relationship.
 - Build clear cause and effect between spreads. Each scene must change the situation and prepare the next one.
 - Preserve every approved prerequisite, before/after location and transition. A portal or passage is discovered before it is crossed, and every physical traveler must be named in the crossing scene before appearing at the destination.

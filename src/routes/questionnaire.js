@@ -7,6 +7,7 @@ import {
   PHOTO_STORY_ROLES,
 } from "../config/questionnaire.js";
 import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../config/illustrationStyles.js";
+import { buildReadingGuidanceProfiles } from "../config/readingGuidance.js";
 import {
   EBOOK_PAGE_PRICE_EUR,
   PAGE_COUNT_OPTIONS,
@@ -37,6 +38,7 @@ router.get("/questionnaire", (req, res) => {
     productTypes: PRODUCT_TYPES,
     productAvailability: getProductAvailability(),
     pageCountOptions: PAGE_COUNT_OPTIONS,
+    readingGuidanceProfiles: buildReadingGuidanceProfiles(),
     typographyOptions: TYPOGRAPHY_OPTIONS,
     universeOptions: UNIVERSE_OPTIONS,
     renderingModes: RENDERING_MODES,

@@ -30,6 +30,19 @@ function passageId(value, fallback = "") {
   return key(value || fallback).replaceAll(" ", "_");
 }
 
+function normalizeSymbol(item = {}, { primary = false } = {}) {
+  const name = text(item?.name);
+  if (!name) return null;
+  return primary ? {
+    name,
+    initialMeaning: text(item?.initial_meaning || item?.initialMeaning),
+    evolvedMeaning: text(item?.evolved_meaning || item?.evolvedMeaning),
+  } : {
+    name,
+    purpose: text(item?.purpose),
+  };
+}
+
 export function scenarioCharacterRegistry(normalized = {}) {
   const answers = normalized.answers || {};
   const photos = normalized.photos || [];
@@ -86,6 +99,16 @@ export function normalizeStoryScenario(candidate = {}, {
     initialState: OBJECT_STATES.has(item?.initial_state) ? item.initial_state : "visible",
     trackEveryScene: item?.track_every_scene === true,
   })).filter((item) => item.name);
+  const rawNarrativeContract = raw?.narrative_contract || raw?.narrativeContract || {};
+  const narrativeContract = Number(rawNarrativeContract?.version) === 1 ? {
+    version: 1,
+    privacyMode: "implicit_personal_depth",
+    moralDelivery: "action_before_words",
+    primarySymbol: normalizeSymbol(rawNarrativeContract?.primary_symbol || rawNarrativeContract?.primarySymbol, { primary: true }),
+    secondarySymbols: list(rawNarrativeContract?.secondary_symbols || rawNarrativeContract?.secondarySymbols, 10)
+      .map((item) => normalizeSymbol(item))
+      .filter(Boolean),
+  } : null;
   const scenes = expectedScenes.map((expected, index) => {
     const supplied = rawScenes.find((item) => Number(item?.scene_number) === Number(expected.scene_number)) || rawScenes[index] || {};
     const transitionKind = TRANSITION_KINDS.has(supplied?.transition?.kind) ? supplied.transition.kind : "none";
@@ -101,6 +124,14 @@ export function normalizeStoryScenario(candidate = {}, {
       locationAfter,
       action: text(supplied?.action),
       purpose: text(supplied?.purpose),
+      narrativeFunction: text(supplied?.narrative_function || supplied?.narrativeFunction),
+      dominantEmotion: text(supplied?.dominant_emotion || supplied?.dominantEmotion),
+      emotionalShift: text(supplied?.emotional_shift || supplied?.emotionalShift),
+      storyChange: text(supplied?.story_change || supplied?.storyChange),
+      symbolUse: list(supplied?.symbol_use || supplied?.symbolUse, 3).map((item) => ({
+        name: text(item?.name),
+        role: text(item?.role),
+      })).filter((item) => item.name),
       prerequisiteSceneIds: [...new Set(list(supplied?.prerequisite_scene_ids, 10).map(text).filter(Boolean))],
       characterPresences: list(supplied?.character_presences, 15).map((presence) => {
         const name = canonicalName(presence?.name, scenarioCharacters);
@@ -129,6 +160,7 @@ export function normalizeStoryScenario(candidate = {}, {
     version: STORY_SCENARIO_VERSION,
     title: text(raw?.title),
     summary: text(raw?.summary),
+    ...(narrativeContract ? { narrativeContract } : {}),
     clarifications,
     creatorClarifications: Object.fromEntries(Object.entries(creatorClarifications || {}).map(([id, answer]) => [text(id), text(answer)]).filter(([id, answer]) => id && answer)),
     worldContract: worldContract && typeof worldContract === "object" && !Array.isArray(worldContract)
@@ -296,6 +328,20 @@ export function validateStoryScenario(scenario = {}) {
   const characterLocations = new Map(list(scenario.characters, 20).map((character) => [character.name, character.initialLocation]));
   const discoveredPassages = new Set();
   const trackedObjects = list(scenario.objects, 20).filter((object) => object.trackEveryScene);
+  const narrativeContract = scenario.narrativeContract?.version === 1 ? scenario.narrativeContract : null;
+  const declaredSymbols = new Set();
+  const storyChanges = new Map();
+  const narrativeFunctions = new Map();
+  if (narrativeContract) {
+    if (narrativeContract.privacyMode !== "implicit_personal_depth") issues.push("scenario privacy mode must keep personal depth implicit");
+    if (narrativeContract.moralDelivery !== "action_before_words") issues.push("scenario moral must be shown through action before words");
+    if (narrativeContract.primarySymbol?.name) declaredSymbols.add(key(narrativeContract.primarySymbol.name));
+    if (list(narrativeContract.secondarySymbols, 10).length > 2) issues.push("scenario may use at most two secondary symbols");
+    for (const symbol of list(narrativeContract.secondarySymbols, 2)) {
+      if (symbol?.name) declaredSymbols.add(key(symbol.name));
+    }
+    if (declaredSymbols.size > 3) issues.push("scenario may use at most three recurring symbols");
+  }
   let previous = null;
 
   for (const [index, scene] of scenes.entries()) {
@@ -303,6 +349,23 @@ export function validateStoryScenario(scenario = {}) {
     if (!scene.storyRole) issues.push(`${scene.id}.storyRole is required`);
     if (!scene.title) issues.push(`${scene.id}.title is required`);
     if (!scene.action) issues.push(`${scene.id}.action is required`);
+    if (narrativeContract) {
+      if (!scene.narrativeFunction) issues.push(`${scene.id}.narrativeFunction is required for progression`);
+      if (!scene.dominantEmotion) issues.push(`${scene.id}.dominantEmotion is required`);
+      if (!scene.emotionalShift) issues.push(`${scene.id}.emotionalShift is required`);
+      if (!scene.storyChange) issues.push(`${scene.id}.storyChange is required for progression`);
+      const functionKey = key(scene.narrativeFunction);
+      const changeKey = key(scene.storyChange);
+      if (functionKey && narrativeFunctions.has(functionKey)) {
+        issues.push(`${scene.id} duplicates narrative function from ${narrativeFunctions.get(functionKey)}`);
+      } else if (functionKey) narrativeFunctions.set(functionKey, scene.id);
+      if (changeKey && storyChanges.has(changeKey)) {
+        issues.push(`${scene.id} duplicates story change from ${storyChanges.get(changeKey)}`);
+      } else if (changeKey) storyChanges.set(changeKey, scene.id);
+      for (const symbol of list(scene.symbolUse, 3)) {
+        if (!declaredSymbols.has(key(symbol?.name))) issues.push(`${scene.id}: symbol ${text(symbol?.name)} is not declared in narrative contract`);
+      }
+    }
     if (!scene.locationBefore || !scene.locationAfter) issues.push(`${scene.id} requires locationBefore and locationAfter`);
     if (previous) {
       if (key(scene.locationBefore) !== key(previous.locationAfter)) issues.push(`${scene.id} must start in ${previous.locationAfter}`);
@@ -378,6 +441,12 @@ export function summarizeStoryScenarioValidation(validation = {}) {
     if (sceneNumber) sceneNumbers.add(sceneNumber);
     let category = "incomplete";
     if (/passage|crosses/i.test(issue)) category = "passage";
+    else if (/privacy/i.test(issue)) category = "privacy";
+    else if (/symbol/i.test(issue)) category = "symbol";
+    else if (/emotion/i.test(issue)) category = "emotion";
+    else if (/narrativefunction|storychange|progression|duplicates narrative|duplicates story/i.test(issue)) category = "progression";
+    else if (/moral|repeat/i.test(issue)) category = "repetition";
+    else if (/age|vocabulary|abstraction/i.test(issue)) category = "age";
     else if (/object|states|quantity|worn|held/i.test(issue)) category = "object";
     else if (/location|transition|depart|travel|appears|physical/i.test(issue)) category = "travel";
     else if (/order|depend|prerequisite|storyrole/i.test(issue)) category = "order";

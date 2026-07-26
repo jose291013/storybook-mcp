@@ -4,6 +4,8 @@ Create exactly three distinct story seeds for a personalized children's picture 
 
 Each suggestion must:
 - fit the supplied child's age, interests and personality without inventing private facts;
+- transform the supplied real situation into an understandable imaginary adventure without exposing sensitive family, financial, medical, school or psychological details;
+- remain clear to an outside reader while allowing the child and close family to recognize the deeper personal meaning;
 - obey selected_intention as an authoritative narrative intention; do not replace it with another lesson;
 - use the selected universe as a real adventure setting, not as decorative wallpaper;
 - turn a real-world passion into a useful skill or emotional bridge instead of forcing a literal incompatible object into the fantasy world;
@@ -17,10 +19,12 @@ Each suggestion must:
 - avoid brands, copyrighted characters, frightening danger, diagnosis, trauma and moralizing;
 - remain a proposal that the creator can freely edit.
 
-The three lanes are mandatory and must be meaningfully different:
-1. teamwork: an act of cooperation or mutual help;
-2. discovery: a mystery, path, gentle puzzle or surprising discovery;
-3. creation: building, performing, repairing or completing something together.
+The three stable ids are mandatory for backward compatibility, but their narrative approaches must be meaningfully different:
+1. teamwork -> relational: relationships, mutual help and one natural dialogue or shared decision;
+2. discovery -> symbolic: a magical mystery or evolving symbol that gives the real situation an indirect imaginative meaning;
+3. creation -> action: a concrete challenge, construction, performance, repair or practical mission led by the child.
+
+Do not return three cosmetic variants of the same event sequence. Change the opening situation, the type of obstacle, the child's decisive action, the resolution and the emotional tone. Keep each value short enough for a parent to compare the three cards quickly.
 
 Write every reader-facing value in the requested language.
 
@@ -29,39 +33,57 @@ OUTPUT
   "suggestions": [
     {
       "id": "teamwork",
+      "approach": "relational",
       "title": "short evocative title",
+      "starting_point": "one concise starting situation",
       "dream": "one concise goal",
       "challenge": "one gentle difficulty",
       "first_step": "one accessible first victory",
       "effort": "two concise sentences describing progressive attempts led by the child",
+      "active_role": "one concise description of the child's decisive contribution",
       "reward": "one satisfying concrete or emotional result",
       "adventure": "two concise sentences explaining how the universe transforms the goal and difficulty into a coherent adventure",
       "moment": "one concrete page-turn moment",
-      "transformation": "one warm inner realization"
+      "resolution": "one concise credible resolution",
+      "transformation": "one warm inner realization",
+      "message": "the final meaning learned through action, not a lecture",
+      "emotional_tone": "one concise emotional progression"
     },
     {
       "id": "discovery",
+      "approach": "symbolic",
       "title": "",
+      "starting_point": "",
       "dream": "",
       "challenge": "",
       "first_step": "",
       "effort": "",
+      "active_role": "",
       "reward": "",
       "adventure": "",
       "moment": "",
-      "transformation": ""
+      "resolution": "",
+      "transformation": "",
+      "message": "",
+      "emotional_tone": ""
     },
     {
       "id": "creation",
+      "approach": "action",
       "title": "",
+      "starting_point": "",
       "dream": "",
       "challenge": "",
       "first_step": "",
       "effort": "",
+      "active_role": "",
       "reward": "",
       "adventure": "",
       "moment": "",
-      "transformation": ""
+      "resolution": "",
+      "transformation": "",
+      "message": "",
+      "emotional_tone": ""
     }
   ]
 }

@@ -1,7 +1,10 @@
 // src/agents/textWriter.js
 import { loadPrompt } from "../services/loadPrompt.js";
 import { bookLanguageInstruction, normalizeBookLanguage } from "../config/bookLanguages.js";
+import { getWordsTargetByAge } from "../config/readingGuidance.js";
 import { createOpenAIClient } from "../services/openaiClient.js";
+
+export { getWordsTargetByAge };
 
 function getClient() {
   return createOpenAIClient({ kind: "request" });
@@ -26,23 +29,6 @@ function safeJsonParse(text) {
     if (start >= 0 && end > start) return JSON.parse(text.slice(start, end + 1));
     throw new Error("TextWriter returned non-JSON output");
   }
-}
-
-export function getWordsTargetByAge(ageStr, pageType = "text") {
-  const age = parseInt(String(ageStr || "").replace(/[^\d]/g, ""), 10);
-  let target;
-  if (Number.isNaN(age)) target = 60;
-  else if (age <= 3) target = 28;
-  else if (age === 4) target = 45;
-  else if (age === 5) target = 55;
-  else if (age === 6) target = 70;
-  else if (age === 7) target = 85;
-  else if (age === 8) target = 105;
-  else if (age <= 10) target = 125;
-  else target = 135;
-
-  if (["opening_text", "closing_text"].includes(pageType)) target = Math.round(target * 0.58);
-  return { target, tolerance: Math.max(8, Math.round(target * 0.16)) };
 }
 
 /**

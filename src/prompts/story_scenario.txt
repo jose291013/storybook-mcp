@@ -32,6 +32,12 @@ CAUSAL RULES
 - Use the creator's dream as ordered story facts, not merely inspiration. Preserve explicit sequences such as discover portal -> cross portal -> arrive in valley.
 - End with a coherent resolution and, when the adventure left home, an explained return or stable new ending location.
 - Keep the requested language, age level, gentle stakes and StoryBrand progression.
+- Protect the family's private meaning. The adventure must be fully understandable to an outside reader, while the personal depth remains recognizable mainly to the child and family. Transform sensitive real-life facts into age-appropriate actions, choices, imaginary obstacles or discreet metaphors. Never expose a diagnosis, conflict, fear, loss or private family explanation unless the creator explicitly asked for those exact words to appear.
+- Give every scene one distinct narrative function and one observable story change. It must add an action, information, obstacle, decision, consequence or emotional evolution that was not already delivered by another scene. When the page count is long, add meaningful events and choices rather than filler, repeated explanations or decorative wandering.
+- Give every scene one dominant emotion and a clear emotional shift. Vary tension, curiosity, doubt, joy, relief and confidence across the arc instead of making every character calm, smiling or reassured.
+- Use at most one primary recurring symbol and two secondary symbols in the whole book. A recurring symbol must have a useful narrative role and its meaning must evolve; do not accumulate generic stars, lights, hearts, feathers or keys as decoration.
+- Show the message through the child's attempts, decisions and consequences before expressing it briefly near the resolution. Do not repeat the moral in several scenes or let an adult explain what the child has already demonstrated.
+- Adapt vocabulary, sentence concepts, emotional abstraction and conflict complexity to the child's age. Concrete action carries the meaning for younger children; older children may support more nuance without psychological exposition.
 - Write every creator-facing value exclusively in intake.language: scenario title and summary; clarification question, reason and suggested answer; character locations; object names; scene titles, locations, actions, purposes and continuity notes. Keep only schema keys, enum values and copied page_plan story_role values in their required technical English form.
 
 OUTPUT
@@ -39,6 +45,13 @@ OUTPUT
   "scenario": {
     "title": "short title",
     "summary": "short complete synopsis",
+    "narrative_contract": {
+      "version": 1,
+      "privacy_mode": "implicit_personal_depth",
+      "moral_delivery": "action_before_words",
+      "primary_symbol": {"name":"one recurring symbol or empty","initial_meaning":"creator-facing meaning or empty","evolved_meaning":"creator-facing evolved meaning or empty"},
+      "secondary_symbols": [{"name":"secondary symbol","purpose":"one precise narrative purpose"}]
+    },
     "clarifications": [{"id":"stable_snake_case_id","question":"creator-facing question","reason":"why chronology depends on it","suggested_answer":"safe default"}],
     "characters": [{"name":"exact canonical name","initial_location":"explicit place","default_presence_mode":"physical | thought | memory | voice"}],
     "objects": [{"name":"stable object name","owner":"canonical name","initial_state":"worn | held | carried | stored | visible | absent | left_behind","track_every_scene":true}],
@@ -51,6 +64,11 @@ OUTPUT
       "location_after": "explicit place",
       "action": "one concrete event",
       "purpose": "how this changes the story",
+      "narrative_function": "one unique function in the whole arc",
+      "dominant_emotion": "one emotion embodied in this scene",
+      "emotional_shift": "observable movement from one emotional state to another",
+      "story_change": "new action, information, obstacle, decision, consequence or evolution produced by this scene",
+      "symbol_use": [{"name":"a symbol declared in narrative_contract","role":"its precise use or evolution in this scene"}],
       "prerequisite_scene_ids": [],
       "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","location":"physical location or empty for nonphysical presence","action":"role in this exact scene"}],
       "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel","mechanism_id":"stable_snake_case_id or empty","mechanism":"named portal, route or vehicle, or empty","from":"location_before","to":"location_after","characters":["exact canonical names who travel"]},
@@ -67,3 +85,5 @@ MANDATORY
 - A discover_passage scene does not cross the passage and does not change location.
 - A cross_passage scene copies the exact mechanism_id from its earlier discovery, names every traveler and changes location from the established origin to the destination.
 - Nonphysical thoughts, memories and voices are narratively present but not physically visible.
+- Return narrative_contract.version 1. Use no more than one primary symbol and two secondary symbols. An empty primary_symbol is allowed when the story is stronger without a recurring symbol.
+- Every scene must contain a non-empty narrative_function, dominant_emotion, emotional_shift and story_change. Do not duplicate a narrative function and story change across scenes.
