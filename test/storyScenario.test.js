@@ -57,6 +57,80 @@ test("a portal scenario requires discovery before crossing and permits a nonphys
   assert.deepEqual(result, { valid: true, issues: [] });
 });
 
+test("the narrative contract requires distinct progression, emotions and declared symbols", () => {
+  const scenario = coherentPortalScenario();
+  scenario.narrativeContract = {
+    version: 1,
+    privacyMode: "implicit_personal_depth",
+    moralDelivery: "action_before_words",
+    primarySymbol: { name: "casquette rouge", initialMeaning: "sécurité", evolvedMeaning: "courage choisi" },
+    secondarySymbols: [],
+  };
+  scenario.scenes.forEach((scene, index) => {
+    scene.narrativeFunction = ["découvrir le seuil", "choisir de traverser", "transformer le conseil en action"][index];
+    scene.dominantEmotion = ["curiosité", "hésitation", "confiance"][index];
+    scene.emotionalShift = ["attente vers curiosité", "peur vers décision", "doute vers confiance"][index];
+    scene.storyChange = ["le portail devient un objectif", "les enfants atteignent la vallée", "Nolan décide d'avancer seul"][index];
+    scene.symbolUse = index === 2 ? [{ name: "casquette rouge", role: "Nolan la remet comme signe de décision" }] : [];
+  });
+  assert.deepEqual(validateStoryScenario(scenario), { valid: true, issues: [] });
+
+  scenario.scenes[1].storyChange = scenario.scenes[0].storyChange;
+  scenario.scenes[2].symbolUse = [{ name: "étoile générique", role: "décoration" }];
+  scenario.narrativeContract.secondarySymbols = [
+    { name: "pont", purpose: "passage" },
+    { name: "feuille", purpose: "orientation" },
+    { name: "étoile", purpose: "décoration" },
+  ];
+  const invalid = validateStoryScenario(scenario);
+  assert.equal(invalid.valid, false);
+  assert.ok(invalid.issues.some((issue) => issue.includes("duplicates story change")));
+  assert.ok(invalid.issues.some((issue) => issue.includes("is not declared")));
+  assert.ok(invalid.issues.some((issue) => issue.includes("at most two secondary symbols")));
+  const summary = summarizeStoryScenarioValidation(invalid);
+  assert.ok(summary.categories.includes("progression"));
+  assert.ok(summary.categories.includes("symbol"));
+});
+
+test("scenario normalization preserves the new editorial metadata without imposing it on legacy scenarios", () => {
+  const modern = normalizeStoryScenario({ scenario: {
+    title: "Le courage discret",
+    summary: "Lina agit avant de nommer ce qu'elle a appris.",
+    narrative_contract: {
+      version: 1,
+      privacy_mode: "implicit_personal_depth",
+      moral_delivery: "action_before_words",
+      primary_symbol: { name: "ruban", initial_meaning: "doute", evolved_meaning: "élan" },
+      secondary_symbols: [{ name: "pont", purpose: "rendre le passage concret" }],
+    },
+    characters: [{ name: "Lina", initial_location: "le jardin" }],
+    scenes: [{
+      scene_number: 1,
+      title: "Le premier pas",
+      action: "Lina noue le ruban et avance.",
+      location_before: "le jardin",
+      location_after: "le jardin",
+      narrative_function: "déclencher l'aventure",
+      dominant_emotion: "hésitation",
+      emotional_shift: "hésitation vers curiosité",
+      story_change: "Lina choisit de suivre le sentier",
+      symbol_use: [{ name: "ruban", role: "marque le premier choix" }],
+      character_presences: [{ name: "Lina", mode: "physical", location: "le jardin" }],
+      transition: { kind: "none", from: "le jardin", to: "le jardin", characters: [] },
+    }],
+  } }, {
+    pagePlan: [{ page_type: "image", scene_number: 1, story_role: "character_and_desire" }],
+    canonicalCharacters: [{ name: "Lina", role: "child", storyRole: "hero" }],
+  });
+  assert.equal(modern.narrativeContract.primarySymbol.name, "ruban");
+  assert.equal(modern.scenes[0].dominantEmotion, "hésitation");
+  assert.equal(validateStoryScenario(modern).valid, true);
+
+  const legacy = coherentPortalScenario();
+  assert.equal(legacy.narrativeContract, undefined);
+  assert.equal(validateStoryScenario(legacy).valid, true);
+});
+
 test("scenario validation rejects crossing before discovery and physical teleportation", () => {
   const scenario = coherentPortalScenario();
   scenario.scenes[0].transition = { kind: "none", mechanism: "", from: "la clairière", to: "la clairière", characters: [] };

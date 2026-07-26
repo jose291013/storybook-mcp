@@ -10,6 +10,8 @@ RULES
 - Preserve the requested language in all reader-visible prose and scene prompts.
 - Preserve plot_continuity. A hidden quest object or being must remain absent before its discovery scene.
 - Preserve approved_scenario when supplied. Repair the blueprint to its exact scene order, locations, transitions, presence modes and object states. Never fix a contradiction by changing the approved scenario.
+- Preserve its narrative contract and every scene's distinct function, dominant emotion, emotional shift, story change and allowed symbol use. Replace repeated explanation or filler with the approved concrete progression.
+- Keep sensitive personal meaning implicit, use no symbols outside the approved ledger and express the moral through the child's actions before one concise resolution.
 - Restore ordinary physical reality, including gravity, anatomy, scale, cause-and-effect, water level, refraction and buoyancy. If the story needs a fantasy exception, introduce one visible stable mechanism in an earlier paired scene and record it in world.reality_contract; never leave the exception unexplained.
 - Every visible person fully underwater individually needs a safe breathing mechanism in both paired prompts; a mask alone does not provide air and a snorkel works only near the surface. Never repair only the hero while leaving a companion unprotected. Avoid deep water, dangerous waves and similar hazards without appropriate protection and adult supervision, or an already-established visible magical safety mechanism. Remove impossible underwater dialogue unless a communication mechanism was established.
 - Make the illustrated magnitude match the paired text exactly. Never turn a gentle wave, wind or obstacle into a dangerous event.

@@ -1,4 +1,6 @@
-export const ALLOWED_PAGE_COUNTS = [24, 28, 32, 36, 40, 44];
+import { READING_PAGE_COUNTS } from "./readingGuidance.js";
+
+export const ALLOWED_PAGE_COUNTS = [...READING_PAGE_COUNTS];
 export const PRINT_PAGE_PRICE_EUR = 1.2458;
 export const EBOOK_PAGE_PRICE_EUR = 0.27875;
 export const PAGE_PRICE_EUR = PRINT_PAGE_PRICE_EUR;

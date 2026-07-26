@@ -712,11 +712,18 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   elements.storyScenarioSummary.textContent = scenario.summary || "";
   const worldContract = scenario.worldContract || {};
   const localizedContract = localizedUniverseContract(worldContract.id);
+  const narrativeContract = scenario.narrativeContract || {};
+  const symbolNames = [
+    narrativeContract.primarySymbol?.name,
+    ...(narrativeContract.secondarySymbols || []).map((symbol) => symbol.name),
+  ].filter(Boolean);
   const contractRules = [
     [tr("scenarioContractAdventure"), localizedContract?.adventure || worldContract.adventureZone],
     [tr("scenarioContractEntry"), localizedContract?.entry || worldContract.entryRule],
     [tr("scenarioContractRules"), (localizedContract?.rules || worldContract.physicalRules || []).join(" · ")],
     [tr("scenarioContractMechanisms"), (localizedContract?.mechanisms || worldContract.requiredMechanisms || []).join(" · ")],
+    [tr("scenarioPrivacyTitle"), narrativeContract.version === 1 ? tr("scenarioPrivacyLead") : ""],
+    [tr("scenarioSymbols"), symbolNames.join(" · ")],
   ].filter(([, value]) => String(value || "").trim());
   elements.scenarioWorldContract.hidden = !contractRules.length;
   elements.scenarioWorldContract.innerHTML = contractRules.length
@@ -726,7 +733,7 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   const validation = scenario.validation || { valid: true, categories: [], sceneNumbers: [], categoryScenes: {} };
   const needsRevision = validation.valid === false;
   elements.scenarioDiagnostics.hidden = !needsRevision;
-  const diagnosticKeys = new Set(["passage", "object", "travel", "order", "incomplete"]);
+  const diagnosticKeys = new Set(["passage", "object", "travel", "order", "incomplete", "progression", "emotion", "privacy", "symbol", "repetition", "age"]);
   elements.scenarioDiagnosticList.innerHTML = needsRevision ? (validation.categories || ["incomplete"]).map((category) => {
     const safeCategory = diagnosticKeys.has(category) ? category : "incomplete";
     const numbers = validation.categoryScenes?.[safeCategory] || validation.sceneNumbers || [];
@@ -744,7 +751,12 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
     const physical = (scene.characterPresences || []).filter((presence) => presence.mode === "physical").map((presence) => presence.name);
     const nonphysical = (scene.characterPresences || []).filter((presence) => presence.mode !== "physical").map((presence) => `${presence.name} (${scenarioPresenceModeLabel(presence.mode).toLowerCase()})`);
     const presenceByName = new Map((scene.characterPresences || []).map((presence) => [presence.name, presence.mode]));
-    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label><div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${(scenario.characters || []).map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
+    const narrativeMeta = [
+      [tr("scenarioFunction"), scene.narrativeFunction],
+      [tr("scenarioEmotion"), [scene.dominantEmotion, scene.emotionalShift].filter(Boolean).join(" → ")],
+      [tr("scenarioChange"), scene.storyChange],
+    ].filter(([, value]) => String(value || "").trim());
+    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label>${narrativeMeta.length ? `<dl class="scenario-narrative-meta">${narrativeMeta.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}<div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${(scenario.characters || []).map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
   }).join("")}</section>`).join("");
   const invalidScenes = new Set(validation.sceneNumbers || []);
   elements.scenarioActs.querySelectorAll("[data-scenario-scene]").forEach((card) => {
@@ -1223,6 +1235,7 @@ function renderQuestions(values = {}) {
   elements.storyQuestions.insertAdjacentHTML("beforeend", `<div class="field is-wide"><div class="field-heading"><label for="extra_notes">${escapeHtml(tr("extraLabel"))}</label><button type="button" class="improve-answer" data-improve-question="extra_notes"><span aria-hidden="true">✦</span>${escapeHtml(tr("improveAnswer"))}</button></div><textarea id="extra_notes" name="extra_notes" placeholder="${escapeHtml(tr("extraPlaceholder"))}"></textarea><small>${escapeHtml(tr("extraHelp"))}</small></div>`);
   restoreValues(values);
   bindImproveButtons();
+  document.querySelector("#age")?.addEventListener("input", renderPageCounts);
 }
 
 function selectedUniverseOption() {
@@ -1240,6 +1253,23 @@ const INTENTION_FIELD_MAP = {
   reward: "story_intent_reward",
   message: "story_intent_message",
 };
+
+const STORY_SEED_FIELD_IDS = [
+  "story_seed_id",
+  "story_seed_title",
+  "story_seed_approach",
+  "story_seed_starting_point",
+  "story_seed_first_step",
+  "story_seed_effort",
+  "story_seed_active_role",
+  "story_seed_reward",
+  "story_seed_adaptation",
+  "story_seed_moment",
+  "story_seed_resolution",
+  "story_seed_message",
+  "story_seed_emotional_tone",
+  "story_seed_transformation",
+];
 
 function selectedStoryIntention() {
   const selectedId = document.querySelector("#story_intent_id")?.value || "";
@@ -1361,7 +1391,7 @@ function selectedStorySuggestion() {
 
 function resetStorySuggestionChoice({ preserveAnswers = true } = {}) {
   state.storySuggestionMode = "";
-  ["story_seed_id", "story_seed_title", "story_seed_first_step", "story_seed_effort", "story_seed_reward", "story_seed_adaptation", "story_seed_moment", "story_seed_transformation"].forEach((id) => {
+  STORY_SEED_FIELD_IDS.forEach((id) => {
     const input = document.querySelector(`#${id}`);
     if (input) input.value = "";
   });
@@ -1389,18 +1419,24 @@ function chooseStorySuggestion(id) {
   state.storySuggestionMode = "suggestion";
   document.querySelector("#story_seed_id").value = suggestion.id;
   document.querySelector("#story_seed_title").value = suggestion.title;
+  document.querySelector("#story_seed_approach").value = suggestion.approach || "";
+  document.querySelector("#story_seed_starting_point").value = suggestion.starting_point || "";
   document.querySelector("#story_seed_first_step").value = suggestion.first_step;
   document.querySelector("#story_seed_effort").value = suggestion.effort;
+  document.querySelector("#story_seed_active_role").value = suggestion.active_role || "";
   document.querySelector("#story_seed_reward").value = suggestion.reward;
   document.querySelector("#story_seed_adaptation").value = suggestion.adventure;
   document.querySelector("#story_seed_moment").value = suggestion.moment;
+  document.querySelector("#story_seed_resolution").value = suggestion.resolution || "";
+  document.querySelector("#story_seed_message").value = suggestion.message || "";
+  document.querySelector("#story_seed_emotional_tone").value = suggestion.emotional_tone || "";
   document.querySelector("#story_seed_transformation").value = suggestion.transformation;
   const dream = document.querySelector("#dream");
   const challenge = document.querySelector("#challenge");
   const message = document.querySelector("#message");
   if (dream) dream.value = suggestion.dream;
   if (challenge) challenge.value = suggestion.challenge;
-  if (message) message.value = suggestion.transformation;
+  if (message) message.value = suggestion.message || suggestion.transformation;
   renderStorySuggestions();
   renderSelectedSuggestionSummary();
   persistLocalDraft();
@@ -1430,17 +1466,17 @@ function renderStorySuggestions() {
   elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy;
   elements.storySuggestionGrid.innerHTML = state.storySuggestions.map((suggestion) => `
     <article class="story-suggestion-card ${suggestion.id === selectedId ? "is-selected" : ""}">
-      <span class="story-suggestion-lane">${escapeHtml(tr(`suggestionLane_${suggestion.id}`))}</span>
+      <span class="story-suggestion-lane">${escapeHtml(tr(`suggestionApproach_${suggestion.approach || suggestion.id}`))}</span>
       <h3>${escapeHtml(suggestion.title)}</h3>
       <dl>
+        <div><dt>${escapeHtml(tr("suggestionStartingPoint"))}</dt><dd>${escapeHtml(suggestion.starting_point)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionDream"))}</dt><dd>${escapeHtml(suggestion.dream)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionChallenge"))}</dt><dd>${escapeHtml(suggestion.challenge)}</dd></div>
-        <div><dt>${escapeHtml(tr("intentionFirstStep"))}</dt><dd>${escapeHtml(suggestion.first_step)}</dd></div>
-        <div><dt>${escapeHtml(tr("suggestionEffort"))}</dt><dd>${escapeHtml(suggestion.effort)}</dd></div>
-        <div><dt>${escapeHtml(tr("intentionReward"))}</dt><dd>${escapeHtml(suggestion.reward)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionActiveRole"))}</dt><dd>${escapeHtml(suggestion.active_role)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionAdventure"))}</dt><dd>${escapeHtml(suggestion.adventure)}</dd></div>
-        <div><dt>${escapeHtml(tr("suggestionMoment"))}</dt><dd>${escapeHtml(suggestion.moment)}</dd></div>
-        <div><dt>${escapeHtml(tr("suggestionTransformation"))}</dt><dd>${escapeHtml(suggestion.transformation)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionResolution"))}</dt><dd>${escapeHtml(suggestion.resolution)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionMessage"))}</dt><dd>${escapeHtml(suggestion.message)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionEmotionalTone"))}</dt><dd>${escapeHtml(suggestion.emotional_tone)}</dd></div>
       </dl>
       <button type="button" class="primary-button" data-story-suggestion="${escapeHtml(suggestion.id)}">${escapeHtml(suggestion.id === selectedId ? tr("editIdea") : tr("useIdea"))}</button>
     </article>`).join("");
@@ -1581,7 +1617,19 @@ function renderProductTypes() {
 }
 
 function renderPageCounts() {
-  elements.pageCountGrid.innerHTML = state.config.pageCountOptions.map((option) => `<button type="button" class="page-count-card ${option.pageCount === state.pageCount ? "is-selected" : ""}" data-page-count="${option.pageCount}" role="radio" aria-checked="${option.pageCount === state.pageCount}"><strong>${tr("pages", { count: option.pageCount })}</strong><small>${tr("illustrations", { count: option.illustrationCount })}</small><em>${formatPrice(state.productType === "ebook" ? option.ebookPriceEur : option.printPriceEur)}</em></button>`).join("");
+  const age = Number(document.querySelector("#age")?.value);
+  const profile = state.config.readingGuidanceProfiles?.find((item) => age >= item.minAge && age <= item.maxAge);
+  elements.pageCountGrid.innerHTML = state.config.pageCountOptions.map((option) => {
+    const guidance = profile?.options?.find((item) => item.pageCount === option.pageCount);
+    const recommended = Boolean(guidance?.recommended);
+    return `<button type="button" class="page-count-card ${option.pageCount === state.pageCount ? "is-selected" : ""} ${recommended ? "is-recommended" : ""}" data-page-count="${option.pageCount}" role="radio" aria-checked="${option.pageCount === state.pageCount}">
+      ${recommended ? `<span class="page-count-recommended">${escapeHtml(tr("pageCountRecommended", { age }))}</span>` : ""}
+      <strong>${tr("pages", { count: option.pageCount })}</strong>
+      <small>${tr("illustrations", { count: option.illustrationCount })}</small>
+      ${guidance ? `<small>${escapeHtml(tr("pageCountScenes", { count: guidance.sceneCount }))} · ${escapeHtml(tr("pageCountMinutes", { min: guidance.minutesMin, max: guidance.minutesMax }))}</small><small>${escapeHtml(tr(`pageCountUsage_${guidance.usage}`))}</small>` : ""}
+      <em>${formatPrice(state.productType === "ebook" ? option.ebookPriceEur : option.printPriceEur)}</em>
+    </button>`;
+  }).join("");
   elements.pageCountGrid.querySelectorAll("[data-page-count]").forEach((button) => button.addEventListener("click", () => { state.pageCount = Number(button.dataset.pageCount); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
 }
 
@@ -1676,6 +1724,7 @@ function showStep(nextStep, shouldScroll = true) {
     renderStoryIntentions();
     renderStorySuggestions();
   }
+  if (state.step === 4) renderPageCounts();
   if (state.step === REVIEW_STEP) renderReview();
   if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
 }

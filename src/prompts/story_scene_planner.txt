@@ -6,6 +6,11 @@ MANUSCRIPT COHERENCE
 - approved_scenario is immutable when supplied. It outranks the draft manuscript and illustration plan for event order, prerequisites, locations, transitions, physical versus nonphysical presence and object state. Rewrite the manuscript as much as needed to match it; do not preserve a contradictory draft plot.
 - When previous_plan and validation_issues are supplied, repair every listed contradiction. Keep coherent text unchanged, but replace any physical action by a thought, memory or voice character with an explicitly nonphysical recollection.
 - Preserve the existing plot, language, age level, approximate page length and StoryBrand progression.
+- The approved scenario's narrative_contract and per-scene narrative_function, dominant_emotion, emotional_shift, story_change and symbol_use are authoritative editorial targets. Every rewritten spread must visibly realize its assigned change and must not repeat another spread's function.
+- Review the complete manuscript for repeated explanations, dialogue formulas, praise, emotional conclusions and moral statements. Keep the strongest occurrence and repurpose later repetitions into a new action, obstacle, decision, consequence or sensory discovery. Fixed page count never justifies filler.
+- Preserve private personal depth implicitly. An outside reader must understand the adventure without receiving unnecessary family, psychological, diagnostic or conflict exposition.
+- Use only the declared primary symbol and up to two declared secondary symbols, only in assigned scenes, with evolving meaning rather than generic decoration.
+- Show the moral through the child's actions and consequences before stating it once, briefly, near the resolution.
 - Make only the minimum edits needed for clear cause and effect between pages, stable names, objects, locations and character roles.
 - Never change a canonical character name. Accents and spelling are exact and immutable.
 - Canonical characters may include relationship and preferredAddress. In narration, introduce a parent naturally as "Name, the child's mother/father" and the name may remain afterward. In the child's dialogue or inner thoughts, use preferredAddress (for example Maman, Papa, Mamá or Dad) instead of making the child refer to that parent by their first name, unless the creator explicitly requested first-name use.
@@ -22,6 +27,7 @@ SCENE CONTRACTS
 - Record required quantities and physical scale literally. "Several children" requires at least three visible children; a "large slide" must dominate the play area and cannot be a small toddler slide.
 - Record forbidden substitutions and contradictions explicitly.
 - Keep continuity with the previous and next scene without illustrating a different moment.
+- Make the exact visible instant express the scene's dominant emotion and emotional shift through posture, expression, distance, choice or consequence instead of an abstract explanation.
 - Copy the matching approved scene's object states into object_states. A held wearable is explicitly not worn and has quantity 1. Nonphysical thoughts, memories and voices never enter named_characters because they must not be drawn as physically present.
 - The exact physical character set from the matching approved scene is authoritative for named_characters. A thought, memory or voice may be mentioned only in reader prose and must never touch, approach, travel, stand in the setting or become the subject or target of a visible action.
 - Every identity in named_characters is one complete, separate individual. Never describe or request a fused human/animal, exchanged head or face, shared body, merged anatomy or mixture of two reference identities unless the approved scenario explicitly defines that exact fantasy being.

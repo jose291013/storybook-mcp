@@ -3,6 +3,11 @@ import { bookLanguageInstruction, normalizeBookLanguage } from "../config/bookLa
 import { loadPrompt } from "./loadPrompt.js";
 
 const IDS = ["teamwork", "discovery", "creation"];
+const APPROACH_BY_ID = {
+  teamwork: "relational",
+  discovery: "symbolic",
+  creation: "action",
+};
 
 function clean(value, maximum = 900) {
   return String(value || "").trim().slice(0, maximum);
@@ -15,15 +20,21 @@ export function normalizeStorySuggestions(value) {
     if (!item) return null;
     const normalized = {
       id,
+      approach: APPROACH_BY_ID[id],
       title: clean(item.title, 120),
+      starting_point: clean(item.starting_point || item.startingPoint || item.adventure, 400),
       dream: clean(item.dream, 300),
       challenge: clean(item.challenge, 300),
       first_step: clean(item.first_step, 400),
       effort: clean(item.effort, 700),
+      active_role: clean(item.active_role || item.activeRole || item.effort, 500),
       reward: clean(item.reward, 400),
       adventure: clean(item.adventure, 900),
       moment: clean(item.moment, 500),
+      resolution: clean(item.resolution || item.reward, 500),
       transformation: clean(item.transformation, 500),
+      message: clean(item.message || item.transformation, 500),
+      emotional_tone: clean(item.emotional_tone || item.emotionalTone || item.transformation, 300),
     };
     return Object.values(normalized).every(Boolean) ? normalized : null;
   }).filter(Boolean);

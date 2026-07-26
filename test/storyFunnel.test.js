@@ -28,6 +28,8 @@ test("story suggestions require all three distinct inspiration lanes", () => {
     { id: "discovery", title: "D", dream: "d", challenge: "c", first_step: "f", effort: "e", reward: "r", adventure: "a", moment: "m", transformation: "t" },
   ] });
   assert.deepEqual(complete.map((suggestion) => suggestion.id), ["teamwork", "discovery", "creation"]);
+  assert.deepEqual(complete.map((suggestion) => suggestion.approach), ["relational", "symbolic", "action"]);
+  assert.ok(complete.every((suggestion) => suggestion.starting_point && suggestion.active_role && suggestion.resolution && suggestion.message && suggestion.emotional_tone));
   assert.equal(normalizeStorySuggestions({ suggestions: complete.slice(0, 2) }).length, 2);
 });
 
@@ -56,11 +58,17 @@ test("normalized intake locks the selected universe contract and story seed", ()
     universe_id: "coral_ocean",
     story_seed_id: "discovery",
     story_seed_title: "Le jardin des voix",
+    story_seed_approach: "symbolic",
+    story_seed_starting_point: "Lina entend une note au bord du récif.",
     story_seed_first_step: "Écouter une note.",
     story_seed_effort: "Lina essaie, hésite et recommence.",
+    story_seed_active_role: "Lina compare les sons et choisit une piste.",
     story_seed_reward: "Elle rejoint le concert du récif.",
     story_seed_adaptation: "Lina suit une mélodie dans le récif.",
     story_seed_moment: "Elle ouvre le passage.",
+    story_seed_resolution: "Lina demande de l'aide puis ouvre le passage.",
+    story_seed_message: "Demander de l'aide permet d'avancer.",
+    story_seed_emotional_tone: "Hésitation, curiosité puis fierté.",
     story_seed_transformation: "Elle ose demander de l'aide.",
     creator_situation: "Lina n'ose pas demander de l'aide.",
     story_intent_id: "approach_1",
@@ -70,6 +78,8 @@ test("normalized intake locks the selected universe contract and story seed", ()
   } });
   assert.equal(normalized.answers.story_seed_id, "discovery");
   assert.equal(normalized.answers.story_seed_title, "Le jardin des voix");
+  assert.equal(normalized.answers.story_seed_approach, "symbolic");
+  assert.match(normalized.answers.story_seed_active_role, /choisit/);
   assert.equal(normalized.answers.story_intent_id, "approach_1");
   assert.equal(normalized.answers.story_seed_reward, "Elle rejoint le concert du récif.");
   assert.match(normalized.answers.universe_story_contract.id, /coral_ocean/);
@@ -92,13 +102,17 @@ test("the creator exposes the seven-step universe-first intention funnel", async
   assert.match(app, /requestStoryIntentions/);
   assert.match(app, /selectedIntention: intention/);
   assert.match(app, /universe_story_contract/);
-  assert.match(app, /const message = document\.querySelector\("#message"\);[\s\S]*message\.value = suggestion\.transformation/);
+  assert.match(app, /message\.value = suggestion\.message \|\| suggestion\.transformation/);
+  assert.match(app, /readingGuidanceProfiles/);
+  assert.match(app, /suggestionApproach_/);
   assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
   assert.match(suggestionRoute, /selectedIntention/);
   assert.match(auditPrompt, /universe_story_contract/);
   assert.match(auditPrompt, /confirmed story intention/);
   assert.match(auditPrompt, /decisive action instead of the child/);
   assert.match(auditPrompt, /merely decorative/);
+  assert.match(auditPrompt, /sensitive family or psychological facts/i);
+  assert.match(auditPrompt, /same narrative function/i);
 });
 
 test("secondary reference photos require an explicit relationship and narrative role", async () => {
