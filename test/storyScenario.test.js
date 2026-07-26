@@ -381,6 +381,115 @@ test("scenario stabilization repairs invisible metadata without changing story e
   assert.equal(validateStoryScenario(stabilized).valid, true);
 });
 
+test("a character can join residents from another established location without moving the focal scene", () => {
+  const scenario = {
+    title: "L'atelier des émotions",
+    summary: "Bastien travaille à l'atelier avant que Marie le rejoigne depuis la maison.",
+    characters: [
+      { name: "Bastien", initialLocation: "atelier de la Ville merveilleuse" },
+      { name: "Marie", initialLocation: "maison familiale" },
+    ],
+    objects: [],
+    scenes: [
+      {
+        id: "scene-1",
+        sceneNumber: 1,
+        storyRole: "character_and_desire",
+        title: "Bastien commence son ouvrage",
+        action: "Bastien observe les matériaux de l'atelier.",
+        locationBefore: "atelier de la Ville merveilleuse",
+        locationAfter: "atelier de la Ville merveilleuse",
+        prerequisiteSceneIds: [],
+        characterPresences: [
+          { name: "Bastien", mode: "physical", location: "atelier de la Ville merveilleuse" },
+        ],
+        transition: {
+          kind: "none",
+          mechanism: "",
+          mechanismId: "",
+          from: "atelier de la Ville merveilleuse",
+          to: "atelier de la Ville merveilleuse",
+          characters: [],
+        },
+        objectStates: [],
+      },
+      {
+        id: "scene-2",
+        sceneNumber: 2,
+        storyRole: "external_problem",
+        title: "Marie rejoint Bastien à l'atelier",
+        action: "Marie quitte la maison familiale et rejoint l'atelier pour encourager Bastien.",
+        locationBefore: "atelier de la Ville merveilleuse",
+        locationAfter: "atelier de la Ville merveilleuse",
+        prerequisiteSceneIds: ["scene-1"],
+        characterPresences: [
+          { name: "Marie", mode: "physical", location: "atelier de la Ville merveilleuse" },
+          { name: "Bastien", mode: "physical", location: "atelier de la Ville merveilleuse" },
+        ],
+        transition: {
+          kind: "ordinary_travel",
+          mechanism: "chemin de la maison à l'atelier",
+          mechanismId: "walk_to_workshop",
+          from: "atelier de la Ville merveilleuse",
+          to: "atelier de la Ville merveilleuse",
+          characters: ["Marie"],
+        },
+        objectStates: [],
+      },
+    ],
+  };
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  assert.deepEqual(stabilized.scenes[1].transition, {
+    kind: "join_travel",
+    mechanism: "chemin de la maison à l'atelier",
+    mechanismId: "walk_to_workshop",
+    from: "maison familiale",
+    to: "atelier de la Ville merveilleuse",
+    characters: ["Marie"],
+  });
+  assert.equal(stabilized.scenes[1].locationBefore, "atelier de la Ville merveilleuse");
+  assert.equal(stabilized.scenes[1].locationAfter, "atelier de la Ville merveilleuse");
+  assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
+test("join travel rejects moving a resident or hiding an incoming traveler", () => {
+  const scenario = {
+    title: "L'arrivée",
+    summary: "Marie rejoint Bastien.",
+    characters: [
+      { name: "Bastien", initialLocation: "atelier" },
+      { name: "Marie", initialLocation: "maison" },
+    ],
+    objects: [],
+    scenes: [{
+      id: "scene-1",
+      sceneNumber: 1,
+      storyRole: "character_and_desire",
+      title: "À l'atelier",
+      action: "Marie rejoint Bastien.",
+      locationBefore: "atelier",
+      locationAfter: "atelier",
+      prerequisiteSceneIds: [],
+      characterPresences: [{ name: "Bastien", mode: "physical", location: "atelier" }],
+      transition: {
+        kind: "join_travel",
+        mechanism: "chemin",
+        mechanismId: "chemin",
+        from: "maison",
+        to: "atelier",
+        characters: ["Bastien", "Marie"],
+      },
+      objectStates: [],
+    }],
+  };
+
+  const validation = validateStoryScenario(scenario);
+  assert.equal(validation.valid, false);
+  assert.ok(validation.issues.some((issue) => issue.includes("Bastien cannot depart from maison")));
+  assert.ok(validation.issues.some((issue) => issue.includes("Marie joins the scene without being physically present")));
+});
+
 test("scenario stabilization infers the discovered portal crossing and its travelers", () => {
   const scenario = coherentPortalScenario();
   scenario.scenes[0].transition.mechanismId = "portail_bleu";

@@ -8,35 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/editor-scenarist-guardrails`
-- Latest merged checkpoint: PR #71 — narrative depth and age guidance
-- Current focused checkpoint: automatic controller-to-scenarist causal repairs and pre-credit character-change guardrails
-- Pull request: draft PR #72 published; do not merge until the user confirms that no preview or quality correction is running
+- Current branch: `codex/join-travel-arrivals`
+- Latest merged checkpoint: PR #72 — editor-scenarist causal repairs and targeted character guardrails
+- Current focused checkpoint: independent character arrivals into an already established scene location
+- Pull request: draft PR #73 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #71 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
+PR #55 through PR #72 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
 
-## Current product brick: editor-scenarist guardrails
+## Current product brick: independent arrivals
 
-1. A passage crossed before discovery becomes a structured repair directive from the deterministic controller to the existing scenarist retry, naming the discovery scene, crossing scene, stable mechanism id and travelers.
-2. A deterministic fallback applies the same safe discovery-before-crossing repair when the model omits it; unrelated scenes and creator choices remain unchanged.
-3. A targeted post-preview request that introduces a character absent from the approved scene or scenario is refused before revision creation and credit reservation.
-4. The creator receives a localized explanation directing them to a new full scenario, with an explicit confirmation that no credit was reserved.
-5. A legacy failed request of the same incompatible type is also refused before a paid retry and retired from the retry loop.
+1. The scenario contract now distinguishes a focal scene changing location from one or more characters joining residents at that location.
+2. `join_travel` preserves the focal before/after location, records the incoming travelers' shared origin and moves only those travelers.
+3. The deterministic stabilizer repairs the known pattern automatically when a physical character appears at the focal destination from one safely established origin.
+4. Residents already at the destination are never added to the arrival transition or moved.
+5. Ambiguous arrivals from multiple origins remain invalid instead of being guessed.
 
 ## Verification completed locally
 
-- Focused scenario and targeted-modification tests: 30 passed, 0 failed.
-- Complete test suite: 172 passed, 0 failed.
+- Exact Marie-from-home/Bastien-at-workshop regression: passed.
+- Complete test suite: 174 passed, 0 failed.
 
 ## Next verification target
 
-1. Review draft PR #72 without merging.
+1. Review draft PR #73 without merging.
 2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
-3. After deployment, test one scenario that would otherwise cross a passage before discovery and one local request that tries to add an unplanned family member.
+3. After deployment, reopen project `ab3d4899-21d4-44b3-98d3-a79d9d88fede` and request one scenario update; scene 4 should become valid without moving Bastien.
+4. Confirm that a newly generated scenario uses `join_travel` when a family member joins a child already present elsewhere.
 
 ## Protected local state
 
