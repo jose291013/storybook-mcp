@@ -10,6 +10,7 @@ import {
 import { eligibleSpreads, fingerprint } from "../src/routes/previewModifications.js";
 import { JsonCreditStore } from "../src/services/creditStore.js";
 import { JsonPreviewRevisionStore } from "../src/services/previewRevisionStore.js";
+import { inspectPreviewModificationRequest } from "../src/services/previewModificationPolicy.js";
 
 function completedProject() {
   return {
@@ -17,11 +18,30 @@ function completedProject() {
     status: "preview_ready",
     finalBlueprint: {
       language: "FR",
+      approved_scenario: {
+        characters: [{ name: "Bastien" }, { name: "Marie" }, { name: "Maïté" }],
+        scenes: [
+          {
+            sceneNumber: 1,
+            characterPresences: [
+              { name: "Bastien", mode: "physical" },
+              { name: "Marie", mode: "physical" },
+            ],
+          },
+          {
+            sceneNumber: 2,
+            characterPresences: [
+              { name: "Bastien", mode: "physical" },
+              { name: "Maïté", mode: "memory" },
+            ],
+          },
+        ],
+      },
       pages: [
         { page_number: 2, page_type: "text", spread_number: 1, scene_title: "Le départ" },
-        { page_number: 3, page_type: "image", spread_number: 1, scene_title: "Le départ" },
+        { page_number: 3, page_type: "image", spread_number: 1, scene_number: 1, scene_title: "Le départ", cast_present: ["Bastien", "Marie"] },
         { page_number: 4, page_type: "text", spread_number: 2, scene_title: "La rencontre" },
-        { page_number: 5, page_type: "image", spread_number: 2, scene_title: "La rencontre" },
+        { page_number: 5, page_type: "image", spread_number: 2, scene_number: 2, scene_title: "La rencontre", cast_present: ["Bastien"] },
       ],
     },
     previewResult: {
@@ -69,6 +89,45 @@ test("only complete narrative spreads can receive a targeted modification", () =
   const before = fingerprint(project);
   project.previewResult.draftPages[0].text = "Texte modifié";
   assert.notEqual(fingerprint(project), before);
+});
+
+test("a local modification that introduces an unapproved character is blocked before credit", () => {
+  const project = completedProject();
+  const familyRequest = inspectPreviewModificationRequest({
+    project,
+    spreadNumber: 1,
+    instruction: "Conserver exactement la scène mais inclure l'image de sa grand-mère dans le miroir magique.",
+  });
+  assert.deepEqual(familyRequest, {
+    allowed: false,
+    code: "preview_modification_requires_full_preview",
+    reason: "character_change",
+    characterName: "",
+    noCreditReserved: true,
+  });
+
+  const knownAbsentCharacter = inspectPreviewModificationRequest({
+    project,
+    spreadNumber: 1,
+    instruction: "Ajouter Maïté dans le miroir pour qu'elle encourage Bastien.",
+  });
+  assert.equal(knownAbsentCharacter.allowed, false);
+  assert.equal(knownAbsentCharacter.characterName, "Maïté");
+  assert.equal(knownAbsentCharacter.noCreditReserved, true);
+
+  const unknownNamedCharacter = inspectPreviewModificationRequest({
+    project,
+    spreadNumber: 1,
+    instruction: "Inclure Sophie dans le miroir magique.",
+  });
+  assert.equal(unknownNamedCharacter.allowed, false);
+  assert.equal(unknownNamedCharacter.characterName, "Sophie");
+
+  assert.deepEqual(inspectPreviewModificationRequest({
+    project,
+    spreadNumber: 1,
+    instruction: "Conserver la scène et rendre la lumière du miroir plus chaleureuse.",
+  }), { allowed: true });
 });
 
 test("an active project checkout blocks a competing preview modification", async () => {
@@ -178,6 +237,7 @@ test("the customer flow separates paid changes from free repairs and blocks chec
   assert.match(route, /sourceFingerprint/);
   assert.match(route, /PREVIEW_MODIFICATION_STALE_MINUTES/);
   assert.match(route, /hasActiveCheckoutReservation/);
+  assert.ok(route.indexOf("inspectPreviewModificationRequest") < route.indexOf("previewRevisionStore.create"));
   assert.doesNotMatch(route, /technicalCheckAt/);
   assert.match(checkout, /activeForProject/);
   assert.match(checkout, /Approve or reject the pending preview modification/);
@@ -188,6 +248,7 @@ test("the customer flow separates paid changes from free repairs and blocks chec
   assert.match(app, /preview-modifications\/quote/);
   assert.match(app, /refreshLatestModification/);
   assert.match(app, /modificationWorking/);
+  assert.match(app, /modificationCharacterBlocked/);
   assert.match(migration, /preview_modifications_one_active_idx/);
   assert.match(migration, /preview_revisions_one_current_idx/);
   assert.match(roadmap, /targeted modification creates a new revision/i);

@@ -8,38 +8,35 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-depth-age-guidance`
-- Latest merged checkpoint: PR #70 — creator-directed text-or-illustration quality correction
-- Current focused checkpoint: narrative depth, age guidance and protected family meaning from external reader feedback
-- Pull request: draft PR #71 published; do not merge until the user confirms that no preview or quality correction is running
+- Current branch: `codex/editor-scenarist-guardrails`
+- Latest merged checkpoint: PR #71 — narrative depth and age guidance
+- Current focused checkpoint: automatic controller-to-scenarist causal repairs and pre-credit character-change guardrails
+- Pull request: not published yet; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #70 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
+PR #55 through PR #71 are merged. Bridge 0.7.0 is prepared for cover-ready, interruption and quality-review e-mails.
 
-## Current product brick: narrative depth and age guidance
+## Current product brick: editor-scenarist guardrails
 
-1. External reading feedback confirms that Calitiki's causal continuity foundation is useful but that a strong children's book also needs controlled private depth, distinct scene functions, emotional variation and less repeated explanation.
-2. The three adventure proposals keep their stable legacy ids but become genuinely different approaches: relational/help, symbolic/magical mystery and concrete/action challenge. Each exposes a starting point, active role, resolution, message shown through action and emotional tone.
-3. The scenario gains an optional versioned editorial contract. New scenarios define implicit personal depth, action-before-moral delivery, one primary plus at most two secondary symbols, and per-scene narrative function, dominant emotion, emotional shift and observable story change. Legacy persisted scenarios remain valid.
-4. Deterministic validation rejects missing or exactly duplicated progression metadata and undeclared symbols. The semantic scenario audit handles clear passive, repetitive, privacy, symbol and age defects during the existing bounded repair cycle rather than creating a new late generation gate.
-5. The whole-book scene planner removes repeated explanations and moral formulas, realizes each approved emotional shift and repurposes long-book spreads into meaningful events instead of filler.
-6. The creator sees each scene's function, emotion and change during three-act review, plus the protected-depth and symbol contract.
-7. Page-count choices now show age-aware recommendations, scene count, estimated reading duration and one-sitting or multi-moment use. All lengths remain selectable.
+1. A passage crossed before discovery becomes a structured repair directive from the deterministic controller to the existing scenarist retry, naming the discovery scene, crossing scene, stable mechanism id and travelers.
+2. A deterministic fallback applies the same safe discovery-before-crossing repair when the model omits it; unrelated scenes and creator choices remain unchanged.
+3. A targeted post-preview request that introduces a character absent from the approved scene or scenario is refused before revision creation and credit reservation.
+4. The creator receives a localized explanation directing them to a new full scenario, with an explicit confirmation that no credit was reserved.
+5. A legacy failed request of the same incompatible type is also refused before a paid retry and retired from the retry loop.
 
 ## Verification completed locally
 
-- Narrative funnel and scenario tests: 30 passed, 0 failed.
-- Focused age/page guidance tests: 2 passed, 0 failed.
-- Complete test suite: 170 passed, 0 failed.
+- Focused scenario and targeted-modification tests: 30 passed, 0 failed.
+- Complete test suite: 172 passed, 0 failed.
 
 ## Next verification target
 
-1. Review draft PR #71 without merging it.
+1. Publish a focused draft PR and review it without merging.
 2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
-3. After deployment, create one age-8 test book and verify that the three proposals differ in structure, the selected length advice is clear, scenario scenes show distinct changes/emotions, and the resulting manuscript does not repeat the moral.
+3. After deployment, test one scenario that would otherwise cross a passage before discovery and one local request that tries to add an unplanned family member.
 
 ## Protected local state
 

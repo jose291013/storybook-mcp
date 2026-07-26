@@ -5,6 +5,7 @@ import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
 import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
+import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
 
 function coherentPortalScenario() {
   return {
@@ -55,6 +56,46 @@ function coherentPortalScenario() {
 test("a portal scenario requires discovery before crossing and permits a nonphysical guide", () => {
   const result = validateStoryScenario(coherentPortalScenario());
   assert.deepEqual(result, { valid: true, issues: [] });
+});
+
+test("the narrative controller turns an undiscovered crossing into a targeted scenarist repair", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].title = "Le choix courageux";
+  scenario.scenes[0].action = "Nolan et Mathéo observent la clairière et changent de stratégie.";
+  scenario.scenes[0].transition = {
+    kind: "none",
+    mechanism: "",
+    mechanismId: "",
+    from: "la clairière",
+    to: "la clairière",
+    characters: [],
+  };
+  const validation = validateStoryScenario(scenario);
+  assert.equal(validation.valid, false);
+  assert.ok(validation.issues.includes("scene-2 crosses a passage before it was discovered"));
+
+  const directives = buildStoryScenarioRepairDirectives(scenario, validation);
+  assert.deepEqual(directives.map((directive) => ({
+    code: directive.code,
+    discoverySceneNumber: directive.discoverySceneNumber,
+    crossingSceneNumber: directive.crossingSceneNumber,
+    mechanismId: directive.mechanismId,
+    travelers: directive.travelers,
+  })), [{
+    code: "discover_passage_before_crossing",
+    discoverySceneNumber: 1,
+    crossingSceneNumber: 2,
+    mechanismId: "le_portail_bleu",
+    travelers: ["Nolan", "Mathéo"],
+  }]);
+  assert.match(directives[0].instruction, /without asking the creator/i);
+  assert.match(directives[0].instruction, /scene-1 must discover/i);
+
+  const repaired = applyStoryScenarioRepairDirectives(scenario, directives, { language: "FR" });
+  assert.equal(repaired.scenes[0].transition.kind, "discover_passage");
+  assert.equal(repaired.scenes[0].transition.mechanismId, "le_portail_bleu");
+  assert.match(repaired.scenes[0].action, /Nolan et Mathéo découvrent l’entrée du portail bleu, sans encore la franchir/);
+  assert.deepEqual(validateStoryScenario(repaired), { valid: true, issues: [] });
 });
 
 test("the narrative contract requires distinct progression, emotions and declared symbols", () => {

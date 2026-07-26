@@ -1038,6 +1038,9 @@ async function submitPreviewModification() {
       if (response.status === 402 && payload.buyCreditsUrl) {
         setCreditPurchaseLink(elements.modificationBuyCredits, payload.buyCreditsUrl, "modification");
       }
+      if (payload.code === "preview_modification_requires_full_preview") {
+        throw new Error(tr("modificationCharacterBlocked"));
+      }
       throw new Error(payload.error || tr("generationFailed"));
     }
     state.previewModification = payload.modification;
