@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/join-travel-arrivals`
 - Latest merged checkpoint: PR #72 — editor-scenarist causal repairs and targeted character guardrails
 - Current focused checkpoint: independent character arrivals into an already established scene location
-- Pull request: not published yet; do not merge until the user confirms that no preview or quality correction is running
+- Pull request: draft PR #73 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -34,7 +34,7 @@ PR #55 through PR #72 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 
 ## Next verification target
 
-1. Publish the focused pull request without merging.
+1. Review draft PR #73 without merging.
 2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
 3. After deployment, reopen project `ab3d4899-21d4-44b3-98d3-a79d9d88fede` and request one scenario update; scene 4 should become valid without moving Bastien.
 4. Confirm that a newly generated scenario uses `join_travel` when a family member joins a child already present elsewhere.
