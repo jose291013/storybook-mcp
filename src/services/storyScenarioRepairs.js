@@ -61,6 +61,7 @@ function safeDiscoveryScene(scenes, crossingScene) {
       return key(scene?.locationBefore) === origin
         && key(scene?.locationAfter) === origin
         && (!scene?.transition?.kind || scene.transition.kind === "none")
+        && list(scene?.characterMovements).length === 0
         && [...travelers].every((name) => physical.has(name));
     }) || null;
 }
@@ -125,9 +126,19 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
       to: crossingScene.locationAfter,
       characters: [...directive.travelers],
     };
+    crossingScene.characterMovements = [{
+      id: "movement-1",
+      kind: "cross_passage",
+      mechanism: directive.mechanism,
+      mechanismId: directive.mechanismId,
+      from: directive.origin,
+      to: crossingScene.locationAfter,
+      characters: [...directive.travelers],
+    }];
     if (alreadyDiscovered) continue;
 
     discoveryScene.locationAfter = directive.origin;
+    discoveryScene.characterMovements = [];
     discoveryScene.transition = {
       kind: "discover_passage",
       mechanism: directive.mechanism,

@@ -24,10 +24,12 @@ CAUSAL RULES
 - A destination cannot appear before the travel or threshold crossing that reaches it.
 - A portal, gate, vehicle, tunnel or magical passage must be discovered in an earlier scene before it is crossed.
 - Give every discoverable passage one stable snake_case transition.mechanism_id and copy that exact id into its later crossing. Descriptive wording may vary, but the id never changes.
-- Every physical character starts in one explicit location. A character can appear physically in a new location only after a transition that names that character.
-- For a physical character presence, copy the scene's exact location_after string into character_presences.location. Describe any smaller position such as "beside the portal" in action, not as a different location.
-- When a scene changes location, list every physically present character who moves from location_before to location_after in transition.characters. Never list a thought, memory or voice as a traveler.
-- When the focal scene stays at one destination but one or more characters arrive there from a shared established location, use join_travel. Keep location_before and location_after equal to the destination, set transition.from to the incoming characters' established origin, transition.to to the destination, and list only those incoming characters in transition.characters. Do not move or list characters who were already at the destination.
+- Every physical character starts in one explicit location. A character can appear physically in a new location only after one character_movements event that starts at that character's established location.
+- character_movements is the authoritative per-character travel ledger. Use one event per group that shares the same origin, destination, mechanism and moment. Use multiple events when characters arrive from different origins, separate toward different destinations or take parallel routes.
+- A physical character presence declares when the character is visible in the scene: phase start for a departure, throughout for a resident who does not move, and end for an arrival or a character who remains at the final focal location. Copy location_before for phase start and location_after for phase end. Describe smaller positions such as "beside the portal" only in action.
+- When the focal scene changes location, copy its main movement into transition for backward compatibility and also record it in character_movements. Never list a thought, memory or voice as a traveler.
+- When the focal scene stays at one destination but characters arrive there, keep location_before and location_after equal to that destination. Add one join_travel character_movements event for each shared origin and list only the characters arriving from that origin. Characters already at the destination have no movement.
+- A character may depart while the focal scene remains at the origin: use physical phase start plus an ordinary_travel or return_travel character_movements event toward the character's destination. Do not move the residents who remain.
 - A guide may instead be present as thought, memory or voice. Such a guide is not physically visible and must never be included among travelers.
 - The child remains the active hero. Guides advise but do not solve the climax.
 - Track every recurring wearable, carried or plot-critical object. Give it exactly one state per scene. A hat cannot be both worn and held; when held, explicitly say that it is not worn and that only one hat exists.
@@ -72,8 +74,9 @@ OUTPUT
       "story_change": "new action, information, obstacle, decision, consequence or evolution produced by this scene",
       "symbol_use": [{"name":"a symbol declared in narrative_contract","role":"its precise use or evolution in this scene"}],
       "prerequisite_scene_ids": [],
-      "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","location":"physical location or empty for nonphysical presence","action":"role in this exact scene"}],
+      "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","phase":"start | throughout | end, or empty for nonphysical presence","location":"exact focal location for the selected physical phase, or empty for nonphysical presence","action":"role in this exact scene"}],
       "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel | join_travel","mechanism_id":"stable_snake_case_id or empty","mechanism":"named portal, route or vehicle, or empty","from":"traveler origin","to":"destination","characters":["exact canonical names who travel"]},
+      "character_movements": [{"id":"movement-1","kind":"ordinary_travel | return_travel | cross_passage | join_travel","from":"group's established origin","to":"group's destination","characters":["exact canonical physical travelers in this group"],"mechanism_id":"stable passage id or empty","mechanism":"named portal, route or vehicle, or empty"}],
       "object_states": [{"name":"tracked object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind","quantity":1,"instruction":"unambiguous visual rule"}],
       "continuity_to_next":"state that the next scene inherits"
     }]
@@ -87,6 +90,8 @@ MANDATORY
 - A discover_passage scene does not cross the passage and does not change location.
 - A cross_passage scene copies the exact mechanism_id from its earlier discovery, names every traveler and changes location from the established origin to the destination.
 - A join_travel scene keeps location_before and location_after at the focal destination, starts from the incoming travelers' shared established origin, and names only the characters who arrive.
+- Every physical movement appears exactly once in character_movements. A resident has no movement. Several movement events may coexist in one scene, but each event must begin at every named traveler's current ledger location.
+- Use phase start for a character shown before leaving, phase end for a character shown after arriving, and throughout only for a character who stays at the same focal location for the whole scene.
 - Nonphysical thoughts, memories and voices are narratively present but not physically visible.
 - Return narrative_contract.version 1. Use no more than one primary symbol and two secondary symbols. An empty primary_symbol is allowed when the story is stronger without a recurring symbol.
 - Every scene must contain a non-empty narrative_function, dominant_emotion, emotional_shift and story_change. Do not duplicate a narrative function and story change across scenes.

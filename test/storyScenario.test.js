@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
 import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
-import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
+import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
 
 function coherentPortalScenario() {
@@ -165,11 +165,22 @@ test("scenario normalization preserves the new editorial metadata without imposi
   });
   assert.equal(modern.narrativeContract.primarySymbol.name, "ruban");
   assert.equal(modern.scenes[0].dominantEmotion, "hésitation");
+  assert.equal(modern.version, 2);
+  assert.equal(modern.movementLedgerVersion, 1);
+  assert.equal(modern.scenes[0].characterPresences[0].phase, "end");
   assert.equal(validateStoryScenario(modern).valid, true);
 
   const legacy = coherentPortalScenario();
   assert.equal(legacy.narrativeContract, undefined);
   assert.equal(validateStoryScenario(legacy).valid, true);
+});
+
+test("persisted version-one scenarios remain readable during the movement-ledger migration", () => {
+  const legacy = coherentPortalScenario();
+  legacy.version = 1;
+  assert.equal(storyScenarioSnapshot({
+    continuitySnapshot: { storyScenario: legacy },
+  }), legacy);
 });
 
 test("scenario validation rejects crossing before discovery and physical teleportation", () => {
@@ -487,7 +498,7 @@ test("join travel rejects moving a resident or hiding an incoming traveler", () 
   const validation = validateStoryScenario(scenario);
   assert.equal(validation.valid, false);
   assert.ok(validation.issues.some((issue) => issue.includes("Bastien cannot depart from maison")));
-  assert.ok(validation.issues.some((issue) => issue.includes("Marie joins the scene without being physically present")));
+  assert.ok(validation.issues.some((issue) => issue.includes("Marie travels without being physically present")));
 });
 
 test("scenario stabilization infers the discovered portal crossing and its travelers", () => {
@@ -639,6 +650,8 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioAgent, /normalizeBookLanguage\(input\?\.intake\?\.language\)/);
   assert.match(scenarioPrompt, /Never ask the creator to confirm a repair already dictated by the causal rules/);
   assert.match(scenarioPrompt, /Write every creator-facing value exclusively in intake\.language/);
+  assert.match(scenarioPrompt, /character_movements is the authoritative per-character travel ledger/);
+  assert.match(scenarioPrompt, /phase start for a departure/);
   assert.match(app, /requestStoryScenario/);
   assert.match(app, /approveStoryScenario/);
   assert.match(app, /storyScenarioBusy/);
