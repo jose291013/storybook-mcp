@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-depth-age-guidance`
 - Latest merged checkpoint: PR #70 — creator-directed text-or-illustration quality correction
 - Current focused checkpoint: narrative depth, age guidance and protected family meaning from external reader feedback
-- Pull request: not published yet
+- Pull request: draft PR #71 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -37,7 +37,7 @@ PR #55 through PR #70 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 
 ## Next verification target
 
-1. Publish and review one focused draft PR.
+1. Review draft PR #71 without merging it.
 2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
 3. After deployment, create one age-8 test book and verify that the three proposals differ in structure, the selected length advice is clear, scenario scenes show distinct changes/emotions, and the resulting manuscript does not repeat the moral.
 
