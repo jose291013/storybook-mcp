@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/character-movement-ledger`
 - Latest merged checkpoint: PR #73 — independent character arrivals
 - Current focused checkpoint: versioned per-character movement ledger and full-scene causal simulation
-- Pull request: not published yet; do not merge until the user confirms that no preview or quality correction is running
+- Pull request: draft PR #74 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -38,7 +38,7 @@ PR #55 through PR #73 are merged. Bridge 0.7.0 remains the active WordPress pack
 
 ## Next verification target
 
-1. Publish the focused pull request without merging.
+1. Review draft PR #74 without merging.
 2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
 3. After deployment, generate one scenario with two characters joining from different locations and another where one character leaves while the others remain.
 4. Confirm that old scenario-review projects continue to reopen and update through the version-1 compatibility path.
