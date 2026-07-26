@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/editor-scenarist-guardrails`
 - Latest merged checkpoint: PR #71 — narrative depth and age guidance
 - Current focused checkpoint: automatic controller-to-scenarist causal repairs and pre-credit character-change guardrails
-- Pull request: not published yet; do not merge until the user confirms that no preview or quality correction is running
+- Pull request: draft PR #72 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source/package: `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -34,7 +34,7 @@ PR #55 through PR #71 are merged. Bridge 0.7.0 is prepared for cover-ready, inte
 
 ## Next verification target
 
-1. Publish a focused draft PR and review it without merging.
+1. Review draft PR #72 without merging.
 2. Do not merge or deploy without explicit user confirmation and confirmation that no preview or correction is running.
 3. After deployment, test one scenario that would otherwise cross a passage before discovery and one local request that tries to add an unplanned family member.
 
