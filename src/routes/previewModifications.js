@@ -13,6 +13,7 @@ import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { previewModificationPriceCents } from "../config/previewModificationPricing.js";
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
+import { inspectPreviewModificationRequest } from "../services/previewModificationPolicy.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -387,6 +388,17 @@ router.post("/projects/:id/preview-modifications", async (req, res) => {
     if (instruction.length < 8 || instruction.length > 800) {
       return res.status(400).json({ error: "Describe the requested local change in 8 to 800 characters" });
     }
+    const policy = inspectPreviewModificationRequest({
+      project,
+      spreadNumber: spread.spreadNumber,
+      instruction,
+    });
+    if (!policy.allowed) {
+      return res.status(422).json({
+        error: "This local change introduces a character outside the approved scene",
+        ...policy,
+      });
+    }
     const created = await previewRevisionStore.create(identity, {
       projectId: project.id,
       spreadNumber: spread.spreadNumber,
@@ -457,6 +469,23 @@ router.post("/projects/:id/preview-modifications/:modificationId/retry", async (
     }
     if (fingerprint(project) !== modification.sourceFingerprint) {
       return res.status(409).json({ error: "The source preview has changed" });
+    }
+    const policy = inspectPreviewModificationRequest({
+      project,
+      spreadNumber: modification.spreadNumber,
+      instruction: modification.instruction,
+    });
+    if (!policy.allowed) {
+      await previewRevisionStore.update(modification.id, {
+        status: "rejected",
+        rejectedAt: new Date().toISOString(),
+        failureCode: policy.code,
+        failureMessage: "The request changes the approved character cast",
+      });
+      return res.status(422).json({
+        error: "This local change introduces a character outside the approved scene",
+        ...policy,
+      });
     }
     const reservation = await creditStore.reservePreview(identity, {
       projectId: project.id,

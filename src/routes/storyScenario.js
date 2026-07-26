@@ -16,6 +16,10 @@ import {
   storyScenarioSnapshot,
   validateStoryScenario,
 } from "../services/storyScenario.js";
+import {
+  applyStoryScenarioRepairDirectives,
+  buildStoryScenarioRepairDirectives,
+} from "../services/storyScenarioRepairs.js";
 
 const router = express.Router();
 const EDITABLE_STATUSES = new Set(["ready_for_preview", "scenario_review", "scenario_needs_clarification"]);
@@ -72,13 +76,18 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
   };
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
+  let repairDirectives = [];
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const candidate = await storyScenarioAgent({
       ...input,
-      ...(scenario ? { previous_scenario: scenario, validation_issues: validation.issues } : {}),
+      ...(scenario ? {
+        previous_scenario: scenario,
+        validation_issues: validation.issues,
+        repair_directives: repairDirectives,
+      } : {}),
       structural_repair_attempt: attempt,
     });
-    scenario = stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
+    scenario = applyStoryScenarioRepairDirectives(stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
       normalizeStoryScenario(candidate, {
         pagePlan,
         canonicalCharacters,
@@ -87,7 +96,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
         language: normalized.answers.language,
       }),
       { sceneEdits, addedCharacters },
-    ));
+    )), repairDirectives, { language: normalized.answers.language });
     validation = validateStoryScenario(scenario);
     if (validation.valid) {
       const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
@@ -97,6 +106,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
       };
     }
     if (validation.valid) break;
+    repairDirectives = buildStoryScenarioRepairDirectives(scenario, validation);
   }
   return { scenario, validation };
 }
