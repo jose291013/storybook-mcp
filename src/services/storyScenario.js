@@ -2,7 +2,7 @@ import { enrichFamilyAddress } from "./characterRelationships.js";
 
 export const STORY_SCENARIO_VERSION = 1;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
-const TRANSITION_KINDS = new Set(["none", "discover_passage", "cross_passage", "ordinary_travel", "return_travel"]);
+const TRANSITION_KINDS = new Set(["none", "discover_passage", "cross_passage", "ordinary_travel", "return_travel", "join_travel"]);
 const OBJECT_STATES = new Set(["worn", "held", "carried", "stored", "visible", "absent", "left_behind"]);
 
 function text(value) {
@@ -272,12 +272,37 @@ export function stabilizeStoryScenario(input = {}) {
     }
 
     scene.transition ||= { kind: "none", mechanism: "", characters: [] };
+    const suppliedTransitionFrom = text(scene.transition.from);
     scene.transition.mechanismId = passageId(scene.transition.mechanismId, scene.transition.mechanism);
-    scene.transition.from = scene.locationBefore;
-    scene.transition.to = scene.locationAfter;
     const nonphysical = new Set(list(scene.characterPresences, 20).filter((presence) => presence.mode !== "physical").map((presence) => presence.name));
-    const travelers = new Set(list(scene.transition.characters, 20).filter((name) => !nonphysical.has(name)));
+    const physical = new Set(list(scene.characterPresences, 20).filter((presence) => presence.mode === "physical").map((presence) => presence.name));
+    let travelers = new Set(list(scene.transition.characters, 20).filter((name) => !nonphysical.has(name)));
     const changesLocation = key(scene.locationBefore) !== key(scene.locationAfter);
+    const incomingPhysical = [...physical].filter((name) => {
+      const knownLocation = characterLocations.get(name);
+      return knownLocation && key(knownLocation) !== key(scene.locationAfter);
+    });
+    const incomingOrigins = [...new Set(incomingPhysical.map((name) => text(characterLocations.get(name))).filter(Boolean))];
+    const hasOneIncomingOrigin = new Set(incomingOrigins.map(key)).size === 1;
+    const canRepairAsJoin = !changesLocation && incomingPhysical.length > 0 && hasOneIncomingOrigin;
+    if (canRepairAsJoin) {
+      scene.transition.kind = "join_travel";
+      scene.transition.from = incomingOrigins[0];
+      scene.transition.to = scene.locationAfter;
+      travelers = new Set(incomingPhysical);
+    } else if (scene.transition.kind === "join_travel") {
+      const knownTravelerOrigins = [...new Set([...travelers]
+        .map((name) => text(characterLocations.get(name)))
+        .filter((location) => location && key(location) !== key(scene.locationAfter)))];
+      scene.transition.from = knownTravelerOrigins.length === 1
+        ? knownTravelerOrigins[0]
+        : suppliedTransitionFrom;
+      scene.transition.to = scene.locationAfter;
+      travelers = new Set([...travelers].filter((name) => physical.has(name)));
+    } else {
+      scene.transition.from = scene.locationBefore;
+      scene.transition.to = scene.locationAfter;
+    }
     if (scene.transition.kind === "discover_passage" && scene.transition.mechanismId) {
       availablePassages.set(scene.transition.mechanismId, {
         mechanismId: scene.transition.mechanismId,
@@ -379,8 +404,17 @@ export function validateStoryScenario(scenario = {}) {
     const transition = scene.transition || { kind: "none", characters: [] };
     const changesLocation = key(scene.locationBefore) !== key(scene.locationAfter);
     if (changesLocation && transition.kind === "none") issues.push(`${scene.id} changes location without a transition`);
-    if (transition.kind !== "none" && (key(transition.from) !== key(scene.locationBefore) || key(transition.to) !== key(scene.locationAfter))) {
+    if (transition.kind !== "none" && transition.kind !== "join_travel" && (key(transition.from) !== key(scene.locationBefore) || key(transition.to) !== key(scene.locationAfter))) {
       issues.push(`${scene.id} transition must match its before/after locations`);
+    }
+    if (!changesLocation && ["ordinary_travel", "return_travel"].includes(transition.kind)) {
+      issues.push(`${scene.id} incoming traveler requires a join_travel transition`);
+    }
+    if (transition.kind === "join_travel") {
+      if (changesLocation) issues.push(`${scene.id} join_travel must keep the focal scene at its destination`);
+      if (!transition.from || key(transition.from) === key(transition.to)) issues.push(`${scene.id} join_travel requires a distinct origin`);
+      if (key(transition.to) !== key(scene.locationAfter)) issues.push(`${scene.id} join_travel must arrive at the scene location`);
+      if (!transition.characters?.length) issues.push(`${scene.id} join_travel must name each incoming traveler`);
     }
     if (transition.kind === "discover_passage") {
       if (!transition.mechanism) issues.push(`${scene.id} passage discovery needs a mechanism`);
@@ -392,10 +426,16 @@ export function validateStoryScenario(scenario = {}) {
       if (!transition.characters.length) issues.push(`${scene.id} passage crossing must name every traveler`);
       if (mechanismId) discoveredPassages.delete(mechanismId);
     }
+    const departureLocation = transition.kind === "join_travel" ? transition.from : scene.locationBefore;
+    const arrivalLocation = transition.kind === "join_travel" ? transition.to : scene.locationAfter;
+    const physicalNames = new Set((scene.characterPresences || [])
+      .filter((presence) => presence.mode === "physical")
+      .map((presence) => presence.name));
     for (const name of transition.characters || []) {
       const knownLocation = characterLocations.get(name);
-      if (knownLocation && key(knownLocation) !== key(scene.locationBefore)) issues.push(`${scene.id}: ${name} cannot depart from ${scene.locationBefore}`);
-      characterLocations.set(name, scene.locationAfter);
+      if (knownLocation && key(knownLocation) !== key(departureLocation)) issues.push(`${scene.id}: ${name} cannot depart from ${departureLocation}`);
+      if (transition.kind === "join_travel" && !physicalNames.has(name)) issues.push(`${scene.id}: ${name} joins the scene without being physically present`);
+      characterLocations.set(name, arrivalLocation);
     }
 
     for (const presence of scene.characterPresences || []) {
