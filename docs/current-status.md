@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/age-aware-intentions`
 - Latest merged checkpoint: PR #79 — intention-first creator flow and storefront hero overlap correction
 - Current focused checkpoint: age-calibrated parent-intention proposals
-- Pull request: not opened yet
+- Pull request: draft PR #80
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -64,7 +64,7 @@ PR #55 through PR #79 are merged. The meaning-led storefront is live and its Spa
 
 1. Review the age-first intention screen in FR, ES and EN.
 2. Confirm that the three interpretations differ appropriately between a young child and a preadolescent.
-3. Open the focused pull request after the full local suite and visual checks pass.
+3. Review draft PR #80 and compare the three intention proposals for contrasting ages.
 4. Before merging, confirm that no preview, cover or quality correction is running because Render may restart.
 
 ## Protected local state
