@@ -13,7 +13,7 @@ const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLoca
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
 const CREATIONS_RETURN_KEY = "calitiki-creations-return-v1";
-const FLOW_VERSION = 3;
+const FLOW_VERSION = 4;
 const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
 
@@ -1365,13 +1365,13 @@ function renderStoryIntentions() {
   elements.storyIntentionGrid.querySelectorAll("[data-story-intention]").forEach((button) => button.addEventListener("click", () => chooseStoryIntention(button.dataset.storyIntention)));
   elements.intentionChoiceStatus.textContent = selectedId ? tr("intentionConfirmed") : "";
   elements.customStoryChoice.classList.toggle("is-selected", state.storySuggestionMode === "custom");
-  elements.adventureProposals.hidden = !(selectedId || state.storySuggestions.length || state.storySuggestionMode === "suggestion");
+  elements.adventureProposals.hidden = !(state.selectedUniverse && (selectedId || state.storySuggestions.length || state.storySuggestionMode === "suggestion"));
 }
 
 async function requestStoryIntentions() {
-  if (state.storyIntentionsBusy || !state.selectedUniverse) return;
+  if (state.storyIntentionsBusy) return;
   const values = formValues();
-  if (![values.hero_name, values.age, values.favorite_activities, values.personality, values.creator_situation].every((value) => String(value || "").trim())) {
+  if (!String(values.creator_situation || "").trim()) {
     elements.intentionChoiceStatus.textContent = tr("intentionNeedsSituation");
     document.querySelector("#creator_situation")?.focus();
     return;
@@ -1387,12 +1387,7 @@ async function requestStoryIntentions() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        heroName: values.hero_name,
-        age: values.age,
-        favoriteActivities: values.favorite_activities,
-        personality: values.personality,
         creatorSituation: values.creator_situation,
-        universeId: state.selectedUniverse,
         locale: state.locale,
       }),
     });
@@ -1597,14 +1592,16 @@ function renderUniverses() {
     const changed = state.selectedUniverse && state.selectedUniverse !== button.dataset.universeId;
     state.selectedUniverse = button.dataset.universeId;
     if (changed) {
-      clearIntentionChoice({ preserveSituation: true });
+      const customStory = state.storySuggestionMode === "custom";
       state.storySuggestions = [];
       resetStorySuggestionChoice({ preserveAnswers: true });
+      if (customStory) state.storySuggestionMode = "custom";
     }
     renderUniverses();
     renderStoryIntentions();
     renderStorySuggestions();
     emitWooConfiguration();
+    if (selectedStoryIntention()) requestStorySuggestions().catch(() => null);
   }));
   elements.universeGrid.querySelectorAll("[data-universe-reference]").forEach((toggle) => toggle.addEventListener("click", () => {
     const card = toggle.closest(".universe-card-wrap").querySelector(".universe-card");
@@ -1722,8 +1719,13 @@ function renderPhotos() {
 
 function validateStep() {
   elements.formError.textContent = "";
-  if (state.step === 0 && !state.selectedUniverse) {
-    elements.formError.textContent = tr("invalidUniverse");
+  if (state.step === 0 && !String(document.querySelector("#creator_situation")?.value || "").trim()) {
+    elements.formError.textContent = tr("intentionNeedsSituation");
+    document.querySelector("#creator_situation")?.focus();
+    return false;
+  }
+  if (state.step === 0 && !selectedStoryIntention() && state.storySuggestionMode !== "custom") {
+    elements.formError.textContent = tr("suggestionRequired");
     return false;
   }
   if (state.step === 1 || state.step === 3) {
@@ -1731,6 +1733,10 @@ function validateStep() {
     const invalid = required.filter((input) => !String(input.value).trim());
     required.forEach((input) => input.classList.toggle("is-invalid", invalid.includes(input)));
     if (invalid.length) { elements.formError.textContent = tr("invalidRequired"); invalid[0].focus(); return false; }
+  }
+  if (state.step === 2 && !state.selectedUniverse) {
+    elements.formError.textContent = tr("invalidUniverse");
+    return false;
   }
   if (state.step === 2 && !selectedStorySuggestion() && state.storySuggestionMode !== "custom") {
     elements.formError.textContent = tr("suggestionRequired");
@@ -1766,8 +1772,10 @@ function showStep(nextStep, shouldScroll = true) {
   elements.prevButton.hidden = state.step === 0; elements.nextButton.hidden = state.step === REVIEW_STEP;
   elements.mobileStepLabel.textContent = tr("stepLabel", { current: state.step + 1 }); elements.mobileProgressBar.style.width = `${((state.step + 1) / STEP_COUNT) * 100}%`; elements.formError.textContent = "";
   if (state.step === 2) {
+    renderUniverses();
     renderStoryIntentions();
     renderStorySuggestions();
+    if (state.selectedUniverse && selectedStoryIntention()) requestStorySuggestions().catch(() => null);
   }
   if (state.step === 4) renderPageCounts();
   if (state.step === REVIEW_STEP) renderReview();

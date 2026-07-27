@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/intention-first-flow`
 - Latest merged checkpoint: PR #78 — meaning-led storefront and persistent customer-library navigation
-- Current focused checkpoint: production deployment and Theme 1.2.0 installation verification
-- Pull request: PR #78 merged
+- Current focused checkpoint: intention-first creator flow and storefront hero overlap correction
+- Pull request: not published yet
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
-- WordPress theme source candidate: `1.2.0`; installed production theme remains `1.1.5`
+- WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #78 are merged. Bridge 0.7.1 and Theme 1.1.5 remain installed until their corresponding merged Render changes are live.
+PR #55 through PR #78 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
-## Current product brick: meaning-led storefront
+## Current product brick: intention-first flow alignment
+
+1. The creator starts with the adult's situation or message, before asking who the child is or showing a visual universe.
+2. The no-credit intention assistant works only from that situation and does not invent child or world details.
+3. Child details come second; universe choice and the three personalized adventure approaches come third.
+4. Existing version-3 browser drafts retain their saved step and answers while new drafts use flow version 4.
+5. Theme 1.2.1 keeps the intention note, arrow and adventure caption separately visible and selectable in TranslatePress.
+
+## Previous product brick: meaning-led storefront
 
 1. The homepage starts with the adult's intention and shows how it becomes an adventure experienced by the child.
 2. Three concrete examples connect an adult concern, an adventure and a discovery made through action.
@@ -37,17 +45,19 @@ PR #55 through PR #78 are merged. Bridge 0.7.1 and Theme 1.1.5 remain installed 
 
 ## Verification completed locally
 
-- Focused theme integration test passes.
-- Desktop and mobile visual checks completed for the storefront and creator header.
-- Installable Theme 1.2.0 archive inspected with the expected top-level `calitiki-theme` folder.
+- Previous merged checkpoint: 184 tests, 0 failures.
+- Intention-first funnel and theme integration tests pass.
+- Wide-desktop visual check confirms zero overlap between the intention note and the adventure caption.
+- Mobile visual check confirms a vertical, overflow-free composition.
+- Theme 1.2.1 archive contains the expected top-level `calitiki-theme` folder.
 - Full local suite passes: 184 tests, 0 failures.
 
 ## Next verification target
 
-1. Wait for Render to deploy merge commit `3daf065`.
-2. Install Theme 1.2.0 only after that deployment is live.
-3. Verify the storefront positioning, examples, trust copy and responsive layout.
-4. Verify the creator's **Mes créations** return in FR, ES and EN.
+1. Publish a focused draft PR without merging it.
+2. Review the new first three creator steps and the final storefront composition.
+3. Before any later merge, confirm that no preview, cover or quality correction is running because Render may restart.
+4. After Render deploys the merge, install Theme 1.2.1 and translate the now-visible adventure caption in WordPress.
 
 ## Protected local state
 
