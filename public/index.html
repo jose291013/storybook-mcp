@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Créez un album jeunesse personnalisé où votre enfant devient le héros." />
-    <title>Mon Histoire Magique</title>
+    <meta name="description" content="Transformez ce que vous souhaitez transmettre à votre enfant en une aventure personnelle dont il devient le héros." />
+    <title>Calitiki · Une histoire pour lui parler autrement</title>
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -16,6 +16,7 @@
         <a class="storefront-return" id="storefrontReturnLink" href="https://calitiki.com/" aria-label="Retour à Calitiki">
           <span aria-hidden="true">←</span><span class="storefront-return__label" data-i18n="returnToStore">Retour à Calitiki</span>
         </a>
+        <a class="creations-return" id="headerCreationsLink" href="https://calitiki.com/mon-compte/calitiki-creations/" data-i18n="myCreations">Mes créations</a>
         <a class="wallet-pill" id="headerCreditBalance" href="#creator" hidden><span data-i18n="walletBalance">Solde</span> <strong id="headerCreditBalanceValue">—</strong></a>
         <span class="format-pill" data-i18n="format">Album carre · 21 × 21 cm</span>
         <label class="ui-language"><span data-i18n="interfaceLanguage">Interface</span>
@@ -31,9 +32,9 @@
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow" data-i18n="heroEyebrow">UN ALBUM CREE POUR LUI, ET POUR PERSONNE D'AUTRE</p>
-          <h1 data-i18n="heroTitle">Votre enfant devient le héros de sa propre histoire.</h1>
-          <p class="hero-intro" data-i18n="heroIntro">Répondez à dix questions simples. Nous transformons ses rêves, ses qualités et les personnes qu'il aime en un album illustré unique.</p>
+          <p class="eyebrow" data-i18n="heroEyebrow">UNE HISTOIRE POUR LUI PARLER AUTREMENT</p>
+          <h1 data-i18n="heroTitle">Ce que vous aimeriez lui transmettre devient son aventure.</h1>
+          <p class="hero-intro" data-i18n="heroIntro">Racontez une situation ou un message important. Calitiki vous aide à en faire une histoire subtile dont votre enfant devient le héros.</p>
           <a class="hero-cta" href="#creator"><span data-i18n="startCreating">Créer mon livre</span><span aria-hidden="true">→</span></a>
           <div class="trust-row" aria-label="Caracteristiques du livre">
             <span id="heroStartingPrice">À partir de 6,69 €</span><span id="heroPageRange">24 à 44 pages au choix</span><span data-i18n="previewBeforePrint">Aperçu avant impression</span>
@@ -184,6 +185,7 @@
                 <span data-i18n="dropOr">ou cliquez pour les choisir</span>
                 <small data-i18n="dropFormats">JPG, PNG ou WEBP · 10 Mo maximum par image</small>
               </label>
+              <p class="photo-privacy-note" data-i18n="photoPrivacyNote">Vos photos ne sont jamais rendues publiques. Elles sont utilisées uniquement pour créer et conserver votre livre privé.</p>
               <div class="photo-count"><span id="photoCount">0</span> / 5 <span data-i18n="photosWord">photos</span></div>
               <div class="photo-list" id="photoList"></div>
             </section>
@@ -197,6 +199,10 @@
                 <select id="language" name="language"><option value="FR">Francais</option><option value="ES">Español</option><option value="EN">English</option></select>
               </label>
               <p class="language-separation" data-i18n="languageSeparation">La langue du livre peut etre differente de celle de cette interface.</p>
+              <aside class="ai-disclosure" role="note">
+                <span aria-hidden="true">◎</span>
+                <div><strong data-i18n="aiDisclosureTitle">Création assistée par intelligence artificielle</strong><p data-i18n="aiDisclosureLead">Calitiki utilise l’IA pour proposer le scénario, rédiger le texte et créer les illustrations. Vous validez les étapes essentielles avant la création du livre.</p></div>
+              </aside>
               <section class="credit-panel" id="creditPanel" hidden>
                 <div><p class="section-kicker" data-i18n="creditKicker">CRÉDITS D’APERÇU</p><h3 data-i18n="creditTitle">Votre portefeuille Calitiki</h3></div>
                 <dl><div><dt data-i18n="previewPrice">Prix de cet aperçu</dt><dd id="previewCreditPrice">—</dd></div><div><dt data-i18n="creditBalance">Solde disponible</dt><dd id="creditBalance">—</dd></div><div><dt data-i18n="creditMissing">Complément nécessaire</dt><dd id="creditMissing">—</dd></div></dl>

@@ -11,6 +11,8 @@ Thème officiel Calitiki pour WordPress et WooCommerce.
 5. Dans Apparence > Menus, attribuez vos menus aux emplacements « Navigation principale » et « Navigation de pied de page » si vous souhaitez remplacer les liens par défaut.
 
 La page d’accueil est fournie par front-page.php et s’affiche automatiquement à la racine du site.
+Elle présente d’abord l’intention de l’adulte, des exemples concrets de transformation narrative, la validation du scénario, la narration optionnelle et les engagements de transparence IA et de confidentialité.
+Le lien « Mes créations Calitiki » reste disponible dans l’en-tête, le pied de page et le créateur externe. L’URL WooCommerce exacte est transmise au créateur avec validation stricte du domaine Calitiki.
 Les pages Boutique, Produit, Panier, Commande et Mon compte sont habillées par le thème.
 La page d’accueil présente l’album imprimé comme prochainement disponible sans lien d’achat tant que le service de production n’est pas lancé.
 

@@ -23,6 +23,16 @@ Last updated: 2026-07-26
 - Storybook service: draft, project, photos, blueprint, previews, print assets, ebook, credit ledger, access-code redemption, child profile, series memory.
 - The WooCommerce bridge will issue a short-lived HMAC-signed customer token. The Storybook service never stores WooCommerce passwords.
 
+## Public positioning and trust
+
+- Calitiki is presented first as a way for an adult to turn something they would like to transmit to a child into an adventure in which the child is the hero. Personalization technology, universes and formats support that promise; they are not the homepage's primary message.
+- The public journey must use concrete before-and-after examples: an adult intention or family situation, the corresponding adventure, and what the child discovers through action. Examples invite creation without claiming a therapeutic result.
+- The homepage explains the method before the catalog: describe the situation, choose an approach, validate the scenario, then discover the book. The creator remains in control of the scenario and visual proof.
+- AI assistance is disclosed clearly and calmly wherever it matters. Text, images and optional synthetic narration are AI-generated under the creator's choices and validation; disclosure must remain understandable without disrupting the fictional experience.
+- Customer photos, answers and books are private assets and are never made public by Calitiki. Public copy must link to the applicable privacy information and must not promise stronger guarantees than the implemented authenticated or signed access controls.
+- Optional AI narration is positioned as a separate paid way to listen to an already purchased eBook, with a voice and narration style chosen by the customer.
+- Every creator step exposes an easy authenticated return to **My creations Calitiki**, so a customer can close the browser, follow an email, buy credits or resume a persisted decision without losing the project.
+
 ## Series rules
 
 - A `child_profile` contains the stable identity selected by the parent.

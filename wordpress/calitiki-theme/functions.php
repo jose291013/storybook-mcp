@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.1.5');
+define('CALITIKI_THEME_VERSION', '1.2.0');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -30,7 +30,18 @@ add_action('wp_enqueue_scripts', 'calitiki_assets');
 
 function calitiki_generator_url() {
     $base_url = get_theme_mod('calitiki_generator_url', 'https://storybook-mcp.onrender.com');
-    return esc_url(add_query_arg(array('newBook' => '1', 'uiLanguage' => calitiki_creator_language()), $base_url));
+    return esc_url(add_query_arg(array(
+        'newBook' => '1',
+        'uiLanguage' => calitiki_creator_language(),
+        'libraryUrl' => calitiki_creations_url(),
+    ), $base_url));
+}
+
+function calitiki_creations_url() {
+    if (function_exists('wc_get_account_endpoint_url')) {
+        return esc_url(wc_get_account_endpoint_url('calitiki-creations'));
+    }
+    return esc_url(home_url('/mon-compte/calitiki-creations/'));
 }
 
 function calitiki_creator_language() {
@@ -185,6 +196,7 @@ add_action('customize_register', 'calitiki_customize_register');
 
 function calitiki_menu_fallback() {
     echo '<ul class="site-menu">';
+    echo '<li><a href="' . esc_url(home_url('/#exemples')) . '">' . esc_html__('Exemples', 'calitiki') . '</a></li>';
     echo '<li><a href="' . esc_url(home_url('/#comment-ca-marche')) . '">' . esc_html__('Comment ça marche', 'calitiki') . '</a></li>';
     echo '<li><a href="' . esc_url(home_url('/#formats')) . '">' . esc_html__('Formats', 'calitiki') . '</a></li>';
     if (function_exists('wc_get_page_permalink')) {

@@ -15,7 +15,7 @@
         <?php else : ?>
             <a class="brand" href="<?php echo esc_url(home_url('/')); ?>" aria-label="<?php esc_attr_e('Accueil Calitiki', 'calitiki'); ?>">
                 <span class="brand-mark" aria-hidden="true">✦</span>
-                <span><strong>Calitiki</strong><small><?php esc_html_e('Des histoires qui leur ressemblent', 'calitiki'); ?></small></span>
+                <span><strong>Calitiki</strong><small><?php esc_html_e('Une histoire pour lui parler autrement', 'calitiki'); ?></small></span>
             </a>
         <?php endif; ?>
         <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-navigation"><span></span><span></span><span></span><span class="screen-reader-text"><?php esc_html_e('Ouvrir le menu', 'calitiki'); ?></span></button>
@@ -24,7 +24,7 @@
             <div class="header-actions">
                 <?php calitiki_language_switcher(); ?>
                 <?php if (function_exists('wc_get_page_permalink')) : ?>
-                    <a class="account-link" href="<?php echo esc_url(wc_get_page_permalink('myaccount')); ?>"><?php esc_html_e('Mon compte', 'calitiki'); ?></a>
+                    <a class="account-link account-link-creations" href="<?php echo esc_url(calitiki_creations_url()); ?>"><?php esc_html_e('Mes créations', 'calitiki'); ?></a>
                     <a class="cart-link" href="<?php echo esc_url(wc_get_cart_url()); ?>" aria-label="<?php esc_attr_e('Voir le panier', 'calitiki'); ?>">♡<span class="cart-count"><?php echo esc_html(function_exists('WC') && WC()->cart ? WC()->cart->get_cart_contents_count() : 0); ?></span></a>
                 <?php endif; ?>
                 <a class="button button-small" href="<?php echo calitiki_generator_url(); ?>"><?php esc_html_e('Créer mon livre', 'calitiki'); ?></a>
