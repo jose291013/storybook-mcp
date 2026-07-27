@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/reposition-homepage`
 - Latest merged checkpoint: PR #77 — retroactive WooCommerce purchase reconciliation
 - Current focused checkpoint: public positioning, trust explanation and persistent customer-library navigation
-- Pull request: not published yet
+- Pull request: draft PR #78
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.0`; installed production theme remains `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -44,10 +44,10 @@ PR #55 through PR #77 are merged. Bridge 0.7.1 remains the active WordPress pack
 
 ## Next verification target
 
-1. Publish a focused draft PR without merging it.
-2. Review the final public copy and responsive screenshots.
-3. Before any later merge, confirm explicitly that no preview, cover or quality correction is running because Render may restart.
-4. After Render has deployed the merge, install Theme 1.2.0 and verify the storefront plus the creator's **Mes créations** return.
+1. Review draft PR #78 and the final public copy.
+2. Before merging, confirm explicitly that no preview, cover or quality correction is running because Render may restart.
+3. After Render has deployed the merge, install Theme 1.2.0.
+4. Verify the storefront and the creator's **Mes créations** return in FR, ES and EN.
 
 ## Protected local state
 
