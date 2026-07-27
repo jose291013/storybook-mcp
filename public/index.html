@@ -49,7 +49,7 @@
 
       <section class="creator-shell" id="creator">
         <aside class="steps" aria-label="Étapes de création">
-          <button class="step is-active" data-step-target="0"><span>1</span><div><strong data-i18n="stepIntention">L'intention</strong><small data-i18n="stepIntentionSub">Ce que vous souhaitez transmettre</small></div></button>
+          <button class="step is-active" data-step-target="0"><span>1</span><div><strong data-i18n="stepIntention">L'âge et l'intention</strong><small data-i18n="stepIntentionSub">Adapter avant de proposer</small></div></button>
           <button class="step" data-step-target="1"><span>2</span><div><strong data-i18n="stepChild">L'enfant</strong><small data-i18n="stepChildSub">Ce qui le rend unique</small></div></button>
           <button class="step" data-step-target="2"><span>3</span><div><strong data-i18n="stepAdventure">L'aventure</strong><small data-i18n="stepAdventureSub">Son univers et son approche</small></div></button>
           <button class="step" data-step-target="3"><span>4</span><div><strong data-i18n="stepStory">L'histoire</strong><small data-i18n="stepStorySub">Vos détails personnels</small></div></button>
@@ -73,8 +73,15 @@
             <section class="form-panel is-active" data-panel="0">
               <p class="section-kicker" data-i18n="inspirationKicker">CALITIKI VOUS AIDE À TROUVER LE CŒUR DE L'HISTOIRE</p>
               <h2 data-i18n="inspirationTitle">Racontez-nous ce que vous souhaitez l'aider à vivre</h2>
-              <p class="section-lead" data-i18n="inspirationLead">Commencez par la situation ou le message. Le monde de l'aventure sera choisi ensuite.</p>
+              <p class="section-lead" data-i18n="inspirationLead">Indiquez d'abord son âge pour recevoir des propositions adaptées, puis racontez la situation ou le message.</p>
               <section class="intention-assistant" id="intentionAssistant">
+                <div class="intention-age-context">
+                  <div>
+                    <strong data-i18n="intentionAgeTitle">Commençons par son âge</strong>
+                    <p data-i18n="intentionAgeLead">Calitiki adaptera les mots, les émotions et les premières étapes proposées à son niveau de maturité.</p>
+                  </div>
+                  <div class="intention-age-question" id="intentionAgeQuestion"></div>
+                </div>
                 <label class="intention-situation"><span data-i18n="intentionQuestion">Que souhaitez-vous aider votre enfant à vivre, essayer ou surmonter ?</span><textarea id="creator_situation" name="creator_situation" maxlength="1600" data-i18n-placeholder="intentionPlaceholder" placeholder="Expliquez-le simplement, comme si vous en parliez à un proche."></textarea></label>
                 <div class="intention-example-list" id="intentionExampleList"></div>
                 <div class="intention-actions"><button type="button" class="primary-button" id="interpretIntentionButton" data-i18n="interpretIntention">Aidez-moi à clarifier mon intention</button><button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button></div>

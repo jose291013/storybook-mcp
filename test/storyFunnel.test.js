@@ -45,7 +45,7 @@ test("parent situation is normalized into exactly three intention approaches", (
 
 test("the intention-first creator is fully localized in French, Spanish and English", () => {
   for (const locale of ["FR", "ES", "EN"]) {
-    for (const key of ["stepIntention", "stepAdventure", "intentionQuestion", "interpretIntention", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
+    for (const key of ["stepIntention", "stepAdventure", "intentionAgeTitle", "intentionAgeLead", "intentionNeedsAge", "intentionQuestion", "interpretIntention", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
       assert.ok(UI_TEXT[locale][key], `${locale}.${key}`);
     }
   }
@@ -96,22 +96,26 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
     fs.readFile("src/prompts/story_scenario_audit.txt", "utf8"),
   ]);
   assert.equal((html.match(/data-panel="/g) || []).length, 7);
-  assert.match(html, /data-panel="0"[\s\S]*id="creator_situation"[\s\S]*id="storyIntentionGrid"/);
+  assert.match(html, /data-panel="0"[\s\S]*id="intentionAgeQuestion"[\s\S]*id="creator_situation"[\s\S]*id="storyIntentionGrid"/);
   assert.match(html, /data-panel="2"[\s\S]*id="universeGrid"[\s\S]*id="storySuggestionGrid"/);
   assert.match(html, /id="scenarioWorldContract"/);
   assert.match(app, /const STEP_COUNT = 7/);
-  assert.match(app, /const FLOW_VERSION = 4/);
+  assert.match(app, /const FLOW_VERSION = 5/);
   assert.match(app, /Number\(saved\.flowVersion \|\| 0\) >= 2 \? saved\.step/);
   assert.match(app, /requestStoryIntentions/);
+  assert.match(app, /childAge,/);
   assert.match(app, /selectedIntention: intention/);
   assert.match(app, /universe_story_contract/);
   assert.match(app, /message\.value = suggestion\.message \|\| suggestion\.transformation/);
   assert.match(app, /readingGuidanceProfiles/);
   assert.match(app, /suggestionApproach_/);
   assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
+  assert.match(intentionRoute, /childAge/);
   assert.doesNotMatch(intentionRoute, /findUniverse|heroName|favoriteActivities/);
   assert.match(intentionPrompt, /first step of the creator journey/i);
-  assert.match(intentionPrompt, /child details and adventure universe have deliberately not been chosen/i);
+  assert.match(intentionPrompt, /exact age is known/i);
+  assert.match(intentionPrompt, /adapt vocabulary, emotional nuance, expected autonomy/i);
+  assert.match(intentionPrompt, /name, personality, interests and adventure universe have deliberately not been chosen/i);
   assert.match(suggestionRoute, /selectedIntention/);
   assert.match(auditPrompt, /universe_story_contract/);
   assert.match(auditPrompt, /confirmed story intention/);

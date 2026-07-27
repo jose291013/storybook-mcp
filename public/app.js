@@ -13,7 +13,7 @@ const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLoca
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
 const CREATIONS_RETURN_KEY = "calitiki-creations-return-v1";
-const FLOW_VERSION = 4;
+const FLOW_VERSION = 5;
 const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
 
@@ -127,7 +127,7 @@ const newBookRequested = consumeNewBookRequest();
 const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams.get("productType")) ? initialUrl.searchParams.get("productType") : "";
 
 const elements = {
-  form: document.querySelector("#bookForm"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
+  form: document.querySelector("#bookForm"), intentionAgeQuestion: document.querySelector("#intentionAgeQuestion"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
   styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
@@ -1275,12 +1275,23 @@ function bindImproveButtons() {
 
 function renderQuestions(values = {}) {
   const questions = state.config.questions;
-  elements.childQuestions.innerHTML = questions.slice(0, 4).map(renderQuestion).join("");
+  const ageQuestion = questions.find((question) => question.id === "age");
+  elements.intentionAgeQuestion.innerHTML = ageQuestion ? renderQuestion(ageQuestion, 0) : "";
+  elements.childQuestions.innerHTML = questions.slice(0, 4).filter((question) => question.id !== "age").map((question, index) => renderQuestion(question, index + 1)).join("");
   elements.storyQuestions.innerHTML = questions.filter((question, index) => index >= 4 && question.id !== "universe").map((question) => renderQuestion(question, questions.findIndex((item) => item.id === question.id))).join("");
   elements.storyQuestions.insertAdjacentHTML("beforeend", `<div class="field is-wide"><div class="field-heading"><label for="extra_notes">${escapeHtml(tr("extraLabel"))}</label><button type="button" class="improve-answer" data-improve-question="extra_notes"><span aria-hidden="true">✦</span>${escapeHtml(tr("improveAnswer"))}</button></div><textarea id="extra_notes" name="extra_notes" placeholder="${escapeHtml(tr("extraPlaceholder"))}"></textarea><small>${escapeHtml(tr("extraHelp"))}</small></div>`);
   restoreValues(values);
   bindImproveButtons();
   document.querySelector("#age")?.addEventListener("input", renderPageCounts);
+  document.querySelector("#age")?.addEventListener("change", () => {
+    if (!state.storyIntentions.length && !selectedStoryIntention()) return;
+    clearIntentionChoice({ preserveSituation: true });
+    state.storySuggestions = [];
+    resetStorySuggestionChoice({ preserveAnswers: true });
+    renderStoryIntentions();
+    renderStorySuggestions();
+    persistLocalDraft();
+  });
 }
 
 function selectedUniverseOption() {
@@ -1371,6 +1382,12 @@ function renderStoryIntentions() {
 async function requestStoryIntentions() {
   if (state.storyIntentionsBusy) return;
   const values = formValues();
+  const childAge = Number(values.age);
+  if (!Number.isInteger(childAge) || childAge < 1 || childAge > 14) {
+    elements.intentionChoiceStatus.textContent = tr("intentionNeedsAge");
+    document.querySelector("#age")?.focus();
+    return;
+  }
   if (!String(values.creator_situation || "").trim()) {
     elements.intentionChoiceStatus.textContent = tr("intentionNeedsSituation");
     document.querySelector("#creator_situation")?.focus();
@@ -1388,6 +1405,7 @@ async function requestStoryIntentions() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         creatorSituation: values.creator_situation,
+        childAge,
         locale: state.locale,
       }),
     });
@@ -1719,6 +1737,12 @@ function renderPhotos() {
 
 function validateStep() {
   elements.formError.textContent = "";
+  const childAge = Number(document.querySelector("#age")?.value);
+  if (state.step === 0 && (!Number.isInteger(childAge) || childAge < 1 || childAge > 14)) {
+    elements.formError.textContent = tr("intentionNeedsAge");
+    document.querySelector("#age")?.focus();
+    return false;
+  }
   if (state.step === 0 && !String(document.querySelector("#creator_situation")?.value || "").trim()) {
     elements.formError.textContent = tr("intentionNeedsSituation");
     document.querySelector("#creator_situation")?.focus();
