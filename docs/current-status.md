@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/intention-first-flow`
 - Latest merged checkpoint: PR #78 — meaning-led storefront and persistent customer-library navigation
 - Current focused checkpoint: intention-first creator flow and storefront hero overlap correction
-- Pull request: not published yet
+- Pull request: draft PR #79
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -54,10 +54,10 @@ PR #55 through PR #78 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Publish a focused draft PR without merging it.
-2. Review the new first three creator steps and the final storefront composition.
-3. Before any later merge, confirm that no preview, cover or quality correction is running because Render may restart.
-4. After Render deploys the merge, install Theme 1.2.1 and translate the now-visible adventure caption in WordPress.
+1. Review draft PR #79, the new first three creator steps and the final storefront composition.
+2. Before merging, confirm that no preview, cover or quality correction is running because Render may restart.
+3. After Render deploys the merge, install Theme 1.2.1.
+4. Translate the now-visible adventure caption in WordPress and verify the FR/ES creator flow.
 
 ## Protected local state
 
