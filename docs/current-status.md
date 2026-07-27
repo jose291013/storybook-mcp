@@ -8,37 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/purchased-book-titles`
-- Latest merged checkpoint: PR #74 — per-character movement ledger
-- Current focused checkpoint: real cover titles for purchased books in the WooCommerce creation library
-- Pull request: draft PR #75 published; do not merge until the user confirms that no preview or quality correction is running
-- WordPress Bridge source candidate: `0.7.1`; installed production package remains `0.7.0`
+- Current branch: `main`
+- Latest merged checkpoint: PR #76 — orphaned purchase reconciliation
+- Current focused checkpoint: production verification of stale-preview deletion and paid-book protection
+- Pull request: PR #76 merged after explicit confirmation that no preview or quality correction was running
+- WordPress Bridge source and installed production package: `0.7.1`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #74 are merged. Bridge 0.7.0 remains the active WordPress package.
+PR #55 through PR #76 are merged. Bridge 0.7.1 is the active WordPress package.
 
-## Current product brick: purchased creation titles
+## Current product brick: orphaned purchase reconciliation
 
-1. Unpurchased cards already use the authoritative project/cover title from the Storybook service.
-2. Purchased cards now resolve the same project title before falling back to WooCommerce metadata or the generic variation name.
-3. New checkout line items persist `_calitiki_project_title` as a stable internal fallback.
-4. Existing purchased books require no migration as long as their associated project remains available through the authenticated creation library.
+1. A project is protected from deletion only by a currently paid eBook/print order or series canon, not by a stale `purchased` status.
+2. Cancelling, failing or refunding the last paid book order restores the project to its preview lifecycle.
+3. Non-paid order history remains auditable behind a project deletion tombstone while the creation and private files disappear from the customer account.
+4. The creator restores the authoritative page count and explains expired legacy preview assets instead of rendering blank pages as a valid purchasable book.
+5. This brick does not require a new Bridge package; Bridge 0.7.1 already renders the server-provided deletion entitlement.
 
 ## Verification completed locally
 
-- Bridge 0.7.1 archive contains portable WordPress paths.
-- PHP source parses successfully through the repository PHP parser.
-- Purchased-card title precedence and stable order metadata are covered by the Bridge contract test.
-- Complete test suite: 181 passed, 0 failed.
+- Targeted commerce, deletion and creator-reader tests pass: 9 passed, 0 failed.
+- Complete test suite: 183 passed, 0 failed.
 
 ## Next verification target
 
-1. Review draft PR #75.
-2. Do not merge or install Bridge 0.7.1 without explicit user confirmation.
-3. After installation, reload **My creations Calitiki** and confirm existing purchased cards show their cover titles.
-4. Complete one later checkout and confirm its purchased card keeps the title even during a temporary generator outage.
+1. Wait for the Render deployment triggered by PR #76.
+2. Reload **My creations Calitiki** and confirm the stale **Noa y su castillo mágico** card exposes **Supprimer définitivement**.
+3. Open the stale preview once and confirm Calitiki shows the expired-files explanation with 32 pages, not a blank 24-page purchasable book.
+4. Confirm a genuinely paid book still has no deletion action.
 
 ## Protected local state
 

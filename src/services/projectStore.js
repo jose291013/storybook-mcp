@@ -135,7 +135,7 @@ export class JsonProjectStore {
     }
     return [...referenced];
   }
-  async prepareDeletion(id, identity, assetManifest = {}) {
+  async prepareDeletion(id, identity, assetManifest = {}, { preserveProjectRecord = false } = {}) {
     const customer = await this.ensureCustomer(identity); const store = this.read();
     const prior = Object.values(store.deletions).find((item) => item.projectId === id && item.customerId === customer.id);
     if (prior) return { project: null, deletion: prior, alreadyDeleted: true };
@@ -148,7 +148,7 @@ export class JsonProjectStore {
       createdAt: timestamp, updatedAt: timestamp, completedAt: null,
     };
     store.deletions[deletion.id] = deletion;
-    delete store.projects[id];
+    if (!preserveProjectRecord) delete store.projects[id];
     this.write(store);
     return { project, deletion, alreadyDeleted: false };
   }
@@ -330,20 +330,25 @@ export class PostgresProjectStore {
       const selected = await client.query("SELECT * FROM book_projects WHERE id=$1 AND customer_id=$2 FOR UPDATE", [id, customer.id]);
       const project = fromRow(selected.rows[0]);
       if (!project) { await client.query("COMMIT"); return null; }
-      if (project.status === "purchased") { await client.query("ROLLBACK"); return { blockedReason: "purchased" }; }
       const protectedRows = await client.query(
-        `SELECT EXISTS(SELECT 1 FROM commerce_orders WHERE project_id=$1) AS has_order,
+        `SELECT EXISTS(
+                  SELECT 1 FROM commerce_orders
+                  WHERE project_id=$1 AND product_type IN ('ebook','print') AND payment_status='paid'
+                ) AS has_paid_order,
+                EXISTS(SELECT 1 FROM commerce_orders WHERE project_id=$1) AS has_order,
                 EXISTS(SELECT 1 FROM series_continuity_facts WHERE source_project_id=$1) AS has_canon`,
         [id]
       );
-      if (protectedRows.rows[0]?.has_order) { await client.query("ROLLBACK"); return { blockedReason: "order_exists" }; }
+      if (protectedRows.rows[0]?.has_paid_order) { await client.query("ROLLBACK"); return { blockedReason: "purchased" }; }
       if (protectedRows.rows[0]?.has_canon) { await client.query("ROLLBACK"); return { blockedReason: "series_canon" }; }
       const deletionId = crypto.randomUUID();
       const inserted = await client.query(
         "INSERT INTO project_deletions (id,project_id,customer_id,asset_manifest) VALUES ($1,$2,$3,$4) RETURNING *",
         [deletionId, id, customer.id, JSON.stringify(assetManifest || {})]
       );
-      await client.query("DELETE FROM book_projects WHERE id=$1 AND customer_id=$2", [id, customer.id]);
+      if (!protectedRows.rows[0]?.has_order) {
+        await client.query("DELETE FROM book_projects WHERE id=$1 AND customer_id=$2", [id, customer.id]);
+      }
       await client.query("COMMIT");
       return { project, deletion: deletionFromRow(inserted.rows[0]), alreadyDeleted: false };
     } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }

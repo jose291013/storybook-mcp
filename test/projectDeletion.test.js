@@ -10,7 +10,10 @@ import { JsonProjectStore, normalizePhotoRefs, PostgresProjectStore } from "../s
 
 function safeDependencies(overrides = {}) {
   return {
-    orders: { async hasAnyProjectOrder() { return false; } },
+    orders: {
+      async hasPaidBookPurchase() { return false; },
+      async hasAnyProjectOrder() { return false; },
+    },
     series: { async hasFactsForProject() { return false; } },
     credits: { async releasePreviewForProject() { return { releasedCount: 1 }; }, async deleteProjectEntitlements() {} },
     storage: { async delete() {}, async deletePrefix() {} },
@@ -187,19 +190,34 @@ test("pending private cleanup resumes automatically and escalates only after bou
   }
 });
 
-test("purchases, order history, series canon and active generation each block deletion", async () => {
+test("paid purchases, series canon and active generation block deletion while cancelled order history is tombstoned", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-project-deletion-blocks-"));
   try {
     const projects = new JsonProjectStore(path.join(directory, "projects.json"));
     const identity = { wooCustomerId: "42", email: "parent@example.com" };
     const customer = await projects.ensureCustomer(identity);
     const purchased = await projects.create({ customerId: customer.id, status: "purchased" });
-    const ordered = await projects.create({ customerId: customer.id, status: "preview_ready" });
+    const cancelled = await projects.create({ customerId: customer.id, status: "purchased", previewResult: { draftPages: [] } });
     const canonical = await projects.create({ customerId: customer.id, status: "preview_ready" });
     const generating = await projects.create({ customerId: customer.id, status: "preview_generating", generationJobId: "active-job" });
 
-    await assert.rejects(deleteCustomerCreation(purchased.id, identity, safeDependencies({ projects })), (error) => error instanceof ProjectDeletionError && error.code === "purchased_project");
-    await assert.rejects(deleteCustomerCreation(ordered.id, identity, safeDependencies({ projects, orders: { async hasAnyProjectOrder() { return true; } } })), (error) => error.code === "order_exists");
+    await assert.rejects(deleteCustomerCreation(purchased.id, identity, safeDependencies({
+      projects,
+      orders: {
+        async hasPaidBookPurchase() { return true; },
+        async hasAnyProjectOrder() { return true; },
+      },
+    })), (error) => error instanceof ProjectDeletionError && error.code === "purchased_project");
+    const cancelledDeletion = await deleteCustomerCreation(cancelled.id, identity, safeDependencies({
+      projects,
+      orders: {
+        async hasPaidBookPurchase() { return false; },
+        async hasAnyProjectOrder() { return true; },
+      },
+    }));
+    assert.equal(cancelledDeletion.deleted, true);
+    assert.equal(await projects.get(cancelled.id), null);
+    assert.ok(projects.read().projects[cancelled.id]);
     await assert.rejects(deleteCustomerCreation(canonical.id, identity, safeDependencies({ projects, series: { async hasFactsForProject() { return true; } } })), (error) => error.code === "series_canon");
     await assert.rejects(deleteCustomerCreation(generating.id, identity, safeDependencies({
       projects,
@@ -207,7 +225,7 @@ test("purchases, order history, series canon and active generation each block de
     })), (error) => error.code === "generation_active");
 
     assert.ok(await projects.get(purchased.id));
-    assert.ok(await projects.get(ordered.id));
+    assert.equal(await projects.get(cancelled.id), null);
     assert.ok(await projects.get(canonical.id));
     assert.ok(await projects.get(generating.id));
   } finally {
@@ -281,6 +299,7 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   ]);
   assert.equal(customerCreationSummary({ id: "draft", status: "preview_failed" }).deletable, true);
   assert.equal(customerCreationSummary({ id: "paid", status: "purchased" }).deletable, false);
+  assert.equal(customerCreationSummary({ id: "orphan", status: "purchased" }, { paidPurchase: false }).deletable, true);
   assert.match(bridge, /Version: 0\.7\.1/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
@@ -306,6 +325,7 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.match(queueMigration, /cleanup_attempts/);
   assert.match(queueMigration, /next_retry_at/);
   assert.match(storeSource, /SELECT \* FROM book_projects WHERE id=\$1 AND customer_id=\$2 FOR UPDATE/);
+  assert.match(storeSource, /product_type IN \('ebook','print'\) AND payment_status='paid'/);
   assert.match(storeSource, /EXISTS\(SELECT 1 FROM commerce_orders WHERE project_id=\$1\)/);
   assert.match(storeSource, /EXISTS\(SELECT 1 FROM series_continuity_facts WHERE source_project_id=\$1\)/);
   assert.match(storeSource, /FOR UPDATE SKIP LOCKED/);

@@ -43,6 +43,20 @@ test("customer library exposes safe preview metadata and excludes unpaid drafts"
       questionnaire: { page_count: 32 },
       continuitySnapshot: { storyScenario: { title: "Noa et le portail", status: "proposed" } },
     });
+    const orphanedPurchase = await store.create({
+      customerId: customer.id,
+      status: "purchased",
+      title: "Ancien aperçu sans achat",
+      questionnaire: { page_count: 32 },
+      previewResult: { draftPages: [] },
+    });
+    const paidPurchase = await store.create({
+      customerId: customer.id,
+      status: "purchased",
+      title: "Livre réellement acheté",
+      questionnaire: { page_count: 24 },
+      previewResult: { draftPages: [] },
+    });
     const otherCustomer = await store.ensureCustomer({ wooCustomerId: "99", email: "other@example.com" });
     await store.create({
       customerId: otherCustomer.id,
@@ -52,13 +66,20 @@ test("customer library exposes safe preview metadata and excludes unpaid drafts"
       previewResult: { coverPreviewUrl: "/private/other-cover.png" },
     });
 
-    const creations = await listCustomerCreations(identity, store);
-    assert.equal(creations.length, 3);
-    assert.deepEqual(creations.map((creation) => creation.status).sort(), ["preview_failed", "preview_ready", "scenario_review"]);
+    const orders = {
+      async hasPaidBookPurchase({ projectId }) {
+        return projectId === paidPurchase.id;
+      },
+    };
+    const creations = await listCustomerCreations(identity, store, orders);
+    assert.equal(creations.length, 5);
+    assert.deepEqual(creations.map((creation) => creation.status).sort(), ["preview_failed", "preview_ready", "purchased", "purchased", "scenario_review"]);
     assert.equal(creations.find((creation) => creation.status === "scenario_review").title, "Noa et le portail");
     assert.equal(creations.find((creation) => creation.status === "preview_ready").title, "Noa et la forêt enchantée");
     assert.equal(creations.find((creation) => creation.status === "preview_ready").pageCount, 36);
     assert.equal(creations.find((creation) => creation.status === "preview_failed").technicalRetryAvailable, true);
+    assert.equal(creations.find((creation) => creation.id === orphanedPurchase.id).deletable, true);
+    assert.equal(creations.find((creation) => creation.id === paidPurchase.id).deletable, false);
     assert.ok(creations.every((creation) => !Object.hasOwn(creation, "questionnaire")));
     assert.ok(creations.every((creation) => !Object.hasOwn(creation, "photoRefs")));
     assert.ok(creations.every((creation) => !Object.hasOwn(creation, "previewResult")));
