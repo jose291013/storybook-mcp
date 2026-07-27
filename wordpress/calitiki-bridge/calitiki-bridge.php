@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.0
+ * Version: 0.7.1
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.0') {
-            update_option(self::VERSION_OPTION, '0.7.0');
+        if (get_option(self::VERSION_OPTION) !== '0.7.1') {
+            update_option(self::VERSION_OPTION, '0.7.1');
             flush_rewrite_rules(false);
         }
     }
@@ -336,6 +336,14 @@ final class Calitiki_Woo_Bridge {
         self::render_ebook_resend_notice($customer_id);
         $project_payload = self::creation_projects_payload($customer_id);
         $projects = is_wp_error($project_payload) ? array() : (is_array($project_payload['projects'] ?? null) ? $project_payload['projects'] : array());
+        $project_titles = array();
+        foreach ($projects as $project) {
+            $listed_project_id = sanitize_text_field((string) ($project['id'] ?? ''));
+            $listed_project_title = sanitize_text_field((string) ($project['title'] ?? ''));
+            if ($listed_project_id && $listed_project_title) {
+                $project_titles[$listed_project_id] = $listed_project_title;
+            }
+        }
         if (is_wp_error($project_payload)) {
             wc_print_notice($project_payload->get_error_message(), 'notice');
         }
@@ -420,7 +428,16 @@ final class Calitiki_Woo_Bridge {
                 }
                 $email_sent_at = (string) $item->get_meta('_calitiki_ebook_email_sent', true);
                 echo '<article class="calitiki-creation-card"><span>' . esc_html($product_type === 'ebook' ? __('Pack numérique personnalisé', 'calitiki-bridge') : __('Livre imprimé personnalisé', 'calitiki-bridge')) . '</span>';
-                $item_name = html_entity_decode((string) $item->get_name(), ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+                $item_name = sanitize_text_field((string) ($project_titles[$project_id] ?? ''));
+                if (!$item_name) {
+                    $item_name = sanitize_text_field((string) $item->get_meta('_calitiki_project_title', true));
+                }
+                if (!$item_name) {
+                    $item_name = sanitize_text_field((string) $item->get_meta(__('Création Calitiki', 'calitiki-bridge'), true));
+                }
+                if (!$item_name) {
+                    $item_name = html_entity_decode((string) $item->get_name(), ENT_QUOTES | ENT_HTML5, get_bloginfo('charset') ?: 'UTF-8');
+                }
                 $item_name = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($item_name, true)));
                 echo '<h3>' . esc_html($item_name) . '</h3><p>' . esc_html(sprintf(__('Commande n°%1$s · %2$d pages', 'calitiki-bridge'), $order->get_order_number(), $pages)) . '</p>';
                 $reader_url = self::interactive_reader_bridge_url($project_id);
@@ -1155,6 +1172,7 @@ final class Calitiki_Woo_Bridge {
         $item->add_meta_data('_calitiki_page_count', absint($values['calitiki_page_count'] ?? 0), true);
         $item->add_meta_data('_calitiki_narration_voice', sanitize_key($values['calitiki_narration_voice'] ?? ''), true);
         $item->add_meta_data('_calitiki_narration_style', sanitize_key($values['calitiki_narration_style'] ?? ''), true);
+        $item->add_meta_data('_calitiki_project_title', sanitize_text_field($values['calitiki_project_title'] ?? ''), true);
         $item->add_meta_data(__('Création Calitiki', 'calitiki-bridge'), sanitize_text_field($values['calitiki_project_title']), true);
         $item->add_meta_data(__('Nombre de pages', 'calitiki-bridge'), absint($values['calitiki_page_count']), true);
     }

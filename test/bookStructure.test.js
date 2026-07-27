@@ -721,7 +721,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.7\.0/);
+  assert.match(plugin, /Version: 0\.7\.1/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -756,7 +756,15 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Aperçu personnalisé/);
   assert.match(plugin, /Voir mon livre/);
   assert.match(plugin, /Vérifier le scénario/);
-  assert.match(plugin, /Version: 0\.7\.0/);
+  assert.match(plugin, /Version: 0\.7\.1/);
+  assert.match(plugin, /_calitiki_project_title/);
+  assert.match(plugin, /\$project_titles\[\$project_id\]/);
+  const creationLibrary = plugin.slice(
+    plugin.indexOf("public static function render_account_creations"),
+    plugin.indexOf("public static function delete_creation")
+  );
+  assert.ok(creationLibrary.indexOf("$project_titles[$project_id]") < creationLibrary.indexOf("$item->get_name()"));
+  assert.ok(creationLibrary.indexOf("_calitiki_project_title") < creationLibrary.indexOf("$item->get_name()"));
   assert.match(plugin, /preview_quality_review/);
   assert.match(plugin, /Voir la vérification/);
   assert.match(plugin, /Partager avec la famille/);
@@ -793,7 +801,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const commerceCredits = await fs.readFile("src/routes/commerceCredits.js", "utf8");
   assert.match(commerceCredits, /creations\|\$\{wooCustomerId\}\|\$\{timestamp\}/);
   assert.match(commerceCredits, /listCustomerCreations/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.7.0.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.7.1.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });
