@@ -4,7 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
-import { reconcileProjectAfterBookOrderRevocation } from "../src/services/commerceProjectStatus.js";
+import {
+  normalizePaidProjectIds,
+  reconcileCustomerPaidBookPurchases,
+  reconcileProjectAfterBookOrderRevocation,
+} from "../src/services/commerceProjectStatus.js";
 import { JsonProjectStore } from "../src/services/projectStore.js";
 
 test("a cancelled last book order restores the preview while another paid order keeps it purchased", async () => {
@@ -40,6 +44,41 @@ test("a cancelled last book order restores the preview while another paid order 
     assert.equal(restored.reconciled, true);
     assert.equal(restored.reason, "purchase_revoked");
     assert.equal((await projects.get(project.id)).status, "preview_ready");
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("a signed WooCommerce purchase snapshot revokes stale legacy payment state without touching an active purchase", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-commerce-snapshot-"));
+  try {
+    const projects = new JsonProjectStore(path.join(directory, "projects.json"));
+    const orders = new JsonCommerceOrderStore(path.join(directory, "orders.json"));
+    const identity = { wooCustomerId: "42", email: "parent@example.com" };
+    const customer = await projects.ensureCustomer(identity);
+    const stale = await projects.create({ customerId: customer.id, status: "purchased", previewResult: { draftPages: [] } });
+    const active = await projects.create({ customerId: customer.id, status: "purchased", previewResult: { draftPages: [] } });
+    for (const [orderId, project] of [["1001", stale], ["1002", active]]) {
+      await orders.recordPaid({
+        orderId,
+        projectId: project.id,
+        customerId: customer.id,
+        wooCustomerId: "42",
+        productType: "ebook",
+        pageCount: 32,
+        orderTotalCents: 669,
+      });
+    }
+
+    const result = await reconcileCustomerPaidBookPurchases(identity, [active.id, active.id, "not-a-project"], { projects, orders });
+    assert.deepEqual(result.paidProjectIds, [active.id]);
+    assert.equal(result.revokedCount, 1);
+    assert.equal(result.restoredCount, 1);
+    assert.equal((await projects.get(stale.id)).status, "preview_ready");
+    assert.equal((await projects.get(active.id)).status, "purchased");
+    assert.equal(await orders.hasPaidBookPurchase({ projectId: stale.id, customerId: customer.id }), false);
+    assert.equal(await orders.hasPaidBookPurchase({ projectId: active.id, customerId: customer.id }), true);
+    assert.deepEqual(normalizePaidProjectIds([active.id, stale.id]).sort(), [active.id, stale.id].sort());
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

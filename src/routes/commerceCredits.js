@@ -2,6 +2,7 @@ import crypto from "crypto";
 import express from "express";
 import { creditStore } from "../services/creditStore.js";
 import { listCustomerCreations } from "../services/customerCreationLibrary.js";
+import { normalizePaidProjectIds, reconcileCustomerPaidBookPurchases } from "../services/commerceProjectStatus.js";
 import { deleteCustomerCreation, ProjectDeletionError } from "../services/projectDeletion.js";
 
 const router = express.Router();
@@ -54,18 +55,47 @@ router.get("/commerce/creations", async (req, res) => {
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });
 
+router.post("/commerce/creations", async (req, res) => {
+  const wooCustomerId = String(req.body?.wooCustomerId || "");
+  const timestamp = Number.parseInt(req.body?.timestamp, 10);
+  const submittedIds = Array.isArray(req.body?.paidProjectIds) ? req.body.paidProjectIds : null;
+  const paidProjectIds = normalizePaidProjectIds(submittedIds || []);
+  const secret = String(process.env.WOOCOMMERCE_BRIDGE_SECRET || "");
+  const signedIds = paidProjectIds.join(",");
+  const expected = crypto.createHmac("sha256", secret).update(`creations|${wooCustomerId}|${timestamp}|${signedIds}`).digest("hex");
+  if (secret.length < 32 || !safeEqual(req.get("x-calitiki-signature"), expected)) return res.status(401).json({ error: "Invalid creations signature" });
+  if (!wooCustomerId || !Number.isInteger(timestamp) || submittedIds === null || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) {
+    return res.status(400).json({ error: "Creations request has expired" });
+  }
+  try {
+    const identity = { wooCustomerId, email: "" };
+    await reconcileCustomerPaidBookPurchases(identity, paidProjectIds);
+    const projects = await listCustomerCreations(identity, undefined, undefined, { paidProjectIds });
+    res.set("Cache-Control", "private, no-store");
+    res.json({ projects });
+  } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
+});
+
 router.delete("/commerce/creations/:id", async (req, res) => {
   const projectId = String(req.params.id || "");
   const wooCustomerId = String(req.query?.wooCustomerId || "");
   const timestamp = Number.parseInt(req.query?.timestamp, 10);
   const confirmation = String(req.query?.confirmation || "");
+  const submittedIds = Array.isArray(req.body?.paidProjectIds) ? req.body.paidProjectIds : null;
+  const paidProjectIds = normalizePaidProjectIds(submittedIds || []);
   const secret = String(process.env.WOOCOMMERCE_BRIDGE_SECRET || "");
-  const expected = crypto.createHmac("sha256", secret).update(`delete-creation|${wooCustomerId}|${projectId}|${timestamp}`).digest("hex");
+  const signaturePayload = submittedIds === null
+    ? `delete-creation|${wooCustomerId}|${projectId}|${timestamp}`
+    : `delete-creation|${wooCustomerId}|${projectId}|${timestamp}|${paidProjectIds.join(",")}`;
+  const expected = crypto.createHmac("sha256", secret).update(signaturePayload).digest("hex");
   if (secret.length < 32 || !safeEqual(req.get("x-calitiki-signature"), expected)) return res.status(401).json({ error: "Invalid deletion signature" });
   if (!wooCustomerId || !projectId || confirmation !== projectId || !Number.isInteger(timestamp) || Math.abs(Math.floor(Date.now() / 1000) - timestamp) > 300) {
     return res.status(400).json({ error: "Deletion confirmation has expired", code: "invalid_confirmation" });
   }
   try {
+    if (submittedIds !== null) {
+      await reconcileCustomerPaidBookPurchases({ wooCustomerId, email: "" }, paidProjectIds);
+    }
     const result = await deleteCustomerCreation(projectId, { wooCustomerId, email: "" });
     res.set("Cache-Control", "private, no-store");
     return res.status(result.cleanupPending ? 202 : 200).json(result);

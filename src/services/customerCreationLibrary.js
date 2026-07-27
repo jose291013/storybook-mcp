@@ -43,9 +43,13 @@ export function customerCreationSummary(project, { paidPurchase = project?.statu
   };
 }
 
-export async function listCustomerCreations(identity, store = projectStore, orders = commerceOrderStore) {
+export async function listCustomerCreations(identity, store = projectStore, orders = commerceOrderStore, { paidProjectIds = null } = {}) {
   const projects = await store.listForCustomer(identity);
+  const authoritativePaid = Array.isArray(paidProjectIds) ? new Set(paidProjectIds.map(String)) : null;
   return (await Promise.all(projects.map(async (project) => {
+    if (authoritativePaid) {
+      return customerCreationSummary(project, { paidPurchase: authoritativePaid.has(project.id) });
+    }
     if (project.status !== "purchased") return customerCreationSummary(project, { paidPurchase: false });
     try {
       const paidPurchase = await orders.hasPaidBookPurchase({

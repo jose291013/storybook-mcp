@@ -99,6 +99,29 @@ export class JsonCommerceOrderStore {
   async hasAnyProjectOrder({ projectId, customerId }) {
     return Object.values(this.read().orders).some((record) => record.projectId === projectId && record.customerId === customerId);
   }
+  async reconcilePaidBookPurchases({ customerId, paidProjectIds = [] }) {
+    const paid = new Set(paidProjectIds.map(String));
+    const store = this.read();
+    let revokedCount = 0;
+    for (const [key, record] of Object.entries(store.orders)) {
+      if (
+        record.customerId === customerId
+        && ["ebook", "print"].includes(record.productType)
+        && record.paymentStatus === "paid"
+        && !paid.has(String(record.projectId))
+      ) {
+        store.orders[key] = {
+          ...record,
+          paymentStatus: "reconciled_unpaid",
+          fulfillmentStatus: record.productType === "ebook" ? "revoked" : record.fulfillmentStatus,
+          updatedAt: now(),
+        };
+        revokedCount += 1;
+      }
+    }
+    if (revokedCount) this.write(store);
+    return { revokedCount };
+  }
   async findReadyNarration({ projectId, customerId }) {
     const records = Object.values(this.read().orders).filter((record) => (
       record.projectId === projectId && record.customerId === customerId && record.productType === "narration"
@@ -198,6 +221,20 @@ export class PostgresCommerceOrderStore {
       [projectId, customerId]
     );
     return rowCount > 0;
+  }
+  async reconcilePaidBookPurchases({ customerId, paidProjectIds = [] }) {
+    const { rowCount } = await this.database.query(
+      `UPDATE commerce_orders
+       SET payment_status='reconciled_unpaid',
+           fulfillment_status=CASE WHEN product_type='ebook' THEN 'revoked' ELSE fulfillment_status END,
+           updated_at=now()
+       WHERE customer_id=$1
+       AND product_type IN ('ebook','print')
+       AND payment_status='paid'
+       AND NOT (project_id=ANY($2::uuid[]))`,
+      [customerId, paidProjectIds]
+    );
+    return { revokedCount: rowCount };
   }
   async findReadyNarration({ projectId, customerId }) {
     const { rows } = await this.database.query(

@@ -300,7 +300,7 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.equal(customerCreationSummary({ id: "draft", status: "preview_failed" }).deletable, true);
   assert.equal(customerCreationSummary({ id: "paid", status: "purchased" }).deletable, false);
   assert.equal(customerCreationSummary({ id: "orphan", status: "purchased" }, { paidPurchase: false }).deletable, true);
-  assert.match(bridge, /Version: 0\.7\.1/);
+  assert.match(bridge, /Version: 0\.7\.2/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
   assert.match(bridge, /window\.confirm/);
@@ -318,6 +318,9 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   );
   assert.doesNotMatch(deleteHandler, /wc_add_notice/);
   assert.match(route, /router\.delete\("\/commerce\/creations\/:id"/);
+  assert.match(route, /router\.post\("\/commerce\/creations"/);
+  assert.match(route, /reconcileCustomerPaidBookPurchases/);
+  assert.match(bridge, /paidProjectIds/);
   assert.match(route, /confirmation !== projectId/);
   assert.match(route, /result\.cleanupPending \? 202 : 200/);
   assert.match(route, /\[project-deletion\] request failed/);

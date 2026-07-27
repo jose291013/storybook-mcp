@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.1
+ * Version: 0.7.2
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.1') {
-            update_option(self::VERSION_OPTION, '0.7.1');
+        if (get_option(self::VERSION_OPTION) !== '0.7.2') {
+            update_option(self::VERSION_OPTION, '0.7.2');
             flush_rewrite_rules(false);
         }
     }
@@ -207,18 +207,66 @@ final class Calitiki_Woo_Bridge {
         return $payload;
     }
 
-    private static function creation_projects_payload($customer_id) {
+    private static function paid_book_orders($customer_id) {
+        if (!function_exists('wc_get_orders')) {
+            return null;
+        }
+        try {
+            return wc_get_orders(array(
+                'customer_id' => $customer_id,
+                'limit' => -1,
+                'orderby' => 'date',
+                'order' => 'DESC',
+                'status' => array('wc-processing', 'wc-completed'),
+            ));
+        } catch (Throwable $error) {
+            return null;
+        }
+    }
+
+    private static function paid_project_ids($orders) {
+        $project_ids = array();
+        foreach ((array) $orders as $order) {
+            foreach ($order->get_items() as $item) {
+                $project_id = sanitize_text_field((string) $item->get_meta('_calitiki_project_id', true));
+                $product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
+                if ($project_id && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $project_id) && in_array($product_type, array('ebook', 'print'), true)) {
+                    $project_ids[$project_id] = true;
+                }
+            }
+        }
+        $project_ids = array_keys($project_ids);
+        sort($project_ids, SORT_STRING);
+        return $project_ids;
+    }
+
+    private static function creation_projects_payload($customer_id, $paid_project_ids = null) {
         $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
         $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
         if (!$generator_url || strlen($secret) < 32) {
             return new WP_Error('calitiki_creations_config', __('La bibliothèque Calitiki n’est pas encore configurée.', 'calitiki-bridge'));
         }
         $timestamp = time();
-        $signature = hash_hmac('sha256', 'creations|' . $customer_id . '|' . $timestamp, $secret);
-        $response = wp_remote_get(add_query_arg(array('wooCustomerId' => (string) $customer_id, 'timestamp' => $timestamp), $generator_url . '/api/commerce/creations'), array(
+        if (!is_array($paid_project_ids)) {
+            $signature = hash_hmac('sha256', 'creations|' . $customer_id . '|' . $timestamp, $secret);
+            $response = wp_remote_get(add_query_arg(array('wooCustomerId' => (string) $customer_id, 'timestamp' => $timestamp), $generator_url . '/api/commerce/creations'), array(
+                'timeout' => 20,
+                'headers' => array('X-Calitiki-Signature' => $signature),
+            ));
+        } else {
+        $paid_project_ids = array_values(array_unique(array_map('sanitize_text_field', (array) $paid_project_ids)));
+        sort($paid_project_ids, SORT_STRING);
+        $signature = hash_hmac('sha256', 'creations|' . $customer_id . '|' . $timestamp . '|' . implode(',', $paid_project_ids), $secret);
+        $response = wp_remote_post($generator_url . '/api/commerce/creations', array(
             'timeout' => 20,
-            'headers' => array('X-Calitiki-Signature' => $signature),
+            'headers' => array('Content-Type' => 'application/json', 'X-Calitiki-Signature' => $signature),
+            'body' => wp_json_encode(array(
+                'wooCustomerId' => (string) $customer_id,
+                'timestamp' => $timestamp,
+                'paidProjectIds' => $paid_project_ids,
+            )),
         ));
+        }
         if (is_wp_error($response)) {
             return $response;
         }
@@ -230,24 +278,35 @@ final class Calitiki_Woo_Bridge {
         return $payload;
     }
 
-    private static function delete_creation_payload($customer_id, $project_id) {
+    private static function delete_creation_payload($customer_id, $project_id, $paid_project_ids = null) {
         $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
         $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
         if (!$generator_url || strlen($secret) < 32) {
             return new WP_Error('calitiki_creations_config', __('La bibliothèque Calitiki n’est pas encore configurée.', 'calitiki-bridge'));
         }
         $timestamp = time();
-        $signature = hash_hmac('sha256', 'delete-creation|' . $customer_id . '|' . $project_id . '|' . $timestamp, $secret);
+        $request_body = array();
+        if (!is_array($paid_project_ids)) {
+            $signature = hash_hmac('sha256', 'delete-creation|' . $customer_id . '|' . $project_id . '|' . $timestamp, $secret);
+        } else {
+        $paid_project_ids = array_values(array_unique(array_map('sanitize_text_field', (array) $paid_project_ids)));
+        sort($paid_project_ids, SORT_STRING);
+        $signature = hash_hmac('sha256', 'delete-creation|' . $customer_id . '|' . $project_id . '|' . $timestamp . '|' . implode(',', $paid_project_ids), $secret);
+            $request_body = array(
+                'headers' => array('Content-Type' => 'application/json', 'X-Calitiki-Signature' => $signature),
+                'body' => wp_json_encode(array('paidProjectIds' => $paid_project_ids)),
+            );
+        }
         $url = add_query_arg(array(
             'wooCustomerId' => (string) $customer_id,
             'timestamp' => $timestamp,
             'confirmation' => $project_id,
         ), $generator_url . '/api/commerce/creations/' . rawurlencode($project_id));
-        $response = wp_remote_request($url, array(
+        $response = wp_remote_request($url, array_merge(array(
             'method' => 'DELETE',
             'timeout' => 30,
             'headers' => array('X-Calitiki-Signature' => $signature),
-        ));
+        ), $request_body));
         if (is_wp_error($response)) {
             return $response;
         }
@@ -334,7 +393,9 @@ final class Calitiki_Woo_Bridge {
         echo '<div class="calitiki-creations-account"><h2>' . esc_html__('Mes créations Calitiki', 'calitiki-bridge') . '</h2>';
         self::render_creation_deletion_notice($customer_id);
         self::render_ebook_resend_notice($customer_id);
-        $project_payload = self::creation_projects_payload($customer_id);
+        $orders = self::paid_book_orders($customer_id);
+        $paid_project_id_list = is_array($orders) ? self::paid_project_ids($orders) : null;
+        $project_payload = self::creation_projects_payload($customer_id, $paid_project_id_list);
         $projects = is_wp_error($project_payload) ? array() : (is_array($project_payload['projects'] ?? null) ? $project_payload['projects'] : array());
         $project_titles = array();
         foreach ($projects as $project) {
@@ -347,17 +408,7 @@ final class Calitiki_Woo_Bridge {
         if (is_wp_error($project_payload)) {
             wc_print_notice($project_payload->get_error_message(), 'notice');
         }
-        $orders = wc_get_orders(array('customer_id' => $customer_id, 'limit' => -1, 'orderby' => 'date', 'order' => 'DESC', 'status' => array('wc-processing', 'wc-completed')));
-        $purchased_project_ids = array();
-        foreach ($orders as $order) {
-            foreach ($order->get_items() as $item) {
-                $purchased_project_id = sanitize_text_field((string) $item->get_meta('_calitiki_project_id', true));
-                $purchased_product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
-                if ($purchased_project_id && in_array($purchased_product_type, array('ebook', 'print'), true)) {
-                    $purchased_project_ids[$purchased_project_id] = true;
-                }
-            }
-        }
+        $purchased_project_ids = array_fill_keys((array) $paid_project_id_list, true);
         $found = false;
         echo '<div class="calitiki-creation-grid">';
         foreach ($projects as $project) {
@@ -410,7 +461,7 @@ final class Calitiki_Woo_Bridge {
             }
             echo '</article>';
         }
-        foreach ($orders as $order) {
+        foreach ((array) $orders as $order) {
             foreach ($order->get_items() as $item) {
                 $project_id = (string) $item->get_meta('_calitiki_project_id', true);
                 $product_type = sanitize_key((string) $item->get_meta('_calitiki_product_type', true));
@@ -500,7 +551,8 @@ final class Calitiki_Woo_Bridge {
             exit;
         }
         check_admin_referer('calitiki_delete_creation_' . $project_id);
-        $result = self::delete_creation_payload($customer_id, $project_id);
+        $orders = self::paid_book_orders($customer_id);
+        $result = self::delete_creation_payload($customer_id, $project_id, is_array($orders) ? self::paid_project_ids($orders) : null);
         if (is_wp_error($result)) {
             self::store_creation_deletion_notice($customer_id, $result->get_error_code());
         } elseif (!empty($result['cleanupPending'])) {
