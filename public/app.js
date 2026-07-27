@@ -75,6 +75,7 @@ const state = {
   previewModification: null,
   previewModificationQuote: null,
   previewModificationPoll: null,
+  previewAssetsUnavailable: false,
   creditSummary: null,
   customerSession: { authenticated: false, customer: null },
 };
@@ -106,7 +107,7 @@ const elements = {
   generationPanel: document.querySelector("#generationPanel"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
-  qualityReviewNotice: document.querySelector("#qualityReviewNotice"), qualityReviewKicker: document.querySelector("#qualityReviewKicker"), qualityReviewTitle: document.querySelector("#qualityReviewTitle"), qualityReviewMessage: document.querySelector("#qualityReviewMessage"), qualityReviewPages: document.querySelector("#qualityReviewPages"), qualityReviewSupport: document.querySelector("#qualityReviewSupport"),
+  qualityReviewNotice: document.querySelector("#qualityReviewNotice"), qualityReviewKicker: document.querySelector("#qualityReviewKicker"), qualityReviewTitle: document.querySelector("#qualityReviewTitle"), qualityReviewMessage: document.querySelector("#qualityReviewMessage"), qualityReviewPages: document.querySelector("#qualityReviewPages"), qualityReviewSupport: document.querySelector("#qualityReviewSupport"), previewAssetsUnavailable: document.querySelector("#previewAssetsUnavailable"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
@@ -858,6 +859,7 @@ async function renderPreviewActionCenter({ locked = false, qualityReview = false
     elements.previewActionCenter.hidden = true;
     return;
   }
+  locked = locked || state.previewAssetsUnavailable;
   const summary = await refreshCreditSummary().catch(() => null);
   elements.previewActionCenter.hidden = false;
   if (locked) {
@@ -874,6 +876,14 @@ async function renderPreviewActionCenter({ locked = false, qualityReview = false
   elements.actionRequestChange.disabled = locked;
   elements.actionBuyPrint.disabled = locked || !isProductAvailable("print");
   elements.actionBuyPrint.textContent = isProductAvailable("print") ? tr("buyPrint") : tr("printComingSoonAction");
+}
+
+function markPreviewAssetsUnavailable() {
+  if (state.previewAssetsUnavailable) return;
+  state.previewAssetsUnavailable = true;
+  elements.previewAssetsUnavailable.hidden = false;
+  elements.previewModificationPanel.hidden = true;
+  renderPreviewActionCenter({ locked: true }).catch(() => null);
 }
 
 function selectedModificationScope() {
@@ -1861,11 +1871,18 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
   const repairButton = document.querySelector("#repairCurrentIllustration");
   const repairFeedback = document.querySelector("#readerRepairFeedback");
   let repairPage = null;
+  const watchRenderedAssets = (root) => {
+    for (const image of root.querySelectorAll("img")) {
+      image.addEventListener("error", markPreviewAssetsUnavailable, { once: true });
+      if (image.complete && image.naturalWidth === 0) markPreviewAssetsUnavailable();
+    }
+  };
 
   const paintFrame = () => {
     const frame = frames[frameIndex] || [];
     readerPages.className = `reader-pages ${frame.length === 1 ? "is-single" : "is-spread"}`;
     readerPages.innerHTML = frame.map(pageMarkup).join("");
+    watchRenderedAssets(readerPages);
     readerBook.classList.toggle("is-cover", Boolean(frame[0]?.isCover));
     counter.textContent = tr("readerPosition", { current: frameIndex + 1, total: frames.length });
     previousButton.disabled = frameIndex === 0;
@@ -1893,6 +1910,7 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     const singlePageTurn = currentFrame.length === 1 || targetFrame.length === 1;
     readerCurlFront.innerHTML = frontPage ? pageMarkup(frontPage) : "";
     readerCurlBack.innerHTML = backPage ? pageMarkup(backPage) : "";
+    watchRenderedAssets(readerCurl);
     readerCurl.className = `reader-curl is-active ${direction > 0 ? "is-forward" : "is-backward"} ${singlePageTurn ? "is-single" : ""}`;
     void readerCurl.offsetWidth;
     readerCurl.classList.add("is-turning");
@@ -1969,6 +1987,9 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
       elements.actionBuyPrint.disabled = !isProductAvailable("print");
     }
   });
+  if (!coverPreviewUrl || orderedPages.length < total || orderedPages.some((page) => !page.previewUrl)) {
+    markPreviewAssetsUnavailable();
+  }
   paintFrame();
 }
 
@@ -2050,6 +2071,11 @@ function showCompletedPreview(job, { scroll = true, initialPageNumber = 0 } = {}
   elements.visualProofPanel.hidden = true;
   elements.resultSection.hidden = false;
   elements.qualityReviewNotice.hidden = true;
+  state.previewAssetsUnavailable = false;
+  elements.previewAssetsUnavailable.hidden = true;
+  const restoredPageCount = Number(job.final_blueprint?.format?.interior_pages || state.pageCount);
+  if (restoredPageCount > 0) state.pageCount = restoredPageCount;
+  elements.resultTitle.textContent = tr("resultTitle", { count: state.pageCount });
   state.referenceRecoveryAvailable = Boolean(job.referenceRecoveryAvailable);
   state.currentPreview = job;
   renderBook(job, { initialPageNumber });
@@ -2373,6 +2399,17 @@ async function restoreCompletedPreview() {
   if (!response.ok) return false;
   const payload = await response.json();
   const project = payload.project;
+  const restoredPageCount = Number(
+    project?.finalBlueprint?.format?.interior_pages
+    || project?.questionnaire?.page_count
+    || project?.productConfiguration?.page_count
+    || project?.productConfiguration?.pageCount
+    || state.pageCount
+  );
+  if (restoredPageCount > 0) {
+    state.pageCount = restoredPageCount;
+    elements.resultTitle.textContent = tr("resultTitle", { count: state.pageCount });
+  }
   state.currentPreview = project ? {
     result: project.previewResult,
     final_blueprint: project.finalBlueprint,

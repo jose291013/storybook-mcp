@@ -5,6 +5,7 @@ import { isProductEnabled } from "../config/productAvailability.js";
 import { creditStore } from "../services/creditStore.js";
 import { previewRevisionStore } from "../services/previewRevisionStore.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
+import { reconcileProjectAfterBookOrderRevocation } from "../services/commerceProjectStatus.js";
 import { freshEbookDeliveryLink, fulfillPaidBookOrder } from "../services/ebookFulfillment.js";
 import { narrationChoice } from "../config/narrationOptions.js";
 import { registerPaidNarration } from "../services/narrationFulfillment.js";
@@ -79,6 +80,9 @@ router.post("/commerce/book-order-status", async (req, res) => {
         : await creditStore.releaseCheckout(reservationId, orderId);
     if (status !== "paid") {
       await commerceOrderStore.recordStatus({ orderId, projectId, productType, wooCustomerId: customerId, status }).catch(() => null);
+      if (productType !== "narration") {
+        await reconcileProjectAfterBookOrderRevocation({ projectId }).catch(() => null);
+      }
       return res.json({ ok: true, reservationStatus: reservation?.status || "none", fulfillment: { status: "revoked", productType } });
     }
     if (productType === "narration") {

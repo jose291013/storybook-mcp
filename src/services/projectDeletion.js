@@ -163,7 +163,6 @@ export function startProjectDeletionCleanupWorker(dependencies = {}) {
 
 function deletionBlocked(result) {
   if (result?.blockedReason === "purchased") return new ProjectDeletionError("Purchased books cannot be deleted", { code: "purchased_project" });
-  if (result?.blockedReason === "order_exists") return new ProjectDeletionError("A creation linked to an order cannot be deleted", { code: "order_exists" });
   if (result?.blockedReason === "series_canon") return new ProjectDeletionError("A creation used in series continuity cannot be deleted", { code: "series_canon" });
   return null;
 }
@@ -181,18 +180,18 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
   const project = await projects.getForCustomer(id, identity);
   let prepared;
   if (project) {
-    if (project.status === "purchased") throw deletionBlocked({ blockedReason: "purchased" });
     const job = project.generationJobId ? jobs.get(project.generationJobId) : null;
     if (activeJob(job)) {
       throw new ProjectDeletionError("Wait for the active generation step to finish before deleting this creation", { code: "generation_active" });
     }
     if (job && ["queued", "running"].includes(job.status)) jobs.fail(job.id);
 
-    const [hasOrder, hasCanon] = await Promise.all([
+    const [hasPaidPurchase, hasOrderHistory, hasCanon] = await Promise.all([
+      orders.hasPaidBookPurchase({ projectId: project.id, customerId: project.customerId }),
       orders.hasAnyProjectOrder({ projectId: project.id, customerId: project.customerId }),
       series.hasFactsForProject(project.id),
     ]);
-    if (hasOrder) throw deletionBlocked({ blockedReason: "order_exists" });
+    if (hasPaidPurchase) throw deletionBlocked({ blockedReason: "purchased" });
     if (hasCanon) throw deletionBlocked({ blockedReason: "series_canon" });
 
     const photoRefs = normalizePhotoRefs(project.photoRefs);
@@ -207,7 +206,9 @@ export async function deleteCustomerCreation(projectId, identity, dependencies =
     };
     await credits.releasePreviewForProject(identity, { projectId: project.id });
     await credits.deleteProjectEntitlements(identity, { projectId: project.id });
-    prepared = await projects.prepareDeletion(project.id, identity, assetManifest);
+    prepared = await projects.prepareDeletion(project.id, identity, assetManifest, {
+      preserveProjectRecord: hasOrderHistory,
+    });
   } else {
     prepared = await projects.prepareDeletion(id, identity, {});
   }

@@ -1,4 +1,5 @@
 import { projectStore } from "./projectStore.js";
+import { commerceOrderStore } from "./commerceOrderStore.js";
 import {
   technicalPreviewRetryAvailable,
   technicalPreviewRetryExhausted,
@@ -25,7 +26,7 @@ function pageCount(project) {
   );
 }
 
-export function customerCreationSummary(project) {
+export function customerCreationSummary(project, { paidPurchase = project?.status === "purchased" } = {}) {
   if (!project || !LIBRARY_STATUSES.has(project.status)) return null;
   return {
     id: String(project.id),
@@ -36,14 +37,27 @@ export function customerCreationSummary(project) {
     updatedAt: project.updatedAt || null,
     previewReady: Boolean(project.previewResult && ["preview_quality_review", "preview_ready", "preview_repairing", "purchased"].includes(project.status)),
     qualityReviewRequired: project.status === "preview_quality_review",
-    deletable: project.status !== "purchased",
+    deletable: !paidPurchase,
     technicalRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalRetryExhausted: technicalPreviewRetryExhausted(project),
   };
 }
 
-export async function listCustomerCreations(identity, store = projectStore) {
+export async function listCustomerCreations(identity, store = projectStore, orders = commerceOrderStore) {
   const projects = await store.listForCustomer(identity);
-  return projects.map(customerCreationSummary).filter(Boolean);
+  return (await Promise.all(projects.map(async (project) => {
+    if (project.status !== "purchased") return customerCreationSummary(project, { paidPurchase: false });
+    try {
+      const paidPurchase = await orders.hasPaidBookPurchase({
+        projectId: project.id,
+        customerId: project.customerId,
+      });
+      return customerCreationSummary(project, { paidPurchase });
+    } catch {
+      // A commerce lookup failure must never make a genuinely purchased book
+      // deletable. Keep the historical status as the conservative fallback.
+      return customerCreationSummary(project, { paidPurchase: true });
+    }
+  }))).filter(Boolean);
 }
 
