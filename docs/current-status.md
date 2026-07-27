@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/intention-first-flow`
-- Latest merged checkpoint: PR #78 — meaning-led storefront and persistent customer-library navigation
-- Current focused checkpoint: intention-first creator flow and storefront hero overlap correction
-- Pull request: draft PR #79
+- Current branch: `main`
+- Latest merged checkpoint: PR #79 — intention-first creator flow and storefront hero overlap correction
+- Current focused checkpoint: production deployment and Theme 1.2.1 installation verification
+- Pull request: PR #79 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #78 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+PR #55 through PR #79 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
 ## Current product brick: intention-first flow alignment
 
@@ -54,10 +54,10 @@ PR #55 through PR #78 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Review draft PR #79, the new first three creator steps and the final storefront composition.
-2. Before merging, confirm that no preview, cover or quality correction is running because Render may restart.
-3. After Render deploys the merge, install Theme 1.2.1.
-4. Translate the now-visible adventure caption in WordPress and verify the FR/ES creator flow.
+1. Wait for Render to deploy merge commit `cf1ec5a729bfdba5472886ea852f7fcdfd0d4c54`.
+2. Install Theme 1.2.1 after the Render deployment is live.
+3. Translate the now-visible adventure caption in WordPress.
+4. Verify in FR and ES that the creator starts with intention, then child details, then universe and adventure suggestions.
 
 ## Protected local state
 
