@@ -36,14 +36,7 @@ export async function createStoryIntentions(input = {}) {
     user: (payload) => `PARENT_INTENTION_INPUT_JSON:\n${JSON.stringify(payload, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     input: {
       language,
-      hero_name: clean(input.heroName, 120),
-      age: clean(input.age, 20),
-      favorite_activities: clean(input.favoriteActivities, 800),
-      personality: clean(input.personality, 800),
       creator_situation: clean(input.creatorSituation, 1600),
-      universe_id: clean(input.universeId, 80),
-      universe: clean(input.universe, 200),
-      universe_story_contract: input.universeStoryContract || {},
     },
   });
   const intentions = normalizeStoryIntentions(result);

@@ -43,9 +43,9 @@ test("parent situation is normalized into exactly three intention approaches", (
   assert.equal(normalizeStoryIntentions({ intentions: complete.slice(0, 2) }).length, 2);
 });
 
-test("the intention assistant is fully localized in French, Spanish and English", () => {
+test("the intention-first creator is fully localized in French, Spanish and English", () => {
   for (const locale of ["FR", "ES", "EN"]) {
-    for (const key of ["intentionQuestion", "interpretIntention", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
+    for (const key of ["stepIntention", "stepAdventure", "intentionQuestion", "interpretIntention", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
       assert.ok(UI_TEXT[locale][key], `${locale}.${key}`);
     }
   }
@@ -86,19 +86,22 @@ test("normalized intake locks the selected universe contract and story seed", ()
   assert.ok(normalized.answers.universe_story_contract.requiredMechanisms.length);
 });
 
-test("the creator exposes the seven-step universe-first intention funnel", async () => {
-  const [html, app, intentionRoute, suggestionRoute, auditPrompt] = await Promise.all([
+test("the creator exposes the seven-step intention-first adventure funnel", async () => {
+  const [html, app, intentionRoute, intentionPrompt, suggestionRoute, auditPrompt] = await Promise.all([
     fs.readFile("public/index.html", "utf8"),
     fs.readFile("public/app.js", "utf8"),
     fs.readFile("src/routes/storyIntentions.js", "utf8"),
+    fs.readFile("src/prompts/story_intentions.txt", "utf8"),
     fs.readFile("src/routes/storySuggestions.js", "utf8"),
     fs.readFile("src/prompts/story_scenario_audit.txt", "utf8"),
   ]);
   assert.equal((html.match(/data-panel="/g) || []).length, 7);
-  assert.match(html, /data-panel="0"[\s\S]*id="universeGrid"/);
-  assert.match(html, /data-panel="2"[\s\S]*id="creator_situation"[\s\S]*id="storyIntentionGrid"[\s\S]*id="storySuggestionGrid"/);
+  assert.match(html, /data-panel="0"[\s\S]*id="creator_situation"[\s\S]*id="storyIntentionGrid"/);
+  assert.match(html, /data-panel="2"[\s\S]*id="universeGrid"[\s\S]*id="storySuggestionGrid"/);
   assert.match(html, /id="scenarioWorldContract"/);
   assert.match(app, /const STEP_COUNT = 7/);
+  assert.match(app, /const FLOW_VERSION = 4/);
+  assert.match(app, /Number\(saved\.flowVersion \|\| 0\) >= 2 \? saved\.step/);
   assert.match(app, /requestStoryIntentions/);
   assert.match(app, /selectedIntention: intention/);
   assert.match(app, /universe_story_contract/);
@@ -106,6 +109,9 @@ test("the creator exposes the seven-step universe-first intention funnel", async
   assert.match(app, /readingGuidanceProfiles/);
   assert.match(app, /suggestionApproach_/);
   assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
+  assert.doesNotMatch(intentionRoute, /findUniverse|heroName|favoriteActivities/);
+  assert.match(intentionPrompt, /first step of the creator journey/i);
+  assert.match(intentionPrompt, /child details and adventure universe have deliberately not been chosen/i);
   assert.match(suggestionRoute, /selectedIntention/);
   assert.match(auditPrompt, /universe_story_contract/);
   assert.match(auditPrompt, /confirmed story intention/);

@@ -49,9 +49,9 @@
 
       <section class="creator-shell" id="creator">
         <aside class="steps" aria-label="Étapes de création">
-          <button class="step is-active" data-step-target="0"><span>1</span><div><strong data-i18n="stepUniverse">L'univers</strong><small data-i18n="stepUniverseSub">Le monde de l'aventure</small></div></button>
+          <button class="step is-active" data-step-target="0"><span>1</span><div><strong data-i18n="stepIntention">L'intention</strong><small data-i18n="stepIntentionSub">Ce que vous souhaitez transmettre</small></div></button>
           <button class="step" data-step-target="1"><span>2</span><div><strong data-i18n="stepChild">L'enfant</strong><small data-i18n="stepChildSub">Ce qui le rend unique</small></div></button>
-          <button class="step" data-step-target="2"><span>3</span><div><strong data-i18n="stepInspiration">L'inspiration</strong><small data-i18n="stepInspirationSub">Trois histoires adaptées</small></div></button>
+          <button class="step" data-step-target="2"><span>3</span><div><strong data-i18n="stepAdventure">L'aventure</strong><small data-i18n="stepAdventureSub">Son univers et son approche</small></div></button>
           <button class="step" data-step-target="3"><span>4</span><div><strong data-i18n="stepStory">L'histoire</strong><small data-i18n="stepStorySub">Vos détails personnels</small></div></button>
           <button class="step" data-step-target="4"><span>5</span><div><strong data-i18n="stepDesign">Le livre</strong><small data-i18n="stepDesignSub">Style et format</small></div></button>
           <button class="step" data-step-target="5"><span>6</span><div><strong data-i18n="stepPhotos">Les photos</strong><small data-i18n="stepPhotosSub">Jusqu'à 5 références</small></div></button>
@@ -71,15 +71,17 @@
           <div class="mobile-progress"><span id="mobileStepLabel">Étape 1 sur 7</span><div><i id="mobileProgressBar"></i></div></div>
           <form id="bookForm" novalidate>
             <section class="form-panel is-active" data-panel="0">
-              <p class="section-kicker" data-i18n="universeKicker">LE POINT DE DÉPART</p>
-              <h2 data-i18n="universeScreenTitle">Dans quel monde l'aventure commence-t-elle ?</h2>
-              <p class="section-lead" data-i18n="universeScreenLead">Choisissez d'abord un univers : il guidera ensuite les idées de rêve, de défi et d'aventure.</p>
-              <div class="universe-selection-summary" id="universeSelectionSummary" hidden></div>
-              <div class="visual-choice-grid universe-grid" id="universeGrid" role="radiogroup"></div>
-              <p class="universe-example-note" data-i18n="universeExampleNote">Chaque exemple utilise le même enfant fictif : vous comparez donc bien les univers, pas des visages différents.</p>
-              <input type="hidden" id="universe_id" name="universe_id" />
-              <input type="hidden" id="universe" name="universe" />
-              <label class="optional-detail"><span data-i18n="universeDetailLabel">Un détail à ajouter à ce décor (facultatif)</span><textarea id="universe_details" name="universe_details" data-i18n-placeholder="universeDetailPlaceholder" placeholder="Une cabane, un village, un lieu familier..."></textarea></label>
+              <p class="section-kicker" data-i18n="inspirationKicker">CALITIKI VOUS AIDE À TROUVER LE CŒUR DE L'HISTOIRE</p>
+              <h2 data-i18n="inspirationTitle">Racontez-nous ce que vous souhaitez l'aider à vivre</h2>
+              <p class="section-lead" data-i18n="inspirationLead">Commencez par la situation ou le message. Le monde de l'aventure sera choisi ensuite.</p>
+              <section class="intention-assistant" id="intentionAssistant">
+                <label class="intention-situation"><span data-i18n="intentionQuestion">Que souhaitez-vous aider votre enfant à vivre, essayer ou surmonter ?</span><textarea id="creator_situation" name="creator_situation" maxlength="1600" data-i18n-placeholder="intentionPlaceholder" placeholder="Expliquez-le simplement, comme si vous en parliez à un proche."></textarea></label>
+                <div class="intention-example-list" id="intentionExampleList"></div>
+                <div class="intention-actions"><button type="button" class="primary-button" id="interpretIntentionButton" data-i18n="interpretIntention">Aidez-moi à clarifier mon intention</button><button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button></div>
+                <div class="suggestion-loading" id="intentionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="intentionLoading">Calitiki cherche trois manières positives d'aborder cette situation…</strong></div>
+                <div class="story-intention-grid" id="storyIntentionGrid"></div>
+                <p class="suggestion-choice-status" id="intentionChoiceStatus" aria-live="polite"></p>
+              </section>
             </section>
 
             <section class="form-panel" data-panel="1">
@@ -90,17 +92,15 @@
             </section>
 
             <section class="form-panel" data-panel="2">
-              <p class="section-kicker" data-i18n="inspirationKicker">TROIS PISTES POUR VOUS INSPIRER</p>
-              <h2 data-i18n="inspirationTitle">Racontez-nous ce que vous souhaitez l'aider à vivre</h2>
-              <p class="section-lead" data-i18n="inspirationLead">Parlez simplement de la situation. Calitiki vous aidera à choisir une intention, puis une aventure.</p>
-              <section class="intention-assistant" id="intentionAssistant">
-                <label class="intention-situation"><span data-i18n="intentionQuestion">Que souhaitez-vous aider votre enfant à vivre, essayer ou surmonter ?</span><textarea id="creator_situation" name="creator_situation" maxlength="1600" data-i18n-placeholder="intentionPlaceholder" placeholder="Expliquez-le simplement, comme si vous en parliez à un proche."></textarea></label>
-                <div class="intention-example-list" id="intentionExampleList"></div>
-                <div class="intention-actions"><button type="button" class="primary-button" id="interpretIntentionButton" data-i18n="interpretIntention">Aidez-moi à clarifier mon intention</button><button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button></div>
-                <div class="suggestion-loading" id="intentionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="intentionLoading">Calitiki cherche trois manières positives d'aborder cette situation…</strong></div>
-                <div class="story-intention-grid" id="storyIntentionGrid"></div>
-                <p class="suggestion-choice-status" id="intentionChoiceStatus" aria-live="polite"></p>
-              </section>
+              <p class="section-kicker" data-i18n="universeKicker">LE MONDE DE SON AVENTURE</p>
+              <h2 data-i18n="universeScreenTitle">Dans quel monde vivra-t-il cette intention ?</h2>
+              <p class="section-lead" data-i18n="universeScreenLead">Choisissez maintenant l'univers qui donnera une forme imaginaire au message que vous avez défini.</p>
+              <div class="universe-selection-summary" id="universeSelectionSummary" hidden></div>
+              <div class="visual-choice-grid universe-grid" id="universeGrid" role="radiogroup"></div>
+              <p class="universe-example-note" data-i18n="universeExampleNote">Chaque exemple utilise le même enfant fictif : vous comparez donc bien les univers, pas des visages différents.</p>
+              <input type="hidden" id="universe_id" name="universe_id" />
+              <input type="hidden" id="universe" name="universe" />
+              <label class="optional-detail"><span data-i18n="universeDetailLabel">Un détail à ajouter à ce décor (facultatif)</span><textarea id="universe_details" name="universe_details" data-i18n-placeholder="universeDetailPlaceholder" placeholder="Une cabane, un village, un lieu familier..."></textarea></label>
               <section class="adventure-proposals" id="adventureProposals" hidden>
                 <div class="suggestion-universe-summary" id="suggestionUniverseSummary"></div>
                 <h3 data-i18n="adventureProposalTitle">Choisissez maintenant la manière de vivre cette intention</h3>
