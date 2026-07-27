@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/reconcile-orphaned-purchases`
 - Latest merged checkpoint: PR #75 — real cover titles for purchased books
 - Current focused checkpoint: reconcile stale purchased projects with paid WooCommerce orders and explain expired legacy preview assets
-- Pull request: not published yet
+- Pull request: draft PR #76 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source and installed production package: `0.7.1`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -34,7 +34,7 @@ PR #55 through PR #75 are merged. Bridge 0.7.1 is the active WordPress package.
 
 ## Next verification target
 
-1. Publish a draft pull request.
+1. Review draft PR #76.
 2. Do not merge without explicit user confirmation and confirmation that no preview or quality correction is running, because Render may restart.
 3. After deployment, reload **My creations Calitiki** and confirm the stale **Noa y su castillo mágico** card exposes **Supprimer définitivement**.
 4. Open the stale preview once and confirm Calitiki shows the expired-files explanation with 32 pages, not a blank 24-page purchasable book.
