@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/reconcile-orphaned-purchases`
-- Latest merged checkpoint: PR #75 — real cover titles for purchased books
-- Current focused checkpoint: reconcile stale purchased projects with paid WooCommerce orders and explain expired legacy preview assets
-- Pull request: draft PR #76 published; do not merge until the user confirms that no preview or quality correction is running
+- Current branch: `main`
+- Latest merged checkpoint: PR #76 — orphaned purchase reconciliation
+- Current focused checkpoint: production verification of stale-preview deletion and paid-book protection
+- Pull request: PR #76 merged after explicit confirmation that no preview or quality correction was running
 - WordPress Bridge source and installed production package: `0.7.1`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #75 are merged. Bridge 0.7.1 is the active WordPress package.
+PR #55 through PR #76 are merged. Bridge 0.7.1 is the active WordPress package.
 
 ## Current product brick: orphaned purchase reconciliation
 
@@ -34,11 +34,10 @@ PR #55 through PR #75 are merged. Bridge 0.7.1 is the active WordPress package.
 
 ## Next verification target
 
-1. Review draft PR #76.
-2. Do not merge without explicit user confirmation and confirmation that no preview or quality correction is running, because Render may restart.
-3. After deployment, reload **My creations Calitiki** and confirm the stale **Noa y su castillo mágico** card exposes **Supprimer définitivement**.
-4. Open the stale preview once and confirm Calitiki shows the expired-files explanation with 32 pages, not a blank 24-page purchasable book.
-5. Confirm a genuinely paid book still has no deletion action.
+1. Wait for the Render deployment triggered by PR #76.
+2. Reload **My creations Calitiki** and confirm the stale **Noa y su castillo mágico** card exposes **Supprimer définitivement**.
+3. Open the stale preview once and confirm Calitiki shows the expired-files explanation with 32 pages, not a blank 24-page purchasable book.
+4. Confirm a genuinely paid book still has no deletion action.
 
 ## Protected local state
 
