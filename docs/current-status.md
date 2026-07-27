@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/age-aware-intentions`
 - Latest merged checkpoint: PR #79 — intention-first creator flow and storefront hero overlap correction
-- Current focused checkpoint: production deployment and Theme 1.2.1 installation verification
-- Pull request: PR #79 merged
+- Current focused checkpoint: age-calibrated parent-intention proposals
+- Pull request: draft PR #80
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,7 +19,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #79 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
-## Current product brick: intention-first flow alignment
+## Current product brick: age-calibrated intentions
+
+1. The creator asks only the child's age before the parent describes the situation or message.
+2. The no-credit intention assistant receives the exact age and adapts vocabulary, emotional nuance, autonomy and the first achievable step.
+3. The child's name, personality, interests and universe remain deliberately unknown during this interpretation.
+4. Changing the age clears previously generated interpretations and adventure suggestions so advice is never silently reused across maturity levels.
+5. Existing drafts retain their persisted age, answers and current seven-step position.
+
+## Previous product brick: intention-first flow alignment
 
 1. The creator starts with the adult's situation or message, before asking who the child is or showing a visual universe.
 2. The no-credit intention assistant works only from that situation and does not invent child or world details.
@@ -54,10 +62,10 @@ PR #55 through PR #79 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Wait for Render to deploy merge commit `cf1ec5a729bfdba5472886ea852f7fcdfd0d4c54`.
-2. Install Theme 1.2.1 after the Render deployment is live.
-3. Translate the now-visible adventure caption in WordPress.
-4. Verify in FR and ES that the creator starts with intention, then child details, then universe and adventure suggestions.
+1. Review the age-first intention screen in FR, ES and EN.
+2. Confirm that the three interpretations differ appropriately between a young child and a preadolescent.
+3. Review draft PR #80 and compare the three intention proposals for contrasting ages.
+4. Before merging, confirm that no preview, cover or quality correction is running because Render may restart.
 
 ## Protected local state
 

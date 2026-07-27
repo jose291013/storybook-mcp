@@ -18,8 +18,12 @@ function consumeAttempt(ip) {
 router.post("/story-intentions", async (req, res) => {
   const body = req.body || {};
   const creatorSituation = String(body.creatorSituation || "").trim().slice(0, 1600);
+  const childAge = Number(body.childAge);
   const locale = ["FR", "ES", "EN"].includes(body.locale) ? body.locale : "FR";
 
+  if (!Number.isInteger(childAge) || childAge < 1 || childAge > 14) {
+    return res.status(400).json({ error: "Enter a valid child age before requesting help" });
+  }
   if (!creatorSituation) {
     return res.status(400).json({ error: "Describe the situation before requesting help" });
   }
@@ -28,6 +32,7 @@ router.post("/story-intentions", async (req, res) => {
   try {
     const intentions = await createStoryIntentions({
       creatorSituation,
+      childAge,
       locale,
     });
     res.set("Cache-Control", "no-store");

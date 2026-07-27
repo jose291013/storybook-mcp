@@ -36,6 +36,7 @@ export async function createStoryIntentions(input = {}) {
     user: (payload) => `PARENT_INTENTION_INPUT_JSON:\n${JSON.stringify(payload, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     input: {
       language,
+      child_age: Number(input.childAge),
       creator_situation: clean(input.creatorSituation, 1600),
     },
   });
