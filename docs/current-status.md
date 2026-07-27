@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/purchased-book-titles`
 - Latest merged checkpoint: PR #74 — per-character movement ledger
 - Current focused checkpoint: real cover titles for purchased books in the WooCommerce creation library
-- Pull request: not published yet
+- Pull request: draft PR #75 published; do not merge until the user confirms that no preview or quality correction is running
 - WordPress Bridge source candidate: `0.7.1`; installed production package remains `0.7.0`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #74 are merged. Bridge 0.7.0 remains the active WordPress pack
 
 ## Next verification target
 
-1. Publish a focused draft PR.
+1. Review draft PR #75.
 2. Do not merge or install Bridge 0.7.1 without explicit user confirmation.
 3. After installation, reload **My creations Calitiki** and confirm existing purchased cards show their cover titles.
 4. Complete one later checkout and confirm its purchased card keeps the title even during a temporary generator outage.
