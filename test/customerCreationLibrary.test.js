@@ -80,6 +80,8 @@ test("customer library exposes safe preview metadata and excludes unpaid drafts"
     assert.equal(creations.find((creation) => creation.status === "preview_failed").technicalRetryAvailable, true);
     assert.equal(creations.find((creation) => creation.id === orphanedPurchase.id).deletable, true);
     assert.equal(creations.find((creation) => creation.id === paidPurchase.id).deletable, false);
+    const authoritativeCreations = await listCustomerCreations(identity, store, orders, { paidProjectIds: [] });
+    assert.equal(authoritativeCreations.find((creation) => creation.id === paidPurchase.id).deletable, true);
     assert.ok(creations.every((creation) => !Object.hasOwn(creation, "questionnaire")));
     assert.ok(creations.every((creation) => !Object.hasOwn(creation, "photoRefs")));
     assert.ok(creations.every((creation) => !Object.hasOwn(creation, "previewResult")));
