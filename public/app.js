@@ -12,6 +12,7 @@ try {
 const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLocale : referrerLocale;
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
+const CREATIONS_RETURN_KEY = "calitiki-creations-return-v1";
 const FLOW_VERSION = 3;
 const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
@@ -27,12 +28,28 @@ function safeCalitikiReturnUrl(value) {
   }
 }
 
+function safeCalitikiCreationsUrl(value) {
+  const safeUrl = safeCalitikiReturnUrl(value);
+  if (!safeUrl) return "";
+  try {
+    return new URL(safeUrl).pathname.includes("/calitiki-creations") ? safeUrl : "";
+  } catch {
+    return "";
+  }
+}
+
 try {
   const referrer = new URL(document.referrer);
   const safeReferrer = safeCalitikiReturnUrl(referrer.href);
   if (safeReferrer && !referrer.searchParams.has("calitiki_connect")) sessionStorage.setItem(STOREFRONT_RETURN_KEY, safeReferrer);
 } catch {
   // A direct visit to the creator uses the localized storefront fallback.
+}
+try {
+  const requestedLibrary = safeCalitikiCreationsUrl(initialUrl.searchParams.get("libraryUrl"));
+  if (requestedLibrary) sessionStorage.setItem(CREATIONS_RETURN_KEY, requestedLibrary);
+} catch {
+  // The account endpoint fallback remains available for direct visits.
 }
 
 function storefrontReturnUrl(locale) {
@@ -42,6 +59,16 @@ function storefrontReturnUrl(locale) {
   if (locale === "ES") return "https://calitiki.com/es/";
   if (locale === "EN") return "https://calitiki.com/en/";
   return "https://calitiki.com/";
+}
+
+function creationsReturnUrl() {
+  try {
+    const remembered = safeCalitikiCreationsUrl(sessionStorage.getItem(CREATIONS_RETURN_KEY));
+    if (remembered) return remembered;
+  } catch {
+    // Use the stable WooCommerce endpoint fallback.
+  }
+  return "https://calitiki.com/mon-compte/calitiki-creations/";
 }
 
 const state = {
@@ -108,7 +135,7 @@ const elements = {
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   qualityReviewNotice: document.querySelector("#qualityReviewNotice"), qualityReviewKicker: document.querySelector("#qualityReviewKicker"), qualityReviewTitle: document.querySelector("#qualityReviewTitle"), qualityReviewMessage: document.querySelector("#qualityReviewMessage"), qualityReviewPages: document.querySelector("#qualityReviewPages"), qualityReviewSupport: document.querySelector("#qualityReviewSupport"), previewAssetsUnavailable: document.querySelector("#previewAssetsUnavailable"),
-  mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
+  mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), headerCreationsLink: document.querySelector("#headerCreationsLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
@@ -1187,6 +1214,11 @@ function applyTranslations() {
     elements.storefrontReturnLink.href = storefrontReturnUrl(state.locale);
     elements.storefrontReturnLink.setAttribute("aria-label", tr("returnToStore"));
     elements.storefrontReturnLink.title = tr("returnToStore");
+  }
+  if (elements.headerCreationsLink) {
+    elements.headerCreationsLink.href = creationsReturnUrl();
+    elements.headerCreationsLink.setAttribute("aria-label", tr("myCreations"));
+    elements.headerCreationsLink.title = tr("myCreations");
   }
   const firstPrice = state.config?.pageCountOptions?.[0]?.ebookPriceEur;
   if (elements.heroStartingPrice && firstPrice != null) elements.heroStartingPrice.textContent = tr("startingAt", { price: formatPrice(firstPrice) });

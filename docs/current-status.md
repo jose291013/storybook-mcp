@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/reconcile-woocommerce-purchases`
-- Latest merged checkpoint: PR #76 — orphaned purchase reconciliation
-- Current focused checkpoint: retroactive reconciliation of WooCommerce paid projects with legacy Render commerce rows
-- Pull request: draft PR #77
+- Current branch: `codex/reposition-homepage`
+- Latest merged checkpoint: PR #77 — retroactive WooCommerce purchase reconciliation
+- Current focused checkpoint: public positioning, trust explanation and persistent customer-library navigation
+- Pull request: draft PR #78
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
-- WordPress theme source: `1.1.5`
+- WordPress theme source candidate: `1.2.0`; installed production theme remains `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #76 are merged. Bridge 0.7.1 is the active WordPress package.
+PR #55 through PR #77 are merged. Bridge 0.7.1 remains the active WordPress package until Render has deployed the new endpoint.
 
-## Current product brick: orphaned purchase reconciliation
+## Current product brick: meaning-led storefront
+
+1. The homepage starts with the adult's intention and shows how it becomes an adventure experienced by the child.
+2. Three concrete examples connect an adult concern, an adventure and a discovery made through action.
+3. The public flow explains scenario validation, AI assistance, private assets and optional paid synthetic narration without overpromising.
+4. The creator header exposes a localized, strictly validated return to **My creations Calitiki** at every step.
+5. Theme 1.2.0 packages the new responsive storefront; the Render creator carries the matching FR, ES and EN navigation and trust copy.
+
+## Previous product brick: orphaned purchase reconciliation
 
 1. A project is protected from deletion only by a currently paid eBook/print order or series canon, not by a stale `purchased` status.
 2. Cancelling, failing or refunding the last paid book order restores the project to its preview lifecycle.
@@ -29,14 +37,17 @@ PR #55 through PR #76 are merged. Bridge 0.7.1 is the active WordPress package.
 
 ## Verification completed locally
 
+- Focused theme integration test passes.
+- Desktop and mobile visual checks completed for the storefront and creator header.
+- Installable Theme 1.2.0 archive inspected with the expected top-level `calitiki-theme` folder.
 - Full local suite passes: 184 tests, 0 failures.
 
 ## Next verification target
 
-1. Review draft PR #77.
-2. Merge only after explicit confirmation that no preview or quality correction is running; deploy Render before installing Bridge 0.7.2.
-3. Install Bridge 0.7.2, then reload **My creations Calitiki** and confirm **Noa y su castillo mágico** exposes **Supprimer définitivement**.
-4. Confirm **La machine à souvenirs** and every genuinely paid book still have no deletion action.
+1. Review draft PR #78 and the final public copy.
+2. Before merging, confirm explicitly that no preview, cover or quality correction is running because Render may restart.
+3. After Render has deployed the merge, install Theme 1.2.0.
+4. Verify the storefront and the creator's **Mes créations** return in FR, ES and EN.
 
 ## Protected local state
 

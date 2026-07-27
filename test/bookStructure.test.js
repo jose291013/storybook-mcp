@@ -304,13 +304,15 @@ test("the creator can start a fresh book and see the WooCommerce session state",
 });
 
 test("the Calitiki theme starts a localized creator flow and contains the WooCommerce account layout fix", async () => {
-  const [themeFunctions, themeStyles, frontPage, themeScript, header, app] = await Promise.all([
+  const [themeFunctions, themeStyles, frontPage, themeScript, header, app, creatorHtml, i18n] = await Promise.all([
     fs.readFile("wordpress/calitiki-theme/functions.php", "utf8"),
     fs.readFile("wordpress/calitiki-theme/assets/css/theme.css", "utf8"),
     fs.readFile("wordpress/calitiki-theme/front-page.php", "utf8"),
     fs.readFile("wordpress/calitiki-theme/assets/js/theme.js", "utf8"),
     fs.readFile("wordpress/calitiki-theme/header.php", "utf8"),
     fs.readFile("public/app.js", "utf8"),
+    fs.readFile("public/index.html", "utf8"),
+    fs.readFile("public/i18n.js", "utf8"),
   ]);
   assert.match(themeFunctions, /'uiLanguage' => calitiki_creator_language\(\)/);
   assert.match(themeFunctions, /trp_custom_language_switcher\(\)/);
@@ -325,7 +327,11 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
-  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.1\.5'/);
+  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.2\.0'/);
+  assert.match(themeFunctions, /'libraryUrl' => calitiki_creations_url\(\)/);
+  assert.match(themeFunctions, /wc_get_account_endpoint_url\('calitiki-creations'\)/);
+  assert.match(header, /account-link-creations/);
+  assert.match(header, /Mes créations/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-MyAccount-navigation[^}]*width:100%!important/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Addresses\{display:grid/);
   assert.match(themeStyles, /\.woocommerce-account \.woocommerce-Address-title h3\{[^}]*word-break:normal/);
@@ -340,7 +346,16 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(frontPage, /Pas encore disponible à l’achat/);
   assert.match(frontPage, /Pack numérique/);
   assert.match(frontPage, /Deux expériences incluses/);
+  assert.match(frontPage, /Ce que vous aimeriez lui transmettre devient une aventure/);
+  assert.match(frontPage, /id="exemples"/);
+  assert.match(frontPage, /L’intention de l’adulte/);
+  assert.match(frontPage, /Voix synthétique générée par intelligence artificielle/);
+  assert.match(frontPage, /Photos et livre jamais rendus publics/);
+  assert.doesNotMatch(frontPage, /StoryBrand/);
   assert.match(themeStyles, /\.format-card-coming-soon/);
+  assert.match(themeStyles, /\.story-example-grid/);
+  assert.match(themeStyles, /\.listen-card/);
+  assert.match(themeStyles, /\.trust-card-grid/);
   assert.match(themeScript, /data-universe-toggle/);
   assert.match(themeFunctions, /data-calitiki-language-switcher/);
   assert.match(themeScript, /navigator\.languages/);
@@ -348,6 +363,14 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(themeScript, /woocommerce-MyAccount-content/);
   assert.match(themeScript, /scrollIntoView/);
   assert.match(themeStyles, /--calitiki-mobile-menu-top/);
+  assert.match(app, /safeCalitikiCreationsUrl/);
+  assert.match(app, /CREATIONS_RETURN_KEY/);
+  assert.match(app, /headerCreationsLink\.href = creationsReturnUrl\(\)/);
+  assert.match(creatorHtml, /id="headerCreationsLink"/);
+  assert.match(creatorHtml, /data-i18n="aiDisclosureTitle"/);
+  assert.match(creatorHtml, /data-i18n="photoPrivacyNote"/);
+  assert.match(i18n, /myCreations: "Mes créations"/);
+  assert.match(i18n, /Création assistée par intelligence artificielle/);
 });
 
 test("preview prices follow the approved progressive 24-to-44-page schedule", () => {
