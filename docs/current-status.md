@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/reposition-homepage`
-- Latest merged checkpoint: PR #77 — retroactive WooCommerce purchase reconciliation
-- Current focused checkpoint: public positioning, trust explanation and persistent customer-library navigation
-- Pull request: draft PR #78
+- Current branch: `main`
+- Latest merged checkpoint: PR #78 — meaning-led storefront and persistent customer-library navigation
+- Current focused checkpoint: production deployment and Theme 1.2.0 installation verification
+- Pull request: PR #78 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.0`; installed production theme remains `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #77 are merged. Bridge 0.7.1 remains the active WordPress package until Render has deployed the new endpoint.
+PR #55 through PR #78 are merged. Bridge 0.7.1 and Theme 1.1.5 remain installed until their corresponding merged Render changes are live.
 
 ## Current product brick: meaning-led storefront
 
@@ -44,10 +44,10 @@ PR #55 through PR #77 are merged. Bridge 0.7.1 remains the active WordPress pack
 
 ## Next verification target
 
-1. Review draft PR #78 and the final public copy.
-2. Before merging, confirm explicitly that no preview, cover or quality correction is running because Render may restart.
-3. After Render has deployed the merge, install Theme 1.2.0.
-4. Verify the storefront and the creator's **Mes créations** return in FR, ES and EN.
+1. Wait for Render to deploy merge commit `3daf065`.
+2. Install Theme 1.2.0 only after that deployment is live.
+3. Verify the storefront positioning, examples, trust copy and responsive layout.
+4. Verify the creator's **Mes créations** return in FR, ES and EN.
 
 ## Protected local state
 
