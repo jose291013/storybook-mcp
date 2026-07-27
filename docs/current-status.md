@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/reconcile-woocommerce-purchases`
 - Latest merged checkpoint: PR #76 — orphaned purchase reconciliation
 - Current focused checkpoint: retroactive reconciliation of WooCommerce paid projects with legacy Render commerce rows
-- Pull request: not published yet
+- Pull request: draft PR #77
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source: `1.1.5`
 - Render: `https://storybook-mcp.onrender.com`
@@ -33,7 +33,7 @@ PR #55 through PR #76 are merged. Bridge 0.7.1 is the active WordPress package.
 
 ## Next verification target
 
-1. Publish a draft pull request for the retroactive WooCommerce reconciliation.
+1. Review draft PR #77.
 2. Merge only after explicit confirmation that no preview or quality correction is running; deploy Render before installing Bridge 0.7.2.
 3. Install Bridge 0.7.2, then reload **My creations Calitiki** and confirm **Noa y su castillo mágico** exposes **Supprimer définitivement**.
 4. Confirm **La machine à souvenirs** and every genuinely paid book still have no deletion action.
