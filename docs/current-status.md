@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/age-aware-intentions`
-- Latest merged checkpoint: PR #79 — intention-first creator flow and storefront hero overlap correction
-- Current focused checkpoint: age-calibrated parent-intention proposals
-- Pull request: draft PR #80
+- Current branch: `main`
+- Latest merged checkpoint: PR #80 — age-calibrated parent-intention proposals
+- Current focused checkpoint: production deployment and age-contrast verification
+- Pull request: PR #80 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #79 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+PR #55 through PR #80 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
 ## Current product brick: age-calibrated intentions
 
@@ -62,10 +62,10 @@ PR #55 through PR #79 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Review the age-first intention screen in FR, ES and EN.
-2. Confirm that the three interpretations differ appropriately between a young child and a preadolescent.
-3. Review draft PR #80 and compare the three intention proposals for contrasting ages.
-4. Before merging, confirm that no preview, cover or quality correction is running because Render may restart.
+1. Wait for Render to deploy merge commit `e284a33626f9d080517b881a7f84d2cb9ad8a056`.
+2. Verify the age-first intention screen in FR, ES and EN.
+3. Compare the three interpretations for a young child and a preadolescent using the same parent situation.
+4. Confirm that changing the age clears the previous interpretations before requesting new ones.
 
 ## Protected local state
 
