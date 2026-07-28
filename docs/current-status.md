@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/universe-outfit-continuity`
 - Latest merged checkpoint: PR #86 — guided editorial sensitivity and country-aware support (`384b7a9`)
 - Current focused checkpoint: creator-selected, universe-appropriate wardrobe continuity
-- Pull request: not opened yet
+- Pull request: draft PR #87; not merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,9 +36,9 @@ PR #55 through PR #86 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Open a focused draft pull request without merging.
+1. Review draft PR #87 without merging.
 2. Verify the photo-role UI at desktop and mobile widths in FR and ES.
-3. After explicit user approval and confirmation that no book is generating, merge and let Render redeploy.
+3. After explicit user approval and confirmation that no book is generating, mark PR #87 ready, merge and let Render redeploy.
 4. Smoke-test one coral-ocean book: ordinary photo clothes before preparation, selected marine outfit before submersion, same outfit and breathing mechanism throughout underwater scenes.
 
 ## Protected local state
