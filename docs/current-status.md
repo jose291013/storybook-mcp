@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-object-lifecycle`
-- Latest merged checkpoint: PR #87 — creator-selected, universe-appropriate wardrobe continuity
-- Current focused checkpoint: owner-aware recurring-object identity and universe-mechanism lifecycle
-- Pull request: draft PR #88; not merged
+- Current branch: `main`
+- Latest merged checkpoint: PR #88 — owner-aware recurring-object identity and universe-mechanism lifecycle
+- Current focused checkpoint: production verification of recurring-object lifecycle repair
+- Pull request: PR #88 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #87 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #88 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: recurring-object identity and lifecycle
 
@@ -35,10 +35,9 @@ PR #55 through PR #87 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Review draft PR #88 without merging.
-2. After explicit approval and confirmation that no book is generating, merge and let Render redeploy.
-3. On project `5e6cc188-6edc-4b11-bf92-693cd5562d7e`, request one scenario update and verify that only the preparation scene introduces Bastien’s and Marie’s separate bubbles.
-4. Confirm that home scenes do not show worn breathing bubbles, underwater scenes keep one per person, and the return stores both copies.
+1. Let Render deploy the PR #88 checkpoint.
+2. On project `5e6cc188-6edc-4b11-bf92-693cd5562d7e`, request one scenario update and verify that only the preparation scene introduces Bastien’s and Marie’s separate bubbles.
+3. Confirm that home scenes do not show worn breathing bubbles, underwater scenes keep one per person, and the return stores both copies.
 
 ## Protected local state
 
