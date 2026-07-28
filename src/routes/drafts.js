@@ -6,6 +6,7 @@ import { previewAssetKey } from "../services/previewAssetStorage.js";
 import { attachNarrationToManifest, buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
+import { sanitizeSensitivityQuestionnaire } from "../services/storySensitivity.js";
 import { loadReferencePhoto, loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
 import { createNextAdventure, SeriesPurchaseRequiredError } from "../services/seriesService.js";
 import { referencePhotoRecoveryAvailable, technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
@@ -65,7 +66,7 @@ router.post("/drafts", async (req, res) => {
     const project = await projectStore.create({
       anonymousOwnerHash: owner.ownerHash, status: body.status || "draft",
       title: body.title || body.questionnaire?.hero_name || "", locale: body.locale || "FR",
-      questionnaire: body.questionnaire || {}, photoRefs: body.photos || [],
+      questionnaire: sanitizeSensitivityQuestionnaire(body.questionnaire), photoRefs: body.photos || [],
       productConfiguration: body.productConfiguration || {},
     });
     res.status(201).json({ project: publicProject(project) });
@@ -88,7 +89,8 @@ router.put("/drafts/:id", async (req, res) => {
     if (existing.anonymousOwnerHash !== owner.ownerHash) return res.status(403).json({ error: "Draft access denied" });
     const body = req.body || {};
     const project = await projectStore.update(existing.id, {
-      status: body.status, title: body.title, locale: body.locale, questionnaire: body.questionnaire,
+      status: body.status, title: body.title, locale: body.locale,
+      questionnaire: body.questionnaire === undefined ? undefined : sanitizeSensitivityQuestionnaire(body.questionnaire),
       photoRefs: body.photos, productConfiguration: body.productConfiguration,
     });
     res.json({ project: publicProject(project) });
@@ -246,7 +248,8 @@ router.put("/projects/:id", async (req, res) => {
   try {
     const body = req.body || {};
     const project = await projectStore.updateForCustomer(req.params.id, identity, {
-      status: body.status, title: body.title, locale: body.locale, questionnaire: body.questionnaire,
+      status: body.status, title: body.title, locale: body.locale,
+      questionnaire: body.questionnaire === undefined ? undefined : sanitizeSensitivityQuestionnaire(body.questionnaire),
       photoRefs: body.photos, productConfiguration: body.productConfiguration,
     });
     if (!project) return res.status(404).json({ error: "Project not found" });

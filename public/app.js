@@ -78,6 +78,7 @@ const state = {
   selectedStyle: "",
   selectedUniverse: "",
   storyIntentions: [],
+  storySensitivityProfile: null,
   storyIntentionsBusy: false,
   storySuggestions: [],
   storySuggestionMode: "",
@@ -416,7 +417,8 @@ function persistLocalDraft() {
   localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
     flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
-    productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions, storySuggestions: state.storySuggestions,
+    productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions,
+    storySensitivityProfile: state.storySensitivityProfile, storySuggestions: state.storySuggestions,
     storySuggestionMode: state.storySuggestionMode, updatedAt: new Date().toISOString(),
   }));
 }
@@ -1133,6 +1135,7 @@ async function beginReferenceRecovery() {
     state.fontStyle = questionnaire.font_style || project.productConfiguration?.font_style || state.fontStyle;
     state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
     state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
+    state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
     state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
     state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
     renderQuestions(questionnaire);
@@ -1338,6 +1341,7 @@ function clearIntentionChoice({ preserveSituation = true } = {}) {
     if (input) input.value = "";
   });
   state.storyIntentions = [];
+  state.storySensitivityProfile = null;
   if (!preserveSituation) {
     const situation = document.querySelector("#creator_situation");
     if (situation) situation.value = "";
@@ -1395,6 +1399,7 @@ async function requestStoryIntentions() {
   }
   state.storyIntentionsBusy = true;
   state.storyIntentions = [];
+  state.storySensitivityProfile = null;
   resetStorySuggestionChoice({ preserveAnswers: true });
   elements.intentionChoiceStatus.textContent = "";
   renderStoryIntentions();
@@ -1412,6 +1417,7 @@ async function requestStoryIntentions() {
     const payload = await response.json();
     if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
     state.storyIntentions = payload.intentions;
+    state.storySensitivityProfile = payload.sensitivityProfile || null;
     persistLocalDraft();
   } catch (error) {
     elements.intentionChoiceStatus.textContent = error.message || tr("intentionError");
@@ -1814,6 +1820,7 @@ function questionnaireFromState() {
     universe_details: document.querySelector("#universe_details").value,
     universe_story_contract: universe?.storyContract || {},
     story_intentions: state.storyIntentions,
+    story_sensitivity_profile: state.storySensitivityProfile,
     story_suggestions: state.storySuggestions,
   };
 }
@@ -2582,6 +2589,7 @@ function loadSeriesDraft(project) {
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
   state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
   state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
+  state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
   state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
   state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
   renderQuestions(questionnaire);
@@ -2685,6 +2693,7 @@ async function init() {
     state.productType = availableProductType(saved?.productType || requestedProductType || state.productType);
     state.projectId = saved?.projectId || "";
     state.storyIntentions = Array.isArray(saved?.storyIntentions) ? saved.storyIntentions : [];
+    state.storySensitivityProfile = saved?.storySensitivityProfile || null;
     state.storySuggestions = Array.isArray(saved?.storySuggestions) ? saved.storySuggestions : [];
     state.storySuggestionMode = saved?.storySuggestionMode || "";
     changeLocale(saved?.locale || state.locale);

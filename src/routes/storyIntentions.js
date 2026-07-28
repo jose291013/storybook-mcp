@@ -1,5 +1,6 @@
 import express from "express";
 import { createStoryIntentions } from "../services/storyIntentions.js";
+import { observeStorySensitivity, storySensitivityMode } from "../services/storySensitivity.js";
 
 const router = express.Router();
 const attemptsByIp = new Map();
@@ -30,13 +31,32 @@ router.post("/story-intentions", async (req, res) => {
   if (!consumeAttempt(req.ip || "unknown")) return res.status(429).json({ error: "Too many intention requests" });
 
   try {
-    const intentions = await createStoryIntentions({
+    const input = {
       creatorSituation,
       childAge,
       locale,
+    };
+    const sensitivityMode = storySensitivityMode();
+    const sensitivityPromise = observeStorySensitivity(input, {
+      mode: sensitivityMode,
+      onError: (error) => console.warn("story-sensitivity observation fallback", {
+        mode: sensitivityMode,
+        error: String(error?.message || error),
+      }),
     });
+    const intentions = await createStoryIntentions(input);
+    const sensitivityProfile = await sensitivityPromise;
+    if (sensitivityProfile) {
+      console.info("story-sensitivity observed", {
+        version: sensitivityProfile.version,
+        level: sensitivityProfile.level,
+        category: sensitivityProfile.category,
+        restricted: sensitivityProfile.restricted,
+        source: sensitivityProfile.source,
+      });
+    }
     res.set("Cache-Control", "no-store");
-    res.json({ intentions });
+    res.json({ intentions, ...(sensitivityProfile ? { sensitivityProfile } : {}) });
   } catch (error) {
     console.error("story-intentions failed", error);
     res.status(502).json({ error: "Story intentions are temporarily unavailable" });
