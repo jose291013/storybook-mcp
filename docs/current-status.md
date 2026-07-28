@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/guided-sensitivity-resources`
 - Latest merged checkpoint: PR #85 — localized child-safety intervention guidance (`7cf2c26`)
 - Current focused checkpoint: guided editorial sensitivity and country-aware human-support resources
-- Pull request: in preparation; this focused branch is not merged
+- Pull request: draft PR #86; this focused branch is not merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -40,8 +40,8 @@ PR #55 through PR #85 are merged. Production currently uses `CHILD_SAFETY_MODE=e
 
 ## Next verification target
 
-1. Publish the focused PR without merging it.
-2. After explicit user approval and confirmation that no book is generating, merge and let Render redeploy.
+1. Review draft PR #86 without merging it.
+2. After explicit user approval and confirmation that no book is generating, mark it ready, merge and let Render redeploy.
 3. Keep `STORY_SENSITIVITY_MODE=observe` for a smoke test proving that the new release does not change the live journey.
 4. Then set `STORY_SENSITIVITY_MODE=guided` deliberately and verify one level-1, one level-2, one level-3 and one acute-safety case in FR, ES and EN.
 5. For the acute case, select at least France, Spain and **Other country** and verify that the contacts change by current country, no language-based inference occurs, no credit is reserved and no project is created.
