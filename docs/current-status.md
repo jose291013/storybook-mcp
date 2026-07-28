@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/upgrade-sharp-035`
 - Latest merged checkpoint: PR #81 — private sensitivity classification in observation mode
-- Current focused checkpoint: Render deployment and observation-corpus verification
-- Pull request: PR #81 merged
+- Current focused checkpoint: Sharp/libvips high-severity advisory remediation
+- Pull request: security PR not opened yet
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
 PR #55 through PR #81 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+
+## Current security brick: Sharp 0.35
+
+1. Render's production install reported GitHub advisory `GHSA-f88m-g3jw-g9cj` against direct dependency Sharp 0.34.5.
+2. Calitiki processes customer-supplied images, so the inherited libvips decoder advisory is relevant even though no exploitation has been observed.
+3. Sharp is upgraded explicitly to 0.35.3 instead of using `npm audit fix --force`.
+4. Node 22.22 satisfies Sharp 0.35's Node requirement, and the repository does not use the APIs removed by the 0.35 release.
+5. A dependency test pins both `package.json` and `package-lock.json` to the patched version.
 
 ## Current product brick: sensitivity observation
 
@@ -69,13 +77,16 @@ PR #55 through PR #81 are merged. The meaning-led storefront is live and its Spa
 - Full local suite passes: 184 tests, 0 failures.
 - Sensitivity corpus covers representative FR, ES and EN everyday, emotional, major-life-event and acute-safety wording.
 - Full local suite after the observation brick passes: 189 tests, 0 failures.
+- Sharp 0.35.3 compatibility passes the reference-photo, composed-page and eBook PDF tests.
+- `npm audit` reports 0 known vulnerabilities after the controlled dependency upgrade.
+- Full local suite with the security pin passes: 190 tests, 0 failures.
 
 ## Next verification target
 
-1. Wait for Render to deploy merge commit `1f12109e701ab0be57f83fd0c81378d2c4209658`.
-2. Verify the existing age-first intention flow once with `STORY_SENSITIVITY_MODE=off`.
-3. With no active generation, enable `observe` and inspect representative FR, ES and EN classifications without proceeding to paid preview generation.
-4. Do not begin any enforcement brick until the observation results are reviewed.
+1. Open a draft security PR without merging or restarting Render.
+2. Before merging, confirm that no preview generation is active because Render may restart.
+3. After security deployment, confirm Render's install reports 0 known vulnerabilities and perform one ordinary photo upload.
+4. Continue the larger sensitivity observation corpus before any enforcement brick.
 
 ## Protected local state
 
