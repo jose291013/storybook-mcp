@@ -130,6 +130,7 @@ export async function storyScenePlannerAgent({
   pageTexts,
   characterCanons = [],
   approvedScenario = null,
+  childSafetyContract = null,
   previousPlan = null,
   validationIssues = [],
 }) {
@@ -166,6 +167,7 @@ export async function storyScenePlannerAgent({
       page_texts: [...textByPage].map(([page_number, text]) => ({ page_number, text })),
       narrative_spreads: spreads,
       approved_scenario: approvedScenario,
+      child_safety_contract: childSafetyContract,
       previous_plan: previousPlan,
       validation_issues: validationIssues,
     },

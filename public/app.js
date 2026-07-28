@@ -79,6 +79,8 @@ const state = {
   selectedUniverse: "",
   storyIntentions: [],
   storySensitivityProfile: null,
+  childSafetyProfile: null,
+  childSafetyIntervention: "",
   storyIntentionsBusy: false,
   storySuggestions: [],
   storySuggestionMode: "",
@@ -129,7 +131,7 @@ const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams
 
 const elements = {
   form: document.querySelector("#bookForm"), intentionAgeQuestion: document.querySelector("#intentionAgeQuestion"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), intentionSafetyResource: document.querySelector("#intentionSafetyResource"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
@@ -418,7 +420,7 @@ function persistLocalDraft() {
     flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
     productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions,
-    storySensitivityProfile: state.storySensitivityProfile, storySuggestions: state.storySuggestions,
+    storySensitivityProfile: state.storySensitivityProfile, childSafetyProfile: state.childSafetyProfile, storySuggestions: state.storySuggestions,
     storySuggestionMode: state.storySuggestionMode, updatedAt: new Date().toISOString(),
   }));
 }
@@ -437,15 +439,31 @@ async function saveServerDraft(questionnaire, photos, status = "ready_for_previe
     status, title: questionnaire.hero_name || "", locale: state.locale,
     questionnaire, photos, productConfiguration: productConfiguration(),
   });
+  const isChildSafetyRefusal = async (response) => {
+    if (!response || response.ok || ![403, 422].includes(response.status)) return null;
+    const payload = await response.clone().json().catch(() => ({}));
+    return ["child_safety_blocked", "child_safety_support_required"].includes(payload.code) ? payload : null;
+  };
   let response = state.projectId
     ? await fetch(`/api/drafts/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
     : null;
+  let safetyPayload = await isChildSafetyRefusal(response);
   if (response && !response.ok) {
-    response = await fetch(`/api/projects/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body });
+    if (!safetyPayload) {
+      response = await fetch(`/api/projects/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body });
+      safetyPayload = await isChildSafetyRefusal(response);
+    }
   }
-  if (!response?.ok) response = await fetch("/api/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Draft could not be saved");
+  if (!response?.ok && !safetyPayload) {
+    response = await fetch("/api/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body });
+    safetyPayload = await isChildSafetyRefusal(response);
+  }
+  const payload = safetyPayload || await response.json();
+  if (!response.ok) {
+    if (payload.code === "child_safety_blocked") throw new Error(tr("childSafetyBlockedMessage"));
+    if (payload.code === "child_safety_support_required") throw new Error(tr("childSafetySupportMessage"));
+    throw new Error(payload.error || "Draft could not be saved");
+  }
   state.projectId = payload.project.id;
   persistLocalDraft();
   return payload.project;
@@ -686,6 +704,8 @@ function scenarioApiMessage(payload, fallbackKey) {
     scenario_locked: "scenarioLocked",
     scenario_stale: "scenarioStale",
     scenario_clarification_required: "scenarioNeedsAnswers",
+    child_safety_blocked: "childSafetyBlockedMessage",
+    child_safety_support_required: "childSafetySupportMessage",
   };
   return tr(messages[payload?.code] || fallbackKey);
 }
@@ -1080,6 +1100,9 @@ async function submitPreviewModification() {
       if (payload.code === "preview_modification_requires_full_preview") {
         throw new Error(tr("modificationCharacterBlocked"));
       }
+      if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
+        throw new Error(tr("modificationChildSafetyBlocked"));
+      }
       throw new Error(payload.error || tr("generationFailed"));
     }
     state.previewModification = payload.modification;
@@ -1136,6 +1159,8 @@ async function beginReferenceRecovery() {
     state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
     state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
     state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
+    state.childSafetyProfile = questionnaire.child_safety_profile || null;
+    state.childSafetyIntervention = "";
     state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
     state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
     renderQuestions(questionnaire);
@@ -1342,6 +1367,8 @@ function clearIntentionChoice({ preserveSituation = true } = {}) {
   });
   state.storyIntentions = [];
   state.storySensitivityProfile = null;
+  state.childSafetyProfile = null;
+  state.childSafetyIntervention = "";
   if (!preserveSituation) {
     const situation = document.querySelector("#creator_situation");
     if (situation) situation.value = "";
@@ -1364,8 +1391,15 @@ function renderStoryIntentions() {
   }));
   elements.intentionLoading.hidden = !state.storyIntentionsBusy;
   elements.interpretIntentionButton.disabled = intentionBusy;
-  elements.customStoryChoice.disabled = intentionBusy;
+  elements.customStoryChoice.disabled = intentionBusy || Boolean(state.childSafetyIntervention);
   document.querySelector("#creator_situation").readOnly = intentionBusy;
+  const blocked = state.childSafetyIntervention === "child_safety_blocked";
+  const support = state.childSafetyIntervention === "child_safety_support_required";
+  elements.intentionSafetyNotice.hidden = !(blocked || support);
+  elements.intentionSafetyTitle.textContent = blocked ? tr("childSafetyBlockedTitle") : support ? tr("childSafetySupportTitle") : "";
+  elements.intentionSafetyMessage.textContent = blocked ? tr("childSafetyBlockedMessage") : support ? tr("childSafetySupportMessage") : "";
+  elements.intentionSafetyResource.hidden = !support;
+  elements.intentionSafetyResource.textContent = support ? tr("childSafetyResource") : "";
   elements.storyIntentionGrid.innerHTML = state.storyIntentions.map((intention) => `
     <article class="story-intention-card ${intention.id === selectedId ? "is-selected" : ""}">
       <h3>${escapeHtml(intention.title)}</h3>
@@ -1400,6 +1434,8 @@ async function requestStoryIntentions() {
   state.storyIntentionsBusy = true;
   state.storyIntentions = [];
   state.storySensitivityProfile = null;
+  state.childSafetyProfile = null;
+  state.childSafetyIntervention = "";
   resetStorySuggestionChoice({ preserveAnswers: true });
   elements.intentionChoiceStatus.textContent = "";
   renderStoryIntentions();
@@ -1415,12 +1451,17 @@ async function requestStoryIntentions() {
       }),
     });
     const payload = await response.json();
+    if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
+      state.childSafetyIntervention = payload.code;
+      throw new Error("");
+    }
     if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
     state.storyIntentions = payload.intentions;
     state.storySensitivityProfile = payload.sensitivityProfile || null;
+    state.childSafetyProfile = payload.childSafetyProfile || null;
     persistLocalDraft();
   } catch (error) {
-    elements.intentionChoiceStatus.textContent = error.message || tr("intentionError");
+    elements.intentionChoiceStatus.textContent = state.childSafetyIntervention ? "" : (error.message || tr("intentionError"));
   } finally {
     state.storyIntentionsBusy = false;
     renderStoryIntentions();
@@ -1506,8 +1547,48 @@ function chooseStorySuggestion(id) {
   persistLocalDraft();
 }
 
-function chooseCustomStory() {
+async function chooseCustomStory() {
+  if (state.storyIntentionsBusy) return;
+  const values = formValues();
+  const childAge = Number(values.age);
+  if (!Number.isInteger(childAge) || childAge < 1 || childAge > 14) {
+    elements.intentionChoiceStatus.textContent = tr("intentionNeedsAge");
+    return;
+  }
+  if (!String(values.creator_situation || "").trim()) {
+    elements.intentionChoiceStatus.textContent = tr("intentionNeedsSituation");
+    return;
+  }
+  state.storyIntentionsBusy = true;
+  state.childSafetyIntervention = "";
+  renderStoryIntentions();
+  let verifiedProfile = null;
+  try {
+    const response = await fetch("/api/story-safety", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        creatorSituation: values.creator_situation,
+        childAge,
+        locale: state.locale,
+      }),
+    });
+    const payload = await response.json();
+    if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
+      state.childSafetyIntervention = payload.code;
+      return;
+    }
+    if (!response.ok) throw new Error(payload.error || tr("intentionError"));
+    verifiedProfile = payload.childSafetyProfile || null;
+  } catch (error) {
+    elements.intentionChoiceStatus.textContent = error.message || tr("intentionError");
+    return;
+  } finally {
+    state.storyIntentionsBusy = false;
+    renderStoryIntentions();
+  }
   clearIntentionChoice({ preserveSituation: true });
+  state.childSafetyProfile = verifiedProfile;
   state.storySuggestions = [];
   state.storySuggestionMode = "custom";
   resetStorySuggestionChoice({ preserveAnswers: true });
@@ -1527,7 +1608,7 @@ function renderStorySuggestions() {
     : "";
   elements.suggestionLoading.hidden = !state.storySuggestionsBusy;
   elements.refreshStorySuggestions.disabled = state.storySuggestionsBusy || !selectedStoryIntention();
-  elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy;
+  elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy || Boolean(state.childSafetyIntervention);
   elements.storySuggestionGrid.innerHTML = state.storySuggestions.map((suggestion) => `
     <article class="story-suggestion-card ${suggestion.id === selectedId ? "is-selected" : ""}">
       <span class="story-suggestion-lane">${escapeHtml(tr(`suggestionApproach_${suggestion.approach || suggestion.id}`))}</span>
@@ -1582,12 +1663,19 @@ async function requestStorySuggestions({ refresh = false } = {}) {
       }),
     });
     const payload = await response.json();
+    if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
+      state.childSafetyIntervention = payload.code;
+      showStep(0);
+      renderStoryIntentions();
+      throw new Error("");
+    }
     if (!response.ok || !Array.isArray(payload.suggestions) || payload.suggestions.length !== 3) throw new Error(payload.error || tr("suggestionError"));
     state.storySuggestions = payload.suggestions;
+    state.childSafetyProfile = payload.childSafetyProfile || state.childSafetyProfile;
     resetStorySuggestionChoice({ preserveAnswers: true });
     persistLocalDraft();
   } catch (error) {
-    elements.suggestionChoiceStatus.textContent = error.message || tr("suggestionError");
+    elements.suggestionChoiceStatus.textContent = state.childSafetyIntervention ? "" : (error.message || tr("suggestionError"));
   } finally {
     state.storySuggestionsBusy = false;
     renderStoryIntentions();
@@ -1754,6 +1842,10 @@ function validateStep() {
     document.querySelector("#creator_situation")?.focus();
     return false;
   }
+  if (state.step === 0 && state.childSafetyIntervention) {
+    elements.formError.textContent = tr("childSafetyStepBlocked");
+    return false;
+  }
   if (state.step === 0 && !selectedStoryIntention() && state.storySuggestionMode !== "custom") {
     elements.formError.textContent = tr("suggestionRequired");
     return false;
@@ -1821,6 +1913,7 @@ function questionnaireFromState() {
     universe_story_contract: universe?.storyContract || {},
     story_intentions: state.storyIntentions,
     story_sensitivity_profile: state.storySensitivityProfile,
+    child_safety_profile: state.childSafetyProfile,
     story_suggestions: state.storySuggestions,
   };
 }
@@ -2426,7 +2519,13 @@ async function generatePreviewForProject(projectId, visualProofAction = "") {
     body: JSON.stringify({ projectId, ...(visualProofAction ? { visualProofAction } : {}) }),
   });
   const payload = await response.json();
-  if (!response.ok) { if (payload.code === "insufficient_credit") await refreshCreditSummary(projectId); if (payload.code === "preview_interrupted") throw new TechnicalGenerationError(tr("generationFailed"), payload.code); throw new Error(payload.error || tr("startError")); }
+  if (!response.ok) {
+    if (payload.code === "insufficient_credit") await refreshCreditSummary(projectId);
+    if (payload.code === "preview_interrupted") throw new TechnicalGenerationError(tr("generationFailed"), payload.code);
+    if (payload.code === "child_safety_blocked") throw new Error(tr("childSafetyBlockedMessage"));
+    if (payload.code === "child_safety_support_required") throw new Error(tr("childSafetySupportMessage"));
+    throw new Error(payload.error || tr("startError"));
+  }
   showGenerationPanel(visualProofAction === "approve" ? "interior" : visualProofAction === "regenerate" ? "regenerate" : "cover");
   state.jobId = payload.jobId;
   const job = await pollJob(payload.jobId);
@@ -2588,8 +2687,10 @@ function loadSeriesDraft(project) {
   state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
   state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
-  state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
-  state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
+    state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
+    state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
+    state.childSafetyProfile = questionnaire.child_safety_profile || null;
+    state.childSafetyIntervention = "";
   state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
   state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
   renderQuestions(questionnaire);
@@ -2694,6 +2795,8 @@ async function init() {
     state.projectId = saved?.projectId || "";
     state.storyIntentions = Array.isArray(saved?.storyIntentions) ? saved.storyIntentions : [];
     state.storySensitivityProfile = saved?.storySensitivityProfile || null;
+    state.childSafetyProfile = saved?.childSafetyProfile || null;
+    state.childSafetyIntervention = "";
     state.storySuggestions = Array.isArray(saved?.storySuggestions) ? saved.storySuggestions : [];
     state.storySuggestionMode = saved?.storySuggestionMode || "";
     changeLocale(saved?.locale || state.locale);

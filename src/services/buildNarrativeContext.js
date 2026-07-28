@@ -1,4 +1,4 @@
-export function buildNarrativeContext({ blueprint, intake, storybrand, approvedScenario = null }) {
+export function buildNarrativeContext({ blueprint, intake, storybrand, approvedScenario = null, childSafetyContract = null }) {
   const normalizedIntake = intake?.intake || intake || {};
   const normalizedStorybrand = storybrand?.storybrand || storybrand || {};
   return {
@@ -30,6 +30,7 @@ export function buildNarrativeContext({ blueprint, intake, storybrand, approvedS
     cast: blueprint?.cast || [],
     plot_continuity: blueprint?.plot_continuity || {},
     approved_scenario: approvedScenario,
+    child_safety_contract: childSafetyContract,
     outline: (blueprint?.pages || [])
       .filter((page) => ["text", "opening_text", "closing_text"].includes(page.page_type))
       .map((page) => {

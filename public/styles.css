@@ -191,6 +191,10 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .suggestion-actions .toolbar-button.is-selected { border-color: var(--sage); background: #e6f1eb; color: #355f57; }
 .suggestion-choice-status { min-height: 20px; margin: 12px 0 0; color: #496d65; font-size: 13px; font-weight: 750; }
 .intention-assistant { display: grid; gap: 18px; }
+.intention-safety-notice { padding: 18px 20px; border: 1px solid #cf6f5a; border-radius: 16px; background: #fff5f1; color: #6f2c23; }
+.intention-safety-notice strong { display: block; margin-bottom: 7px; font-family: Georgia, serif; font-size: 19px; }
+.intention-safety-notice p { margin: 0; line-height: 1.55; }
+.intention-safety-notice a { display: inline-block; margin-top: 10px; color: #8f392c; font-weight: 800; }
 .intention-age-context { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 260px); gap: 20px; align-items: center; padding: 18px 20px; border: 1px solid #c9ded7; border-radius: 18px; background: #f5fbf8; }
 .intention-age-context strong { display: block; margin-bottom: 5px; color: var(--ink); font-family: Georgia, serif; font-size: 20px; }
 .intention-age-context p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }

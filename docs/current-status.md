@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/child-grooming-safety`
 - Latest merged checkpoint: PR #83 — version-2 deterministic acute-safety floor
-- Current focused checkpoint: production observation verification of the version-2 sensitivity floor
-- Pull request: PR #83 merged
+- Current focused checkpoint: child sexual-safety gate before persistence, generation and credit reservation
+- Pull request: child sexual-safety gate is the active PR candidate; PR #83 remains the latest merged checkpoint
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,7 +19,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #83 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
-## Current security brick: Sharp 0.35
+## Current product brick: child sexual-safety gate
+
+1. Child sexual safety is classified separately from editorial sensitivity as general, protective education, possible disclosure or exploitative normalization.
+2. Multilingual deterministic rules form an immutable floor; a bounded AI classifier and the moderation endpoint may raise but never lower the decision.
+3. Protective requests about body autonomy, boundaries, unsafe secrets and trusted adults remain possible under a versioned narrative contract.
+4. A possible disclosure pauses personalized creation and points the adult to child-protection help; exploitative normalization is refused.
+5. The same gate runs before persistence, story suggestions, scenario generation and approval, preview authorization, generated-manuscript illustration, and paid local modifications.
+6. A refusal reserves no credit, persists no unsafe request, and logs no family wording or free-form rationale.
+
+## Previous security brick: Sharp 0.35
 
 1. Render's production install reported GitHub advisory `GHSA-f88m-g3jw-g9cj` against direct dependency Sharp 0.34.5.
 2. Calitiki processes customer-supplied images, so the inherited libvips decoder advisory is relevant even though no exploitation has been observed.
@@ -86,12 +95,14 @@ PR #55 through PR #83 are merged. The meaning-led storefront is live and its Spa
 - The version-2 critical-floor targeted suite passes: 10 tests, 0 failures.
 - Full local suite with the version-2 floor passes: 195 tests, 0 failures.
 - `npm audit` remains at 0 known vulnerabilities.
+- Child sexual-safety targeted suite passes: 24 tests, 0 failures.
+- Full local suite with the child sexual-safety gate passes: 203 tests, 0 failures.
 
 ## Next verification target
 
-1. After Render deploys PR #83, rerun the three production phrases that exposed false negatives.
-2. Confirm that logs show a deterministic restricted floor even if the classifier returns a lower decision.
-3. Continue a larger FR/ES/EN false-positive and false-negative observation corpus before any enforcement brick.
+1. Review the focused child sexual-safety PR and never merge it while a book is generating.
+2. After explicit merge and deployment, begin with a bounded FR/ES/EN observation corpus, then switch `CHILD_SAFETY_MODE` to `enforce`.
+3. Verify that blocked or support-required requests create no project, reserve no credit and expose no private wording in logs.
 
 ## Protected local state
 

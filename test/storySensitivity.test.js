@@ -293,7 +293,7 @@ test("creator and route retain sensitivity observation without displaying or enf
   assert.match(app, /story_sensitivity_profile: state\.storySensitivityProfile/);
   assert.match(app, /state\.storySensitivityProfile = payload\.sensitivityProfile \|\| null/);
   assert.match(route, /observeStorySensitivity/);
-  assert.match(route, /res\.json\(\{ intentions,/);
+  assert.match(route, /res\.json\(\{\s*intentions,/);
   assert.match(route, /deterministicLevel/);
   assert.match(route, /classifierRestricted/);
   assert.doesNotMatch(scenarioPrompt, /story_sensitivity_profile/);

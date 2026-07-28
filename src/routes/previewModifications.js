@@ -14,6 +14,7 @@ import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { previewModificationPriceCents } from "../config/previewModificationPricing.js";
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 import { inspectPreviewModificationRequest } from "../services/previewModificationPolicy.js";
+import { guardChildSafety } from "../services/childSafety.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -87,6 +88,7 @@ function selectedSpread(project, spreadNumber) {
 }
 
 function failureCode(error) {
+  if (["child_safety_blocked", "child_safety_support_required"].includes(error?.code)) return error.code;
   const message = String(error?.message || error).toLowerCase();
   if (message.includes("safety system") || message.includes("safety rejection")) return "image_safety_rejection";
   if (message.includes("timed out") || message.includes("timeout")) return "upstream_timeout";
@@ -185,6 +187,23 @@ async function buildCandidate(modification, jobId) {
       instruction: modification.instruction,
       requestId: modification.id,
     });
+    const outputSafety = await guardChildSafety({
+      text: pairedText,
+      childAge: Number(project.questionnaire?.age),
+      locale: project.locale,
+      scope: "preview_modification_output",
+    }, {
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "preview_modification_output",
+        error: String(error?.message || error),
+      }),
+    });
+    if (outputSafety.intervention) {
+      const error = new Error("The proposed text did not pass child-safety review");
+      error.code = outputSafety.intervention.code;
+      throw error;
+    }
     const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
     const composedTextUrl = await composeBookPagePNG({
       baseUrl,
@@ -388,6 +407,24 @@ router.post("/projects/:id/preview-modifications", async (req, res) => {
     if (instruction.length < 8 || instruction.length > 800) {
       return res.status(400).json({ error: "Describe the requested local change in 8 to 800 characters" });
     }
+    const safety = await guardChildSafety({
+      text: instruction,
+      childAge: Number(project.questionnaire?.age),
+      locale: project.locale,
+      scope: "preview_modification",
+    }, {
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "preview_modification",
+        error: String(error?.message || error),
+      }),
+    });
+    if (safety.intervention) {
+      return res.status(safety.intervention.status).json({
+        error: safety.intervention.code,
+        ...safety.intervention,
+      });
+    }
     const policy = inspectPreviewModificationRequest({
       project,
       spreadNumber: spread.spreadNumber,
@@ -469,6 +506,30 @@ router.post("/projects/:id/preview-modifications/:modificationId/retry", async (
     }
     if (fingerprint(project) !== modification.sourceFingerprint) {
       return res.status(409).json({ error: "The source preview has changed" });
+    }
+    const safety = await guardChildSafety({
+      text: modification.instruction,
+      childAge: Number(project.questionnaire?.age),
+      locale: project.locale,
+      scope: "preview_modification_retry",
+    }, {
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "preview_modification_retry",
+        error: String(error?.message || error),
+      }),
+    });
+    if (safety.intervention) {
+      await previewRevisionStore.update(modification.id, {
+        status: "rejected",
+        rejectedAt: new Date().toISOString(),
+        failureCode: safety.intervention.code,
+        failureMessage: "The request did not pass child-safety review",
+      });
+      return res.status(safety.intervention.status).json({
+        error: safety.intervention.code,
+        ...safety.intervention,
+      });
     }
     const policy = inspectPreviewModificationRequest({
       project,

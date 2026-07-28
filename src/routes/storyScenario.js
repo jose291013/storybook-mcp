@@ -20,6 +20,10 @@ import {
   applyStoryScenarioRepairDirectives,
   buildStoryScenarioRepairDirectives,
 } from "../services/storyScenarioRepairs.js";
+import {
+  childSafetyTextFromQuestionnaire,
+  guardChildSafety,
+} from "../services/childSafety.js";
 
 const router = express.Router();
 const EDITABLE_STATUSES = new Set(["ready_for_preview", "scenario_review", "scenario_needs_clarification"]);
@@ -60,7 +64,7 @@ function safeAddedCharacters(value) {
   })).filter((character) => character.name);
 }
 
-async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, addedCharacters, feedback }) {
+async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, addedCharacters, feedback, safetyContract }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const canonicalCharacters = [...scenarioCharacterRegistry(normalized), ...(previousScenario?.characters || []), ...addedCharacters.map((character) => ({
     name: character.name, role: "story_character", storyRole: "guest", relationship: "story character",
@@ -72,6 +76,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
     creator_clarifications: creatorClarifications,
     creator_scene_edits: sceneEdits,
     creator_feedback: String(feedback || "").slice(0, 2000),
+    child_safety_contract: safetyContract,
     previous_scenario: previousScenario || null,
   };
   let scenario = null;
@@ -119,6 +124,30 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     if (!EDITABLE_STATUSES.has(project.status)) {
       return res.status(409).json({ error: "This project can no longer replace its scenario", code: "scenario_locked" });
     }
+    const safety = await guardChildSafety({
+      text: [
+        childSafetyTextFromQuestionnaire(project.questionnaire),
+        req.body?.feedback,
+        JSON.stringify(req.body?.clarifications || {}),
+        JSON.stringify(req.body?.sceneEdits || []),
+        JSON.stringify(req.body?.addedCharacters || []),
+      ].filter(Boolean).join("\n"),
+      childAge: Number(project.questionnaire?.age),
+      locale: project.locale,
+      scope: "story_scenario",
+    }, {
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "story_scenario",
+        error: String(error?.message || error),
+      }),
+    });
+    if (safety.intervention) {
+      return res.status(safety.intervention.status).json({
+        error: safety.intervention.code,
+        ...safety.intervention,
+      });
+    }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);
     const previous = storyScenarioSnapshot(project);
@@ -137,6 +166,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
         sceneEdits,
         addedCharacters,
         feedback: req.body?.feedback,
+        safetyContract: safety.contract,
       });
       if (!validation.valid) {
         console.warn("[story-scenario] validation failed", { projectId: project.id, issueCount: validation.issues.length });
@@ -198,6 +228,27 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
   try {
     const project = await projectStore.getForCustomer(req.params.id, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
+    const safety = await guardChildSafety({
+      text: [
+        childSafetyTextFromQuestionnaire(project.questionnaire),
+        JSON.stringify(project.continuitySnapshot?.storyScenario || {}),
+      ].join("\n"),
+      childAge: Number(project.questionnaire?.age),
+      locale: project.locale,
+      scope: "story_scenario_approval",
+    }, {
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "story_scenario_approval",
+        error: String(error?.message || error),
+      }),
+    });
+    if (safety.intervention) {
+      return res.status(safety.intervention.status).json({
+        error: safety.intervention.code,
+        ...safety.intervention,
+      });
+    }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);
     const scenario = storyScenarioSnapshot(project);

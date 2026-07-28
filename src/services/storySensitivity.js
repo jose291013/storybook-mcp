@@ -1,5 +1,6 @@
 import { runAgent } from "./agentRunner.js";
 import { loadPrompt } from "./loadPrompt.js";
+import { sanitizeChildSafetyProfile } from "./childSafety.js";
 
 export const STORY_SENSITIVITY_PROFILE_VERSION = 2;
 const LEGACY_STORY_SENSITIVITY_PROFILE_VERSION = 1;
@@ -172,6 +173,9 @@ export function sanitizeSensitivityQuestionnaire(questionnaire = {}) {
   });
   if (profile) safe.story_sensitivity_profile = profile;
   else delete safe.story_sensitivity_profile;
+  const childSafetyProfile = sanitizeChildSafetyProfile(questionnaire.child_safety_profile);
+  if (childSafetyProfile) safe.child_safety_profile = childSafetyProfile;
+  else delete safe.child_safety_profile;
   return safe;
 }
 

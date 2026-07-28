@@ -46,6 +46,10 @@ import {
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 import { generationRunStore } from "../services/generationRunStore.js";
+import {
+  childSafetyTextFromQuestionnaire,
+  guardChildSafety,
+} from "../services/childSafety.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 3;
@@ -306,6 +310,27 @@ router.post("/preview", async (req, res) => {
   if (!projectId) return res.status(400).json({ error: "A saved project is required" });
   let project = await projectStore.getForCustomer(projectId, identity);
   if (!project) return res.status(404).json({ error: "Project not found" });
+  const safety = await guardChildSafety({
+    text: [
+      childSafetyTextFromQuestionnaire(project.questionnaire),
+      JSON.stringify(project.continuitySnapshot?.storyScenario || {}),
+    ].join("\n"),
+    childAge: Number(project.questionnaire?.age),
+    locale: project.locale,
+    scope: "preview_request",
+  }, {
+    onTrace: (trace) => console.info("child-safety assessed", trace),
+    onError: (error) => console.warn("child-safety deterministic fallback", {
+      scope: "preview_request",
+      error: String(error?.message || error),
+    }),
+  });
+  if (safety.intervention) {
+    return res.status(safety.intervention.status).json({
+      error: safety.intervention.code,
+      ...safety.intervention,
+    });
+  }
   const visualProofAction = String(req.body?.visualProofAction || "");
   const pendingVisualProof = generationCheckpoint(project)?.visualProof;
   if (project.status === "preview_generating") {
@@ -596,6 +621,7 @@ router.post("/preview", async (req, res) => {
         portraitCanonJson: childCanon?.canon_json || null,
         characterCanons,
         approvedScenario,
+        childSafetyContract: safety.contract,
       });
       if (approvedScenario) final_blueprint.approved_scenario = approvedScenario;
 
@@ -636,7 +662,13 @@ router.post("/preview", async (req, res) => {
       }
       if (!checkpoint.finalBlueprint) await persistCheckpoint({ finalBlueprint: final_blueprint, phase: "blueprint" }, { finalBlueprint: final_blueprint });
 
-      const storyContext = buildNarrativeContext({ blueprint: final_blueprint, intake, storybrand, approvedScenario });
+      const storyContext = buildNarrativeContext({
+        blueprint: final_blueprint,
+        intake,
+        storybrand,
+        approvedScenario,
+        childSafetyContract: safety.contract,
+      });
       const draftTextByPage = new Map(Object.entries(checkpoint.draftTexts || {}).map(([page, text]) => [Number(page), text]));
       let previousText = "";
       for (const textPage of final_blueprint.pages.filter((page) => (
@@ -682,6 +714,7 @@ router.post("/preview", async (req, res) => {
           pageTexts: Object.fromEntries(draftTextByPage),
           characterCanons,
           approvedScenario,
+          childSafetyContract: safety.contract,
         };
         let planAudit = { status: "approved", issues: [] };
         for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -758,6 +791,23 @@ router.post("/preview", async (req, res) => {
       Object.entries(storyScenePlan.pageTexts || {}).forEach(([pageNumber, text]) => {
         draftTextByPage.set(Number(pageNumber), String(text || ""));
       });
+      const manuscriptSafety = await guardChildSafety({
+        text: Object.values(storyScenePlan.pageTexts || {}).join("\n"),
+        childAge: Number(project.questionnaire?.age),
+        locale: project.locale,
+        scope: "generated_manuscript",
+      }, {
+        onTrace: (trace) => console.info("child-safety assessed", trace),
+        onError: (error) => console.warn("child-safety deterministic fallback", {
+          scope: "generated_manuscript",
+          error: String(error?.message || error),
+        }),
+      });
+      if (manuscriptSafety.intervention) {
+        const safetyError = new Error("Generated manuscript did not pass child-safety review");
+        safetyError.code = manuscriptSafety.intervention.code;
+        throw safetyError;
+      }
       for (const contract of storyScenePlan.sceneContracts || []) {
         const imagePage = final_blueprint.pages.find((page) => Number(page.page_number) === Number(contract.image_page_number));
         const textPage = final_blueprint.pages.find((page) => Number(page.page_number) === Number(contract.text_page_number));

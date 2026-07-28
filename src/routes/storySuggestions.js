@@ -2,6 +2,11 @@ import express from "express";
 import { findUniverse } from "../config/bookOptions.js";
 import { normalizeStoryIntentions } from "../services/storyIntentions.js";
 import { createStorySuggestions } from "../services/storySuggestions.js";
+import {
+  childSafetyIntervention,
+  childSafetyMode,
+  evaluateChildSafety,
+} from "../services/childSafety.js";
 
 const router = express.Router();
 const attemptsByIp = new Map();
@@ -36,6 +41,35 @@ router.post("/story-suggestions", async (req, res) => {
   if (!consumeAttempt(req.ip || "unknown")) return res.status(429).json({ error: "Too many inspiration requests" });
 
   try {
+    const activeChildSafetyMode = childSafetyMode();
+    const childSafetyProfile = await evaluateChildSafety({
+      text: [
+        creatorSituation,
+        selectedIntention?.title,
+        selectedIntention?.understanding,
+        selectedIntention?.desired_change,
+        selectedIntention?.protective_doubt,
+        selectedIntention?.first_step,
+        selectedIntention?.message,
+      ].filter(Boolean).join("\n"),
+      childAge: Number(age),
+      locale,
+      scope: "story_suggestions",
+    }, {
+      mode: activeChildSafetyMode,
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "story_suggestions",
+        error: String(error?.message || error),
+      }),
+    });
+    const intervention = childSafetyIntervention(childSafetyProfile, activeChildSafetyMode);
+    if (intervention) {
+      return res.status(intervention.status).json({
+        error: intervention.code,
+        ...intervention,
+      });
+    }
     const suggestions = await createStorySuggestions({
       heroName,
       age,
@@ -49,7 +83,11 @@ router.post("/story-suggestions", async (req, res) => {
       universeStoryContract: universe.storyContract,
     });
     res.set("Cache-Control", "no-store");
-    res.json({ suggestions, universeId: universe.id });
+    res.json({
+      suggestions,
+      universeId: universe.id,
+      ...(childSafetyProfile ? { childSafetyProfile } : {}),
+    });
   } catch (error) {
     console.error("story-suggestions failed", error);
     res.status(502).json({ error: "Story suggestions are temporarily unavailable" });
