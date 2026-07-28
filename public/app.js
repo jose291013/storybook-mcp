@@ -79,8 +79,13 @@ const state = {
   selectedUniverse: "",
   storyIntentions: [],
   storySensitivityProfile: null,
+  storySensitivityGuidance: null,
+  storySensitivityAcknowledged: false,
+  storySensitivityIntervention: "",
   childSafetyProfile: null,
   childSafetyIntervention: "",
+  safetyCountry: "",
+  safetyResources: null,
   storyIntentionsBusy: false,
   storySuggestions: [],
   storySuggestionMode: "",
@@ -131,7 +136,7 @@ const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams
 
 const elements = {
   form: document.querySelector("#bookForm"), intentionAgeQuestion: document.querySelector("#intentionAgeQuestion"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), intentionSafetyResource: document.querySelector("#intentionSafetyResource"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), safetyResourcePanel: document.querySelector("#safetyResourcePanel"), safetyCountryLabel: document.querySelector("#safetyCountryLabel"), safetyCountry: document.querySelector("#safetyCountry"), safetyImmediateDanger: document.querySelector("#safetyImmediateDanger"), safetyResourceFallback: document.querySelector("#safetyResourceFallback"), safetyResourceList: document.querySelector("#safetyResourceList"), intentionSensitivityGuidance: document.querySelector("#intentionSensitivityGuidance"), sensitivityGuidanceAcknowledgement: document.querySelector("#sensitivityGuidanceAcknowledgement"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
@@ -420,7 +425,9 @@ function persistLocalDraft() {
     flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
     productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions,
-    storySensitivityProfile: state.storySensitivityProfile, childSafetyProfile: state.childSafetyProfile, storySuggestions: state.storySuggestions,
+    storySensitivityProfile: state.storySensitivityProfile, storySensitivityGuidance: state.storySensitivityGuidance,
+    storySensitivityAcknowledged: state.storySensitivityAcknowledged, childSafetyProfile: state.childSafetyProfile,
+    safetyCountry: state.safetyCountry, storySuggestions: state.storySuggestions,
     storySuggestionMode: state.storySuggestionMode, updatedAt: new Date().toISOString(),
   }));
 }
@@ -439,29 +446,41 @@ async function saveServerDraft(questionnaire, photos, status = "ready_for_previe
     status, title: questionnaire.hero_name || "", locale: state.locale,
     questionnaire, photos, productConfiguration: productConfiguration(),
   });
-  const isChildSafetyRefusal = async (response) => {
-    if (!response || response.ok || ![403, 422].includes(response.status)) return null;
+  const isSafetyRefusal = async (response) => {
+    if (!response || response.ok || ![403, 409, 422].includes(response.status)) return null;
     const payload = await response.clone().json().catch(() => ({}));
-    return ["child_safety_blocked", "child_safety_support_required"].includes(payload.code) ? payload : null;
+    return [
+      "child_safety_blocked",
+      "child_safety_support_required",
+      "story_sensitivity_support_required",
+      "story_sensitivity_acknowledgement_required",
+    ].includes(payload.code) ? payload : null;
   };
   let response = state.projectId
     ? await fetch(`/api/drafts/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body })
     : null;
-  let safetyPayload = await isChildSafetyRefusal(response);
+  let safetyPayload = await isSafetyRefusal(response);
   if (response && !response.ok) {
     if (!safetyPayload) {
       response = await fetch(`/api/projects/${state.projectId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body });
-      safetyPayload = await isChildSafetyRefusal(response);
+      safetyPayload = await isSafetyRefusal(response);
     }
   }
   if (!response?.ok && !safetyPayload) {
     response = await fetch("/api/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body });
-    safetyPayload = await isChildSafetyRefusal(response);
+    safetyPayload = await isSafetyRefusal(response);
   }
   const payload = safetyPayload || await response.json();
   if (!response.ok) {
+    if (applySafetyInterventionPayload(payload)) {
+      showStep(0);
+      renderStoryIntentions();
+      revealIntentionSafetyNotice();
+    }
     if (payload.code === "child_safety_blocked") throw new Error(tr("childSafetyBlockedMessage"));
     if (payload.code === "child_safety_support_required") throw new Error(tr("childSafetySupportMessage"));
+    if (payload.code === "story_sensitivity_support_required") throw new Error(tr("sensitivitySupportMessage"));
+    if (payload.code === "story_sensitivity_acknowledgement_required") throw new Error(tr("sensitivityGuidanceRequired"));
     throw new Error(payload.error || "Draft could not be saved");
   }
   state.projectId = payload.project.id;
@@ -1159,6 +1178,9 @@ async function beginReferenceRecovery() {
     state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
     state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
     state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
+    state.storySensitivityGuidance = sensitivityGuidanceFromProfile(state.storySensitivityProfile);
+    state.storySensitivityAcknowledged = questionnaire.story_sensitivity_acknowledged === true;
+    state.storySensitivityIntervention = "";
     state.childSafetyProfile = questionnaire.child_safety_profile || null;
     state.childSafetyIntervention = "";
     state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
@@ -1367,6 +1389,9 @@ function clearIntentionChoice({ preserveSituation = true } = {}) {
   });
   state.storyIntentions = [];
   state.storySensitivityProfile = null;
+  state.storySensitivityGuidance = null;
+  state.storySensitivityAcknowledged = false;
+  state.storySensitivityIntervention = "";
   state.childSafetyProfile = null;
   state.childSafetyIntervention = "";
   if (!preserveSituation) {
@@ -1375,8 +1400,79 @@ function clearIntentionChoice({ preserveSituation = true } = {}) {
   }
 }
 
+function activeSafetyIntervention() {
+  return state.childSafetyIntervention || state.storySensitivityIntervention;
+}
+
+function sensitivityGuidanceFromProfile(profile) {
+  if (Number(profile?.guidance_version) !== 1 || profile?.restricted || Number(profile?.level) < 3) return null;
+  return {
+    code: "story_sensitivity_acknowledgement_required",
+    requiresAcknowledgement: true,
+    contractVersion: 1,
+  };
+}
+
+function applySafetyInterventionPayload(payload = {}) {
+  if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
+    state.childSafetyIntervention = payload.code;
+    state.storySensitivityIntervention = "";
+    if (payload.resourceCountryRequired) refreshSafetyResources().catch(() => null);
+    return true;
+  }
+  if (payload.code === "story_sensitivity_support_required") {
+    state.storySensitivityIntervention = payload.code;
+    state.childSafetyIntervention = "";
+    refreshSafetyResources().catch(() => null);
+    return true;
+  }
+  return false;
+}
+
+function safetyResourcePhoneHref(value) {
+  const phone = String(value || "").replace(/[^0-9+]/g, "");
+  return phone ? `tel:${phone}` : "";
+}
+
+function renderSafetyResources() {
+  const data = state.safetyResources;
+  if (!data) return;
+  elements.safetyCountryLabel.textContent = data.countryPrompt || "";
+  elements.safetyCountry.innerHTML = [
+    `<option value="">${escapeHtml(data.countryPlaceholder || "")}</option>`,
+    ...(data.countries || []).map((country) => (
+      `<option value="${escapeHtml(country.code)}" ${country.code === state.safetyCountry ? "selected" : ""}>${escapeHtml(country.label)}</option>`
+    )),
+  ].join("");
+  elements.safetyImmediateDanger.textContent = data.immediateDanger || "";
+  elements.safetyResourceFallback.textContent = data.fallbackMessage || "";
+  elements.safetyResourceFallback.hidden = !data.fallbackMessage;
+  elements.safetyResourceList.innerHTML = (data.resources || []).map((resource) => {
+    const phoneHref = safetyResourcePhoneHref(resource.phone);
+    return `<article class="safety-resource-card">
+      <strong>${escapeHtml(resource.label)}</strong>
+      <span>${escapeHtml(resource.phone)}</span>
+      <div class="safety-resource-links">
+        ${phoneHref ? `<a href="${escapeHtml(phoneHref)}">${escapeHtml(resource.callLabel)}</a>` : ""}
+        <a href="${escapeHtml(resource.website)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resource.visitLabel)}</a>
+        <a href="${escapeHtml(resource.sourceUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(resource.sourceLabel)}</a>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+async function refreshSafetyResources() {
+  const query = new URLSearchParams({ locale: state.locale });
+  if (state.safetyCountry) query.set("country", state.safetyCountry);
+  const response = await fetch(`/api/safety-resources?${query}`, { cache: "no-store" });
+  if (!response.ok) return;
+  state.safetyResources = await response.json();
+  renderSafetyResources();
+  persistLocalDraft();
+}
+
 function revealIntentionSafetyNotice() {
-  if (!state.childSafetyIntervention || elements.intentionSafetyNotice.hidden) return;
+  if (!activeSafetyIntervention() || elements.intentionSafetyNotice.hidden) return;
   window.requestAnimationFrame(() => {
     elements.intentionSafetyNotice.focus({ preventScroll: true });
     elements.intentionSafetyNotice.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1399,15 +1495,33 @@ function renderStoryIntentions() {
   }));
   elements.intentionLoading.hidden = !state.storyIntentionsBusy;
   elements.interpretIntentionButton.disabled = intentionBusy;
-  elements.customStoryChoice.disabled = intentionBusy || Boolean(state.childSafetyIntervention);
+  elements.customStoryChoice.disabled = intentionBusy || Boolean(activeSafetyIntervention());
   document.querySelector("#creator_situation").readOnly = intentionBusy;
   const blocked = state.childSafetyIntervention === "child_safety_blocked";
-  const support = state.childSafetyIntervention === "child_safety_support_required";
+  const childSupport = state.childSafetyIntervention === "child_safety_support_required";
+  const sensitivitySupport = state.storySensitivityIntervention === "story_sensitivity_support_required";
+  const support = childSupport || sensitivitySupport;
   elements.intentionSafetyNotice.hidden = !(blocked || support);
-  elements.intentionSafetyTitle.textContent = blocked ? tr("childSafetyBlockedTitle") : support ? tr("childSafetySupportTitle") : "";
-  elements.intentionSafetyMessage.textContent = blocked ? tr("childSafetyBlockedMessage") : support ? tr("childSafetySupportMessage") : "";
-  elements.intentionSafetyResource.hidden = !support;
-  elements.intentionSafetyResource.textContent = support ? tr("childSafetyResource") : "";
+  elements.intentionSafetyTitle.textContent = blocked
+    ? tr("childSafetyBlockedTitle")
+    : sensitivitySupport
+      ? tr("sensitivitySupportTitle")
+      : childSupport
+        ? tr("childSafetySupportTitle")
+        : "";
+  elements.intentionSafetyMessage.textContent = blocked
+    ? tr("childSafetyBlockedMessage")
+    : sensitivitySupport
+      ? tr("sensitivitySupportMessage")
+      : childSupport
+        ? tr("childSafetySupportMessage")
+        : "";
+  elements.safetyResourcePanel.hidden = !support;
+  if (support) renderSafetyResources();
+  const guidanceRequired = state.storySensitivityGuidance?.requiresAcknowledgement === true;
+  elements.intentionSensitivityGuidance.hidden = !guidanceRequired || Boolean(activeSafetyIntervention());
+  elements.sensitivityGuidanceAcknowledgement.checked = state.storySensitivityAcknowledged;
+  elements.storyIntentionGrid.hidden = guidanceRequired && !state.storySensitivityAcknowledged;
   elements.storyIntentionGrid.innerHTML = state.storyIntentions.map((intention) => `
     <article class="story-intention-card ${intention.id === selectedId ? "is-selected" : ""}">
       <h3>${escapeHtml(intention.title)}</h3>
@@ -1417,7 +1531,7 @@ function renderStoryIntentions() {
         <div><dt>${escapeHtml(tr("intentionMotivation"))}</dt><dd>${escapeHtml(intention.motivation)}</dd></div>
         <div><dt>${escapeHtml(tr("intentionReward"))}</dt><dd>${escapeHtml(intention.reward)}</dd></div>
       </dl>
-      <button type="button" class="primary-button" data-story-intention="${escapeHtml(intention.id)}" ${intentionBusy ? "disabled" : ""}>${escapeHtml(intention.id === selectedId ? tr("intentionChosen") : tr("chooseIntention"))}</button>
+      <button type="button" class="primary-button" data-story-intention="${escapeHtml(intention.id)}" ${intentionBusy || (guidanceRequired && !state.storySensitivityAcknowledged) ? "disabled" : ""}>${escapeHtml(intention.id === selectedId ? tr("intentionChosen") : tr("chooseIntention"))}</button>
     </article>`).join("");
   elements.storyIntentionGrid.querySelectorAll("[data-story-intention]").forEach((button) => button.addEventListener("click", () => chooseStoryIntention(button.dataset.storyIntention)));
   elements.intentionChoiceStatus.textContent = selectedId ? tr("intentionConfirmed") : "";
@@ -1442,6 +1556,9 @@ async function requestStoryIntentions() {
   state.storyIntentionsBusy = true;
   state.storyIntentions = [];
   state.storySensitivityProfile = null;
+  state.storySensitivityGuidance = null;
+  state.storySensitivityAcknowledged = false;
+  state.storySensitivityIntervention = "";
   state.childSafetyProfile = null;
   state.childSafetyIntervention = "";
   resetStorySuggestionChoice({ preserveAnswers: true });
@@ -1459,17 +1576,16 @@ async function requestStoryIntentions() {
       }),
     });
     const payload = await response.json();
-    if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
-      state.childSafetyIntervention = payload.code;
-      return;
-    }
+    if (applySafetyInterventionPayload(payload)) return;
     if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
     state.storyIntentions = payload.intentions;
     state.storySensitivityProfile = payload.sensitivityProfile || null;
+    state.storySensitivityGuidance = payload.sensitivityGuidance || sensitivityGuidanceFromProfile(payload.sensitivityProfile);
+    state.storySensitivityAcknowledged = !state.storySensitivityGuidance?.requiresAcknowledgement;
     state.childSafetyProfile = payload.childSafetyProfile || null;
     persistLocalDraft();
   } catch (error) {
-    elements.intentionChoiceStatus.textContent = state.childSafetyIntervention ? "" : (error.message || tr("intentionError"));
+    elements.intentionChoiceStatus.textContent = activeSafetyIntervention() ? "" : (error.message || tr("intentionError"));
   } finally {
     state.storyIntentionsBusy = false;
     renderStoryIntentions();
@@ -1570,8 +1686,11 @@ async function chooseCustomStory() {
   }
   state.storyIntentionsBusy = true;
   state.childSafetyIntervention = "";
+  state.storySensitivityIntervention = "";
   renderStoryIntentions();
   let verifiedProfile = null;
+  let verifiedSensitivityProfile = null;
+  let verifiedSensitivityGuidance = null;
   try {
     const response = await fetch("/api/story-safety", {
       method: "POST",
@@ -1583,12 +1702,11 @@ async function chooseCustomStory() {
       }),
     });
     const payload = await response.json();
-    if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
-      state.childSafetyIntervention = payload.code;
-      return;
-    }
+    if (applySafetyInterventionPayload(payload)) return;
     if (!response.ok) throw new Error(payload.error || tr("intentionError"));
     verifiedProfile = payload.childSafetyProfile || null;
+    verifiedSensitivityProfile = payload.sensitivityProfile || null;
+    verifiedSensitivityGuidance = payload.sensitivityGuidance || sensitivityGuidanceFromProfile(payload.sensitivityProfile);
   } catch (error) {
     elements.intentionChoiceStatus.textContent = error.message || tr("intentionError");
     return;
@@ -1599,6 +1717,9 @@ async function chooseCustomStory() {
   }
   clearIntentionChoice({ preserveSituation: true });
   state.childSafetyProfile = verifiedProfile;
+  state.storySensitivityProfile = verifiedSensitivityProfile;
+  state.storySensitivityGuidance = verifiedSensitivityGuidance;
+  state.storySensitivityAcknowledged = !verifiedSensitivityGuidance?.requiresAcknowledgement;
   state.storySuggestions = [];
   state.storySuggestionMode = "custom";
   resetStorySuggestionChoice({ preserveAnswers: true });
@@ -1618,7 +1739,7 @@ function renderStorySuggestions() {
     : "";
   elements.suggestionLoading.hidden = !state.storySuggestionsBusy;
   elements.refreshStorySuggestions.disabled = state.storySuggestionsBusy || !selectedStoryIntention();
-  elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy || Boolean(state.childSafetyIntervention);
+  elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy || Boolean(activeSafetyIntervention());
   elements.storySuggestionGrid.innerHTML = state.storySuggestions.map((suggestion) => `
     <article class="story-suggestion-card ${suggestion.id === selectedId ? "is-selected" : ""}">
       <span class="story-suggestion-lane">${escapeHtml(tr(`suggestionApproach_${suggestion.approach || suggestion.id}`))}</span>
@@ -1668,24 +1789,25 @@ async function requestStorySuggestions({ refresh = false } = {}) {
         personality: values.personality,
         creatorSituation: values.creator_situation,
         selectedIntention: intention,
+        sensitivityProfile: state.storySensitivityProfile,
         universeId: state.selectedUniverse,
         locale: state.locale,
       }),
     });
     const payload = await response.json();
-    if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
-      state.childSafetyIntervention = payload.code;
+    if (applySafetyInterventionPayload(payload)) {
       showStep(0);
       renderStoryIntentions();
       return;
     }
     if (!response.ok || !Array.isArray(payload.suggestions) || payload.suggestions.length !== 3) throw new Error(payload.error || tr("suggestionError"));
     state.storySuggestions = payload.suggestions;
+    state.storySensitivityProfile = payload.sensitivityProfile || state.storySensitivityProfile;
     state.childSafetyProfile = payload.childSafetyProfile || state.childSafetyProfile;
     resetStorySuggestionChoice({ preserveAnswers: true });
     persistLocalDraft();
   } catch (error) {
-    elements.suggestionChoiceStatus.textContent = state.childSafetyIntervention ? "" : (error.message || tr("suggestionError"));
+    elements.suggestionChoiceStatus.textContent = activeSafetyIntervention() ? "" : (error.message || tr("suggestionError"));
   } finally {
     state.storySuggestionsBusy = false;
     renderStoryIntentions();
@@ -1853,8 +1975,15 @@ function validateStep() {
     document.querySelector("#creator_situation")?.focus();
     return false;
   }
-  if (state.step === 0 && state.childSafetyIntervention) {
+  if (state.step === 0 && activeSafetyIntervention()) {
     elements.formError.textContent = tr("childSafetyStepBlocked");
+    return false;
+  }
+  if (state.step === 0
+    && state.storySensitivityGuidance?.requiresAcknowledgement
+    && !state.storySensitivityAcknowledged) {
+    elements.formError.textContent = tr("sensitivityGuidanceRequired");
+    elements.sensitivityGuidanceAcknowledgement?.focus();
     return false;
   }
   if (state.step === 0 && !selectedStoryIntention() && state.storySuggestionMode !== "custom") {
@@ -1924,6 +2053,7 @@ function questionnaireFromState() {
     universe_story_contract: universe?.storyContract || {},
     story_intentions: state.storyIntentions,
     story_sensitivity_profile: state.storySensitivityProfile,
+    story_sensitivity_acknowledged: state.storySensitivityAcknowledged,
     child_safety_profile: state.childSafetyProfile,
     story_suggestions: state.storySuggestions,
   };
@@ -2698,10 +2828,13 @@ function loadSeriesDraft(project) {
   state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
   state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
-    state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
-    state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
-    state.childSafetyProfile = questionnaire.child_safety_profile || null;
-    state.childSafetyIntervention = "";
+  state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
+  state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
+  state.storySensitivityGuidance = sensitivityGuidanceFromProfile(state.storySensitivityProfile);
+  state.storySensitivityAcknowledged = questionnaire.story_sensitivity_acknowledged === true;
+  state.storySensitivityIntervention = "";
+  state.childSafetyProfile = questionnaire.child_safety_profile || null;
+  state.childSafetyIntervention = "";
   state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
   state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
   renderQuestions(questionnaire);
@@ -2790,6 +2923,7 @@ async function startGeneration(event) {
 function changeLocale(locale) {
   const values = state.config ? formValues() : {}; state.locale = ["FR", "ES", "EN"].includes(locale) ? locale : "FR"; localStorage.setItem("storybook-ui-language", state.locale); applyTranslations();
   if (state.config) { renderQuestions(values); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
+  if (activeSafetyIntervention()) refreshSafetyResources().catch(() => null);
 }
 
 async function init() {
@@ -2806,8 +2940,12 @@ async function init() {
     state.projectId = saved?.projectId || "";
     state.storyIntentions = Array.isArray(saved?.storyIntentions) ? saved.storyIntentions : [];
     state.storySensitivityProfile = saved?.storySensitivityProfile || null;
+    state.storySensitivityGuidance = saved?.storySensitivityGuidance || sensitivityGuidanceFromProfile(state.storySensitivityProfile);
+    state.storySensitivityAcknowledged = saved?.storySensitivityAcknowledged === true;
+    state.storySensitivityIntervention = "";
     state.childSafetyProfile = saved?.childSafetyProfile || null;
     state.childSafetyIntervention = "";
+    state.safetyCountry = saved?.safetyCountry || "";
     state.storySuggestions = Array.isArray(saved?.storySuggestions) ? saved.storySuggestions : [];
     state.storySuggestionMode = saved?.storySuggestionMode || "";
     changeLocale(saved?.locale || state.locale);
@@ -2843,6 +2981,15 @@ elements.form.addEventListener("click", (event) => { if (event.target.closest("[
 elements.refreshStorySuggestions.addEventListener("click", () => requestStorySuggestions({ refresh: true }));
 elements.interpretIntentionButton.addEventListener("click", () => requestStoryIntentions());
 elements.customStoryChoice.addEventListener("click", chooseCustomStory);
+elements.safetyCountry.addEventListener("change", () => {
+  state.safetyCountry = elements.safetyCountry.value;
+  refreshSafetyResources().catch(() => null);
+});
+elements.sensitivityGuidanceAcknowledgement.addEventListener("change", () => {
+  state.storySensitivityAcknowledged = elements.sensitivityGuidanceAcknowledgement.checked;
+  renderStoryIntentions();
+  persistLocalDraft();
+});
 document.querySelector("#creator_situation").addEventListener("change", () => {
   if (!state.storyIntentions.length && !selectedStoryIntention()) return;
   clearIntentionChoice({ preserveSituation: true });

@@ -8,6 +8,14 @@ import {
   childSafetyResponse,
   evaluateChildSafety,
 } from "../services/childSafety.js";
+import {
+  deterministicStorySensitivity,
+  normalizeStorySensitivityProfile,
+  storySensitivityContract,
+  storySensitivityGuidance,
+  storySensitivityMode,
+  storySensitivityResponse,
+} from "../services/storySensitivity.js";
 
 const router = express.Router();
 const attemptsByIp = new Map();
@@ -68,6 +76,16 @@ router.post("/story-suggestions", async (req, res) => {
     if (intervention) {
       return res.status(intervention.status).json(childSafetyResponse(intervention, locale));
     }
+    const activeSensitivityMode = storySensitivityMode();
+    const sensitivityFloor = deterministicStorySensitivity({ creatorSituation });
+    const sensitivityProfile = activeSensitivityMode === "guided"
+      ? normalizeStorySensitivityProfile(body.sensitivityProfile || sensitivityFloor, sensitivityFloor, { guided: true })
+      : null;
+    const sensitivityGuidance = storySensitivityGuidance(sensitivityProfile, activeSensitivityMode);
+    if (sensitivityGuidance?.status) {
+      return res.status(sensitivityGuidance.status).json(storySensitivityResponse(sensitivityGuidance, locale));
+    }
+    const sensitivityContract = storySensitivityContract(sensitivityProfile);
     const suggestions = await createStorySuggestions({
       heroName,
       age,
@@ -79,12 +97,14 @@ router.post("/story-suggestions", async (req, res) => {
       universeId: universe.id,
       universe: universe.name,
       universeStoryContract: universe.storyContract,
+      sensitivityContract,
     });
     res.set("Cache-Control", "no-store");
     res.json({
       suggestions,
       universeId: universe.id,
       ...(childSafetyProfile ? { childSafetyProfile } : {}),
+      ...(sensitivityProfile ? { sensitivityProfile } : {}),
     });
   } catch (error) {
     console.error("story-suggestions failed", error);

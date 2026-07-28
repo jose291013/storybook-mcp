@@ -131,6 +131,7 @@ export async function storyScenePlannerAgent({
   characterCanons = [],
   approvedScenario = null,
   childSafetyContract = null,
+  sensitivityContract = null,
   previousPlan = null,
   validationIssues = [],
 }) {
@@ -168,6 +169,7 @@ export async function storyScenePlannerAgent({
       narrative_spreads: spreads,
       approved_scenario: approvedScenario,
       child_safety_contract: childSafetyContract,
+      sensitivity_contract: sensitivityContract,
       previous_plan: previousPlan,
       validation_issues: validationIssues,
     },

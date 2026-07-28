@@ -156,11 +156,10 @@ test("enforcement returns a no-credit intervention while observation remains non
     status: 403,
     code: "child_safety_blocked",
     noCreditReserved: true,
-    resources: {
-      franceChildDanger: "https://www.allo119.gouv.fr/",
-      europeanEmergency: "112",
-    },
   });
+  const supported = childSafetyIntervention({ action: "support" }, "enforce");
+  assert.equal(supported.resourceCountryRequired, true);
+  assert.equal(supported.resourceRegistryVersion, 1);
   assert.equal(childSafetyMode("ENFORCE"), "enforce");
   assert.equal(childSafetyMode("unexpected"), "off");
 });

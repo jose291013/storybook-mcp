@@ -3,9 +3,21 @@ import { loadPrompt } from "./loadPrompt.js";
 import { sanitizeChildSafetyProfile } from "./childSafety.js";
 
 export const STORY_SENSITIVITY_PROFILE_VERSION = 2;
+export const STORY_SENSITIVITY_GUIDANCE_VERSION = 1;
 const LEGACY_STORY_SENSITIVITY_PROFILE_VERSION = 1;
 
 const ALLOWED_CONFIDENCE = new Set(["low", "medium", "high"]);
+const PUBLIC_MESSAGES = {
+  FR: {
+    story_sensitivity_support_required: "Cette situation semble nécessiter un accompagnement humain immédiat ou spécialisé. Calitiki ne la transformera pas en aventure personnalisée. Aucun crédit n’a été réservé.",
+  },
+  ES: {
+    story_sensitivity_support_required: "Esta situación parece necesitar apoyo humano inmediato o especializado. Calitiki no la convertirá en una aventura personalizada. No se ha reservado ningún crédito.",
+  },
+  EN: {
+    story_sensitivity_support_required: "This situation appears to need immediate or specialist human support. Calitiki will not turn it into a personalized adventure. No credit was reserved.",
+  },
+};
 
 const INDICATORS = {
   restricted: [
@@ -102,7 +114,8 @@ function approachFor(level, restricted = false) {
 }
 
 export function storySensitivityMode(value = process.env.STORY_SENSITIVITY_MODE) {
-  return String(value || "off").trim().toLowerCase() === "observe" ? "observe" : "off";
+  const mode = String(value || "off").trim().toLowerCase();
+  return ["observe", "guided"].includes(mode) ? mode : "off";
 }
 
 export function deterministicStorySensitivity({ creatorSituation } = {}) {
@@ -131,7 +144,7 @@ export function deterministicStorySensitivity({ creatorSituation } = {}) {
 export function normalizeStorySensitivityProfile(
   value,
   floor = deterministicStorySensitivity(),
-  { version = STORY_SENSITIVITY_PROFILE_VERSION } = {},
+  { version = STORY_SENSITIVITY_PROFILE_VERSION, guided = false } = {},
 ) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const suppliedLevel = Number(value.level);
@@ -148,6 +161,9 @@ export function normalizeStorySensitivityProfile(
 
   return {
     version,
+    ...(guided || Number(value.guidance_version) === STORY_SENSITIVITY_GUIDANCE_VERSION
+      ? { guidance_version: STORY_SENSITIVITY_GUIDANCE_VERSION }
+      : {}),
     level,
     category,
     restricted,
@@ -173,6 +189,15 @@ export function sanitizeSensitivityQuestionnaire(questionnaire = {}) {
   });
   if (profile) safe.story_sensitivity_profile = profile;
   else delete safe.story_sensitivity_profile;
+  if (profile
+    && Number(profile.guidance_version) === STORY_SENSITIVITY_GUIDANCE_VERSION
+    && Number(profile.level) >= 3
+    && !profile.restricted
+    && questionnaire.story_sensitivity_acknowledged === true) {
+    safe.story_sensitivity_acknowledged = true;
+  } else {
+    delete safe.story_sensitivity_acknowledged;
+  }
   const childSafetyProfile = sanitizeChildSafetyProfile(questionnaire.child_safety_profile);
   if (childSafetyProfile) safe.child_safety_profile = childSafetyProfile;
   else delete safe.child_safety_profile;
@@ -223,13 +248,16 @@ export async function assessStorySensitivity(input = {}, dependencies = {}) {
       deterministic_restricted: floor.restricted,
     },
   });
-  const profile = normalizeStorySensitivityProfile(result, floor);
+  const profile = normalizeStorySensitivityProfile(result, floor, {
+    guided: storySensitivityMode(dependencies.mode) === "guided",
+  });
   emitObservationTrace(dependencies.onTrace, observationTrace(floor, result, profile));
   return profile;
 }
 
 export async function observeStorySensitivity(input = {}, dependencies = {}) {
-  if (storySensitivityMode(dependencies.mode) !== "observe") return null;
+  const mode = storySensitivityMode(dependencies.mode);
+  if (!["observe", "guided"].includes(mode)) return null;
   const floor = deterministicStorySensitivity(input);
   let timeoutId;
   try {
@@ -246,9 +274,81 @@ export async function observeStorySensitivity(input = {}, dependencies = {}) {
     dependencies.onError?.(error);
     const fallback = {
       ...floor,
+      ...(mode === "guided" ? { guidance_version: STORY_SENSITIVITY_GUIDANCE_VERSION } : {}),
       source: "deterministic_fallback",
     };
     emitObservationTrace(dependencies.onTrace, observationTrace(floor, null, fallback));
     return fallback;
   }
+}
+
+export function storySensitivityContract(profile) {
+  if (!profile
+    || Number(profile.guidance_version) !== STORY_SENSITIVITY_GUIDANCE_VERSION
+    || profile.restricted
+    || Number(profile.level) < 2) return null;
+  const major = Number(profile.level) >= 3;
+  return {
+    version: STORY_SENSITIVITY_GUIDANCE_VERSION,
+    level: major ? 3 : 2,
+    approach: major ? "symbolic_open_ended" : "gentle_action_led",
+    rules: major ? [
+      "Use discreet metaphor and age-appropriate action instead of reenacting or explaining the private real-life event.",
+      "Never promise healing, certainty, permanent resolution, reunion, reversal of loss or a therapeutic result.",
+      "Let the child act, feel and understand through consequences; do not make an adult deliver a psychological lesson.",
+      "End with gentle openness, continued support and one achievable next step rather than definitive closure.",
+    ] : [
+      "Let meaning emerge through concrete action, attempts and consequences rather than psychological explanation.",
+      "Keep stakes gentle, preserve the child's agency and avoid shame, diagnosis or promises of a therapeutic result.",
+      "Show one accessible next step and leave room for trusted adult support.",
+    ],
+  };
+}
+
+export function storySensitivityGuidance(profile, mode = storySensitivityMode()) {
+  if (mode !== "guided" || !profile) return null;
+  if (profile.restricted) {
+    return {
+      status: 422,
+      code: "story_sensitivity_support_required",
+      noCreditReserved: true,
+      resourceCountryRequired: true,
+    };
+  }
+  if (Number(profile.level) >= 3) {
+    return {
+      code: "story_sensitivity_acknowledgement_required",
+      requiresAcknowledgement: true,
+      contractVersion: STORY_SENSITIVITY_GUIDANCE_VERSION,
+    };
+  }
+  return {
+    code: "story_sensitivity_guided",
+    requiresAcknowledgement: false,
+    contractVersion: STORY_SENSITIVITY_GUIDANCE_VERSION,
+  };
+}
+
+export async function guideStorySensitivity(input = {}, dependencies = {}) {
+  const mode = storySensitivityMode(dependencies.mode);
+  if (mode !== "guided") return {
+    profile: null,
+    guidance: null,
+    contract: null,
+  };
+  const profile = await observeStorySensitivity(input, { ...dependencies, mode });
+  return {
+    profile,
+    guidance: storySensitivityGuidance(profile, mode),
+    contract: storySensitivityContract(profile),
+  };
+}
+
+export function storySensitivityResponse(guidance, locale = "FR") {
+  const language = PUBLIC_MESSAGES[locale] ? locale : "FR";
+  return {
+    ...guidance,
+    error: PUBLIC_MESSAGES[language][guidance?.code]
+      || PUBLIC_MESSAGES[language].story_sensitivity_support_required,
+  };
 }

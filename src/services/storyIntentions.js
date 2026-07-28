@@ -38,6 +38,7 @@ export async function createStoryIntentions(input = {}) {
       language,
       child_age: Number(input.childAge),
       creator_situation: clean(input.creatorSituation, 1600),
+      sensitivity_contract: input.sensitivityContract || null,
     },
   });
   const intentions = normalizeStoryIntentions(result);

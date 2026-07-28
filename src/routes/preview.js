@@ -51,6 +51,7 @@ import {
   childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
+import { storySensitivityContract } from "../services/storySensitivity.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 3;
@@ -329,6 +330,7 @@ router.post("/preview", async (req, res) => {
   if (safety.intervention) {
     return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
   }
+  const sensitivityContract = storySensitivityContract(project.questionnaire?.story_sensitivity_profile);
   const visualProofAction = String(req.body?.visualProofAction || "");
   const pendingVisualProof = generationCheckpoint(project)?.visualProof;
   if (project.status === "preview_generating") {
@@ -597,7 +599,12 @@ router.post("/preview", async (req, res) => {
       const hero_profile = checkpoint.heroProfile || await heroClassifierAgent(intake);
       if (!checkpoint.heroProfile) await persistCheckpoint({ heroProfile: hero_profile, phase: "hero" });
       updateJob(job.id, { step: "storybrand" });
-      const storybrand = checkpoint.storybrand || await storybrandAgent({ intake, hero_profile, approvedScenario });
+      const storybrand = checkpoint.storybrand || await storybrandAgent({
+        intake,
+        hero_profile,
+        approvedScenario,
+        sensitivityContract,
+      });
       if (!checkpoint.storybrand) await persistCheckpoint({ storybrand, phase: "storybrand" });
       updateJob(job.id, { step: "worldBuilder" });
       const world = checkpoint.world || await worldBuilderAgent(intake);
@@ -620,6 +627,7 @@ router.post("/preview", async (req, res) => {
         characterCanons,
         approvedScenario,
         childSafetyContract: safety.contract,
+        sensitivityContract,
       });
       if (approvedScenario) final_blueprint.approved_scenario = approvedScenario;
 
@@ -666,6 +674,7 @@ router.post("/preview", async (req, res) => {
         storybrand,
         approvedScenario,
         childSafetyContract: safety.contract,
+        sensitivityContract,
       });
       const draftTextByPage = new Map(Object.entries(checkpoint.draftTexts || {}).map(([page, text]) => [Number(page), text]));
       let previousText = "";
@@ -713,6 +722,7 @@ router.post("/preview", async (req, res) => {
           characterCanons,
           approvedScenario,
           childSafetyContract: safety.contract,
+          sensitivityContract,
         };
         let planAudit = { status: "approved", issues: [] };
         for (let attempt = 1; attempt <= 2; attempt += 1) {

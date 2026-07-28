@@ -57,6 +57,7 @@ export async function createStorySuggestions(input = {}) {
       universe_id: clean(input.universeId, 80),
       universe: clean(input.universe, 200),
       universe_story_contract: input.universeStoryContract || {},
+      sensitivity_contract: input.sensitivityContract || null,
     },
   });
   const suggestions = normalizeStorySuggestions(result);

@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { runAgent } from "./agentRunner.js";
 import { createOpenAIClient } from "./openaiClient.js";
 import { loadPrompt } from "./loadPrompt.js";
+import { SAFETY_RESOURCE_REGISTRY_VERSION } from "./safetyResources.js";
 
 export const CHILD_SAFETY_PROFILE_VERSION = 1;
 export const CHILD_SAFETY_CONTRACT_VERSION = 1;
@@ -267,10 +268,10 @@ export function childSafetyIntervention(profile, mode = childSafetyMode()) {
     status: support ? 422 : 403,
     code: support ? "child_safety_support_required" : "child_safety_blocked",
     noCreditReserved: true,
-    resources: {
-      franceChildDanger: "https://www.allo119.gouv.fr/",
-      europeanEmergency: "112",
-    },
+    ...(support ? {
+      resourceCountryRequired: true,
+      resourceRegistryVersion: SAFETY_RESOURCE_REGISTRY_VERSION,
+    } : {}),
   };
 }
 
