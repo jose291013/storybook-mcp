@@ -21,7 +21,7 @@ RULES
 - Do not identify a real person, infer ethnicity, health, personality, or other sensitive attributes.
 - For a person, describe approximate visual age only when useful; age_input remains the source of truth for the child.
 - For an animal, describe species, approximate size, coat colors/patterns, ears, muzzle, eyes, tail and clearly visible accessories.
-- Record visible clothing and accessories as one exact outfit_lock. Keep garment type, main colors, footwear and accessories stable; omit visible brand names.
+- Record visible clothing and accessories as one exact reference outfit_lock. Keep garment type, main colors, footwear and accessories stable whenever that reference outfit state is active; omit visible brand names. A later approved scenario may deliberately activate a different adventure outfit without changing identity.
 - Ignore temporary background details and brand names.
 - The requested rendering_mode is authoritative. For photorealistic, preserve natural facial geometry and real skin texture. For illustrated_faithful, preserve natural facial proportions while changing only the artistic medium. For cartoon, preserve the strongest visible identity markers while honestly allowing stylization.
 - canon_short must be one natural, compact sentence.
@@ -36,7 +36,7 @@ OUTPUT
       "relationship": "{relationship}"
     },
     "character_fingerprint": "2 to 4 short sentences describing the stable visible traits",
-    "outfit_lock": "exact visible outfit and accessories to preserve on every illustrated page, or empty for an animal without clothing",
+    "outfit_lock": "exact visible reference outfit and accessories, or empty for an animal without clothing",
     "canon_json": {
       "subject_kind": "person | animal | other",
       "stable_traits": {},

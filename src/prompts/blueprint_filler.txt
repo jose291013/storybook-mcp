@@ -33,7 +33,7 @@ VISUALS
 - Do NOT reserve space for text. Text is placed on the facing page.
 - Every image_prompt must be a detailed balanced square scene description naming its setting, action, visible character expressions, framing, foreground, background and lighting, and end with an instruction meaning "no text, captions, logos or watermarks" in the requested language.
 - The cover illustration must reserve its upper 30% as uncluttered title-safe space containing only sky or simple scenery. Keep every face, head and important character below that zone because the title is added there during layout.
-- Define one precise hero.outfit_lock with garment types, colors, footwear and visible accessories such as hair accessories. Copy that exact outfit into every visual scene containing the hero; never redesign it for a new location. Treat each character_canons[].outfit_lock the same way for the corresponding referenced character.
+- Respect approved_scenario.wardrobePlan and character_canons[].outfit_contract. A creator-approved adventure outfit replaces the reference-photo clothing only from its activation scene onward. Before activation, preserve the generic reference-photo outfit. Never change a face, body identity, animal or plush design when clothing changes.
 - Every mascot must have one explicit species, coat/color pattern, body shape and accessories in cast.canon_short. Never change its species or imitate a famous copyrighted character.
 - Maintain one illustration style, palette, outfits and stable character traits across the cover and all image pages.
 - Use character_canons only for cast members actually present in that scene. Never force all referenced people into every image.

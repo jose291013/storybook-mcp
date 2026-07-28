@@ -64,6 +64,7 @@ export function buildSceneContinuity({
   continuityImageStorageKey = "",
   pairedText = "",
   structuredSceneContract = null,
+  wardrobeLocks = [],
   referenceAssets = new Map(),
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
@@ -78,9 +79,10 @@ export function buildSceneContinuity({
     const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
     const photoCanon = findPhotoCanon(characterCanons, character.name, role);
     const traits = [photoCanon?.character_fingerprint, character.canon_short].filter(Boolean).join(" ");
-    const outfit = role === "child"
+    const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
+    const outfit = sceneWardrobe || (role === "child"
       ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
-      : (character.outfit_lock || photoCanon?.outfit_lock || "");
+      : (character.outfit_lock || photoCanon?.outfit_lock || ""));
     const visualAlias = aliasFor(character.name);
     const visualIdentity = identityFor(character.name);
     const rules = [
@@ -90,7 +92,7 @@ export function buildSceneContinuity({
       visualIdentity?.entity_type === "plush_toy"
         && `PLUSH TOY IDENTITY: depict one complete ${visualIdentity.species || "animal"} plush toy body. Never depict this companion as a human child, living person or human-animal hybrid.`,
       traits && `IDENTITY: ${safe(traits)}`,
-      outfit && `FIXED OUTFIT: ${safe(outfit)}. Keep every generic color, garment and accessory exactly unchanged on every page.`,
+      outfit && `FIXED OUTFIT FOR CURRENT SCENE: ${safe(outfit)}. Keep this exact generic wardrobe stable in the current scene. A different declared wardrobe state on another scene is intentional.`,
       role === "mascot" && "SPECIES LOCK: keep the exact same animal species, coat colors, markings, ears, muzzle, tail and accessories; never reinterpret it as another animal or a famous character.",
     ].filter(Boolean);
     characterFingerprints.push(rules.join(" "));
@@ -113,7 +115,7 @@ export function buildSceneContinuity({
   if (continuityImagePath || continuityImageStorageKey) {
     referenceImages.push({
       ...(continuityImagePath ? { path: continuityImagePath } : { storageKey: continuityImageStorageKey }),
-      label: "approved book continuity frame: preserve the established illustration style, character proportions, outfits and mascot design only",
+      label: "approved book continuity frame: preserve the established illustration style, character proportions and mascot design; wardrobe must follow the current scene wardrobe directive",
       kind: "continuity",
     });
   }

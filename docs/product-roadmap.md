@@ -21,6 +21,14 @@ Last updated: 2026-07-28
 11. After ebook payment, the unwatermarked PDF is available in the customer library and by a secure email link.
 12. After print payment, high-definition production starts. The production range and shipping range are shown before payment and snapshotted on the order.
 
+## Wardrobe continuity
+
+- At the private character-photo step, each human reference may keep the generic unbranded clothing visible in the photo, accept the recommended universe outfit, or choose one of three curated examples. This choice never changes the face, body identity or role.
+- Universe outfit catalogs are deterministic product configuration, not free-form model invention. They include physically appropriate protection already required by the universe contract, such as a stable breathing mechanism underwater or a protected suit in open space.
+- The approved scenario owns a versioned wardrobe plan. It names the active outfit and the scene where it becomes visible. When the adventure begins outside its universe, any clothing change happens before entry or crossing and remains stable afterward.
+- Cover and page prompts carry a per-scene wardrobe lock. A cover may preview the adventure outfit while earlier home scenes still use the photo outfit; the cover continuity reference cannot overwrite this declared state.
+- Human wardrobe rules never apply to animals or plush toys. Legacy projects without an explicit wardrobe decision preserve their reference-photo clothing and keep their existing preview fingerprint.
+
 ## Ownership boundaries
 
 - WooCommerce: account, authentication source, cart, checkout, payment, order, subscription, transactional email trigger.

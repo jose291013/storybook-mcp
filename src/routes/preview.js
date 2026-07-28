@@ -296,6 +296,10 @@ async function describeReferences({ photos, answers, referenceAssets, jobId }) {
       role: photo.role,
       story_role: photo.story_role,
       relationship: photo.relationship,
+      outfit_preference: photo.outfit_preference,
+      outfit_id: photo.outfit_id,
+      outfit_contract: photo.outfit_contract,
+      outfit_selection_explicit: photo.outfit_selection_explicit,
       ...result.photo_descriptor,
     });
   }
@@ -651,6 +655,7 @@ router.post("/preview", async (req, res) => {
           language: answers.language,
           pageCount: answers.page_count,
           fontStyle: answers.font_style,
+          approvedScenario,
         });
         updateJob(job.id, {
           step: repairAttempt === 1 ? "qa:verify_repair" : `qa:verify_repair:${repairAttempt}`,
@@ -853,6 +858,7 @@ router.post("/preview", async (req, res) => {
           characterCanons,
           castPresent: final_blueprint.cover.cast_present || [],
           scenePrompt: final_blueprint.cover.image_prompt,
+          wardrobeLocks: final_blueprint.cover.wardrobe_locks || [],
           referenceAssets,
         });
         localCoverImageUrl = await generateQualityCheckedImage({
@@ -961,6 +967,7 @@ router.post("/preview", async (req, res) => {
           ...(!coverReferencePath && coverImageStorageKey ? { continuityImageStorageKey: coverImageStorageKey } : {}),
           pairedText,
           structuredSceneContract: page.scene_contract || null,
+          wardrobeLocks: page.wardrobe_locks || [],
           referenceAssets,
         });
         const visualPrompt = sceneContractImagePrompt({

@@ -37,6 +37,7 @@ CAUSAL RULES
 - A guide may instead be present as thought, memory or voice. Such a guide is not physically visible and must never be included among travelers.
 - The child remains the active hero. Guides advise but do not solve the climax.
 - Track every recurring wearable, carried or plot-critical object. Give it exactly one state per scene. A hat cannot be both worn and held; when held, explicitly say that it is not worn and that only one hat exists.
+- canonical_characters may contain an outfitContract selected by the creator. Return one wardrobe_plan entry for every such human character. Preserve a reference-photo outfit when requested. Otherwise activate the adventure outfit in a scene before that character enters the adventure zone; make that clothing change explicit in the scene action and never activate it after entry. Do not alter a face, body identity, animal or plush character to satisfy a wardrobe request.
 - Use the creator's dream as ordered story facts, not merely inspiration. Preserve explicit sequences such as discover portal -> cross portal -> arrive in valley.
 - End with a coherent resolution and, when the adventure left home, an explained return or stable new ending location.
 - Keep the requested language, age level, gentle stakes and StoryBrand progression.
@@ -62,6 +63,7 @@ OUTPUT
     },
     "clarifications": [{"id":"stable_snake_case_id","question":"creator-facing question","reason":"why chronology depends on it","suggested_answer":"safe default"}],
     "characters": [{"name":"exact canonical name","initial_location":"explicit place","default_presence_mode":"physical | thought | memory | voice"}],
+    "wardrobe_plan": [{"character_name":"exact canonical human name","activation_scene_number":1}],
     "objects": [{"name":"stable object name","owner":"canonical name","initial_state":"worn | held | carried | stored | visible | absent | left_behind","track_every_scene":true}],
     "scenes": [{
       "scene_number": 1,

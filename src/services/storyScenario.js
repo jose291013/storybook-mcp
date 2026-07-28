@@ -58,11 +58,17 @@ export function scenarioCharacterRegistry(normalized = {}) {
     role: "child",
     storyRole: "hero",
     relationship: "hero",
+    outfitPreference: photos.find((photo) => photo.role === "child")?.outfit_preference || "auto_universe",
+    outfitId: photos.find((photo) => photo.role === "child")?.outfit_id || "",
+    outfitContract: photos.find((photo) => photo.role === "child")?.outfit_contract || "",
   }, ...photos.filter((photo) => photo.role !== "child").map((photo) => ({
     name: photo.name,
     role: photo.role,
     storyRole: photo.story_role,
     relationship: photo.relationship,
+    outfitPreference: photo.outfit_preference,
+    outfitId: photo.outfit_id,
+    outfitContract: photo.outfit_contract,
   }))].filter((character) => character.name);
   return registry.filter((character, index, all) => all.findIndex((candidate) => key(candidate.name) === key(character.name)) === index);
 }
@@ -180,6 +186,36 @@ export function normalizeStoryScenario(candidate = {}, {
       continuityToNext: text(supplied?.continuity_to_next),
     };
   });
+  const suppliedWardrobe = list(raw?.wardrobe_plan || raw?.wardrobePlan, 20);
+  const wardrobePlan = scenarioCharacters
+    .filter((character) => text(character?.outfitContract || character?.outfit_contract))
+    .map((character) => {
+      const supplied = suppliedWardrobe.find((item) => key(item?.character_name || item?.characterName) === key(character.name)) || {};
+      const preference = text(character.outfitPreference || character.outfit_preference || "auto_universe");
+      const visibleScenes = scenes.filter((scene) => scene.characterPresences.some((presence) => presence.mode === "physical" && key(presence.name) === key(character.name)));
+      const crossing = visibleScenes.find((scene) => (
+        scene.transition.kind === "cross_passage"
+        && scene.transition.characters.some((name) => key(name) === key(character.name))
+      ));
+      const requestedActivation = Number(supplied?.activation_scene_number || supplied?.activationSceneNumber);
+      const fallbackActivation = preference === "preserve_photo"
+        ? (visibleScenes[0]?.sceneNumber || 1)
+        : crossing
+          ? Math.max(1, crossing.sceneNumber - 1)
+          : (visibleScenes[0]?.sceneNumber || 1);
+      const activationSceneNumber = scenes.some((scene) => scene.sceneNumber === requestedActivation)
+        ? requestedActivation
+        : fallbackActivation;
+      return {
+        characterName: character.name,
+        preference,
+        outfitId: text(character.outfitId || character.outfit_id),
+        initialDescription: "reference_photo_outfit",
+        adventureDescription: text(character.outfitContract || character.outfit_contract),
+        activationMode: preference === "preserve_photo" ? "from_start" : "before_universe_entry",
+        activationSceneNumber,
+      };
+    });
   return {
     version: STORY_SCENARIO_VERSION,
     movementLedgerVersion: CHARACTER_MOVEMENT_LEDGER_VERSION,
@@ -192,6 +228,7 @@ export function normalizeStoryScenario(candidate = {}, {
       ? structuredClone(worldContract)
       : {},
     characters,
+    wardrobePlan,
     objects,
     scenes,
   };

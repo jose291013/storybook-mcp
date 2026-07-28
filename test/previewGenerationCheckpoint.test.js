@@ -27,6 +27,35 @@ test("preview checkpoint fingerprints are stable and retain unrelated continuity
   assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
+test("legacy wardrobe defaults keep their fingerprint while explicit choices invalidate it", () => {
+  const legacy = {
+    answers: { age: "8", hero_name: "Nolan", universe_id: "coral_ocean" },
+    photos: [{ id: "1", storageKey: "reference-photos/1.jpg", role: "child", story_role: "hero", name: "Nolan" }],
+  };
+  const normalizedLegacy = {
+    ...legacy,
+    photos: [{
+      ...legacy.photos[0],
+      outfit_preference: "preserve_photo",
+      outfit_id: "",
+      outfit_contract: "reference outfit",
+      outfit_selection_explicit: false,
+    }],
+  };
+  assert.equal(previewRequestFingerprint(legacy), previewRequestFingerprint(normalizedLegacy));
+  const explicit = {
+    ...normalizedLegacy,
+    photos: [{
+      ...normalizedLegacy.photos[0],
+      outfit_preference: "selected",
+      outfit_id: "reef_explorer",
+      outfit_contract: "turquoise wetsuit",
+      outfit_selection_explicit: true,
+    }],
+  };
+  assert.notEqual(previewRequestFingerprint(legacy), previewRequestFingerprint(explicit));
+});
+
 test("an exhausted legacy preview gets one recovery under the safer image policy", () => {
   const legacy = {
     continuitySnapshot: mergeGenerationCheckpoint({}, {
