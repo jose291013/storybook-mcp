@@ -19,6 +19,11 @@ export function previewRequestFingerprint(normalized) {
       story_role: photo.story_role,
       name: photo.name,
       relationship: photo.relationship,
+      ...(photo.outfit_selection_explicit ? {
+        outfit_preference: photo.outfit_preference,
+        outfit_id: photo.outfit_id,
+        outfit_contract: photo.outfit_contract,
+      } : {}),
     })),
   };
   return crypto.createHash("sha256").update(JSON.stringify(stableValue(payload))).digest("hex");

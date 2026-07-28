@@ -264,7 +264,10 @@ router.post("/projects/:id/reference-recovery", async (req, res) => {
     if (!referencePhotoRecoveryAvailable(project)) {
       return res.status(409).json({ error: "This project is not eligible for the legacy reference-photo recovery" });
     }
-    const photos = normalizeReferencePhotos({ photos: req.body?.photos || [] });
+    const photos = normalizeReferencePhotos(
+      { photos: req.body?.photos || [] },
+      project.questionnaire?.universe_id || project.productConfiguration?.universe_id,
+    );
     if (!photos.length) return res.status(400).json({ error: "At least one replacement reference photo is required" });
     await loadReferencePhotoAssets(photos);
     const requestedAt = new Date().toISOString();

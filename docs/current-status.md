@@ -8,43 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/guided-sensitivity-resources`
-- Latest merged checkpoint: PR #85 — localized child-safety intervention guidance (`7cf2c26`)
-- Current focused checkpoint: guided editorial sensitivity and country-aware human-support resources
-- Pull request: draft PR #86; this focused branch is not merged
+- Current branch: `main`
+- Latest merged checkpoint: PR #87 — creator-selected, universe-appropriate wardrobe continuity
+- Current focused checkpoint: production verification of wardrobe continuity
+- Pull request: PR #87 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #85 are merged. Production currently uses `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through PR #87 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: guided sensitivity and international support
+## Current product brick: universe-appropriate wardrobe continuity
 
-1. `STORY_SENSITIVITY_MODE=observe` remains behaviorally unchanged. The new behavior is opt-in through `guided`.
-2. Level 1 keeps the ordinary journey. Level 2 receives a private action-led gentle contract without adding a customer obstacle.
-3. Level 3 receives a private symbolic and open-ended contract that forbids definitive, diagnostic or therapeutic promises. The adult sees a prudent notice and must acknowledge it explicitly before continuing.
-4. Restricted acute-safety input stops before persistence, generation and credit reservation, then directs the adult toward human help.
-5. The versioned contract is propagated through intentions, suggestions, scenario, blueprint, manuscript and scene planning. It contains no copied family wording or diagnosis.
-6. Human-support contacts are served from a dated, versioned registry. The adult explicitly selects the country where the child is currently located; interface language, nationality and IP address are never used as a substitute.
-7. The first registry covers France, Spain, Belgium, Switzerland, the United Kingdom, the United States and Canada, with EU 112 and an honest unlisted-country fallback.
-8. Child sexual-safety enforcement remains independent and stricter: protective education is allowed, a possible disclosure pauses creation, and exploitative normalization is refused.
+1. At the private-photo role step, every human reference can explicitly keep the photo clothing, use the recommended universe outfit, or select one of three curated outfits.
+2. Outfit examples are universe-specific and localized in French, Spanish and English. Mascots are excluded from human wardrobe choices.
+3. The scenario stores a wardrobe plan and exposes the activation scene during creator review. A changed outfit activates before the character enters the adventure zone, not after arrival.
+4. Cover and interior prompts use per-scene wardrobe locks. Earlier scenes preserve reference clothing; later scenes preserve the approved adventure outfit.
+5. Identity remains independent from wardrobe. Animal and plush canons ignore human outfit contracts.
+6. Legacy projects without an explicit outfit choice keep their photo wardrobe and retain their previous preview fingerprint.
 
 ## Verification completed locally
 
-- Guided sensitivity targeted tests pass: level 2 internal guidance, level 3 acknowledgment and acute-safety pause.
-- Country-resource tests verify explicit current-country selection, localized labels, official sources and the absence of invented fallback numbers.
-- Existing child-safety, funnel, persistence, generation, commerce and private-asset tests remain green.
-- Full local suite passes: 209 tests, 0 failures.
+- Targeted wardrobe tests pass: selected underwater outfit normalization, per-scene activation, cover outfit and legacy continuity wording.
+- Full local suite passes: 212 tests, 0 failures.
 - The production dependency audit previously reported 0 known vulnerabilities after the Sharp 0.35.3 upgrade.
 
 ## Next verification target
 
-1. Review draft PR #86 without merging it.
-2. After explicit user approval and confirmation that no book is generating, mark it ready, merge and let Render redeploy.
-3. Keep `STORY_SENSITIVITY_MODE=observe` for a smoke test proving that the new release does not change the live journey.
-4. Then set `STORY_SENSITIVITY_MODE=guided` deliberately and verify one level-1, one level-2, one level-3 and one acute-safety case in FR, ES and EN.
-5. For the acute case, select at least France, Spain and **Other country** and verify that the contacts change by current country, no language-based inference occurs, no credit is reserved and no project is created.
+1. Let Render redeploy PR #87 and verify the service health.
+2. Verify the photo-role UI at desktop and mobile widths in FR and ES.
+3. Smoke-test one coral-ocean book: ordinary photo clothes before preparation, selected marine outfit before submersion, same outfit and breathing mechanism throughout underwater scenes.
 
 ## Protected local state
 

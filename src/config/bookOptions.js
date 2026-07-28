@@ -1,4 +1,5 @@
 import { READING_PAGE_COUNTS } from "./readingGuidance.js";
+import { outfitOptionsForUniverse } from "./outfitOptions.js";
 
 export const ALLOWED_PAGE_COUNTS = [...READING_PAGE_COUNTS];
 export const PRINT_PAGE_PRICE_EUR = 1.2458;
@@ -61,6 +62,7 @@ export const UNIVERSE_OPTIONS = [
     description: "Une foret lumineuse peuplee de sentiers secrets, de fleurs brillantes et d'animaux bienveillants.",
     prompt: "une foret enchantee chaleureuse, sentiers moussus, arbres majestueux, fleurs lumineuses et magie douce",
     palette: ["#244f3f", "#f1b85b", "#8bc4a8"],
+    outfitOptions: outfitOptionsForUniverse("enchanted_forest"),
     previewImage: "/assets/examples/universes/enchanted_forest-likeness.webp",
     referenceImage: UNIVERSE_REFERENCE_IMAGE,
     storyContract: {
@@ -82,6 +84,7 @@ export const UNIVERSE_OPTIONS = [
     description: "Des planetes colorees, des constellations amicales et une aventure cosmique non effrayante.",
     prompt: "un espace etoile merveilleux, planetes colorees, constellations amicales et lumiere cosmique douce",
     palette: ["#252a62", "#7868d8", "#f5ca69"],
+    outfitOptions: outfitOptionsForUniverse("starry_space"),
     previewImage: "/assets/examples/universes/starry_space-likeness.webp",
     referenceImage: UNIVERSE_REFERENCE_IMAGE,
     storyContract: {
@@ -105,6 +108,7 @@ export const UNIVERSE_OPTIONS = [
     description: "Un monde sous-marin clair et joyeux avec des poissons curieux et des jardins de corail.",
     prompt: "un ocean de corail clair et joyeux, poissons curieux, jardins sous-marins et rayons de soleil turquoise",
     palette: ["#167c8d", "#68c5c0", "#ff9c7d"],
+    outfitOptions: outfitOptionsForUniverse("coral_ocean"),
     previewImage: "/assets/examples/universes/coral_ocean-likeness.webp",
     referenceImage: UNIVERSE_REFERENCE_IMAGE,
     storyContract: {
@@ -129,6 +133,7 @@ export const UNIVERSE_OPTIONS = [
     description: "Un royaume aerien aux ponts de nuages, tours dorees et creatures fantastiques gentilles.",
     prompt: "un chateau merveilleux dans les nuages, tours dorees, ponts aeriens et creatures fantastiques bienveillantes",
     palette: ["#92b7e8", "#f2d087", "#d9b5e8"],
+    outfitOptions: outfitOptionsForUniverse("cloud_castle"),
     previewImage: "/assets/examples/universes/cloud_castle-likeness.webp",
     referenceImage: UNIVERSE_REFERENCE_IMAGE,
     storyContract: {
@@ -152,6 +157,7 @@ export const UNIVERSE_OPTIONS = [
     description: "Une vallee prehistorique luxuriante avec des dinosaures attachants et aucune scene effrayante.",
     prompt: "une vallee prehistorique luxuriante, dinosaures attachants, fougeres geantes et aventure douce",
     palette: ["#527a45", "#b8cb6b", "#e68a5f"],
+    outfitOptions: outfitOptionsForUniverse("dinosaur_valley"),
     previewImage: "/assets/examples/universes/dinosaur_valley-likeness.webp",
     referenceImage: UNIVERSE_REFERENCE_IMAGE,
     storyContract: {
@@ -173,6 +179,7 @@ export const UNIVERSE_OPTIONS = [
     description: "Une ville fantastique pleine d'ateliers, de toits colores et de petits passages secrets.",
     prompt: "une ville fantastique chaleureuse, toits colores, ateliers merveilleux, ruelles fleuries et passages secrets",
     palette: ["#4d6f91", "#e88974", "#f0c96d"],
+    outfitOptions: outfitOptionsForUniverse("wonder_city"),
     previewImage: "/assets/examples/universes/wonder_city-likeness.webp",
     referenceImage: UNIVERSE_REFERENCE_IMAGE,
     storyContract: {

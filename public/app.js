@@ -360,6 +360,59 @@ const UNIVERSE_TEXT = {
   wonder_city: { FR: ["Ville merveilleuse", "Ateliers magiques, toits colorés et passages secrets."], ES: ["Ciudad maravillosa", "Talleres mágicos, tejados de colores y pasadizos."], EN: ["Wonder city", "Magical workshops, colorful roofs and secret passages."] },
 };
 
+const OUTFIT_UI = {
+  FR: { title: "Tenue dans l’aventure", auto_universe: "Adapter à l’univers", preserve_photo: "Garder la tenue de la photo", selected: "Choisir une tenue", recommended: "Recommandé", lead: "Le visage et l’identité restent inchangés. La tenue choisie apparaît au moment logique du scénario." },
+  ES: { title: "Ropa durante la aventura", auto_universe: "Adaptar al universo", preserve_photo: "Conservar la ropa de la foto", selected: "Elegir un conjunto", recommended: "Recomendado", lead: "El rostro y la identidad no cambian. El conjunto aparece en el momento lógico del guion." },
+  EN: { title: "Outfit during the adventure", auto_universe: "Adapt to the universe", preserve_photo: "Keep the photo outfit", selected: "Choose an outfit", recommended: "Recommended", lead: "The face and identity remain unchanged. The selected outfit appears at the logical story moment." },
+};
+
+const OUTFIT_NAMES = {
+  forest_explorer: ["Explorateur de la forêt", "Explorador del bosque", "Forest explorer"],
+  woodland_storyteller: ["Conteur des bois", "Narrador del bosque", "Woodland storyteller"],
+  magical_botanist: ["Botaniste magique", "Botánico mágico", "Magical botanist"],
+  space_explorer: ["Explorateur spatial", "Explorador espacial", "Space explorer"],
+  cosmic_pilot: ["Pilote cosmique", "Piloto cósmico", "Cosmic pilot"],
+  star_researcher: ["Chercheur d’étoiles", "Investigador de estrellas", "Star researcher"],
+  reef_explorer: ["Explorateur du récif", "Explorador del arrecife", "Reef explorer"],
+  ocean_scientist: ["Scientifique marin", "Científico marino", "Ocean scientist"],
+  aquatic_adventurer: ["Aventurier aquatique", "Aventurero acuático", "Aquatic adventurer"],
+  sky_explorer: ["Explorateur du ciel", "Explorador del cielo", "Sky explorer"],
+  cloud_guardian: ["Gardien des nuages", "Guardián de las nubes", "Cloud guardian"],
+  airship_crew: ["Équipage de l’aéronef", "Tripulación del dirigible", "Airship crew"],
+  field_explorer: ["Explorateur de terrain", "Explorador de campo", "Field explorer"],
+  fossil_researcher: ["Chercheur de fossiles", "Investigador de fósiles", "Fossil researcher"],
+  valley_adventurer: ["Aventurier de la vallée", "Aventurero del valle", "Valley adventurer"],
+  workshop_apprentice: ["Apprenti de l’atelier", "Aprendiz del taller", "Workshop apprentice"],
+  city_explorer: ["Explorateur de la ville", "Explorador de la ciudad", "City explorer"],
+  young_inventor: ["Jeune inventeur", "Joven inventor", "Young inventor"],
+};
+
+const OUTFIT_DETAILS = {
+  forest_explorer: ["Veste vert mousse, haut crème, pantalon ocre et bottines.", "Chaqueta verde musgo, camiseta crema, pantalón ocre y botines."],
+  woodland_storyteller: ["Gilet bleu canard, pantalon rouille et bottines vertes.", "Cárdigan verde azulado, pantalón teja y botines verdes."],
+  magical_botanist: ["Gilet feuillage, haut crème, pantalon brun et bottes.", "Chaleco verde, camiseta crema, pantalón marrón y botas."],
+  space_explorer: ["Combinaison marine et turquoise avec protection adaptée.", "Traje azul marino y turquesa con protección adecuada."],
+  cosmic_pilot: ["Combinaison bleu profond, détails corail et chaussures sûres.", "Mono azul, detalles coral y calzado seguro."],
+  star_researcher: ["Tenue prune et argent avec casque si nécessaire.", "Traje ciruela y plata con casco cuando sea necesario."],
+  reef_explorer: ["Combinaison turquoise et corail, chaussons et bulle respiratoire.", "Traje turquesa y coral, escarpines y burbuja respiratoria."],
+  ocean_scientist: ["Tenue marine et aqua, ceinture sûre et protection respiratoire.", "Traje marino y aguamarina, cinturón seguro y protección respiratoria."],
+  aquatic_adventurer: ["Tenue fluide bleu-vert, détails corail et bulle respiratoire.", "Traje azul verdoso, detalles coral y burbuja respiratoria."],
+  sky_explorer: ["Veste coupe-vent, cape courte sécurisée et bottes.", "Chaqueta cortavientos, capa corta segura y botas."],
+  cloud_guardian: ["Tunique crème et or, pantalon bleu et bottines.", "Túnica crema y dorada, pantalón azul y botines."],
+  airship_crew: ["Combinaison bleu canard, gilet ocre et bottes.", "Mono verde azulado, chaleco ocre y botas."],
+  field_explorer: ["Chemise sable, pantalon cargo, bottes et chapeau souple.", "Camisa arena, pantalón cargo, botas y sombrero flexible."],
+  fossil_researcher: ["Gilet rouille, haut crème, pantalon vert et bottes.", "Chaleco teja, camiseta crema, pantalón verde y botas."],
+  valley_adventurer: ["Veste légère bleu-vert, pantalon ocre et bottes.", "Chaqueta ligera verde azulada, pantalón ocre y botas."],
+  workshop_apprentice: ["Haut bleu-vert, tablier rouille et chaussures fermées.", "Camiseta verde azulada, delantal teja y zapatos cerrados."],
+  city_explorer: ["Veste corail, haut crème, pantalon bleu-vert et chaussures confortables.", "Chaqueta coral, camiseta crema, pantalón verde azulado y calzado cómodo."],
+  young_inventor: ["Gilet vert, chemise crème, pantalon ocre et lunettes à l’atelier.", "Chaleco verde, camisa crema, pantalón ocre y gafas en el taller."],
+};
+
+function outfitUi() { return OUTFIT_UI[state.locale] || OUTFIT_UI.FR; }
+function universeOutfits() { return state.config?.universeOptions?.find((option) => option.id === state.selectedUniverse)?.outfitOptions || []; }
+function outfitName(id) { return OUTFIT_NAMES[id]?.[{ FR: 0, ES: 1, EN: 2 }[state.locale] || 0] || id; }
+function outfitDescription(option) { return state.locale === "EN" ? option.prompt : OUTFIT_DETAILS[option.id]?.[state.locale === "ES" ? 1 : 0] || option.prompt; }
+
 const UNIVERSE_CONTRACT_TEXT = {
   enchanted_forest: {
     FR: { adventure: "Les chemins et clairières d'une forêt réellement enchantée.", entry: "L'aventure commence à son entrée ou après la découverte d'un passage clairement montré.", rules: ["La magie visible peut ouvrir ou éclairer un chemin.", "Les objets ordinaires restent soumis aux règles normales."], mechanisms: ["Le passage ou le signe magique est découvert avant d'être utilisé."] },
@@ -798,6 +851,17 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   elements.scenarioWorldContract.innerHTML = contractRules.length
     ? `<h3>${escapeHtml(tr("scenarioContractTitle"))}</h3><p>${escapeHtml(tr("scenarioContractLead"))}</p><dl>${contractRules.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>`
     : "";
+  const wardrobePlan = scenario.wardrobePlan || [];
+  if (wardrobePlan.length) {
+    const sceneWord = state.locale === "ES" ? "escena" : state.locale === "EN" ? "scene" : "scène";
+    const wardrobeTitle = state.locale === "ES" ? "Vestuario previsto" : state.locale === "EN" ? "Planned wardrobe" : "Tenues prévues";
+    const wardrobeLead = state.locale === "ES"
+      ? "La ropa cambia antes de entrar en el universo y permanece estable después."
+      : state.locale === "EN"
+        ? "Clothing changes before entering the universe and then remains stable."
+        : "La tenue change avant l’entrée dans l’univers, puis reste stable.";
+    elements.scenarioWorldContract.insertAdjacentHTML("beforeend", `<div class="scenario-wardrobe"><h3>${escapeHtml(wardrobeTitle)}</h3><p>${escapeHtml(wardrobeLead)}</p>${wardrobePlan.map((item) => `<div><strong>${escapeHtml(item.characterName)}</strong><span>${escapeHtml(item.preference === "preserve_photo" ? outfitUi().preserve_photo : `${outfitName(item.outfitId)} · ${sceneWord} ${Number(item.activationSceneNumber || 1)}`)}</span></div>`).join("")}</div>`);
+  }
   const clarifications = scenario.clarifications || [];
   const validation = scenario.validation || { valid: true, categories: [], sceneNumbers: [], categoryScenes: {} };
   const needsRevision = validation.valid === false;
@@ -1933,9 +1997,18 @@ function addPhotos(files) {
   [...files].filter((file) => file.type.startsWith("image/")).slice(0, remaining).forEach((file) => {
     const role = state.photos.some((photo) => photo.role === "child") ? "" : "child";
     const storyRole = role === "child" ? "hero" : "";
-    state.photos.push({ file, url: URL.createObjectURL(file), role, storyRole, name: "", relationship: "" });
+    state.photos.push({ file, url: URL.createObjectURL(file), role, storyRole, name: "", relationship: "", outfitPreference: "auto_universe", outfitId: "" });
   });
   renderPhotos();
+}
+
+function outfitControlsHtml(photo) {
+  if (photo.role === "mascot") return "";
+  const copy = outfitUi();
+  const options = universeOutfits();
+  const preference = photo.outfitPreference || "auto_universe";
+  const selectedId = photo.outfitId || options[0]?.id || "";
+  return `<div class="photo-outfit"><strong>${escapeHtml(copy.title)}</strong><p>${escapeHtml(copy.lead)}</p><div class="outfit-preference-grid">${["auto_universe", "preserve_photo", "selected"].map((mode) => `<button type="button" class="outfit-preference ${preference === mode ? "is-selected" : ""}" data-outfit-preference="${mode}">${escapeHtml(copy[mode])}${mode === "auto_universe" ? `<small>${escapeHtml(copy.recommended)}</small>` : ""}</button>`).join("")}</div>${preference === "selected" ? `<div class="outfit-choice-grid">${options.map((option) => `<button type="button" class="outfit-choice ${selectedId === option.id ? "is-selected" : ""}" data-outfit-id="${escapeHtml(option.id)}"><strong>${escapeHtml(outfitName(option.id))}</strong><span>${escapeHtml(outfitDescription(option))}</span></button>`).join("")}</div>` : preference === "auto_universe" && options[0] ? `<div class="outfit-recommendation"><strong>${escapeHtml(outfitName(options[0].id))}</strong><span>${escapeHtml(outfitDescription(options[0]))}</span></div>` : ""}</div>`;
 }
 
 function renderPhotos() {
@@ -1948,6 +2021,7 @@ function renderPhotos() {
   }).join("");
   elements.photoList.querySelectorAll(".photo-item").forEach((item) => {
     const index = Number(item.dataset.photoIndex);
+    item.insertAdjacentHTML("beforeend", outfitControlsHtml(state.photos[index]));
     item.querySelector('[data-field="role"]').addEventListener("change", (event) => {
       const previous = state.photos[index].role;
       state.photos[index].role = event.target.value;
@@ -1958,6 +2032,17 @@ function renderPhotos() {
     item.querySelector('[data-field="storyRole"]').addEventListener("change", (event) => { state.photos[index].storyRole = event.target.value; });
     item.querySelector('[data-field="name"]').addEventListener("input", (event) => { state.photos[index].name = event.target.value; });
     item.querySelector('[data-field="relationship"]').addEventListener("input", (event) => { state.photos[index].relationship = event.target.value; });
+    item.querySelectorAll("[data-outfit-preference]").forEach((button) => button.addEventListener("click", () => {
+      state.photos[index].outfitPreference = button.dataset.outfitPreference;
+      if (state.photos[index].outfitPreference === "selected" && !state.photos[index].outfitId) {
+        state.photos[index].outfitId = universeOutfits()[0]?.id || "";
+      }
+      renderPhotos();
+    }));
+    item.querySelectorAll("[data-outfit-id]").forEach((button) => button.addEventListener("click", () => {
+      state.photos[index].outfitId = button.dataset.outfitId;
+      renderPhotos();
+    }));
     item.querySelector(".remove-photo").addEventListener("click", () => { if (state.photos[index].file) URL.revokeObjectURL(state.photos[index].url); state.photos.splice(index, 1); renderPhotos(); });
   });
 }
@@ -2079,13 +2164,32 @@ function emitWooConfiguration() { const detail = productConfiguration(); window.
 
 async function uploadPhotos() {
   if (!state.photos.length) return [];
-  const inherited = state.photos.filter((photo) => photo.storedRef).map((photo) => ({ ...photo.storedRef, role: photo.role, story_role: photo.storyRole, name: photo.name.trim(), relationship: photo.relationship }));
+  const inherited = state.photos.filter((photo) => photo.storedRef).map((photo) => ({
+    ...photo.storedRef,
+    role: photo.role,
+    story_role: photo.storyRole,
+    name: photo.name.trim(),
+    relationship: photo.relationship,
+    outfit_preference: photo.outfitPreference || "auto_universe",
+    outfit_id: photo.outfitId || "",
+  }));
   const fresh = state.photos.filter((photo) => photo.file);
   if (!fresh.length) return inherited;
   const formData = new FormData(); fresh.forEach((photo) => formData.append("photos", photo.file));
   const response = await fetch("/api/upload", { method: "POST", body: formData }); const payload = await response.json();
   if (!response.ok) throw new Error(payload.error || tr("uploadError"));
-  return [...inherited, ...payload.photos.map((uploaded, index) => ({ id: uploaded.id, storageKey: uploaded.storageKey, mimeType: uploaded.mimeType, size: uploaded.size, role: fresh[index].role, story_role: fresh[index].storyRole, name: fresh[index].name.trim(), relationship: fresh[index].relationship }))];
+  return [...inherited, ...payload.photos.map((uploaded, index) => ({
+    id: uploaded.id,
+    storageKey: uploaded.storageKey,
+    mimeType: uploaded.mimeType,
+    size: uploaded.size,
+    role: fresh[index].role,
+    story_role: fresh[index].storyRole,
+    name: fresh[index].name.trim(),
+    relationship: fresh[index].relationship,
+    outfit_preference: fresh[index].outfitPreference || "auto_universe",
+    outfit_id: fresh[index].outfitId || "",
+  }))];
 }
 
 function generationProgress(step = "") {
@@ -2847,6 +2951,8 @@ function loadSeriesDraft(project) {
     url: `/api/projects/${encodeURIComponent(project.id)}/reference-photos/${encodeURIComponent(photo.id)}`,
     role: photo.role || "other", storyRole: photo.storyRole || photo.story_role || defaultStoryRole(photo.role),
     name: photo.name || "", relationship: photo.relationship || "",
+    outfitPreference: photo.outfitPreference || photo.outfit_preference || "auto_universe",
+    outfitId: photo.outfitId || photo.outfit_id || "",
   }));
   renderPhotos(); setPreviewComplete(false);
   state.awaitingPreviewConfirmation = false;

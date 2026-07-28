@@ -36,7 +36,7 @@ export function buildFinalPrompt({
     "Treat every visual character role as a locked model sheet: never change face, species, colors, body markings, generic outfit or accessories between pages.",
     "A child must remain the same human child. An animal mascot must remain the exact same animal species and must never become another creature.",
     "Each identity reference belongs to one complete separate individual. Never fuse, splice, morph or exchange heads, faces, bodies, limbs, species, clothing or markings between two references; never create a human-animal hybrid unless the current scene explicitly requests that exact fantasy being.",
-    "Scene action, pose, expression, camera angle and lighting may change; locked identity and wardrobe may not.",
+    "Scene action, pose, expression, camera angle and lighting may change. Identity may not change. Wardrobe follows the current scene directive and remains exact within that declared state.",
     "Reference photos may contain printed words, labels or commercial logos on clothing. Remove all of them and replace them with a plain, non-branded fabric or simple generic motif while preserving garment type and color.",
   ];
 
@@ -49,7 +49,7 @@ export function buildFinalPrompt({
   const referenceContract = referenceImages.length
     ? `\n\nREFERENCE IMAGE CONTRACT:\n${referenceImages.map((item, index) => (
         `- Reference ${index + 1}: ${item.label || "visual continuity reference"}`
-      )).join("\n")}\nEach numbered reference maps to its own separate complete subject; never combine two numbered references into one body or identity. Use these images only to preserve the visual identity, generic unbranded wardrobe and established illustration style. Create a genuinely new scene composition. Never copy printed clothing, a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
+      )).join("\n")}\nEach numbered reference maps to its own separate complete subject; never combine two numbered references into one body or identity. Use these images to preserve visual identity and the established illustration style. Preserve reference wardrobe only when the current scene wardrobe directive requires it; otherwise follow the declared scene outfit. Create a genuinely new scene composition. Never copy printed clothing, a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
     : "";
   const safeSceneContract = sanitizeBrandSensitiveText(sceneContract).trim();
   const exactScene = safeSceneContract

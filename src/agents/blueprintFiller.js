@@ -240,6 +240,7 @@ export function lockBlueprintContinuity(blueprint, {
   language,
   pageCount,
   fontStyle,
+  approvedScenario = null,
 } = {}) {
   const selectedPageCount = normalizePageCount(pageCount ?? blueprint?.format?.interior_pages);
   const selectedFontStyle = normalizeTypography(fontStyle ?? blueprint?.typography?.id);
@@ -250,9 +251,18 @@ export function lockBlueprintContinuity(blueprint, {
   const questObject = normalizeQuestObject(result);
   result.hero ||= {};
   const childCanon = characterCanons.find((canon) => canon.role === "child");
+  const wardrobePlan = Array.isArray(approvedScenario?.wardrobePlan) ? approvedScenario.wardrobePlan : [];
+  const wardrobeFor = (name) => wardrobePlan.find((item) => sameName(item?.characterName, name));
+  const canonicalOutfit = (canon, fallback = "") => {
+    if (canon?.role === "mascot" || canon?.canon_json?.subject_kind === "animal") return String(canon?.outfit_lock || fallback || "").trim();
+    const plan = wardrobeFor(canon?.name);
+    if (plan?.preference === "preserve_photo") return String(canon?.outfit_lock || fallback || "").trim();
+    return String(plan?.adventureDescription || (canon?.outfit_selection_explicit ? canon?.outfit_contract : "") || fallback || "").trim();
+  };
   if (childCanon?.name) result.hero.name = childCanon.name;
   result.hero.outfit_lock = String(
-    childCanon?.outfit_lock
+    canonicalOutfit(childCanon)
+    || childCanon?.outfit_lock
     || result.hero.outfit_lock
     || heroProfile?.outfit_lock
     || "a dark teal long-sleeve top, warm ochre trousers and plain white sneakers"
@@ -265,7 +275,7 @@ export function lockBlueprintContinuity(blueprint, {
       ...character,
       name: photoCanon?.name || character.name,
       canon_short: photoCanon?.canon_short || character.canon_short || "",
-      outfit_lock: photoCanon?.outfit_lock || character.outfit_lock || "",
+      outfit_lock: canonicalOutfit(photoCanon, character.outfit_lock) || photoCanon?.outfit_lock || character.outfit_lock || "",
       story_role: photoCanon?.story_role || character.story_role || "guest",
     };
   });
@@ -277,7 +287,7 @@ export function lockBlueprintContinuity(blueprint, {
       relationship: canon.relationship || "",
       story_role: canon.story_role || "guest",
       canon_short: canon.canon_short || canon.character_fingerprint || "",
-      outfit_lock: canon.outfit_lock || "",
+      outfit_lock: canonicalOutfit(canon) || canon.outfit_lock || "",
     });
   }
 
@@ -336,15 +346,38 @@ export function lockBlueprintContinuity(blueprint, {
   }
   lockPlotObjectTimeline(result, questObject);
   syncSpreadCastContracts(result, canonicalCharacters, questObject);
+  const originalOutfitFor = (name) => canonicalCharacterMatch(name, characterCanons)?.outfit_lock || "";
+  const hasHumanWardrobe = (name) => {
+    const canon = canonicalCharacterMatch(name, characterCanons);
+    return canon?.role !== "mascot" && canon?.canon_json?.subject_kind !== "animal";
+  };
+  const outfitAtScene = (character, sceneNumber) => {
+    if (!hasHumanWardrobe(character.name)) return originalOutfitFor(character.name) || character.outfit_lock;
+    const plan = wardrobeFor(character.name);
+    if (!plan || plan.preference === "preserve_photo") return originalOutfitFor(character.name) || character.outfit_lock;
+    return Number(sceneNumber || 0) >= Number(plan.activationSceneNumber || 1)
+      ? (plan.adventureDescription || character.outfit_lock)
+      : (originalOutfitFor(character.name) || character.outfit_lock);
+  };
   const outfitCharacters = [result.hero, ...result.cast].filter((character) => character?.name && character?.outfit_lock);
+  result.cover.wardrobe_locks = [];
+  for (const page of result.pages.filter((item) => item.page_type === "image")) page.wardrobe_locks = [];
   for (const character of outfitCharacters) {
-    const fixedOutfit = outfitDirective(result.language, character.name, character.outfit_lock);
+    const coverPlan = wardrobeFor(character.name);
+    const coverOutfit = !hasHumanWardrobe(character.name) || coverPlan?.preference === "preserve_photo"
+      ? character.outfit_lock
+      : (coverPlan?.adventureDescription || character.outfit_lock);
+    const fixedOutfit = outfitDirective(result.language, character.name, coverOutfit);
     if (result.cover.cast_present.some((name) => sameName(name, character.name))) {
       result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);
+      result.cover.wardrobe_locks.push({ name: character.name, outfit: coverOutfit });
     }
     for (const page of result.pages.filter((item) => item.page_type === "image")) {
       if (page.cast_present.some((name) => sameName(name, character.name))) {
-        page.image_prompt = appendDirective(page.image_prompt, fixedOutfit);
+        const sceneOutfit = outfitAtScene(character, page.scene_number);
+        page.wardrobe_locks ||= [];
+        page.wardrobe_locks.push({ name: character.name, outfit: sceneOutfit });
+        page.image_prompt = appendDirective(page.image_prompt, outfitDirective(result.language, character.name, sceneOutfit));
       }
     }
   }
@@ -404,7 +437,7 @@ export async function blueprintFillerAgent({
 
   // If it's already an object, return it
   if (candidate && typeof candidate === "object") {
-    return lockBlueprintContinuity(extractBlueprintCandidate(candidate), { heroProfile, characterCanons, language, pageCount, fontStyle });
+    return lockBlueprintContinuity(extractBlueprintCandidate(candidate), { heroProfile, characterCanons, language, pageCount, fontStyle, approvedScenario });
   }
 
   // Otherwise parse from string
@@ -412,6 +445,6 @@ export async function blueprintFillerAgent({
   if (!parsed) {
     throw new Error("blueprintFillerAgent: could not parse JSON from agent output");
   }
-  return lockBlueprintContinuity(extractBlueprintCandidate(parsed), { heroProfile, characterCanons, language, pageCount, fontStyle });
+  return lockBlueprintContinuity(extractBlueprintCandidate(parsed), { heroProfile, characterCanons, language, pageCount, fontStyle, approvedScenario });
 }
 

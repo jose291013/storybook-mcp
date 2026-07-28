@@ -7,6 +7,7 @@ import {
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
 import { findUniverse, normalizePageCount, normalizeProductType, normalizeTypography } from "../config/bookOptions.js";
+import { normalizeOutfitSelection } from "../config/outfitOptions.js";
 
 function clean(value) {
   return value == null ? "" : String(value).trim();
@@ -22,7 +23,7 @@ function legacyPhotoList(body) {
   ].filter(Boolean);
 }
 
-export function normalizeReferencePhotos(body = {}) {
+export function normalizeReferencePhotos(body = {}, universeId = "enchanted_forest") {
   const raw = Array.isArray(body.photos) ? body.photos : legacyPhotoList(body);
   if (raw.length > MAX_REFERENCE_PHOTOS) {
     throw new Error(`A maximum of ${MAX_REFERENCE_PHOTOS} reference photos is allowed`);
@@ -47,6 +48,7 @@ export function normalizeReferencePhotos(body = {}) {
     if (storageKey && !/^reference-photos\/[a-zA-Z0-9._-]+$/.test(storageKey)) {
       throw new Error(`Reference photo ${index + 1} has an invalid storage key`);
     }
+    const outfit = normalizeOutfitSelection({ ...photo, role }, universeId);
     return {
       id,
       storageKey,
@@ -56,6 +58,10 @@ export function normalizeReferencePhotos(body = {}) {
       story_role: storyRole,
       name: clean(photo?.name),
       relationship: clean(photo?.relationship),
+      outfit_preference: outfit.preference,
+      outfit_id: outfit.outfitId,
+      outfit_contract: outfit.resolvedDescription,
+      outfit_selection_explicit: outfit.explicit,
     };
   });
 
@@ -128,5 +134,5 @@ export function normalizeBookRequest(body = {}) {
   if (!answers.hero_name) throw new Error("Missing hero name");
   if (!answers.age) throw new Error("Missing hero age");
 
-  return { answers, photos: normalizeReferencePhotos(body) };
+  return { answers, photos: normalizeReferencePhotos(body, selectedUniverse.id) };
 }

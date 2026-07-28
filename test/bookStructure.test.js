@@ -1005,6 +1005,23 @@ test("new request format accepts up to five typed photo references", () => {
   assert.equal(normalized.photos[1].story_role, "guide");
 });
 
+test("reference characters keep one explicit universe outfit choice", () => {
+  const normalized = normalizeBookRequest({
+    questionnaire: { hero_name: "Nolan", age: 8, universe_id: "coral_ocean" },
+    photos: [{
+      id: "nolan.png",
+      role: "child",
+      story_role: "hero",
+      name: "Nolan",
+      outfit_preference: "selected",
+      outfit_id: "ocean_scientist",
+    }],
+  });
+  assert.equal(normalized.photos[0].outfit_preference, "selected");
+  assert.equal(normalized.photos[0].outfit_id, "ocean_scientist");
+  assert.match(normalized.photos[0].outfit_contract, /marine exploration suit/i);
+});
+
 test("every creator-selected secondary narrative role remains authoritative", () => {
   for (const storyRole of ["guide", "ally", "companion", "supporter", "guest"]) {
     const normalized = normalizeBookRequest({
@@ -1403,6 +1420,67 @@ test("blueprint normalization gives every book one canonical outfit and canonica
   assert.ok(guidePage.cast_present.includes("Abuela Rosa"));
   assert.match(guidePage.image_prompt, /Incluye claramente a Abuela Rosa/);
   assert.equal(result.cast.find((character) => character.name === "Abuela Rosa").story_role, "guide");
+});
+
+test("approved wardrobe changes only from its declared scenario scene", () => {
+  const blueprint = {
+    hero: { name: "Nolan", outfit_lock: "" },
+    cast: [],
+    cover: { image_prompt: "Nolan explores the coral ocean", cast_present: ["Nolan"] },
+    pages: createPagePlan(24).map((page) => ({
+      ...page,
+      text_prompt: page.page_type === "image" ? "" : "text",
+      image_prompt: page.page_type === "image" ? "Nolan advances" : "",
+      cast_present: page.page_type === "image" ? ["Nolan"] : [],
+    })),
+  };
+  const photoOutfit = "grey t-shirt, red shorts and plain shoes";
+  const adventureOutfit = "turquoise wetsuit, reef shoes and transparent breathing bubble";
+  const result = lockBlueprintContinuity(blueprint, {
+    language: "EN",
+    pageCount: 24,
+    characterCanons: [{
+      name: "Nolan",
+      role: "child",
+      outfit_lock: photoOutfit,
+      outfit_contract: adventureOutfit,
+    }],
+    approvedScenario: {
+      wardrobePlan: [{
+        characterName: "Nolan",
+        preference: "selected",
+        adventureDescription: adventureOutfit,
+        activationSceneNumber: 3,
+      }],
+    },
+  });
+  const sceneTwo = result.pages.find((page) => page.page_type === "image" && page.scene_number === 2);
+  const sceneThree = result.pages.find((page) => page.page_type === "image" && page.scene_number === 3);
+  assert.equal(sceneTwo.wardrobe_locks[0].outfit, photoOutfit);
+  assert.equal(sceneThree.wardrobe_locks[0].outfit, adventureOutfit);
+  assert.equal(result.cover.wardrobe_locks[0].outfit, adventureOutfit);
+
+  const preserved = lockBlueprintContinuity(blueprint, {
+    language: "EN",
+    pageCount: 24,
+    characterCanons: [{
+      name: "Nolan",
+      role: "child",
+      outfit_lock: photoOutfit,
+      outfit_contract: "the generic clothing visible in the private reference",
+      outfit_selection_explicit: false,
+    }],
+    approvedScenario: {
+      wardrobePlan: [{
+        characterName: "Nolan",
+        preference: "preserve_photo",
+        adventureDescription: "the generic clothing visible in the private reference",
+        activationSceneNumber: 1,
+      }],
+    },
+  });
+  assert.equal(preserved.hero.outfit_lock, photoOutfit);
+  assert.equal(preserved.cover.wardrobe_locks[0].outfit, photoOutfit);
 });
 
 test("blueprint normalization repairs paired cast contracts, name typos and required side alternation", () => {
