@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import {
+  STORY_SENSITIVITY_PROFILE_VERSION,
   assessStorySensitivity,
   deterministicStorySensitivity,
   observeStorySensitivity,
@@ -26,8 +27,120 @@ test("deterministic sensitivity floor recognizes representative FR, ES and EN wo
     const profile = deterministicStorySensitivity({ creatorSituation });
     assert.equal(profile.level, level, name);
     assert.equal(profile.restricted, restricted, name);
-    assert.equal(profile.version, 1, name);
+    assert.equal(profile.version, STORY_SENSITIVITY_PROFILE_VERSION, name);
   }
+});
+
+test("critical deterministic floor tolerates natural spacing, accents and common misspellings", () => {
+  const cases = [
+    ["FR spaced self-harm", "Nolan s'auto mutile lorsque quelque chose le contrarie."],
+    ["FR self-injury", "Il se renferme et nous avons remarqué des auto lésions sur ses bras."],
+    ["FR misspelled suicide", "Un ami raconte qu'il parle de sucide."],
+    ["ES self-injury", "Se autolesiona cuando algo le contraría."],
+    ["ES suicide", "Ha hablado de suicidio con un amigo."],
+    ["EN hyphenated self-harm", "The child is showing signs of self-harm."],
+    ["EN self-injury", "The child has repeated self injury marks."],
+  ];
+
+  for (const [name, creatorSituation] of cases) {
+    const profile = deterministicStorySensitivity({ creatorSituation });
+    assert.equal(profile.level, 3, name);
+    assert.equal(profile.category, "acute_safety", name);
+    assert.equal(profile.restricted, true, name);
+    assert.equal(profile.needs_clarification, true, name);
+  }
+});
+
+test("critical deterministic floor overrides a classifier that misses acute safety", async () => {
+  const cases = [
+    "Nolan s'auto mutile lorsque quelque chose le contrarie.",
+    "Nolan reçoit bulling à l'école et un ami raconte qu'il parle de sucide.",
+    "Il se renferme et nous avons remarqué des auto lésions sur ses bras.",
+  ];
+
+  for (const creatorSituation of cases) {
+    for (const childAge of [6, 9, 12]) {
+      const profile = await assessStorySensitivity({
+        creatorSituation,
+        childAge,
+        locale: "FR",
+      }, {
+        runAgent: async () => ({
+          level: 1,
+          category: "everyday_challenge",
+          restricted: false,
+          needs_clarification: false,
+          confidence: "low",
+        }),
+      });
+
+      assert.equal(profile.level, 3);
+      assert.equal(profile.category, "acute_safety");
+      assert.equal(profile.restricted, true);
+    }
+  }
+});
+
+test("critical deterministic floor survives provider failure and avoids nearby false positives", async () => {
+  const fallback = await observeStorySensitivity({
+    creatorSituation: "Un ami raconte qu'il parle de sucide.",
+    childAge: 9,
+    locale: "FR",
+  }, {
+    mode: "observe",
+    timeoutMs: 1000,
+    runAgent: async () => { throw new Error("provider unavailable"); },
+  });
+
+  assert.equal(fallback.level, 3);
+  assert.equal(fallback.category, "acute_safety");
+  assert.equal(fallback.restricted, true);
+  assert.equal(fallback.source, "deterministic_fallback");
+
+  const controls = [
+    ["haircut", "Il se coupe les cheveux avant l'école.", 1],
+    ["accidental injury", "Il s'est blessé accidentellement au football.", 1],
+    ["withdrawal", "Il se renferme quand une activité lui semble difficile.", 1],
+    ["misspelled bullying", "Il reçoit du bulling à l'école.", 2],
+    ["bereavement", "La famille traverse le deuil de sa grand-mère.", 3],
+  ];
+
+  for (const [name, creatorSituation, level] of controls) {
+    const profile = deterministicStorySensitivity({ creatorSituation });
+    assert.equal(profile.level, level, name);
+    assert.equal(profile.restricted, false, name);
+  }
+});
+
+test("observation trace separates deterministic and classifier decisions without private text", async () => {
+  let trace = null;
+  const profile = await assessStorySensitivity({
+    creatorSituation: "Nolan s'auto mutile lorsqu'il est contrarié.",
+    childAge: 6,
+    locale: "FR",
+  }, {
+    onTrace: (value) => {
+      trace = value;
+    },
+    runAgent: async () => ({
+      level: 2,
+      category: "emotional_challenge",
+      restricted: false,
+      needs_clarification: false,
+      confidence: "medium",
+    }),
+  });
+
+  assert.equal(profile.restricted, true);
+  assert.deepEqual(trace, {
+    deterministicLevel: 3,
+    deterministicRestricted: true,
+    classifierLevel: 2,
+    classifierRestricted: false,
+    finalLevel: 3,
+    finalRestricted: true,
+  });
+  assert.doesNotMatch(JSON.stringify(trace), /Nolan|contrari/i);
 });
 
 test("hybrid sensitivity can raise but never lower the deterministic floor", async () => {
@@ -116,7 +229,7 @@ test("only the versioned private profile is persisted and it stays outside narra
   });
 
   assert.deepEqual(questionnaire.story_sensitivity_profile, {
-    version: 1,
+    version: STORY_SENSITIVITY_PROFILE_VERSION,
     level: 2,
     category: "emotional_challenge",
     restricted: false,
@@ -136,6 +249,38 @@ test("only the versioned private profile is persisted and it stays outside narra
   assert.equal(cannotBeLoweredAtPersistence.story_sensitivity_profile.level, 3);
 });
 
+test("persisted version-1 observations remain unchanged when the version-2 floor is deployed", () => {
+  const questionnaire = sanitizeSensitivityQuestionnaire({
+    creator_situation: "Nolan s'auto mutile lorsqu'il est contrarié.",
+    story_sensitivity_profile: {
+      version: 1,
+      level: 1,
+      category: "everyday_challenge",
+      restricted: false,
+      needs_clarification: false,
+      confidence: "medium",
+      source: "hybrid",
+    },
+  });
+
+  assert.equal(questionnaire.story_sensitivity_profile.version, 1);
+  assert.equal(questionnaire.story_sensitivity_profile.level, 1);
+  assert.equal(questionnaire.story_sensitivity_profile.restricted, false);
+
+  const current = sanitizeSensitivityQuestionnaire({
+    creator_situation: "Nolan s'auto mutile lorsqu'il est contrarié.",
+    story_sensitivity_profile: {
+      level: 1,
+      restricted: false,
+      needs_clarification: false,
+      confidence: "low",
+    },
+  });
+  assert.equal(current.story_sensitivity_profile.version, STORY_SENSITIVITY_PROFILE_VERSION);
+  assert.equal(current.story_sensitivity_profile.level, 3);
+  assert.equal(current.story_sensitivity_profile.restricted, true);
+});
+
 test("creator and route retain sensitivity observation without displaying or enforcing it", async () => {
   const [app, route, scenarioPrompt, textPrompt] = await Promise.all([
     fs.readFile("public/app.js", "utf8"),
@@ -149,6 +294,8 @@ test("creator and route retain sensitivity observation without displaying or enf
   assert.match(app, /state\.storySensitivityProfile = payload\.sensitivityProfile \|\| null/);
   assert.match(route, /observeStorySensitivity/);
   assert.match(route, /res\.json\(\{ intentions,/);
+  assert.match(route, /deterministicLevel/);
+  assert.match(route, /classifierRestricted/);
   assert.doesNotMatch(scenarioPrompt, /story_sensitivity_profile/);
   assert.doesNotMatch(textPrompt, /story_sensitivity_profile/);
 });
