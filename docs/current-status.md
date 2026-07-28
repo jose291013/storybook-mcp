@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/scenario-object-lifecycle`
 - Latest merged checkpoint: PR #87 — creator-selected, universe-appropriate wardrobe continuity
-- Current focused checkpoint: production verification of wardrobe continuity
-- Pull request: PR #87 merged
+- Current focused checkpoint: owner-aware recurring-object identity and universe-mechanism lifecycle
+- Pull request: not opened yet; not merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,26 +19,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #87 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: universe-appropriate wardrobe continuity
+## Current product brick: recurring-object identity and lifecycle
 
-1. At the private-photo role step, every human reference can explicitly keep the photo clothing, use the recommended universe outfit, or select one of three curated outfits.
-2. Outfit examples are universe-specific and localized in French, Spanish and English. Mascots are excluded from human wardrobe choices.
-3. The scenario stores a wardrobe plan and exposes the activation scene during creator review. A changed outfit activates before the character enters the adventure zone, not after arrival.
-4. Cover and interior prompts use per-scene wardrobe locks. Earlier scenes preserve reference clothing; later scenes preserve the approved adventure outfit.
-5. Identity remains independent from wardrobe. Animal and plush canons ignore human outfit contracts.
-6. Legacy projects without an explicit outfit choice keep their photo wardrobe and retain their previous preview fingerprint.
+1. Two identically named objects owned by different characters remain distinct copies instead of being rejected as simultaneous states of one object.
+2. A single unique object may still change hands without becoming a second copy.
+3. Owner-specific universe safety equipment follows a deterministic lifecycle: absent before introduction, activated before zone entry, active while required and stored after exit.
+4. The preparation scene receives one minimal localized sentence naming every equipped traveler.
+5. The correction works with persisted coral-ocean contracts by resolving the current product configuration from the universe id.
 
 ## Verification completed locally
 
-- Targeted wardrobe tests pass: selected underwater outfit normalization, per-scene activation, cover outfit and legacy continuity wording.
-- Full local suite passes: 212 tests, 0 failures.
+- Targeted scenario tests pass: owner-specific copies, unique-object transfer, underwater activation and ordinary object validation.
+- Full local suite passes: 215 tests, 0 failures.
 - The production dependency audit previously reported 0 known vulnerabilities after the Sharp 0.35.3 upgrade.
 
 ## Next verification target
 
-1. Let Render redeploy PR #87 and verify the service health.
-2. Verify the photo-role UI at desktop and mobile widths in FR and ES.
-3. Smoke-test one coral-ocean book: ordinary photo clothes before preparation, selected marine outfit before submersion, same outfit and breathing mechanism throughout underwater scenes.
+1. Run the final full test suite and publish a focused draft PR.
+2. After explicit approval and confirmation that no book is generating, merge and let Render redeploy.
+3. On project `5e6cc188-6edc-4b11-bf92-693cd5562d7e`, request one scenario update and verify that only the preparation scene introduces Bastien’s and Marie’s separate bubbles.
+4. Confirm that home scenes do not show worn breathing bubbles, underwater scenes keep one per person, and the return stores both copies.
 
 ## Protected local state
 

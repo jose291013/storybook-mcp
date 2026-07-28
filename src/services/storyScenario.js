@@ -5,6 +5,7 @@ import {
   stabilizeSceneCharacterMovements,
   validateCharacterMovementLedger,
 } from "./characterMovementLedger.js";
+import { findUniverse } from "../config/bookOptions.js";
 
 export const STORY_SCENARIO_VERSION = 2;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
@@ -18,6 +19,17 @@ function text(value) {
 
 function key(value) {
   return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function objectDefinitionKey(value = {}) {
+  return `${key(value?.name)}::${key(value?.owner)}`;
+}
+
+function objectInstanceKey(value = {}, declaredObjects = []) {
+  const explicitId = text(value?.objectId || value?.object_id);
+  if (explicitId) return key(explicitId);
+  const copies = list(declaredObjects, 30).filter((object) => key(object?.name) === key(value?.name));
+  return copies.length > 1 ? objectDefinitionKey(value) : key(value?.name);
 }
 
 function list(value, maximum = 50) {
@@ -108,10 +120,13 @@ export function normalizeStoryScenario(candidate = {}, {
   });
   const objects = list(raw?.objects, 20).map((item) => ({
     name: text(item?.name),
-      owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
+    owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
     initialState: OBJECT_STATES.has(item?.initial_state) ? item.initial_state : "visible",
     trackEveryScene: item?.track_every_scene === true,
-  })).filter((item) => item.name);
+  })).filter((item, index, all) => (
+    item.name
+    && all.findIndex((candidate) => objectDefinitionKey(candidate) === objectDefinitionKey(item)) === index
+  ));
   const rawNarrativeContract = raw?.narrative_contract || raw?.narrativeContract || {};
   const narrativeContract = Number(rawNarrativeContract?.version) === 1 ? {
     version: 1,
@@ -176,13 +191,19 @@ export function normalizeStoryScenario(candidate = {}, {
           focalAfter: locationAfter,
         },
       ),
-      objectStates: list(supplied?.object_states, 20).map((item) => ({
-        name: text(item?.name),
-        owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
-        state: OBJECT_STATES.has(item?.state) ? item.state : "visible",
-        quantity: Math.max(1, Number(item?.quantity || 1)),
-        instruction: text(item?.instruction),
-      })).filter((item) => item.name),
+      objectStates: list(supplied?.object_states, 20).map((item) => {
+        const name = text(item?.name);
+        const declaredCopies = objects.filter((object) => key(object.name) === key(name));
+        const suppliedOwner = canonicalName(item?.owner, scenarioCharacters) || text(item?.owner);
+        const owner = suppliedOwner || (declaredCopies.length === 1 ? declaredCopies[0].owner : "");
+        return {
+          name,
+          owner,
+          state: OBJECT_STATES.has(item?.state) ? item.state : "visible",
+          quantity: Math.max(1, Number(item?.quantity || 1)),
+          instruction: text(item?.instruction),
+        };
+      }).filter((item) => item.name),
       continuityToNext: text(supplied?.continuity_to_next),
     };
   });
@@ -219,6 +240,7 @@ export function normalizeStoryScenario(candidate = {}, {
   return {
     version: STORY_SCENARIO_VERSION,
     movementLedgerVersion: CHARACTER_MOVEMENT_LEDGER_VERSION,
+    language: text(language || "FR").toUpperCase(),
     title: text(raw?.title),
     summary: text(raw?.summary),
     ...(narrativeContract ? { narrativeContract } : {}),
@@ -298,6 +320,162 @@ export function applyCreatorStoryScenarioEdits(input = {}, { sceneEdits = [], ad
   return scenario;
 }
 
+function mechanismLifecycleContract(scenario = {}) {
+  const persisted = list(scenario?.worldContract?.requiredMechanisms, 20);
+  const configured = list(findUniverse(scenario?.worldContract?.id)?.storyContract?.requiredMechanisms, 20);
+  return persisted.map((mechanism) => {
+    const current = configured.find((candidate) => key(candidate?.id) === key(mechanism?.id));
+    return current ? { ...mechanism, ...current, lifecycle: current.lifecycle || mechanism.lifecycle } : mechanism;
+  }).concat(configured.filter((mechanism) => (
+    !persisted.some((candidate) => key(candidate?.id) === key(mechanism?.id))
+  )));
+}
+
+function sceneHasPhysicalCharacter(scene, name) {
+  return list(scene?.characterPresences, 30).some((presence) => (
+    presence?.mode === "physical" && key(presence?.name) === key(name)
+  ));
+}
+
+function sceneMatchesMechanismZone(scene, lifecycle = {}) {
+  const searchable = key(scene?.locationAfter);
+  return list(lifecycle?.zoneHints, 30).some((hint) => searchable.includes(key(hint)));
+}
+
+function localizedList(names, language) {
+  const values = [...new Set(names.map(text).filter(Boolean))];
+  if (values.length < 2) return values[0] || "";
+  const conjunction = language === "ES" ? " y " : language === "EN" ? " and " : " et ";
+  return `${values.slice(0, -1).join(", ")}${conjunction}${values.at(-1)}`;
+}
+
+function mechanismLabel(lifecycle = {}, language = "FR") {
+  return text(lifecycle?.labels?.[language] || lifecycle?.labels?.FR || "équipement de sécurité");
+}
+
+function mechanismInstruction({ owner, label, state, language }) {
+  if (language === "ES") {
+    if (state === "worn") return `${owner} lleva únicamente su propio equipo: ${label}.`;
+    if (state === "absent") return `El equipo de ${owner} no aparece en esta escena.`;
+    return `El equipo de ${owner} está guardado y no se lleva puesto: ${label}.`;
+  }
+  if (language === "EN") {
+    if (state === "worn") return `${owner} wears only their own ${label}.`;
+    if (state === "absent") return `${owner}'s equipment is not present in this scene.`;
+    return `${owner}'s ${label} is stored and not worn.`;
+  }
+  if (state === "worn") return `${owner} porte uniquement son propre équipement : ${label}.`;
+  if (state === "absent") return `L’équipement de ${owner} n’apparaît pas dans cette scène.`;
+  return `L’équipement de ${owner} est rangé et n’est pas porté : ${label}.`;
+}
+
+function mechanismPreparationSentence({ owners, label, language }) {
+  const names = localizedList(owners, language);
+  if (language === "ES") {
+    return owners.length > 1
+      ? `${names} preparan y se colocan cada uno su propia ${label} antes de entrar en la zona de aventura.`
+      : `${names} prepara y se coloca su propia ${label} antes de entrar en la zona de aventura.`;
+  }
+  if (language === "EN") {
+    return owners.length > 1
+      ? `${names} each prepare and put on their own ${label} before entering the adventure zone.`
+      : `${names} prepares and puts on their own ${label} before entering the adventure zone.`;
+  }
+  return owners.length > 1
+    ? `${names} préparent et mettent chacun leur propre ${label} avant d’entrer dans la zone d’aventure.`
+    : `${names} prépare et met sa propre ${label} avant d’entrer dans la zone d’aventure.`;
+}
+
+function stabilizeRequiredMechanismLifecycles(scenario = {}) {
+  const scenes = list(scenario.scenes, 30);
+  const language = ["FR", "ES", "EN"].includes(text(scenario.language).toUpperCase())
+    ? text(scenario.language).toUpperCase()
+    : "FR";
+  const preparationGroups = new Map();
+
+  for (const mechanism of mechanismLifecycleContract(scenario)) {
+    const lifecycle = mechanism?.lifecycle;
+    if (lifecycle?.scope !== "per_character" || lifecycle?.activation !== "before_zone_entry") continue;
+    const copies = list(scenario.objects, 30).filter((object) => (
+      key(object?.name) === key(mechanism?.id) && text(object?.owner)
+    ));
+    if (!copies.length) continue;
+
+    for (const copy of copies) {
+      const zoneScenes = scenes.filter((scene) => (
+        sceneHasPhysicalCharacter(scene, copy.owner)
+        && sceneMatchesMechanismZone(scene, lifecycle)
+      ));
+      if (!zoneScenes.length) continue;
+      const firstZoneScene = zoneScenes[0];
+      const lastZoneScene = zoneScenes.at(-1);
+      const preparationScene = [...scenes]
+        .filter((scene) => (
+          Number(scene.sceneNumber) < Number(firstZoneScene.sceneNumber)
+          && sceneHasPhysicalCharacter(scene, copy.owner)
+        ))
+        .at(-1) || firstZoneScene;
+      const beforeState = OBJECT_STATES.has(lifecycle.beforeState) ? lifecycle.beforeState : "stored";
+      const activeState = OBJECT_STATES.has(lifecycle.activeState) ? lifecycle.activeState : "worn";
+      const afterState = OBJECT_STATES.has(lifecycle.afterState) ? lifecycle.afterState : "stored";
+      const label = mechanismLabel(lifecycle, language);
+
+      for (const scene of scenes) {
+        const sceneNumber = Number(scene.sceneNumber);
+        const physicallyPresent = sceneHasPhysicalCharacter(scene, copy.owner);
+        let state = beforeState;
+        if (sceneNumber >= Number(preparationScene.sceneNumber) && sceneNumber <= Number(lastZoneScene.sceneNumber)) {
+          state = physicallyPresent ? activeState : "absent";
+        } else if (sceneNumber > Number(lastZoneScene.sceneNumber)) {
+          state = afterState;
+        }
+        scene.objectStates ||= [];
+        if (copies.length > 1) {
+          scene.objectStates = scene.objectStates.filter((item) => (
+            key(item?.name) !== key(copy.name) || text(item?.owner)
+          ));
+        }
+        const stateIndex = scene.objectStates.findIndex((item) => (
+          objectInstanceKey(item, scenario.objects) === objectInstanceKey(copy, scenario.objects)
+        ));
+        const nextState = {
+          name: copy.name,
+          owner: copy.owner,
+          state,
+          quantity: 1,
+          instruction: mechanismInstruction({ owner: copy.owner, label, state, language }),
+        };
+        if (stateIndex >= 0) scene.objectStates[stateIndex] = nextState;
+        else scene.objectStates.push(nextState);
+      }
+
+      const firstState = scenes[0]?.objectStates?.find((item) => (
+        objectInstanceKey(item, scenario.objects) === objectInstanceKey(copy, scenario.objects)
+      ));
+      if (firstState) copy.initialState = firstState.state;
+      const groupKey = `${preparationScene.sceneNumber}::${key(mechanism.id)}`;
+      const group = preparationGroups.get(groupKey) || {
+        scene: preparationScene,
+        owners: [],
+        label,
+      };
+      group.owners.push(copy.owner);
+      preparationGroups.set(groupKey, group);
+    }
+  }
+
+  for (const group of preparationGroups.values()) {
+    const sentence = mechanismPreparationSentence({
+      owners: group.owners,
+      label: group.label,
+      language,
+    });
+    if (!key(group.scene.action).includes(key(sentence))) {
+      group.scene.action = `${text(group.scene.action).replace(/[.!?]\s*$/, "")}. ${sentence}`.trim();
+    }
+  }
+}
+
 export function stabilizeStoryScenario(input = {}) {
   const scenario = structuredClone(input);
   const scenes = list(scenario.scenes, 30);
@@ -310,7 +488,7 @@ export function stabilizeStoryScenario(input = {}) {
   }
   const characterLocations = new Map(list(scenario.characters, 20).map((character) => [character.name, character.initialLocation]));
   const trackedObjects = list(scenario.objects, 20).filter((object) => object.trackEveryScene);
-  const objectStates = new Map(trackedObjects.map((object) => [key(object.name), {
+  const objectStates = new Map(trackedObjects.map((object) => [objectInstanceKey(object, trackedObjects), {
     name: object.name,
     owner: object.owner,
     state: object.initialState,
@@ -413,14 +591,15 @@ export function stabilizeStoryScenario(input = {}) {
     }
 
     scene.objectStates ||= [];
-    const explicitObjectKeys = new Set(list(scene.objectStates, 30).map((item) => key(item.name)));
+    const explicitObjectKeys = new Set(list(scene.objectStates, 30).map((item) => objectInstanceKey(item, trackedObjects)));
     for (const tracked of trackedObjects) {
-      const objectKey = key(tracked.name);
+      const objectKey = objectInstanceKey(tracked, trackedObjects);
       if (!explicitObjectKeys.has(objectKey) && objectStates.has(objectKey)) scene.objectStates.push({ ...objectStates.get(objectKey) });
     }
-    for (const state of list(scene.objectStates, 30)) objectStates.set(key(state.name), { ...state });
+    for (const state of list(scene.objectStates, 30)) objectStates.set(objectInstanceKey(state, trackedObjects), { ...state });
     previous = scene;
   }
+  stabilizeRequiredMechanismLifecycles(scenario);
   return scenario;
 }
 
@@ -499,10 +678,19 @@ export function validateStoryScenario(scenario = {}) {
     }
 
     const objectNames = new Set();
+    const declaredCopiesByName = new Map();
+    for (const object of trackedObjects) {
+      const owners = declaredCopiesByName.get(key(object.name)) || new Set();
+      owners.add(key(object.owner));
+      declaredCopiesByName.set(key(object.name), owners);
+    }
     for (const objectState of scene.objectStates || []) {
-      const objectKey = key(objectState.name);
+      const objectKey = objectInstanceKey(objectState, trackedObjects);
       if (objectNames.has(objectKey)) issues.push(`${scene.id}: ${objectState.name} has two simultaneous states`);
       objectNames.add(objectKey);
+      if (!objectState.owner && (declaredCopiesByName.get(key(objectState.name))?.size || 0) > 1) {
+        issues.push(`${scene.id}: object ${objectState.name} needs an owner to distinguish its copies`);
+      }
       if (Number(objectState.quantity) !== 1 && ["worn", "held", "carried"].includes(objectState.state)) {
         issues.push(`${scene.id}: a worn or held personal object must have quantity 1`);
       }
@@ -516,7 +704,7 @@ export function validateStoryScenario(scenario = {}) {
       }
     }
     for (const tracked of trackedObjects) {
-      if (!objectNames.has(key(tracked.name))) issues.push(`${scene.id}: tracked object ${tracked.name} needs one explicit state`);
+      if (!objectNames.has(objectInstanceKey(tracked, trackedObjects))) issues.push(`${scene.id}: tracked object ${tracked.name} needs one explicit state`);
     }
     previous = scene;
   }
