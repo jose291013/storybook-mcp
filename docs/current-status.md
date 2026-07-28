@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/sensitivity-observation`
 - Latest merged checkpoint: PR #80 — age-calibrated parent-intention proposals
-- Current focused checkpoint: production deployment and age-contrast verification
-- Pull request: PR #80 merged
+- Current focused checkpoint: private sensitivity classification in observation mode
+- Pull request: PR #81 open as draft
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
 PR #55 through PR #80 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+
+## Current product brick: sensitivity observation
+
+1. New parent-intention requests may receive a private version-1 editorial sensitivity profile when `STORY_SENSITIVITY_MODE=observe`.
+2. A multilingual deterministic floor covers representative FR, ES and EN wording; a bounded AI classifier may raise but never lower it.
+3. The stored profile contains only normalized level/category/flags, no diagnosis, explanation or copied parent text.
+4. A slow or unavailable classifier falls back without blocking the existing three-intention response.
+5. This brick does not display or enforce the profile and does not pass it to scenario or manuscript prompts; existing projects remain unchanged.
 
 ## Current product brick: age-calibrated intentions
 
@@ -59,13 +67,15 @@ PR #55 through PR #80 are merged. The meaning-led storefront is live and its Spa
 - Mobile visual check confirms a vertical, overflow-free composition.
 - Theme 1.2.1 archive contains the expected top-level `calitiki-theme` folder.
 - Full local suite passes: 184 tests, 0 failures.
+- Sensitivity corpus covers representative FR, ES and EN everyday, emotional, major-life-event and acute-safety wording.
+- Full local suite after the observation brick passes: 189 tests, 0 failures.
 
 ## Next verification target
 
-1. Wait for Render to deploy merge commit `e284a33626f9d080517b881a7f84d2cb9ad8a056`.
-2. Verify the age-first intention screen in FR, ES and EN.
-3. Compare the three interpretations for a young child and a preadolescent using the same parent situation.
-4. Confirm that changing the age clears the previous interpretations before requesting new ones.
+1. Review draft PR #81 and keep `STORY_SENSITIVITY_MODE=off` through review and merge.
+2. Before merging, confirm that no preview generation is active because Render may restart.
+3. After an explicit deployment decision, enable `observe` and inspect representative FR, ES and EN classifications.
+4. Do not begin any enforcement brick until the observation results are reviewed.
 
 ## Protected local state
 
