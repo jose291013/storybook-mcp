@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/sensitivity-observation`
 - Latest merged checkpoint: PR #80 — age-calibrated parent-intention proposals
 - Current focused checkpoint: private sensitivity classification in observation mode
-- Pull request: not opened yet; local GitHub CLI authentication must be refreshed
+- Pull request: PR #81 open as draft
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -72,8 +72,8 @@ PR #55 through PR #80 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Refresh `gh` authentication, commit the scoped branch and open a draft PR.
-2. Keep `STORY_SENSITIVITY_MODE=off` through review and merge.
+1. Review draft PR #81 and keep `STORY_SENSITIVITY_MODE=off` through review and merge.
+2. Before merging, confirm that no preview generation is active because Render may restart.
 3. After an explicit deployment decision, enable `observe` and inspect representative FR, ES and EN classifications.
 4. Do not begin any enforcement brick until the observation results are reviewed.
 
