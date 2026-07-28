@@ -7,6 +7,7 @@ import {
   childSafetyContract,
   childSafetyIntervention,
   childSafetyMode,
+  childSafetyResponse,
   deterministicChildSafety,
   evaluateChildSafety,
   normalizeChildSafetyProfile,
@@ -164,6 +165,26 @@ test("enforcement returns a no-credit intervention while observation remains non
   assert.equal(childSafetyMode("unexpected"), "off");
 });
 
+test("enforcement responses remain understandable for current and stale clients", () => {
+  const support = childSafetyIntervention({
+    action: "support",
+  }, "enforce");
+  const blocked = childSafetyIntervention({
+    action: "block",
+  }, "enforce");
+
+  for (const locale of ["FR", "ES", "EN"]) {
+    const supportPayload = childSafetyResponse(support, locale);
+    const blockedPayload = childSafetyResponse(blocked, locale);
+    assert.equal(supportPayload.code, "child_safety_support_required");
+    assert.equal(blockedPayload.code, "child_safety_blocked");
+    assert.notEqual(supportPayload.error, supportPayload.code);
+    assert.notEqual(blockedPayload.error, blockedPayload.code);
+    assert.match(supportPayload.error, /crédit|crédito|credit/i);
+    assert.match(blockedPayload.error, /crédit|crédito|credit/i);
+  }
+});
+
 test("only an allowed structured profile is persisted and protective requests receive an immutable contract", () => {
   const safe = sanitizeChildSafetyProfile({
     version: 99,
@@ -214,5 +235,9 @@ test("all paid or generative entry points enforce child safety before credit or 
   assert.ok(modifications.indexOf('scope: "preview_modification"') < modifications.indexOf("previewRevisionStore.create"));
   assert.match(preview, /scope: "generated_manuscript"/);
   assert.match(app, /childSafetyIntervention/);
+  assert.match(app, /revealIntentionSafetyNotice/);
+  assert.doesNotMatch(app, /state\.childSafetyIntervention = payload\.code;\s*throw new Error\(""\)/);
   assert.match(html, /id="intentionSafetyNotice"/);
+  assert.match(html, /id="intentionSafetyNotice"[^>]*aria-live="assertive"[^>]*tabindex="-1"/);
+  assert.match(intentions, /childSafetyResponse/);
 });

@@ -9,6 +9,7 @@ import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
 import { sanitizeSensitivityQuestionnaire } from "../services/storySensitivity.js";
 import {
   childSafetyTextFromQuestionnaire,
+  childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
 import { loadReferencePhoto, loadReferencePhotoAssets, MissingReferencePhotoError } from "../services/referencePhotoStorage.js";
@@ -45,11 +46,8 @@ async function safeQuestionnaire(questionnaire, locale, scope) {
   };
 }
 
-function sendSafetyIntervention(res, intervention) {
-  return res.status(intervention.status).json({
-    error: intervention.code,
-    ...intervention,
-  });
+function sendSafetyIntervention(res, intervention, locale) {
+  return res.status(intervention.status).json(childSafetyResponse(intervention, locale));
 }
 
 function publicProject(project) {
@@ -99,7 +97,7 @@ router.post("/drafts", async (req, res) => {
     const owner = ensureDraftOwner(req, res);
     const body = req.body || {};
     const safety = await safeQuestionnaire(body.questionnaire, body.locale, "draft_create");
-    if (safety.intervention) return sendSafetyIntervention(res, safety.intervention);
+    if (safety.intervention) return sendSafetyIntervention(res, safety.intervention, body.locale);
     const project = await projectStore.create({
       anonymousOwnerHash: owner.ownerHash, status: body.status || "draft",
       title: body.title || body.questionnaire?.hero_name || "", locale: body.locale || "FR",
@@ -128,7 +126,7 @@ router.put("/drafts/:id", async (req, res) => {
     const safety = body.questionnaire === undefined
       ? null
       : await safeQuestionnaire(body.questionnaire, body.locale || existing.locale, "draft_update");
-    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention);
+    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention, body.locale || existing.locale);
     const project = await projectStore.update(existing.id, {
       status: body.status, title: body.title, locale: body.locale,
       questionnaire: body.questionnaire === undefined ? undefined : safety.questionnaire,
@@ -293,7 +291,7 @@ router.put("/projects/:id", async (req, res) => {
     const safety = body.questionnaire === undefined
       ? null
       : await safeQuestionnaire(body.questionnaire, body.locale || existing.locale, "project_update");
-    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention);
+    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention, body.locale || existing.locale);
     const project = await projectStore.updateForCustomer(req.params.id, identity, {
       status: body.status, title: body.title, locale: body.locale,
       questionnaire: body.questionnaire === undefined ? undefined : safety.questionnaire,

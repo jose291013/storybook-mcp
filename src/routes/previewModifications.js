@@ -14,7 +14,7 @@ import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { previewModificationPriceCents } from "../config/previewModificationPricing.js";
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 import { inspectPreviewModificationRequest } from "../services/previewModificationPolicy.js";
-import { guardChildSafety } from "../services/childSafety.js";
+import { childSafetyResponse, guardChildSafety } from "../services/childSafety.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -420,10 +420,7 @@ router.post("/projects/:id/preview-modifications", async (req, res) => {
       }),
     });
     if (safety.intervention) {
-      return res.status(safety.intervention.status).json({
-        error: safety.intervention.code,
-        ...safety.intervention,
-      });
+      return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
     }
     const policy = inspectPreviewModificationRequest({
       project,
@@ -526,10 +523,7 @@ router.post("/projects/:id/preview-modifications/:modificationId/retry", async (
         failureCode: safety.intervention.code,
         failureMessage: "The request did not pass child-safety review",
       });
-      return res.status(safety.intervention.status).json({
-        error: safety.intervention.code,
-        ...safety.intervention,
-      });
+      return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
     }
     const policy = inspectPreviewModificationRequest({
       project,

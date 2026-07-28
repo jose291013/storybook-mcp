@@ -1375,6 +1375,14 @@ function clearIntentionChoice({ preserveSituation = true } = {}) {
   }
 }
 
+function revealIntentionSafetyNotice() {
+  if (!state.childSafetyIntervention || elements.intentionSafetyNotice.hidden) return;
+  window.requestAnimationFrame(() => {
+    elements.intentionSafetyNotice.focus({ preventScroll: true });
+    elements.intentionSafetyNotice.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+}
+
 function renderStoryIntentions() {
   const selectedId = document.querySelector("#story_intent_id")?.value || "";
   const examples = INTENTION_EXAMPLES[state.locale] || INTENTION_EXAMPLES.FR;
@@ -1453,7 +1461,7 @@ async function requestStoryIntentions() {
     const payload = await response.json();
     if (["child_safety_blocked", "child_safety_support_required"].includes(payload.code)) {
       state.childSafetyIntervention = payload.code;
-      throw new Error("");
+      return;
     }
     if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
     state.storyIntentions = payload.intentions;
@@ -1465,6 +1473,7 @@ async function requestStoryIntentions() {
   } finally {
     state.storyIntentionsBusy = false;
     renderStoryIntentions();
+    revealIntentionSafetyNotice();
   }
 }
 
@@ -1586,6 +1595,7 @@ async function chooseCustomStory() {
   } finally {
     state.storyIntentionsBusy = false;
     renderStoryIntentions();
+    revealIntentionSafetyNotice();
   }
   clearIntentionChoice({ preserveSituation: true });
   state.childSafetyProfile = verifiedProfile;
@@ -1667,7 +1677,7 @@ async function requestStorySuggestions({ refresh = false } = {}) {
       state.childSafetyIntervention = payload.code;
       showStep(0);
       renderStoryIntentions();
-      throw new Error("");
+      return;
     }
     if (!response.ok || !Array.isArray(payload.suggestions) || payload.suggestions.length !== 3) throw new Error(payload.error || tr("suggestionError"));
     state.storySuggestions = payload.suggestions;
@@ -1680,6 +1690,7 @@ async function requestStorySuggestions({ refresh = false } = {}) {
     state.storySuggestionsBusy = false;
     renderStoryIntentions();
     renderStorySuggestions();
+    revealIntentionSafetyNotice();
     if (state.storySuggestions.length && selectedStoryIntention()) {
       elements.adventureProposals.scrollIntoView({ behavior: "smooth", block: "start" });
     }

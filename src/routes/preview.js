@@ -48,6 +48,7 @@ import { approvedStoryScenario, storyScenarioRequired } from "../services/storyS
 import { generationRunStore } from "../services/generationRunStore.js";
 import {
   childSafetyTextFromQuestionnaire,
+  childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
 
@@ -326,10 +327,7 @@ router.post("/preview", async (req, res) => {
     }),
   });
   if (safety.intervention) {
-    return res.status(safety.intervention.status).json({
-      error: safety.intervention.code,
-      ...safety.intervention,
-    });
+    return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
   }
   const visualProofAction = String(req.body?.visualProofAction || "");
   const pendingVisualProof = generationCheckpoint(project)?.visualProof;
