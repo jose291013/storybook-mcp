@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/strengthen-sensitivity-floor`
 - Latest merged checkpoint: PR #82 — Sharp/libvips high-severity advisory remediation
-- Current focused checkpoint: production verification of the patched image-processing dependency
-- Pull request: PR #82 merged
+- Current focused checkpoint: version-2 deterministic acute-safety floor
+- Pull request: sensitivity safety PR not opened yet
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -29,11 +29,12 @@ PR #55 through PR #82 are merged. The meaning-led storefront is live and its Spa
 
 ## Current product brick: sensitivity observation
 
-1. New parent-intention requests may receive a private version-1 editorial sensitivity profile when `STORY_SENSITIVITY_MODE=observe`.
-2. A multilingual deterministic floor covers representative FR, ES and EN wording; a bounded AI classifier may raise but never lower it.
+1. New parent-intention requests may receive a private version-2 editorial sensitivity profile when `STORY_SENSITIVITY_MODE=observe`.
+2. A multilingual deterministic floor tolerates accents, separators and selected common misspellings for acute self-harm, suicide, abuse and immediate-danger wording; a bounded AI classifier may raise but never lower it.
 3. The stored profile contains only normalized level/category/flags, no diagnosis, explanation or copied parent text.
 4. A slow or unavailable classifier falls back without blocking the existing three-intention response.
-5. This brick does not display or enforce the profile and does not pass it to scenario or manuscript prompts; existing projects remain unchanged.
+5. Private observation logs separate deterministic, classifier and final decisions without copying the family's wording.
+6. This brick does not display or enforce the profile and does not pass it to scenario or manuscript prompts; persisted version-1 observations remain unchanged.
 
 ## Current product brick: age-calibrated intentions
 
@@ -80,12 +81,17 @@ PR #55 through PR #82 are merged. The meaning-led storefront is live and its Spa
 - Sharp 0.35.3 compatibility passes the reference-photo, composed-page and eBook PDF tests.
 - `npm audit` reports 0 known vulnerabilities after the controlled dependency upgrade.
 - Full local suite with the security pin passes: 190 tests, 0 failures.
+- Render reports 0 known production vulnerabilities after deploying PR #82.
+- A production reference-photo upload succeeds and displays every normalized private thumbnail.
+- The version-2 critical-floor targeted suite passes: 10 tests, 0 failures.
+- Full local suite with the version-2 floor passes: 195 tests, 0 failures.
+- `npm audit` remains at 0 known vulnerabilities.
 
 ## Next verification target
 
-1. Confirm Render's install reports 0 known vulnerabilities after deploying PR #82.
-2. Perform one ordinary reference-photo upload and verify that normalization still succeeds.
-3. Continue the larger sensitivity observation corpus before any enforcement brick.
+1. Open the version-2 sensitivity-floor PR in draft without merging or restarting Render.
+2. After an explicitly authorized deployment with no active generation, rerun the three production phrases that exposed false negatives.
+3. Continue a larger FR/ES/EN false-positive and false-negative observation corpus before any enforcement brick.
 
 ## Protected local state
 

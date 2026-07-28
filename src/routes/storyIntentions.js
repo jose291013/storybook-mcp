@@ -37,8 +37,12 @@ router.post("/story-intentions", async (req, res) => {
       locale,
     };
     const sensitivityMode = storySensitivityMode();
+    let sensitivityTrace = null;
     const sensitivityPromise = observeStorySensitivity(input, {
       mode: sensitivityMode,
+      onTrace: (trace) => {
+        sensitivityTrace = trace;
+      },
       onError: (error) => console.warn("story-sensitivity observation fallback", {
         mode: sensitivityMode,
         error: String(error?.message || error),
@@ -53,6 +57,10 @@ router.post("/story-intentions", async (req, res) => {
         category: sensitivityProfile.category,
         restricted: sensitivityProfile.restricted,
         source: sensitivityProfile.source,
+        deterministicLevel: sensitivityTrace?.deterministicLevel ?? null,
+        deterministicRestricted: sensitivityTrace?.deterministicRestricted ?? null,
+        classifierLevel: sensitivityTrace?.classifierLevel ?? null,
+        classifierRestricted: sensitivityTrace?.classifierRestricted ?? null,
       });
     }
     res.set("Cache-Control", "no-store");

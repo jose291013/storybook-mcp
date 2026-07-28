@@ -1,19 +1,34 @@
 import { runAgent } from "./agentRunner.js";
 import { loadPrompt } from "./loadPrompt.js";
 
-export const STORY_SENSITIVITY_PROFILE_VERSION = 1;
+export const STORY_SENSITIVITY_PROFILE_VERSION = 2;
+const LEGACY_STORY_SENSITIVITY_PROFILE_VERSION = 1;
 
 const ALLOWED_CONFIDENCE = new Set(["low", "medium", "high"]);
 
 const INDICATORS = {
   restricted: [
-    /\bsuicid/i,
-    /\bself[- ]?harm/i,
-    /\bautomutil/i,
-    /\babus(?:e|ed|o|os|ar|if|ifs|ive|ives)?\s+(?:sex|phys)/i,
+    /\bsu(?:i)?cid/i,
+    /\bself\s*(?:harm|injur)/i,
+    /\bauto\s*(?:mutil|lesion|agres)/i,
+    /\bscarif/i,
+    /\b(?:se|s)\s+(?:blesse|coupe|fait\s+du\s+mal)\s+volontairement\b/i,
+    /\b(?:deliberately|intentionally)\s+(?:hurts?|cuts?|injures?)\b/i,
+    /\b(?:cuts?|cutting)\s+(?:himself|herself|themself|themselves)\b/i,
+    /\bse\s+(?:hace\s+dano|lesiona|corta)\s+(?:a\s+proposito|intencionalmente)\b/i,
+    /\b(?:abus|abuso)\s+(?:sex|phys|fisic)/i,
+    /\b(?:sexual|physical)\s+abus/i,
+    /\babus(?:e|ed)\s+(?:sexually|physically)/i,
+    /\bchild\s+abus/i,
     /\bmaltraitance/i,
+    /\bmaltrato\s+(?:infantil|fisic|sexual)/i,
+    /\b(?:rape|violacion)\b/i,
+    /\bviol(?:s)?\b/i,
     /\bviolence\s+(?:immediate|imminente|grave|sexual|sexuelle)/i,
+    /\bviolencia\s+(?:inmediata|grave|sexual)/i,
     /\bdanger\s+(?:immediat|imminent|grave)/i,
+    /\bimmediate\s+danger\b/i,
+    /\bpeligro\s+(?:inmediato|grave)/i,
   ],
   major: [
     /\bdeuil/i,
@@ -33,7 +48,7 @@ const INDICATORS = {
   ],
   emotional: [
     /\bharcelement/i,
-    /\bbullying\b/i,
+    /\b(?:bullying|bulling|bulying)\b/i,
     /\bacoso\b/i,
     /\bexclusion\b/i,
     /\brejet\b/i,
@@ -60,7 +75,11 @@ function searchable(value) {
   return clean(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/[’'`´_-]+/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function matchesAny(value, patterns) {
@@ -108,7 +127,11 @@ export function deterministicStorySensitivity({ creatorSituation } = {}) {
   };
 }
 
-export function normalizeStorySensitivityProfile(value, floor = deterministicStorySensitivity()) {
+export function normalizeStorySensitivityProfile(
+  value,
+  floor = deterministicStorySensitivity(),
+  { version = STORY_SENSITIVITY_PROFILE_VERSION } = {},
+) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const suppliedLevel = Number(value.level);
   const restricted = floor.restricted || value.restricted === true;
@@ -123,7 +146,7 @@ export function normalizeStorySensitivityProfile(value, floor = deterministicSto
     : floor.confidence;
 
   return {
-    version: STORY_SENSITIVITY_PROFILE_VERSION,
+    version,
     level,
     category,
     restricted,
@@ -137,11 +160,48 @@ export function normalizeStorySensitivityProfile(value, floor = deterministicSto
 export function sanitizeSensitivityQuestionnaire(questionnaire = {}) {
   if (!questionnaire || typeof questionnaire !== "object" || Array.isArray(questionnaire)) return {};
   const safe = { ...questionnaire };
-  const floor = deterministicStorySensitivity({ creatorSituation: questionnaire.creator_situation });
-  const profile = normalizeStorySensitivityProfile(questionnaire.story_sensitivity_profile, floor);
+  const storedVersion = Number(questionnaire.story_sensitivity_profile?.version);
+  const preserveLegacyProfile = storedVersion === LEGACY_STORY_SENSITIVITY_PROFILE_VERSION;
+  const floor = preserveLegacyProfile
+    ? deterministicStorySensitivity()
+    : deterministicStorySensitivity({ creatorSituation: questionnaire.creator_situation });
+  const profile = normalizeStorySensitivityProfile(questionnaire.story_sensitivity_profile, floor, {
+    version: preserveLegacyProfile
+      ? LEGACY_STORY_SENSITIVITY_PROFILE_VERSION
+      : STORY_SENSITIVITY_PROFILE_VERSION,
+  });
   if (profile) safe.story_sensitivity_profile = profile;
   else delete safe.story_sensitivity_profile;
   return safe;
+}
+
+function summarizeClassifierResult(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const level = Number(value.level);
+  return {
+    level: Number.isInteger(level) && level >= 1 && level <= 3 ? level : null,
+    restricted: value.restricted === true,
+  };
+}
+
+function observationTrace(floor, classifier, finalProfile) {
+  const classifierSummary = summarizeClassifierResult(classifier);
+  return {
+    deterministicLevel: floor.level,
+    deterministicRestricted: floor.restricted,
+    classifierLevel: classifierSummary?.level ?? null,
+    classifierRestricted: classifierSummary?.restricted ?? null,
+    finalLevel: finalProfile.level,
+    finalRestricted: finalProfile.restricted,
+  };
+}
+
+function emitObservationTrace(callback, trace) {
+  try {
+    callback?.(trace);
+  } catch {
+    // Observation diagnostics must never affect the customer request.
+  }
 }
 
 export async function assessStorySensitivity(input = {}, dependencies = {}) {
@@ -159,7 +219,9 @@ export async function assessStorySensitivity(input = {}, dependencies = {}) {
       deterministic_restricted: floor.restricted,
     },
   });
-  return normalizeStorySensitivityProfile(result, floor);
+  const profile = normalizeStorySensitivityProfile(result, floor);
+  emitObservationTrace(dependencies.onTrace, observationTrace(floor, result, profile));
+  return profile;
 }
 
 export async function observeStorySensitivity(input = {}, dependencies = {}) {
@@ -178,9 +240,11 @@ export async function observeStorySensitivity(input = {}, dependencies = {}) {
   } catch (error) {
     clearTimeout(timeoutId);
     dependencies.onError?.(error);
-    return {
+    const fallback = {
       ...floor,
       source: "deterministic_fallback",
     };
+    emitObservationTrace(dependencies.onTrace, observationTrace(floor, null, fallback));
+    return fallback;
   }
 }
