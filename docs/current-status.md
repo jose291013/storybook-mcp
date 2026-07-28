@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/strengthen-sensitivity-floor`
-- Latest merged checkpoint: PR #82 — Sharp/libvips high-severity advisory remediation
-- Current focused checkpoint: version-2 deterministic acute-safety floor
-- Pull request: PR #83 open as draft
+- Current branch: `main`
+- Latest merged checkpoint: PR #83 — version-2 deterministic acute-safety floor
+- Current focused checkpoint: production observation verification of the version-2 sensitivity floor
+- Pull request: PR #83 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #82 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+PR #55 through PR #83 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
 ## Current security brick: Sharp 0.35
 
@@ -89,8 +89,8 @@ PR #55 through PR #82 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Review draft PR #83 without merging or restarting Render.
-2. After an explicitly authorized deployment with no active generation, rerun the three production phrases that exposed false negatives.
+1. After Render deploys PR #83, rerun the three production phrases that exposed false negatives.
+2. Confirm that logs show a deterministic restricted floor even if the classifier returns a lower decision.
 3. Continue a larger FR/ES/EN false-positive and false-negative observation corpus before any enforcement brick.
 
 ## Protected local state
