@@ -201,6 +201,135 @@ test("scenario validation rejects two simultaneous states for one personal objec
   assert.ok(result.issues.some((issue) => issue.includes("two simultaneous states")));
 });
 
+test("owner-specific copies of the same recurring object remain distinct", () => {
+  const scenario = coherentPortalScenario();
+  scenario.objects = [
+    { name: "bracelet lumineux", owner: "Nolan", initialState: "worn", trackEveryScene: true },
+    { name: "bracelet lumineux", owner: "Mathéo", initialState: "worn", trackEveryScene: true },
+  ];
+  for (const scene of scenario.scenes) {
+    scene.objectStates = [
+      { name: "bracelet lumineux", owner: "Nolan", state: "worn", quantity: 1 },
+      { name: "bracelet lumineux", owner: "Mathéo", state: "worn", quantity: 1 },
+    ];
+  }
+  assert.deepEqual(validateStoryScenario(scenario), { valid: true, issues: [] });
+});
+
+test("one unique recurring object may change hands without becoming a second copy", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[1].objectStates = [{
+    name: "casquette rouge",
+    owner: "Mathéo",
+    state: "held",
+    quantity: 1,
+    instruction: "Mathéo tient l’unique casquette pendant que Nolan traverse.",
+  }];
+  assert.deepEqual(validateStoryScenario(scenario), { valid: true, issues: [] });
+});
+
+test("personal universe mechanisms activate before zone entry and are stored outside it", () => {
+  const characters = [
+    { name: "Bastien", initialLocation: "maison de Bastien" },
+    { name: "Marie", initialLocation: "maison de Bastien" },
+  ];
+  const presences = (location, phase = "throughout") => characters.map(({ name }) => ({
+    name,
+    mode: "physical",
+    phase,
+    location,
+  }));
+  const breathingStates = () => characters.map(({ name }) => ({
+    name: "breathing_and_voice_bubble",
+    owner: name,
+    state: "worn",
+    quantity: 1,
+    instruction: `${name} porte déjà la bulle.`,
+  }));
+  const scenario = {
+    language: "FR",
+    title: "Le pont de bulles",
+    summary: "Bastien et Marie préparent leur aventure avant d’explorer le récif.",
+    worldContract: { id: "coral_ocean" },
+    characters,
+    objects: characters.map(({ name }) => ({
+      name: "breathing_and_voice_bubble",
+      owner: name,
+      initialState: "worn",
+      trackEveryScene: true,
+    })),
+    scenes: [
+      {
+        id: "scene-1",
+        sceneNumber: 1,
+        storyRole: "character_and_desire",
+        title: "Le rêve",
+        action: "Bastien imagine un pont de bulles.",
+        locationBefore: "maison de Bastien",
+        locationAfter: "maison de Bastien",
+        prerequisiteSceneIds: [],
+        characterPresences: presences("maison de Bastien"),
+        transition: { kind: "none", mechanism: "", mechanismId: "", from: "maison de Bastien", to: "maison de Bastien", characters: [] },
+        objectStates: breathingStates(),
+      },
+      {
+        id: "scene-2",
+        sceneNumber: 2,
+        storyRole: "external_problem",
+        title: "La préparation",
+        action: "Bastien et Marie vérifient leur plan.",
+        locationBefore: "maison de Bastien",
+        locationAfter: "maison de Bastien",
+        prerequisiteSceneIds: ["scene-1"],
+        characterPresences: presences("maison de Bastien"),
+        transition: { kind: "none", mechanism: "", mechanismId: "", from: "maison de Bastien", to: "maison de Bastien", characters: [] },
+        objectStates: breathingStates(),
+      },
+      {
+        id: "scene-3",
+        sceneNumber: 3,
+        storyRole: "attempt",
+        title: "Dans le récif",
+        action: "Bastien et Marie explorent le récif corallien.",
+        locationBefore: "maison de Bastien",
+        locationAfter: "récif corallien",
+        prerequisiteSceneIds: ["scene-2"],
+        characterPresences: presences("récif corallien", "end"),
+        transition: { kind: "ordinary_travel", mechanism: "passage aquatique", mechanismId: "passage_aquatique", from: "maison de Bastien", to: "récif corallien", characters: ["Bastien", "Marie"] },
+        objectStates: breathingStates(),
+      },
+      {
+        id: "scene-4",
+        sceneNumber: 4,
+        storyRole: "resolution",
+        title: "Le retour",
+        action: "Bastien et Marie rentrent à la maison.",
+        locationBefore: "récif corallien",
+        locationAfter: "maison de Bastien",
+        prerequisiteSceneIds: ["scene-3"],
+        characterPresences: presences("maison de Bastien", "end"),
+        transition: { kind: "return_travel", mechanism: "passage aquatique", mechanismId: "passage_aquatique", from: "récif corallien", to: "maison de Bastien", characters: ["Bastien", "Marie"] },
+        objectStates: breathingStates(),
+      },
+    ],
+  };
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  assert.deepEqual(stabilized.objects.map(({ owner, initialState }) => ({ owner, initialState })), [
+    { owner: "Bastien", initialState: "absent" },
+    { owner: "Marie", initialState: "absent" },
+  ]);
+  assert.deepEqual(stabilized.scenes.map((scene) => scene.objectStates.map(({ owner, state }) => ({ owner, state }))), [
+    [{ owner: "Bastien", state: "absent" }, { owner: "Marie", state: "absent" }],
+    [{ owner: "Bastien", state: "worn" }, { owner: "Marie", state: "worn" }],
+    [{ owner: "Bastien", state: "worn" }, { owner: "Marie", state: "worn" }],
+    [{ owner: "Bastien", state: "stored" }, { owner: "Marie", state: "stored" }],
+  ]);
+  assert.match(stabilized.scenes[1].action, /chacun leur propre bulle de respiration et de communication/);
+  assert.doesNotMatch(stabilized.scenes[0].objectStates[0].instruction, /porte uniquement/);
+  assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
 test("scenario validation rejects an object held by an absent owner", () => {
   const scenario = coherentPortalScenario();
   scenario.scenes[2].objectStates = [{

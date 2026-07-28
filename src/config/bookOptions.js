@@ -122,7 +122,28 @@ export const UNIVERSE_OPTIONS = [
         "Water level, buoyancy, refraction and movement remain coherent.",
       ],
       requiredMechanisms: [
-        { id: "breathing_and_voice_bubble", appliesTo: "every physical underwater person", purpose: "air and understandable communication" },
+        {
+          id: "breathing_and_voice_bubble",
+          appliesTo: "every physical underwater person",
+          purpose: "air and understandable communication",
+          lifecycle: {
+            scope: "per_character",
+            activation: "before_zone_entry",
+            beforeState: "absent",
+            activeState: "worn",
+            afterState: "stored",
+            zoneHints: [
+              "underwater", "submerged", "coral", "reef", "ocean",
+              "sous-marin", "immergé", "corail", "récif", "océan",
+              "submarino", "sumergido", "coral", "arrecife", "océano",
+            ],
+            labels: {
+              FR: "bulle de respiration et de communication",
+              ES: "burbuja de respiración y comunicación",
+              EN: "breathing and communication bubble",
+            },
+          },
+        },
       ],
       objectRule: "Ordinary phones and non-waterproof electronics remain dry, stored or absent; they never work loose underwater.",
     },

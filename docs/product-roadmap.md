@@ -29,6 +29,13 @@ Last updated: 2026-07-28
 - Cover and page prompts carry a per-scene wardrobe lock. A cover may preview the adventure outfit while earlier home scenes still use the photo outfit; the cover continuity reference cannot overwrite this declared state.
 - Human wardrobe rules never apply to animals or plush toys. Legacy projects without an explicit wardrobe decision preserve their reference-photo clothing and keep their existing preview fingerprint.
 
+## Recurring-object identity and lifecycle
+
+- A recurring physical object is not identified by its display name alone. When several characters each own an identically named object or safety mechanism, the owner distinguishes the copies; when only one copy exists, it remains the same object even if it is explicitly handed to another physically present character.
+- Owner-specific universe safety equipment follows deterministic product configuration rather than model improvisation. Each copy is absent before introduction, prepared and activated in a physical scene before entry into the relevant adventure zone, kept active for its owner while required, and stored after exit.
+- The scenarist still describes these events naturally, but the scenario stabilizer repairs invisible object metadata and adds the minimal localized preparation sentence when the required mechanism was omitted. This repair happens before creator review and never asks the creator to correct every scene individually.
+- Object-state validation uses the stable instance identity, continues to reject two simultaneous states for the same copy, rejects an ambiguous owner when several copies exist, and preserves ordinary transferred objects and unrelated matching accessories.
+
 ## Ownership boundaries
 
 - WooCommerce: account, authentication source, cart, checkout, payment, order, subscription, transactional email trigger.
