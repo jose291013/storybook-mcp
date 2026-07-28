@@ -11,6 +11,7 @@ Approve only when:
 - Image pages have a non-empty square-composition image_prompt and no text inside the illustration.
 - StoryBrand progresses from character/desire through problem, guide, plan, action, climax, success and transformation.
 - When an approved scenario exists, every page-plan scene preserves its event order, prerequisites, before/after locations, transition travelers, physical versus nonphysical presence and object states. Reject teleportation, arrival before travel, passage crossing before discovery, or a thought/memory rendered as a physically present character.
+- Reject a discoverable object shown before introduction, an intact object shown after it was planted, consumed, transformed, destroyed or used up, and any transformation result shown before its source changes state.
 - The requested language is consistent, personal details are used naturally, and no placeholders remain.
 - Treat final_blueprint.language as authoritative. Reject any title, text_prompt or image_prompt containing prose from a different language.
 - Referenced cast members are described consistently and appear only when narratively useful.

@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 ## Product flow
 
@@ -35,6 +35,9 @@ Last updated: 2026-07-28
 - Owner-specific universe safety equipment follows deterministic product configuration rather than model improvisation. Each copy is absent before introduction, prepared and activated in a physical scene before entry into the relevant adventure zone, kept active for its owner while required, and stored after exit.
 - The scenarist still describes these events naturally, but the scenario stabilizer repairs invisible object metadata and adds the minimal localized preparation sentence when the required mechanism was omitted. This repair happens before creator review and never asks the creator to correct every scene individually.
 - Object-state validation uses the stable instance identity, continues to reject two simultaneous states for the same copy, rejects an ambiguous owner when several copies exist, and preserves ordinary transferred objects and unrelated matching accessories.
+- A plot object that can be discovered, planted, installed, consumed, transformed, destroyed or used up owns a versioned causal lifecycle. Its exact state is propagated through every approved scene: it remains absent before introduction, stays planted after planting, and can never reappear intact after a terminal event unless an explicit compatible retrieval was planned.
+- Transformations link the source object to a named result. The result remains absent until the transformation scene, while the source becomes irreversibly transformed. A deterministic multilingual inference layer repairs this metadata before creator review when the scenarist described the event naturally but omitted the structured lifecycle.
+- The scenario controller rejects an unearned or immediate transformation, a result visible before its cause, a planted or consumed object held again, and any undeclared second copy. The whole-book audit repeats the same invariant against reader-visible prose so a later writing pass cannot reintroduce the object.
 
 ## Ownership boundaries
 

@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-28
+Last updated: 2026-07-29
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/transformable-object-lifecycle`
 - Latest merged checkpoint: PR #88 — owner-aware recurring-object identity and universe-mechanism lifecycle
-- Current focused checkpoint: production verification of recurring-object lifecycle repair
-- Pull request: PR #88 merged
+- Current focused checkpoint: irreversible lifecycle for discoverable, consumable and transformable plot objects
+- Pull request: not published yet
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,25 +19,25 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #88 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: recurring-object identity and lifecycle
+## Current product brick: transformable-object causal lifecycle
 
-1. Two identically named objects owned by different characters remain distinct copies instead of being rejected as simultaneous states of one object.
-2. A single unique object may still change hands without becoming a second copy.
-3. Owner-specific universe safety equipment follows a deterministic lifecycle: absent before introduction, activated before zone entry, active while required and stored after exit.
-4. The preparation scene receives one minimal localized sentence naming every equipped traveler.
-5. The correction works with persisted coral-ocean contracts by resolving the current product configuration from the universe id.
+1. Plot objects may now carry explicit lifecycle events such as introduction, planting, consumption and transformation instead of only a simultaneous held/worn state.
+2. The stabilizer infers common French, Spanish and English lifecycle wording, keeps the object absent before discovery and propagates irreversible states through every scene.
+3. A transformation links one source to one result: the source becomes transformed and the result cannot appear before the transformation scene.
+4. Validation rejects a planted or terminal object that is held again, an undeclared result, a premature transformation and a result visible before its cause.
+5. The final scene-plan audit repeats the invariant against reader-visible prose before illustration generation.
 
 ## Verification completed locally
 
-- Targeted scenario tests pass: owner-specific copies, unique-object transfer, underwater activation and ordinary object validation.
-- Full local suite passes: 215 tests, 0 failures.
+- Targeted scenario tests pass: seed discovery, planting, transformation, linked result, explicit consumable lifecycle, multilingual inference and lexical false positives.
+- Full local suite passes: 221 tests, 0 failures.
 - The production dependency audit previously reported 0 known vulnerabilities after the Sharp 0.35.3 upgrade.
 
 ## Next verification target
 
-1. Let Render deploy the PR #88 checkpoint.
-2. On project `5e6cc188-6edc-4b11-bf92-693cd5562d7e`, request one scenario update and verify that only the preparation scene introduces Bastien’s and Marie’s separate bubbles.
-3. Confirm that home scenes do not show worn breathing bubbles, underwater scenes keep one per person, and the return stores both copies.
+1. Review the focused pull request without merging while a customer preview may be running.
+2. After explicit merge confirmation and Render deployment, create one story whose object is discovered, used over several scenes, then irreversibly transformed.
+3. Verify in scenario review and the finished manuscript that the source is absent before discovery, cannot return after transformation, and the result appears only after the earned transformation.
 
 ## Protected local state
 

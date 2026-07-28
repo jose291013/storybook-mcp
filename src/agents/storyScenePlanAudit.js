@@ -25,11 +25,24 @@ function hasName(value, name) {
 
 const PHYSICAL_ACTION_PATTERN = /(?:\bstands?\b|\bstanding\b|\bbeside\b|\bnext to\b|\bapproach(?:es|ed|ing)?\b|\btouch(?:es|ed|ing)?\b|\bputs? (?:a|her|his) hand\b|\bholds?\b|\bcarries\b|\bwalks?\b|\bruns?\b|\btravels?\b|\bcrosses\b|\bdebout\b|\b[àa] c[oô]t[ée]\b|\bs['’]approche\b|\bapproche\b|\btouche\b|\bpose (?:sa|une) main\b|\bprend\b|\bporte\b|\bmarche\b|\bcourt\b|\bvoyage\b|\btraverse\b|\bse tient\b|\bde pie\b|\bal lado\b|\bse acerca\b|\btoca\b|\bpone (?:su|una) mano\b|\bsostiene\b|\blleva\b|\bcamina\b|\bcorre\b|\bviaja\b|\bcruza\b)/iu;
 const NONPHYSICAL_CONTEXT_PATTERN = /(?:\bthought\b|\bmemory\b|\bremember(?:s|ed|ing)?\b|\bimagines?\b|\bvoice\b|\bin (?:his|her|their) mind\b|\bpens[ée]e?\b|\bsouvenir\b|\bse souvient\b|\bimagine\b|\bvoix\b|\bdans (?:sa|ses) pens[ée]es?\b|\bpensamiento\b|\brecuerdo\b|\brecuerda\b|\bimagina\b|\bvoz\b|\ben su mente\b)/iu;
+const OBJECT_POSSESSION_PATTERN = /(?:\bholds?\b|\bholding\b|\bcarries\b|\bcarrying\b|\bwears?\b|\bin (?:his|her|their) hand\b|\bprend\b|\btient\b|\btenant\b|\bporte\b|\bdans (?:sa|ses) mains?\b|\bsostiene\b|\blleva\b|\ben (?:su|sus) manos?\b)/iu;
+const IRREVERSIBLE_OBJECT_STATES = new Set(["planted", "consumed", "transformed", "destroyed", "used_up"]);
+const OBJECT_NAME_STOP_WORDS = new Set(["avec", "dans", "pour", "sans", "sous", "the", "with", "from", "into", "une", "des", "aux", "mille", "couleurs", "magique", "magical", "magica", "magico"]);
 
 function sentenceContaining(text, name) {
   return String(text || "")
     .split(/(?<=[.!?])\s+|\n+/u)
     .filter((sentence) => hasName(sentence, name));
+}
+
+function objectSentences(text, name) {
+  const words = key(name).split(" ").filter((word) => word.length >= 4 && !OBJECT_NAME_STOP_WORDS.has(word));
+  return String(text || "")
+    .split(/(?<=[.!?])\s+|\n+/u)
+    .filter((sentence) => {
+      const searchable = key(sentence).split(" ");
+      return words.some((word) => searchable.includes(word));
+    });
 }
 
 function quotedSegments(text) {
@@ -108,6 +121,16 @@ export function deterministicStoryPlanIssues({
           sceneNumber,
           code: "family_address",
           explanation: `Inside the child's dialogue or thoughts, refer to ${character.name} as ${character.preferredAddress}; keep the civil name for narration.`,
+        });
+      }
+    }
+    for (const objectState of Array.isArray(approvedScene.objectStates) ? approvedScene.objectStates : []) {
+      if (!IRREVERSIBLE_OBJECT_STATES.has(objectState?.state)) continue;
+      if (objectSentences(text, objectState.name).some((sentence) => OBJECT_POSSESSION_PATTERN.test(sentence))) {
+        issues.push({
+          sceneNumber,
+          code: "irreversible_object_reappears",
+          explanation: `${objectState.name} is ${objectState.state} in the approved lifecycle and cannot reappear intact in a character's hand.`,
         });
       }
     }

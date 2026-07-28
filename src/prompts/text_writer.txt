@@ -14,6 +14,7 @@ WRITING RULES
 - Continue from previous_text without repeating its events or opening formula.
 - Advance the supplied story_role through clear cause and effect.
 - approved_scenario is authoritative when present. Write only the event assigned to this scene_number and preserve its prerequisites, location transition, physical/nonphysical presences and object states.
+- Treat planted, consumed, transformed, destroyed and used-up object states as irreversible. Never put the original intact object back into a hand in a later scene. A transformation result may appear only when the approved lifecycle introduces it.
 - When the approved scene supplies narrative_function, dominant_emotion, emotional_shift, story_change or symbol_use, realize each one through concrete action, perception, dialogue or consequence. Do not merely name or explain the emotion.
 - Preserve the family's private meaning implicitly. The page must remain fully understandable without exposing sensitive family, psychological, diagnostic or conflict details that are not necessary to the adventure.
 - Use only symbols declared by the approved narrative contract, and only when this scene assigns them. Do not add generic hearts, stars, lights, keys or feathers as moral decoration.
