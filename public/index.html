@@ -86,6 +86,11 @@
                 <div class="intention-example-list" id="intentionExampleList"></div>
                 <div class="intention-actions"><button type="button" class="primary-button" id="interpretIntentionButton" data-i18n="interpretIntention">Aidez-moi à clarifier mon intention</button><button type="button" class="toolbar-button" id="customStoryChoice" data-i18n="ownIdea">J'ai déjà ma propre idée</button></div>
                 <div class="suggestion-loading" id="intentionLoading" hidden><span class="suggestion-spinner" aria-hidden="true"></span><strong data-i18n="intentionLoading">Calitiki cherche trois manières positives d'aborder cette situation…</strong></div>
+                <aside class="intention-safety-notice" id="intentionSafetyNotice" role="alert" hidden>
+                  <strong id="intentionSafetyTitle"></strong>
+                  <p id="intentionSafetyMessage"></p>
+                  <a id="intentionSafetyResource" href="https://www.allo119.gouv.fr/" target="_blank" rel="noopener noreferrer" hidden></a>
+                </aside>
                 <div class="story-intention-grid" id="storyIntentionGrid"></div>
                 <p class="suggestion-choice-status" id="intentionChoiceStatus" aria-live="polite"></p>
               </section>
