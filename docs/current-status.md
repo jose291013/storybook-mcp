@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/sensitivity-observation`
-- Latest merged checkpoint: PR #80 — age-calibrated parent-intention proposals
-- Current focused checkpoint: private sensitivity classification in observation mode
-- Pull request: PR #81 open as draft
+- Current branch: `main`
+- Latest merged checkpoint: PR #81 — private sensitivity classification in observation mode
+- Current focused checkpoint: Render deployment and observation-corpus verification
+- Pull request: PR #81 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #80 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+PR #55 through PR #81 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
 ## Current product brick: sensitivity observation
 
@@ -72,9 +72,9 @@ PR #55 through PR #80 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Review draft PR #81 and keep `STORY_SENSITIVITY_MODE=off` through review and merge.
-2. Before merging, confirm that no preview generation is active because Render may restart.
-3. After an explicit deployment decision, enable `observe` and inspect representative FR, ES and EN classifications.
+1. Wait for Render to deploy merge commit `1f12109e701ab0be57f83fd0c81378d2c4209658`.
+2. Verify the existing age-first intention flow once with `STORY_SENSITIVITY_MODE=off`.
+3. With no active generation, enable `observe` and inspect representative FR, ES and EN classifications without proceeding to paid preview generation.
 4. Do not begin any enforcement brick until the observation results are reviewed.
 
 ## Protected local state
