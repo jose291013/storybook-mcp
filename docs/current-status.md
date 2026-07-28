@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/universe-outfit-continuity`
-- Latest merged checkpoint: PR #86 — guided editorial sensitivity and country-aware support (`384b7a9`)
-- Current focused checkpoint: creator-selected, universe-appropriate wardrobe continuity
-- Pull request: draft PR #87; not merged
+- Current branch: `main`
+- Latest merged checkpoint: PR #87 — creator-selected, universe-appropriate wardrobe continuity
+- Current focused checkpoint: production verification of wardrobe continuity
+- Pull request: PR #87 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #86 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #87 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: universe-appropriate wardrobe continuity
 
@@ -36,10 +36,9 @@ PR #55 through PR #86 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Review draft PR #87 without merging.
+1. Let Render redeploy PR #87 and verify the service health.
 2. Verify the photo-role UI at desktop and mobile widths in FR and ES.
-3. After explicit user approval and confirmation that no book is generating, mark PR #87 ready, merge and let Render redeploy.
-4. Smoke-test one coral-ocean book: ordinary photo clothes before preparation, selected marine outfit before submersion, same outfit and breathing mechanism throughout underwater scenes.
+3. Smoke-test one coral-ocean book: ordinary photo clothes before preparation, selected marine outfit before submersion, same outfit and breathing mechanism throughout underwater scenes.
 
 ## Protected local state
 
