@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/upgrade-sharp-035`
 - Latest merged checkpoint: PR #81 — private sensitivity classification in observation mode
 - Current focused checkpoint: Sharp/libvips high-severity advisory remediation
-- Pull request: security PR not opened yet
+- Pull request: PR #82 open as draft
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -83,7 +83,7 @@ PR #55 through PR #81 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Open a draft security PR without merging or restarting Render.
+1. Review draft security PR #82 without merging or restarting Render.
 2. Before merging, confirm that no preview generation is active because Render may restart.
 3. After security deployment, confirm Render's install reports 0 known vulnerabilities and perform one ordinary photo upload.
 4. Continue the larger sensitivity observation corpus before any enforcement brick.
