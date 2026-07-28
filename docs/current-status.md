@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-object-lifecycle`
 - Latest merged checkpoint: PR #87 — creator-selected, universe-appropriate wardrobe continuity
 - Current focused checkpoint: owner-aware recurring-object identity and universe-mechanism lifecycle
-- Pull request: not opened yet; not merged
+- Pull request: draft PR #88; not merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #87 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Run the final full test suite and publish a focused draft PR.
+1. Review draft PR #88 without merging.
 2. After explicit approval and confirmation that no book is generating, merge and let Render redeploy.
 3. On project `5e6cc188-6edc-4b11-bf92-693cd5562d7e`, request one scenario update and verify that only the preparation scene introduces Bastien’s and Marie’s separate bubbles.
 4. Confirm that home scenes do not show worn breathing bubbles, underwater scenes keep one per person, and the return stores both copies.
