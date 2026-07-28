@@ -6,7 +6,12 @@ import { previewAssetKey } from "../services/previewAssetStorage.js";
 import { attachNarrationToManifest, buildInteractiveBookManifest, InteractiveBookUnavailableError } from "../services/interactiveBookManifest.js";
 import { commerceOrderStore } from "../services/commerceOrderStore.js";
 import { normalizeReferencePhotos } from "../services/normalizeBookRequest.js";
-import { sanitizeSensitivityQuestionnaire } from "../services/storySensitivity.js";
+import {
+  guideStorySensitivity,
+  sanitizeSensitivityQuestionnaire,
+  storySensitivityMode,
+  storySensitivityResponse,
+} from "../services/storySensitivity.js";
 import {
   childSafetyTextFromQuestionnaire,
   childSafetyResponse,
@@ -24,10 +29,11 @@ const router = express.Router();
 
 async function safeQuestionnaire(questionnaire, locale, scope) {
   const input = questionnaire && typeof questionnaire === "object" ? questionnaire : {};
+  const language = ["FR", "ES", "EN"].includes(locale) ? locale : "FR";
   const result = await guardChildSafety({
     text: childSafetyTextFromQuestionnaire(input),
     childAge: Number(input.age),
-    locale: ["FR", "ES", "EN"].includes(locale) ? locale : "FR",
+    locale: language,
     scope,
   }, {
     onTrace: (trace) => console.info("child-safety assessed", trace),
@@ -36,18 +42,66 @@ async function safeQuestionnaire(questionnaire, locale, scope) {
       error: String(error?.message || error),
     }),
   });
-  if (result.intervention) return { intervention: result.intervention, questionnaire: null };
+  if (result.intervention) {
+    return {
+      intervention: {
+        status: result.intervention.status,
+        payload: childSafetyResponse(result.intervention, language),
+      },
+      questionnaire: null,
+    };
+  }
+  const sensitivity = await guideStorySensitivity({
+    creatorSituation: input.creator_situation,
+    childAge: Number(input.age),
+    locale: language,
+  }, {
+    mode: storySensitivityMode(),
+    onTrace: (trace) => console.info("story-sensitivity guided", {
+      scope,
+      finalLevel: trace.finalLevel,
+      finalRestricted: trace.finalRestricted,
+    }),
+    onError: (error) => console.warn("story-sensitivity guided fallback", {
+      scope,
+      error: String(error?.message || error),
+    }),
+  });
+  if (sensitivity.guidance?.status) {
+    return {
+      intervention: {
+        status: sensitivity.guidance.status,
+        payload: storySensitivityResponse(sensitivity.guidance, language),
+      },
+      questionnaire: null,
+    };
+  }
+  if (sensitivity.guidance?.requiresAcknowledgement
+    && input.story_sensitivity_acknowledged !== true) {
+    return {
+      intervention: {
+        status: 409,
+        payload: {
+          code: "story_sensitivity_acknowledgement_required",
+          error: "Confirm the sensitive-subject guidance before continuing",
+          noCreditReserved: true,
+        },
+      },
+      questionnaire: null,
+    };
+  }
   return {
     intervention: null,
     questionnaire: sanitizeSensitivityQuestionnaire({
       ...input,
+      ...(sensitivity.profile ? { story_sensitivity_profile: sensitivity.profile } : {}),
       ...(result.profile ? { child_safety_profile: result.profile } : {}),
     }),
   };
 }
 
-function sendSafetyIntervention(res, intervention, locale) {
-  return res.status(intervention.status).json(childSafetyResponse(intervention, locale));
+function sendSafetyIntervention(res, intervention) {
+  return res.status(intervention.status).json(intervention.payload);
 }
 
 function publicProject(project) {
@@ -97,7 +151,7 @@ router.post("/drafts", async (req, res) => {
     const owner = ensureDraftOwner(req, res);
     const body = req.body || {};
     const safety = await safeQuestionnaire(body.questionnaire, body.locale, "draft_create");
-    if (safety.intervention) return sendSafetyIntervention(res, safety.intervention, body.locale);
+    if (safety.intervention) return sendSafetyIntervention(res, safety.intervention);
     const project = await projectStore.create({
       anonymousOwnerHash: owner.ownerHash, status: body.status || "draft",
       title: body.title || body.questionnaire?.hero_name || "", locale: body.locale || "FR",
@@ -126,7 +180,7 @@ router.put("/drafts/:id", async (req, res) => {
     const safety = body.questionnaire === undefined
       ? null
       : await safeQuestionnaire(body.questionnaire, body.locale || existing.locale, "draft_update");
-    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention, body.locale || existing.locale);
+    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention);
     const project = await projectStore.update(existing.id, {
       status: body.status, title: body.title, locale: body.locale,
       questionnaire: body.questionnaire === undefined ? undefined : safety.questionnaire,
@@ -291,7 +345,7 @@ router.put("/projects/:id", async (req, res) => {
     const safety = body.questionnaire === undefined
       ? null
       : await safeQuestionnaire(body.questionnaire, body.locale || existing.locale, "project_update");
-    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention, body.locale || existing.locale);
+    if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention);
     const project = await projectStore.updateForCustomer(req.params.id, identity, {
       status: body.status, title: body.title, locale: body.locale,
       questionnaire: body.questionnaire === undefined ? undefined : safety.questionnaire,

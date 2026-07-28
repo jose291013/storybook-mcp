@@ -89,7 +89,18 @@
                 <aside class="intention-safety-notice" id="intentionSafetyNotice" role="alert" aria-live="assertive" tabindex="-1" hidden>
                   <strong id="intentionSafetyTitle"></strong>
                   <p id="intentionSafetyMessage"></p>
-                  <a id="intentionSafetyResource" href="https://www.allo119.gouv.fr/" target="_blank" rel="noopener noreferrer" hidden></a>
+                  <section class="safety-resource-panel" id="safetyResourcePanel" hidden>
+                    <label for="safetyCountry" id="safetyCountryLabel"></label>
+                    <select id="safetyCountry"></select>
+                    <p class="safety-immediate-danger" id="safetyImmediateDanger"></p>
+                    <p class="safety-resource-fallback" id="safetyResourceFallback" hidden></p>
+                    <div class="safety-resource-list" id="safetyResourceList"></div>
+                  </section>
+                </aside>
+                <aside class="intention-sensitivity-guidance" id="intentionSensitivityGuidance" aria-live="polite" hidden>
+                  <strong data-i18n="sensitivityGuidanceTitle">Un sujet important, traité avec une prudence renforcée</strong>
+                  <p data-i18n="sensitivityGuidanceMessage">Calitiki utilisera une aventure symbolique et douce, sans promesse de guérison ni résolution définitive. Le livre peut ouvrir un dialogue, mais ne remplace pas un accompagnement humain adapté.</p>
+                  <label><input type="checkbox" id="sensitivityGuidanceAcknowledgement" /> <span data-i18n="sensitivityGuidanceAcknowledge">J’ai compris et je souhaite voir les propositions adaptées.</span></label>
                 </aside>
                 <div class="story-intention-grid" id="storyIntentionGrid"></div>
                 <p class="suggestion-choice-status" id="intentionChoiceStatus" aria-live="polite"></p>

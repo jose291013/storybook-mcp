@@ -195,6 +195,22 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .intention-safety-notice strong { display: block; margin-bottom: 7px; font-family: Georgia, serif; font-size: 19px; }
 .intention-safety-notice p { margin: 0; line-height: 1.55; }
 .intention-safety-notice a { display: inline-block; margin-top: 10px; color: #8f392c; font-weight: 800; }
+.safety-resource-panel { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(143,57,44,.2); }
+.safety-resource-panel label { font-weight: 850; }
+.safety-resource-panel select { width: min(100%, 440px); border: 1px solid #d9b0a6; border-radius: 12px; background: white; color: var(--ink); padding: 11px 13px; }
+.safety-immediate-danger { font-weight: 750; }
+.safety-resource-fallback { padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,.7); }
+.safety-resource-list { display: grid; gap: 9px; }
+.safety-resource-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 14px; align-items: center; padding: 12px 14px; border: 1px solid rgba(143,57,44,.22); border-radius: 12px; background: white; }
+.safety-resource-card strong { margin: 0; font-family: inherit; font-size: 14px; }
+.safety-resource-card span { font-size: 18px; font-weight: 900; }
+.safety-resource-links { display: flex; flex-wrap: wrap; gap: 10px; grid-column: 1 / -1; }
+.safety-resource-links a { margin: 0; }
+.intention-sensitivity-guidance { padding: 18px 20px; border: 1px solid #c7ad6b; border-radius: 16px; background: #fffaf0; color: #604d20; }
+.intention-sensitivity-guidance strong { display: block; margin-bottom: 7px; font-family: Georgia, serif; font-size: 19px; }
+.intention-sensitivity-guidance p { margin: 0 0 12px; line-height: 1.55; }
+.intention-sensitivity-guidance label { display: flex; gap: 9px; align-items: flex-start; font-weight: 750; line-height: 1.45; }
+.intention-sensitivity-guidance input { margin-top: 3px; }
 .intention-age-context { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 260px); gap: 20px; align-items: center; padding: 18px 20px; border: 1px solid #c9ded7; border-radius: 18px; background: #f5fbf8; }
 .intention-age-context strong { display: block; margin-bottom: 5px; color: var(--ink); font-family: Georgia, serif; font-size: 20px; }
 .intention-age-context p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }

@@ -5,8 +5,11 @@ import {
   STORY_SENSITIVITY_PROFILE_VERSION,
   assessStorySensitivity,
   deterministicStorySensitivity,
+  guideStorySensitivity,
   observeStorySensitivity,
   sanitizeSensitivityQuestionnaire,
+  storySensitivityContract,
+  storySensitivityGuidance,
   storySensitivityMode,
 } from "../src/services/storySensitivity.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
@@ -183,6 +186,7 @@ test("hybrid sensitivity can raise but never lower the deterministic floor", asy
 
 test("observation is off by default and fails open to deterministic metadata", async () => {
   assert.equal(storySensitivityMode("unexpected"), "off");
+  assert.equal(storySensitivityMode("guided"), "guided");
   assert.equal(await observeStorySensitivity({
     creatorSituation: "She is coping with bullying.",
     childAge: 9,
@@ -207,6 +211,88 @@ test("observation is off by default and fails open to deterministic metadata", a
   assert.equal(fallback.level, 2);
   assert.equal(fallback.source, "deterministic_fallback");
   assert.match(observedError, /provider unavailable/);
+});
+
+test("guided sensitivity keeps level 2 internal, asks acknowledgement at level 3 and pauses acute danger", async () => {
+  const emotional = await guideStorySensitivity({
+    creatorSituation: "Elle vit du harcèlement à l’école.",
+    childAge: 9,
+    locale: "FR",
+  }, {
+    mode: "guided",
+    runAgent: async () => ({
+      level: 2,
+      restricted: false,
+      confidence: "high",
+    }),
+  });
+  assert.equal(emotional.profile.guidance_version, 1);
+  assert.equal(emotional.guidance.requiresAcknowledgement, false);
+  assert.equal(emotional.contract.level, 2);
+  assert.match(emotional.contract.rules.join(" "), /action/i);
+
+  const major = await guideStorySensitivity({
+    creatorSituation: "Nous traversons le deuil de sa grand-mère.",
+    childAge: 8,
+    locale: "FR",
+  }, {
+    mode: "guided",
+    runAgent: async () => ({
+      level: 3,
+      restricted: false,
+      confidence: "high",
+    }),
+  });
+  assert.equal(major.guidance.code, "story_sensitivity_acknowledgement_required");
+  assert.equal(major.guidance.requiresAcknowledgement, true);
+  assert.equal(major.contract.approach, "symbolic_open_ended");
+  assert.match(major.contract.rules.join(" "), /Never promise/i);
+
+  const acute = await guideStorySensitivity({
+    creatorSituation: "Il parle de suicide et se blesse volontairement.",
+    childAge: 9,
+    locale: "FR",
+  }, {
+    mode: "guided",
+    runAgent: async () => ({
+      level: 1,
+      restricted: false,
+      confidence: "low",
+    }),
+  });
+  assert.equal(acute.profile.restricted, true);
+  assert.equal(acute.guidance.status, 422);
+  assert.equal(acute.guidance.resourceCountryRequired, true);
+  assert.equal(acute.contract, null);
+});
+
+test("guided acknowledgement is persisted only for a current non-restricted level-3 profile", () => {
+  const accepted = sanitizeSensitivityQuestionnaire({
+    creator_situation: "Nous traversons le deuil de sa grand-mère.",
+    story_sensitivity_profile: {
+      version: 2,
+      guidance_version: 1,
+      level: 3,
+      restricted: false,
+      confidence: "high",
+    },
+    story_sensitivity_acknowledged: true,
+  });
+  assert.equal(accepted.story_sensitivity_acknowledged, true);
+  assert.equal(storySensitivityGuidance(accepted.story_sensitivity_profile, "guided").requiresAcknowledgement, true);
+  assert.equal(storySensitivityContract(accepted.story_sensitivity_profile).level, 3);
+
+  const rejected = sanitizeSensitivityQuestionnaire({
+    creator_situation: "Un défi quotidien.",
+    story_sensitivity_profile: {
+      version: 2,
+      guidance_version: 1,
+      level: 1,
+      restricted: false,
+    },
+    story_sensitivity_acknowledged: true,
+  });
+  assert.equal("story_sensitivity_acknowledged" in rejected, false);
 });
 
 test("only the versioned private profile is persisted and it stays outside narrative answers", () => {
@@ -281,21 +367,29 @@ test("persisted version-1 observations remain unchanged when the version-2 floor
   assert.equal(current.story_sensitivity_profile.restricted, true);
 });
 
-test("creator and route retain sensitivity observation without displaying or enforcing it", async () => {
-  const [app, route, scenarioPrompt, textPrompt] = await Promise.all([
+test("observation remains backward compatible while guided mode has explicit UI and narrative contracts", async () => {
+  const [app, route, html, scenarioPrompt, textPrompt, suggestionPrompt] = await Promise.all([
     fs.readFile("public/app.js", "utf8"),
     fs.readFile("src/routes/storyIntentions.js", "utf8"),
+    fs.readFile("public/index.html", "utf8"),
     fs.readFile("src/prompts/story_scenario.txt", "utf8"),
     fs.readFile("src/prompts/text_writer.txt", "utf8"),
+    fs.readFile("src/prompts/story_suggestions.txt", "utf8"),
   ]);
 
   assert.match(app, /storySensitivityProfile: null/);
   assert.match(app, /story_sensitivity_profile: state\.storySensitivityProfile/);
   assert.match(app, /state\.storySensitivityProfile = payload\.sensitivityProfile \|\| null/);
   assert.match(route, /observeStorySensitivity/);
+  assert.match(route, /guideStorySensitivity/);
   assert.match(route, /res\.json\(\{\s*intentions,/);
   assert.match(route, /deterministicLevel/);
   assert.match(route, /classifierRestricted/);
+  assert.match(html, /id="intentionSensitivityGuidance"/);
+  assert.match(html, /id="safetyCountry"/);
+  assert.match(app, /story_sensitivity_acknowledged: state\.storySensitivityAcknowledged/);
+  assert.match(scenarioPrompt, /sensitivity_contract/);
+  assert.match(textPrompt, /story_context\.sensitivity_contract/);
+  assert.match(suggestionPrompt, /sensitivity_contract/);
   assert.doesNotMatch(scenarioPrompt, /story_sensitivity_profile/);
-  assert.doesNotMatch(textPrompt, /story_sensitivity_profile/);
 });

@@ -25,6 +25,7 @@ import {
   childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
+import { storySensitivityContract } from "../services/storySensitivity.js";
 
 const router = express.Router();
 const EDITABLE_STATUSES = new Set(["ready_for_preview", "scenario_review", "scenario_needs_clarification"]);
@@ -65,7 +66,7 @@ function safeAddedCharacters(value) {
   })).filter((character) => character.name);
 }
 
-async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, addedCharacters, feedback, safetyContract }) {
+async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, addedCharacters, feedback, safetyContract, sensitivityContract }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const canonicalCharacters = [...scenarioCharacterRegistry(normalized), ...(previousScenario?.characters || []), ...addedCharacters.map((character) => ({
     name: character.name, role: "story_character", storyRole: "guest", relationship: "story character",
@@ -78,6 +79,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
     creator_scene_edits: sceneEdits,
     creator_feedback: String(feedback || "").slice(0, 2000),
     child_safety_contract: safetyContract,
+    sensitivity_contract: sensitivityContract,
     previous_scenario: previousScenario || null,
   };
   let scenario = null;
@@ -165,6 +167,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
         addedCharacters,
         feedback: req.body?.feedback,
         safetyContract: safety.contract,
+        sensitivityContract: storySensitivityContract(project.questionnaire?.story_sensitivity_profile),
       });
       if (!validation.valid) {
         console.warn("[story-scenario] validation failed", { projectId: project.id, issueCount: validation.issues.length });

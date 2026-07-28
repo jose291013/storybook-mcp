@@ -1,6 +1,12 @@
 import express from "express";
 import { createStoryIntentions } from "../services/storyIntentions.js";
-import { observeStorySensitivity, storySensitivityMode } from "../services/storySensitivity.js";
+import {
+  guideStorySensitivity,
+  observeStorySensitivity,
+  storySensitivityMode,
+  storySensitivityResponse,
+} from "../services/storySensitivity.js";
+import { localizedSafetyResources } from "../services/safetyResources.js";
 import {
   childSafetyIntervention,
   childSafetyMode,
@@ -64,7 +70,25 @@ router.post("/story-safety", async (req, res) => {
     if (result.intervention) {
       return res.status(result.intervention.status).json(childSafetyResponse(result.intervention, locale));
     }
-    return res.json({ allowed: true, ...(result.profile ? { childSafetyProfile: result.profile } : {}) });
+    const sensitivity = await guideStorySensitivity({
+      creatorSituation,
+      childAge,
+      locale,
+    }, {
+      mode: storySensitivityMode(),
+      onError: (error) => console.warn("story-sensitivity guided fallback", {
+        error: String(error?.message || error),
+      }),
+    });
+    if (sensitivity.guidance?.status) {
+      return res.status(sensitivity.guidance.status).json(storySensitivityResponse(sensitivity.guidance, locale));
+    }
+    return res.json({
+      allowed: true,
+      ...(result.profile ? { childSafetyProfile: result.profile } : {}),
+      ...(sensitivity.profile ? { sensitivityProfile: sensitivity.profile } : {}),
+      ...(sensitivity.guidance ? { sensitivityGuidance: sensitivity.guidance } : {}),
+    });
   } catch (error) {
     console.error("story-safety failed", error);
     return res.status(503).json({ error: "Child safety verification is temporarily unavailable" });
@@ -105,17 +129,30 @@ router.post("/story-intentions", async (req, res) => {
     }
     const sensitivityMode = storySensitivityMode();
     let sensitivityTrace = null;
-    const sensitivityPromise = observeStorySensitivity(input, {
+    const sensitivityDependencies = {
       mode: sensitivityMode,
       onTrace: (trace) => {
         sensitivityTrace = trace;
       },
-      onError: (error) => console.warn("story-sensitivity observation fallback", {
+      onError: (error) => console.warn("story-sensitivity assessment fallback", {
         mode: sensitivityMode,
         error: String(error?.message || error),
       }),
+    };
+    const guided = sensitivityMode === "guided"
+      ? await guideStorySensitivity(input, sensitivityDependencies)
+      : null;
+    if (guided?.guidance?.status) {
+      res.set("Cache-Control", "no-store");
+      return res.status(guided.guidance.status).json(storySensitivityResponse(guided.guidance, locale));
+    }
+    const sensitivityPromise = sensitivityMode === "observe"
+      ? observeStorySensitivity(input, sensitivityDependencies)
+      : Promise.resolve(guided?.profile || null);
+    const intentions = await createStoryIntentions({
+      ...input,
+      sensitivityContract: guided?.contract || null,
     });
-    const intentions = await createStoryIntentions(input);
     const sensitivityProfile = await sensitivityPromise;
     if (sensitivityProfile) {
       console.info("story-sensitivity observed", {
@@ -134,12 +171,24 @@ router.post("/story-intentions", async (req, res) => {
     res.json({
       intentions,
       ...(sensitivityProfile ? { sensitivityProfile } : {}),
+      ...(guided?.guidance ? { sensitivityGuidance: guided.guidance } : {}),
       ...(childSafetyProfile ? { childSafetyProfile } : {}),
     });
   } catch (error) {
     console.error("story-intentions failed", error);
     res.status(502).json({ error: "Story intentions are temporarily unavailable" });
   }
+});
+
+router.get("/safety-resources", (req, res) => {
+  const locale = ["FR", "ES", "EN"].includes(String(req.query.locale || "").toUpperCase())
+    ? String(req.query.locale).toUpperCase()
+    : "FR";
+  res.set("Cache-Control", "public, max-age=3600");
+  res.json(localizedSafetyResources({
+    countryCode: req.query.country,
+    locale,
+  }));
 });
 
 export default router;

@@ -363,6 +363,7 @@ export async function blueprintFillerAgent({
   characterCanons = [],
   approvedScenario = null,
   childSafetyContract = null,
+  sensitivityContract = null,
 }) {
   const system = loadPrompt("blueprint_filler.txt");
   const intakeData = intake?.intake || intake || {};
@@ -385,6 +386,7 @@ export async function blueprintFillerAgent({
       character_canons: characterCanons,
       approved_scenario: approvedScenario,
       child_safety_contract: childSafetyContract,
+      sensitivity_contract: sensitivityContract,
       portrait: {
         canon_short: portraitCanonShort,
         canon_json: portraitCanonJson,
