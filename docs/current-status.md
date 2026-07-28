@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/upgrade-sharp-035`
-- Latest merged checkpoint: PR #81 — private sensitivity classification in observation mode
-- Current focused checkpoint: Sharp/libvips high-severity advisory remediation
-- Pull request: PR #82 open as draft
+- Current branch: `main`
+- Latest merged checkpoint: PR #82 — Sharp/libvips high-severity advisory remediation
+- Current focused checkpoint: production verification of the patched image-processing dependency
+- Pull request: PR #82 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #81 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+PR #55 through PR #82 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
 ## Current security brick: Sharp 0.35
 
@@ -83,10 +83,9 @@ PR #55 through PR #81 are merged. The meaning-led storefront is live and its Spa
 
 ## Next verification target
 
-1. Review draft security PR #82 without merging or restarting Render.
-2. Before merging, confirm that no preview generation is active because Render may restart.
-3. After security deployment, confirm Render's install reports 0 known vulnerabilities and perform one ordinary photo upload.
-4. Continue the larger sensitivity observation corpus before any enforcement brick.
+1. Confirm Render's install reports 0 known vulnerabilities after deploying PR #82.
+2. Perform one ordinary reference-photo upload and verify that normalization still succeeds.
+3. Continue the larger sensitivity observation corpus before any enforcement brick.
 
 ## Protected local state
 
