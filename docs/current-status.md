@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/child-grooming-safety`
-- Latest merged checkpoint: PR #83 — version-2 deterministic acute-safety floor
-- Current focused checkpoint: child sexual-safety gate before persistence, generation and credit reservation
-- Pull request: child sexual-safety gate is the active PR candidate; PR #83 remains the latest merged checkpoint
+- Current branch: `codex/child-safety-notice`
+- Latest merged checkpoint: PR #84 — child sexual-safety gate
+- Current focused checkpoint: visible localized support/refusal feedback for enforced child-safety decisions
+- Pull request: focused follow-up in preparation; PR #84 is merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #83 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
+PR #55 through PR #84 are merged. The meaning-led storefront is live and its Spanish translation has been entered in WordPress.
 
 ## Current product brick: child sexual-safety gate
 
@@ -27,6 +27,7 @@ PR #55 through PR #83 are merged. The meaning-led storefront is live and its Spa
 4. A possible disclosure pauses personalized creation and points the adult to child-protection help; exploitative normalization is refused.
 5. The same gate runs before persistence, story suggestions, scenario generation and approval, preview authorization, generated-manuscript illustration, and paid local modifications.
 6. A refusal reserves no credit, persists no unsafe request, and logs no family wording or free-form rationale.
+7. Production `observe` classifications matched the controlled corpus; `enforce` correctly returned support for a possible disclosure, but a creator page left open across deployment did not explain the resulting `422`. The follow-up gives stale clients a localized server message and makes current clients focus and scroll to the accessible protection notice.
 
 ## Previous security brick: Sharp 0.35
 
@@ -97,12 +98,15 @@ PR #55 through PR #83 are merged. The meaning-led storefront is live and its Spa
 - `npm audit` remains at 0 known vulnerabilities.
 - Child sexual-safety targeted suite passes: 24 tests, 0 failures.
 - Full local suite with the child sexual-safety gate passes: 203 tests, 0 failures.
+- Production observation corpus returned the expected general, protective, disclosure and exploitative decisions.
+- Child-safety notice follow-up targeted suite passes: 26 tests, 0 failures.
+- Full local suite with the localized stale-client fallback passes: 204 tests, 0 failures.
 
 ## Next verification target
 
-1. Review the focused child sexual-safety PR and never merge it while a book is generating.
-2. After explicit merge and deployment, begin with a bounded FR/ES/EN observation corpus, then switch `CHILD_SAFETY_MODE` to `enforce`.
-3. Verify that blocked or support-required requests create no project, reserve no credit and expose no private wording in logs.
+1. Publish the focused child-safety notice follow-up without merging it.
+2. After explicit merge and deployment, hard-refresh the creator and repeat the disclosure plus exploitative-normalization tests in `enforce`.
+3. Verify the localized notice, 119 link, unchanged project list and unchanged credit balance.
 
 ## Protected local state
 

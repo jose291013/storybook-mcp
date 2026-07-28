@@ -14,6 +14,20 @@ const CATEGORIES = new Set([
 ]);
 const ACTIONS = new Set(["allow", "support", "block"]);
 const CONFIDENCE = new Set(["low", "medium", "high"]);
+const PUBLIC_MESSAGES = {
+  FR: {
+    child_safety_support_required: "La sécurité de l’enfant passe avant la création du livre. Cette situation peut nécessiter l’aide d’un professionnel ou d’un service de protection. Aucun crédit n’a été réservé.",
+    child_safety_blocked: "Cette demande ne peut pas devenir une histoire Calitiki, car elle ne respecte pas les règles de protection des mineurs. Aucun crédit n’a été réservé.",
+  },
+  ES: {
+    child_safety_support_required: "La seguridad del menor es prioritaria. Esta situación puede requerir ayuda profesional o de protección. No se ha reservado ningún crédito.",
+    child_safety_blocked: "Esta solicitud no puede convertirse en una historia Calitiki porque no respeta las reglas de protección de menores. No se ha reservado ningún crédito.",
+  },
+  EN: {
+    child_safety_support_required: "The child's safety comes before book creation. This situation may require qualified or child-protection support. No credit was reserved.",
+    child_safety_blocked: "This request cannot become a Calitiki story because it does not meet child-protection rules. No credit was reserved.",
+  },
+};
 
 const PROTECTIVE_PATTERNS = [
   /\b(?:mon|ton|son|leur)\s+corps\s+(?:lui|leur)\s+appartient\b/i,
@@ -257,6 +271,15 @@ export function childSafetyIntervention(profile, mode = childSafetyMode()) {
       franceChildDanger: "https://www.allo119.gouv.fr/",
       europeanEmergency: "112",
     },
+  };
+}
+
+export function childSafetyResponse(intervention, locale = "FR") {
+  const language = PUBLIC_MESSAGES[locale] ? locale : "FR";
+  return {
+    ...intervention,
+    error: PUBLIC_MESSAGES[language][intervention?.code]
+      || PUBLIC_MESSAGES[language].child_safety_blocked,
   };
 }
 

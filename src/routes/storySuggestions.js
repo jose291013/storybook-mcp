@@ -5,6 +5,7 @@ import { createStorySuggestions } from "../services/storySuggestions.js";
 import {
   childSafetyIntervention,
   childSafetyMode,
+  childSafetyResponse,
   evaluateChildSafety,
 } from "../services/childSafety.js";
 
@@ -65,10 +66,7 @@ router.post("/story-suggestions", async (req, res) => {
     });
     const intervention = childSafetyIntervention(childSafetyProfile, activeChildSafetyMode);
     if (intervention) {
-      return res.status(intervention.status).json({
-        error: intervention.code,
-        ...intervention,
-      });
+      return res.status(intervention.status).json(childSafetyResponse(intervention, locale));
     }
     const suggestions = await createStorySuggestions({
       heroName,

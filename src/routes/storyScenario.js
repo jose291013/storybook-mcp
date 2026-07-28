@@ -22,6 +22,7 @@ import {
 } from "../services/storyScenarioRepairs.js";
 import {
   childSafetyTextFromQuestionnaire,
+  childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
 
@@ -143,10 +144,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
       }),
     });
     if (safety.intervention) {
-      return res.status(safety.intervention.status).json({
-        error: safety.intervention.code,
-        ...safety.intervention,
-      });
+      return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
     }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);
@@ -244,10 +242,7 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       }),
     });
     if (safety.intervention) {
-      return res.status(safety.intervention.status).json({
-        error: safety.intervention.code,
-        ...safety.intervention,
-      });
+      return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
     }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);

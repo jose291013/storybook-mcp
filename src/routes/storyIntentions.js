@@ -4,6 +4,7 @@ import { observeStorySensitivity, storySensitivityMode } from "../services/story
 import {
   childSafetyIntervention,
   childSafetyMode,
+  childSafetyResponse,
   evaluateChildSafety,
 } from "../services/childSafety.js";
 
@@ -61,10 +62,7 @@ router.post("/story-safety", async (req, res) => {
     });
     res.set("Cache-Control", "no-store");
     if (result.intervention) {
-      return res.status(result.intervention.status).json({
-        error: result.intervention.code,
-        ...result.intervention,
-      });
+      return res.status(result.intervention.status).json(childSafetyResponse(result.intervention, locale));
     }
     return res.json({ allowed: true, ...(result.profile ? { childSafetyProfile: result.profile } : {}) });
   } catch (error) {
@@ -103,10 +101,7 @@ router.post("/story-intentions", async (req, res) => {
     const intervention = childSafety.intervention;
     if (intervention) {
       res.set("Cache-Control", "no-store");
-      return res.status(intervention.status).json({
-        error: intervention.code,
-        ...intervention,
-      });
+      return res.status(intervention.status).json(childSafetyResponse(intervention, locale));
     }
     const sensitivityMode = storySensitivityMode();
     let sensitivityTrace = null;
