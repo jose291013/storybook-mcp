@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/precover-plan-repair`
+- Current branch: `main`
 - Last deployed production checkpoint: PR #96 — resumable whole-book scenario-fidelity audit
-- Current focused checkpoint: complete pre-cover text and scene-contract repair
-- Pull request: PR #97 — published as draft, not merged
+- Current focused checkpoint: PR #97 merged; Render verification pending
+- Pull request: PR #97 — complete pre-cover text and scene-contract repair
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #96 are merged and deployed. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #96 are merged and deployed. PR #97 is merged and awaiting Render verification. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: bounded pre-cover repair
 
@@ -38,9 +38,8 @@ PR #55 through PR #96 are merged and deployed. The last verified production mode
 
 ## Next verification target
 
-1. Before merging PR #97, confirm that no scenario or preview is generating because Render will restart.
-2. After deployment, use the restored **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
-3. Verify that Render reuses the saved `targeted` candidate, performs one full-plan repair, passes the bounded audit and reaches cover preparation without rewriting the 24 page texts.
+1. After deployment, use the restored **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
+2. Verify that Render reuses the saved `targeted` candidate, performs one full-plan repair, passes the bounded audit and reaches cover preparation without rewriting the 24 page texts.
 
 ## Protected local state
 
