@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/generation-run-created-status`
 - Last verified production checkpoint: PR #91 — durable asynchronous scenario preparation
 - Current focused checkpoint: PostgreSQL compatibility for the scenario run staging state
-- Pull request: pending
+- Pull request: #92 — open as draft
 - WordPress Bridge source and installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,10 +35,9 @@ PR #55 through PR #91 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Run the full test suite and publish the focused migration PR.
-2. Merge only after confirming that no preview or scenario is generating; Render will restart and execute migration 012.
-3. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
-4. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by the failed enqueue.
+1. Merge PR #92 only after confirming that no preview or scenario is generating; Render will restart and execute migration 012.
+2. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
+3. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by the failed enqueue.
 
 ## Protected local state
 
