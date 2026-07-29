@@ -31,7 +31,7 @@ function parseJson(text) {
   }
 }
 
-const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|broken pixels|pixel corruption|hybrid|fused|merged (?:character|identity|anatom)|human head[^.]{0,60}animal body|animal head[^.]{0,60}human body|exchanged? (?:head|face|body)|shared body|mixed species|fusionn[ée]|personnages? fusionn[ée]s?|t[êe]te humaine[^.]{0,60}corps d['’]animal|t[êe]te d['’]animal[^.]{0,60}corps humain|anatomie m[ée]lang[ée]e|h[ií]brid[oa]|personajes? fusionad[oa]s?|cabeza humana[^.]{0,60}cuerpo de animal|cabeza de animal[^.]{0,60}cuerpo humano|anatom[ií]a mezclada)/iu;
+const OBJECTIVE_DEFECT_PATTERN = /(corrupt|blank|nearly blank|abstract noise|repeated (?:band|stripe)|bands|stripes|decoder|extreme(?:ly)? blur|truncated|unfinished|incomplete render|broken pixels|pixel corruption|hybrid|fused|merged (?:character|identity|anatom)|human head[^.]{0,60}animal body|animal head[^.]{0,60}human body|exchanged? (?:head|face|body)|shared body|mixed species|extra [^.]{0,30}(?:arm|hand|leg|foot|head|limb|finger)s?|duplicated [^.]{0,30}(?:arm|hand|leg|foot|head|limb|finger)s?|(?:arm|hand|leg|foot|head|limb|finger)s?[^.]{0,30}duplicated|impossible anatomy|fusionn[ée]|personnages? fusionn[ée]s?|t[êe]te humaine[^.]{0,60}corps d['’]animal|t[êe]te d['’]animal[^.]{0,60}corps humain|anatomie m[ée]lang[ée]e|anatomie impossible|(?:bras|main|jambe|pied|t[êe]te|membre|doigt)s?[^.]{0,30}(?:suppl[ée]mentaire|dupliqu[ée])s?|h[ií]brid[oa]|personajes? fusionad[oa]s?|cabeza humana[^.]{0,60}cuerpo de animal|cabeza de animal[^.]{0,60}cuerpo humano|anatom[ií]a mezclada|anatom[ií]a imposible|(?:brazo|mano|pierna|pie|cabeza|extremidad|dedo)s?[^.]{0,30}(?:extra|duplicad[oa])s?)/iu;
 const WARDROBE_ONLY_PATTERN = /(?:\boutfits?\b|\bwardrobe\b|\bclothing\b|\bgarments?\b|\bwears?\b|\bwore\b|\bt-?shirts?\b|\btee-?shirts?\b|\bshirts?\b|\bshorts?\b|\bshoes?\b|\bsneakers?\b|\bsandals?\b|\bcrocs?\b|\bcaps?\b|\bhats?\b|\bcasquettes?\b|\btenues?\b|\bv[êe]tements?\b|\bchemises?\b|\bd[ée]bardeurs?\b|\bchaussures?\b|\bbaskets?\b|\bsandales?\b|\bporte(?:nt)?\b|\bmotifs?\b|\blogos?\b|\binscriptions?\b|\bmarques?\b|\batuendos?\b|\bropa\b|\blleva(?:n)?\b|\bcamisetas?\b|\bpantalones?\b|\bzapatos?\b|\bgorras?\b)/iu;
 const OBJECT_STATE_CONTRADICTION_PATTERN = /(?:duplicat|two copies|twice|quantity|hold(?:s|ing)?[^.]{0,80}wear(?:s|ing)?|wear(?:s|ing)?[^.]{0,80}hold(?:s|ing)?|held[^.]{0,80}worn|worn[^.]{0,80}held|required object[^.]{0,80}(?:absent|missing)|dupliqu|deux exempl|quantit[ée]|(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main[^.]{0,80}port[ée]|port[ée][^.]{0,80}(?:tenu(?:e)?|tient)\s+(?:[àa]|dans)\s+la\s+main|objet requis[^.]{0,80}(?:absent|manquant)|sostiene[^.]{0,80}lleva\s+puesto|lleva\s+puesto[^.]{0,80}sostiene)/iu;
 const MINOR_ACCESSORY_PATTERN = /(?:necklace|pendant|bracelet|earring|tiny charm|small charm|collier|pendentif|bracelet|boucle d['’]oreille|petit c[œoe]ur|collar|colgante|pulsera|pendiente|peque[ñn]o coraz[oó]n)/iu;
@@ -42,6 +42,7 @@ const POSITIVE_SCENE_CONFIRMATION_PATTERN = /(?:\bno issue\b|\bno contradiction\
 const EXPLICIT_SCENE_CONTRADICTION_PATTERN = /(?:\babsent\b|\bmissing\b|\bomitted\b|\bwrong\b|\bincorrect\b|\bcontradict|\bdoes not\b|\bdo not\b|\bnot (?:shown|visible|present|depicted|large|small|clear|performed)\b|\bfails? to\b|\binstead\b|\bduplicat|\btwo copies\b|\btwice\b|\bquantity\b|\bscale\b[^.]{0,60}\bnot\b|\babsent(?:e)?\b|\bmanquant(?:e)?\b|\bomis(?:e)?\b|\bincorrect(?:e)?\b|\bcontradi|\bn['’]est pas\b|\bne\b[^.]{0,80}\bpas\b|\bau lieu\b|\bdupliqu|\bdeux exempl|\bquantit[ée]\b|\b[ée]chelle\b[^.]{0,60}\bpas\b|\bausente\b|\bfalta\b|\bincorrect[oa]\b|\bcontradi|\bno (?:aparece|muestra|representa|realiza|est[aá])\b|\ben lugar de\b|\bduplicad[oa]\b|\bcantidad\b|\bescala\b[^.]{0,60}\bno\b)/iu;
 
 const BLOCKING_SCENE_CONTRADICTION_PATTERN = /(?:wrong (?:subject|target|central action)|required (?:named )?(?:character|person|animal|creature)[^.]{0,100}(?:absent|missing|omitted)|mandatory (?:visible )?cast[^.]{0,100}(?:absent|missing|omitted)|substitut|replac|transform|merge|fuse|hybrid|forbidden[^.]{0,80}(?:present|visible|shown)|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|personne|animal|cr[ée]ature) (?:nomm[ée]e? )?requis(?:e)?[^.]{0,100}(?:absent|manquant|omis)|distribution obligatoire[^.]{0,100}(?:absent|manquant|omis)|remplac|transform|fusion|hybride|interdit[^.]{0,80}(?:pr[ée]sent|visible|montr[ée])|(?:sujeto|objetivo|acci[oó]n principal) incorrect[oa]|(?:personaje|persona|animal|criatura) requerid[oa][^.]{0,100}(?:ausente|falta|omitid[oa])|reparto obligatorio[^.]{0,100}(?:ausente|falta|omitid[oa])|sustitu|reemplaz|transform|fusion|h[ií]brid|prohibid[oa][^.]{0,80}(?:presente|visible|mostrad[oa]))/iu;
+const DUPLICATE_IDENTITY_PATTERN = /(?:required named identity is duplicated|same (?:named )?(?:character|identity|person|child|animal)[^.]{0,100}(?:appears|is shown|is depicted|rendered)[^.]{0,80}(?:twice|two times|two positions|multiple positions|two copies)|(?:character|identity|person|child|animal)[^.]{0,80}(?:appears|is shown|is depicted|rendered) twice|m[êe]me (?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,100}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]|est dessin[ée])[^.]{0,80}(?:deux fois|deux positions|plusieurs positions|deux exemplaires)|(?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,80}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]) deux fois|mis[mt]o (?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,100}(?:aparece|se muestra|se representa)[^.]{0,80}(?:dos veces|dos posiciones|varias posiciones|dos copias)|(?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,80}(?:aparece|se muestra|se representa) dos veces)/iu;
 
 export function objectiveTechnicalIssues(issues = []) {
   return (Array.isArray(issues) ? issues : [])
@@ -60,7 +61,8 @@ export function objectiveSceneContractIssues(issues = []) {
     .filter((issue) => EXPLICIT_SCENE_CONTRADICTION_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
-      || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue))
+      || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
+      || DUPLICATE_IDENTITY_PATTERN.test(issue))
     .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
@@ -71,6 +73,7 @@ export function blockingSceneContractIssues(issues = []) {
   return objectiveSceneContractIssues(issues).filter((issue) => (
     BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
     || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
+    || DUPLICATE_IDENTITY_PATTERN.test(issue)
   ));
 }
 
@@ -164,6 +167,7 @@ Reject only when the image has an objective technical production defect:
 - abstract noise, repeated bands or stripes such as a broken decoder output;
 - extreme accidental blur, truncated rendering or a visibly unfinished image;
 - an accidental identity or anatomy fusion: two requested people or animals share one body, exchange heads, faces or body parts, or become a human-animal hybrid. Each requested identity must remain one complete separate individual. Allow a hybrid only when the structured scene contract explicitly requests that exact fantasy being.
+- clearly impossible anatomy on one visible subject: an extra or duplicated arm, hand, leg, foot, head, limb or finger attached in an anatomically impossible way. Do not reject a normally occluded limb, an ambiguous hand pose or ordinary perspective.
 
 Approve every coherent illustration, even if you would prefer a different composition, character, outfit, color, pose, style or scene interpretation. Never compare wardrobe, cast, likeness or narrative accuracy. Small preview watermarks and page-number badges are expected and are not defects.
 A photograph, photorealistic rendering, painting, cartoon or other coherent visual is technically complete. A mismatch with the requested children's-book medium belongs to the separate style check and MUST be approved here.
@@ -197,10 +201,11 @@ Judge only objective, clearly visible contradictions:
 - a recurring named character is substituted for a distinct generic character;
 - a named observer is shown performing the central action instead;
 - two requested identities are merged, fused, transformed into one another, or exchange a head, face, body, species or anatomy;
+- the same recurring named identity is visibly rendered twice in the same scene, or simultaneously in two different positions, even if both copies otherwise look correct. Allow a visible reflection, portrait, memory, vision or deliberate time montage only when the structured scene contract explicitly requires that representation;
 - a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
 - an explicitly forbidden substitution is present.
 Tiny jewelry and small personal accessories may be partly hidden by pose, hair, framing or clothing. A missing tiny necklace, pendant, bracelet, earring or charm alone is advisory and MUST NOT cause rejection. Object duplication or a held-versus-worn contradiction remains rejectable.
-For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused."
+For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused." When the same named identity is rendered more than once without an explicit reflection, portrait, memory, vision or montage contract, begin the issue with "Required named identity is duplicated."
 Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.
 SCENE CONTRACT JSON:
 ${JSON.stringify(sceneContract)}

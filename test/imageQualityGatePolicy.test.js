@@ -26,9 +26,23 @@ test("image QA ignores artistic preferences and retains objective file defects",
       "repeated bands and corrupted pixels",
       "photo-realistic style",
       "The image fuses a human head with an animal body into a hybrid.",
+      "The child has an extra left hand attached below the elbow.",
+      "La main gauche du garçon est dupliquée dans une position anatomiquement impossible.",
+      "La niña tiene un brazo extra unido al hombro.",
     ]),
-    ["repeated bands and corrupted pixels", "The image fuses a human head with an animal body into a hybrid."],
+    [
+      "repeated bands and corrupted pixels",
+      "The image fuses a human head with an animal body into a hybrid.",
+      "The child has an extra left hand attached below the elbow.",
+      "La main gauche du garçon est dupliquée dans une position anatomiquement impossible.",
+      "La niña tiene un brazo extra unido al hombro.",
+    ],
   );
+  assert.deepEqual(objectiveTechnicalIssues([
+    "The child's left hand is partly hidden by the flower.",
+    "La perspective rend la position de la main ambiguë.",
+    "The hero has two hands, as expected.",
+  ]), []);
 });
 
 test("OpenAI safety rejections are identified for a safer continuity-only retry", () => {
@@ -82,11 +96,22 @@ test("missing required cast and fused identities remain blocking after the final
   assert.deepEqual(blockingSceneContractIssues([
     "Required named character family member 2 is missing.",
     "Required identities are fused into one hybrid body.",
+    "Required named identity is duplicated. Bastien is shown twice in two different positions.",
+    "Le même personnage Bastien apparaît deux fois dans la scène.",
+    "El mismo personaje aparece dos veces en posiciones distintas.",
     "The giant bridge is not large enough.",
   ]), [
     "Required named character family member 2 is missing.",
     "Required identities are fused into one hybrid body.",
+    "Required named identity is duplicated. Bastien is shown twice in two different positions.",
+    "Le même personnage Bastien apparaît deux fois dans la scène.",
+    "El mismo personaje aparece dos veces en posiciones distintas.",
   ]);
+  assert.deepEqual(blockingSceneContractIssues([
+    "Two different named children appear together as required.",
+    "Bastien appears once beside his reflection, which is explicitly required by the scene contract.",
+    "The group contains multiple background people.",
+  ]), []);
 });
 
 test("an unresolved page-quality decision carries its preserved candidate into targeted repair", () => {
