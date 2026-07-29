@@ -1,6 +1,6 @@
 import { enrichFamilyAddress } from "./characterRelationships.js";
 
-export const STORY_PLAN_COMPILER_VERSION = 1;
+export const STORY_PLAN_COMPILER_VERSION = 2;
 
 const FAMILY_ADDRESS_CODES = new Set([
   "family_address",
@@ -34,6 +34,12 @@ function replaceParentReferences(value, parents) {
     output = replaceName(output, parent.name, parent.preferredAddress);
   }
   return output;
+}
+
+function hasKeyPhrase(value, phrase) {
+  const haystack = ` ${key(value)} `;
+  const needle = key(phrase);
+  return Boolean(needle) && haystack.includes(` ${needle} `);
 }
 
 function parentCharacters(characters, language) {
@@ -95,10 +101,15 @@ function replaceAttributedParentReferences({
     .map((segment) => key(segment?.text))
     .filter(Boolean));
   const ranges = quotedSegments(output);
+  const parentRanges = ranges.filter((segment) => (
+    parents.some((parent) => hasKeyPhrase(segment.content, parent.name))
+  ));
   for (const segment of ranges.reverse()) {
-    const shouldNormalize = forceFamilyRepair
-      || heroSegments.has(key(segment.content))
-      || heroAttribution(output, segment, heroName);
+    const shouldNormalize = heroSegments.has(key(segment.content))
+      || heroAttribution(output, segment, heroName)
+      || (forceFamilyRepair
+        && parentRanges.length === 1
+        && parentRanges[0].start === segment.start);
     if (!shouldNormalize) continue;
     const normalized = replaceParentReferences(segment.content, parents);
     if (normalized === segment.content) continue;
@@ -159,11 +170,31 @@ function familyReferenceRemains(text, parents, forceAllQuotes, heroName) {
   ));
 }
 
-export function classifyStoryPlanIssues(issues = []) {
+export function classifyStoryPlanIssues(issues = [], {
+  canonicalCharacters = [],
+  language = "FR",
+} = {}) {
+  const parents = parentCharacters(canonicalCharacters, language);
   const autoFixable = [];
   const creative = [];
   for (const issue of Array.isArray(issues) ? issues : []) {
-    if (FAMILY_ADDRESS_CODES.has(String(issue?.code || ""))) autoFixable.push(issue);
+    const code = key(issue?.code);
+    const codeIdentifiesFamilyAddress = FAMILY_ADDRESS_CODES.has(String(issue?.code || ""))
+      || (
+        /(?:family|parent).*(?:address|first name|given name|dialogue|thought)/u.test(code)
+        || /(?:address|first name|given name).*(?:family|parent)/u.test(code)
+      );
+    const explanationIdentifiesFamilyAddress = parents.some((parent) => (
+      hasKeyPhrase(issue?.explanation, parent.name)
+      && hasKeyPhrase(issue?.explanation, parent.preferredAddress)
+    ));
+    if (codeIdentifiesFamilyAddress || explanationIdentifiesFamilyAddress) {
+      autoFixable.push({
+        ...issue,
+        originalCode: String(issue?.code || ""),
+        code: "family_address",
+      });
+    }
     else creative.push(issue);
   }
   return { autoFixable, creative };
@@ -176,6 +207,14 @@ export function compileStoryPlan(plan = {}, {
   issues = [],
 } = {}) {
   const parents = parentCharacters(canonicalCharacters, language);
+  const classifiedIssues = classifyStoryPlanIssues(issues, {
+    canonicalCharacters,
+    language,
+  });
+  const normalizedIssues = [
+    ...classifiedIssues.autoFixable,
+    ...classifiedIssues.creative,
+  ];
   const pageTexts = { ...(plan?.pageTexts || {}) };
   const speechSegmentsByPage = Object.fromEntries(
     Object.entries(plan?.speechSegmentsByPage || {}).map(([page, segments]) => [
@@ -183,7 +222,7 @@ export function compileStoryPlan(plan = {}, {
       (Array.isArray(segments) ? segments : []).map((segment) => ({ ...segment })),
     ]),
   );
-  const forcePages = familyIssuePages(issues, plan?.sceneContracts);
+  const forcePages = familyIssuePages(normalizedIssues, plan?.sceneContracts);
   const changedPages = [];
   let replacements = 0;
 
@@ -207,7 +246,7 @@ export function compileStoryPlan(plan = {}, {
   }
 
   const unresolvedIssueKeys = new Set();
-  for (const issue of classifyStoryPlanIssues(issues).autoFixable) {
+  for (const issue of classifiedIssues.autoFixable) {
     const sceneNumber = Number(issue?.sceneNumber || 0);
     const pageNumber = Number((plan?.sceneContracts || []).find(
       (contract) => Number(contract?.scene_number || 0) === sceneNumber,

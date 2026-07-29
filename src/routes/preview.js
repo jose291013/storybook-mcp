@@ -817,7 +817,10 @@ router.post("/preview", async (req, res) => {
         };
         const applyLocalCompilerIssues = async (audit, reason) => {
           if (audit?.status === "approved") return audit;
-          const classified = classifyStoryPlanIssues(audit?.issues || []);
+          const classified = classifyStoryPlanIssues(audit?.issues || [], {
+            canonicalCharacters: canonicalStoryCharacters,
+            language: final_blueprint.language,
+          });
           if (!classified.autoFixable.length) return audit;
           await persistCompiledCandidate({
             reason,

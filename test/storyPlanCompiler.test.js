@@ -108,6 +108,66 @@ test("issue classification keeps mechanical family wording out of creative repai
   assert.deepEqual(classified.creative.map((issue) => issue.code), ["mixed_crossing_moments"]);
 });
 
+test("a saved free-form audit code is recognized from the canonical family contract", () => {
+  const classified = classifyStoryPlanIssues([{
+    sceneNumber: 9,
+    code: "preferred_relationship_wording",
+    explanation: "Dans le dialogue de Bastien, remplacer « Marie aimait écouter les oiseaux avec moi » par une formulation utilisant « Maman », son adresse préférée.",
+  }], {
+    canonicalCharacters,
+    language: "FR",
+  });
+
+  assert.equal(classified.autoFixable.length, 1);
+  assert.equal(classified.autoFixable[0].code, "family_address");
+  assert.equal(classified.autoFixable[0].originalCode, "preferred_relationship_wording");
+  assert.deepEqual(classified.creative, []);
+});
+
+test("the saved legacy audit repairs one unattributed family quote without changing narration", () => {
+  const compiled = compileStoryPlan({
+    pageTexts: {
+      18: "Marie reste dans son souvenir. « Marie aimait écouter les oiseaux avec moi ».",
+    },
+    sceneContracts: [{ scene_number: 9, text_page_number: 18 }],
+  }, {
+    canonicalCharacters,
+    heroName: "Bastien",
+    language: "FR",
+    issues: [{
+      sceneNumber: 9,
+      code: "preferred_relationship_wording",
+      explanation: "Dans le dialogue de Bastien, remplacer Marie par Maman, son adresse préférée.",
+    }],
+  });
+
+  assert.equal(
+    compiled.pageTexts[18],
+    "Marie reste dans son souvenir. « Maman aimait écouter les oiseaux avec moi ».",
+  );
+  assert.deepEqual(compiled.compiler.unresolvedIssueKeys, []);
+});
+
+test("issue-scoped legacy repair leaves ambiguous adult dialogue unchanged", () => {
+  const original = "« Marie arrive demain », dit Paul. « Marie écoute les oiseaux », murmure Luc.";
+  const compiled = compileStoryPlan({
+    pageTexts: { 18: original },
+    sceneContracts: [{ scene_number: 9, text_page_number: 18 }],
+  }, {
+    canonicalCharacters,
+    heroName: "Bastien",
+    language: "FR",
+    issues: [{
+      sceneNumber: 9,
+      code: "parent_dialogue_address",
+      explanation: "Use Maman instead of Marie in the child's dialogue.",
+    }],
+  });
+
+  assert.equal(compiled.pageTexts[18], original);
+  assert.deepEqual(compiled.compiler.unresolvedIssueKeys, ["9:family_address"]);
+});
+
 test("structured speaker metadata makes family-address validation deterministic", () => {
   const issues = deterministicStoryPlanIssues({
     approvedScenario: {
