@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/image-anatomy-identity-guard`
 - Last deployed production checkpoint: PR #99 — saved family-address audit compatibility
 - Current focused checkpoint: objective visual guard for impossible anatomy and duplicated recurring identities
-- Pull request: not published yet
+- Pull request: draft PR #100
 - WordPress Bridge source candidate: `0.7.4`; installed production package last recorded as `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -37,11 +37,10 @@ PR #55 through PR #99 are merged and deployed. The last verified production mode
 
 ## Next verification target
 
-1. Run the complete test suite.
-2. Publish a draft PR without merging it.
-3. Before merge, confirm that no scenario or preview is generating because Render will restart.
-4. After deployment, generate a new test book and verify that a clearly duplicated limb or recurring identity is regenerated or quarantined rather than delivered.
-5. Prepare separate UI bricks for the correction comparison and the reader spread orientation.
+1. Review draft PR #100 without merging it.
+2. Before merge, confirm that no scenario or preview is generating because Render will restart.
+3. After deployment, generate a new test book and verify that a clearly duplicated limb or recurring identity is regenerated or quarantined rather than delivered.
+4. Prepare separate UI bricks for the correction comparison and the reader spread orientation.
 
 ## Protected local state
 
