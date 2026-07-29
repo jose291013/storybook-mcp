@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/durable-async-scenario`
 - Last verified production checkpoint: PR #90 — quality-first narrative routing and authoritative causal graph
 - Current focused checkpoint: durable asynchronous scenario preparation
-- Pull request: not yet opened
+- Pull request: #91 — open as draft
 - WordPress Bridge source candidate: `0.7.3`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -37,11 +37,10 @@ PR #55 through PR #90 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Publish the focused pull request.
-2. Merge only after confirming that no preview or scenario is generating; Render will restart.
-3. Install Bridge `0.7.3` after the Node deployment.
-4. Retry the currently preserved scenario and verify `queued → architect → editor → completed`.
-5. During a separate disposable test, refresh the browser while the architect is running and confirm automatic resumption.
+1. Merge PR #91 only after confirming that no preview or scenario is generating; Render will restart.
+2. Install Bridge `0.7.3` after the Node deployment.
+3. Retry the currently preserved scenario and verify `queued → architect → editor → completed`.
+4. During a separate disposable test, refresh the browser while the architect is running and confirm automatic resumption.
 
 ## Protected local state
 
