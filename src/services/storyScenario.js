@@ -6,6 +6,11 @@ import {
   validateCharacterMovementLedger,
 } from "./characterMovementLedger.js";
 import { findUniverse } from "../config/bookOptions.js";
+import {
+  applyCausalGraph,
+  normalizeCausalGraph,
+  validateCausalGraph,
+} from "./storyCausalGraph.js";
 
 export const STORY_SCENARIO_VERSION = 2;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
@@ -138,6 +143,7 @@ export function normalizeStoryScenario(candidate = {}, {
   creatorClarifications = {},
   worldContract = {},
   language = "FR",
+  requireCausalGraph = false,
 } = {}) {
   const raw = candidate?.scenario || candidate;
   const expectedScenes = pagePlan.filter((page) => page.page_type === "image");
@@ -167,7 +173,9 @@ export function normalizeStoryScenario(candidate = {}, {
   });
   const objects = list(raw?.objects, 20).map((item) => {
     const lifecycle = normalizedObjectLifecycle(item);
+    const explicitObjectId = passageId(item?.entity_id || item?.entityId || item?.object_id || item?.objectId);
     return {
+      ...(explicitObjectId ? { objectId: explicitObjectId } : {}),
       name: text(item?.name),
       owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
       initialState: OBJECT_STATES.has(item?.initial_state) ? item.initial_state : "visible",
@@ -248,6 +256,9 @@ export function normalizeStoryScenario(candidate = {}, {
         const suppliedOwner = canonicalName(item?.owner, scenarioCharacters) || text(item?.owner);
         const owner = suppliedOwner || (declaredCopies.length === 1 ? declaredCopies[0].owner : "");
         return {
+          ...(declaredCopies.length === 1 && declaredCopies[0].objectId
+            ? { objectId: declaredCopies[0].objectId }
+            : {}),
           name,
           owner,
           state: OBJECT_STATES.has(item?.state) ? item.state : "visible",
@@ -288,6 +299,11 @@ export function normalizeStoryScenario(candidate = {}, {
         activationSceneNumber,
       };
     });
+  const causalGraph = normalizeCausalGraph(
+    raw?.causal_graph || raw?.causalGraph,
+    objects,
+    scenes,
+  );
   return {
     version: STORY_SCENARIO_VERSION,
     movementLedgerVersion: CHARACTER_MOVEMENT_LEDGER_VERSION,
@@ -303,6 +319,8 @@ export function normalizeStoryScenario(candidate = {}, {
     characters,
     wardrobePlan,
     objects,
+    ...(requireCausalGraph ? { causalGraphRequired: true } : {}),
+    ...(causalGraph ? { causalGraph } : {}),
     scenes,
   };
 }
@@ -670,8 +688,9 @@ function inferredObjectLifecycle(object, scenes, objects) {
 }
 
 function mergedObjectLifecycle(object, scenes, objects) {
-  const inferred = inferredObjectLifecycle(object, scenes, objects);
   const explicit = object?.lifecycle?.version === 1 ? object.lifecycle : null;
+  if (object?.causalAuthority === "graph_v1" && explicit) return explicit;
+  const inferred = inferredObjectLifecycle(object, scenes, objects);
   if (!explicit) return inferred;
   const events = [...list(inferred?.events, 20), ...list(explicit.events, 20)]
     .filter((event, index, all) => all.findLastIndex((candidate) => (
@@ -710,6 +729,7 @@ function upsertObjectState(scene, object, objects, state, instruction) {
   const stateIndex = scene.objectStates.findIndex((item) => objectInstanceKey(item, objects) === instanceKey);
   const existing = stateIndex >= 0 ? scene.objectStates[stateIndex] : null;
   const next = {
+    ...(object.objectId ? { objectId: object.objectId } : {}),
     name: object.name,
     owner: existing?.owner || object.owner,
     state,
@@ -789,7 +809,7 @@ function stabilizeNarrativeObjectLifecycles(scenario = {}) {
 }
 
 export function stabilizeStoryScenario(input = {}) {
-  const scenario = structuredClone(input);
+  const scenario = applyCausalGraph(structuredClone(input));
   const scenes = list(scenario.scenes, 30);
   for (const character of list(scenario.characters, 20)) {
     if (character.initialLocation) continue;
@@ -801,6 +821,7 @@ export function stabilizeStoryScenario(input = {}) {
   const characterLocations = new Map(list(scenario.characters, 20).map((character) => [character.name, character.initialLocation]));
   const trackedObjects = list(scenario.objects, 20).filter((object) => object.trackEveryScene);
   const objectStates = new Map(trackedObjects.map((object) => [objectInstanceKey(object, trackedObjects), {
+    ...(object.objectId ? { objectId: object.objectId } : {}),
     name: object.name,
     owner: object.owner,
     state: object.initialState,
@@ -983,7 +1004,10 @@ function validateNarrativeObjectLifecycles(scenario = {}) {
 }
 
 export function validateStoryScenario(scenario = {}) {
-  const issues = [];
+  const issues = [...validateCausalGraph(scenario)];
+  if (scenario?.causalGraphRequired && !scenario?.causalGraph) {
+    issues.push("scenario causal graph is required");
+  }
   const scenes = list(scenario.scenes, 30);
   if (!scenario.title) issues.push("scenario.title is required");
   if (!scenario.summary) issues.push("scenario.summary is required");

@@ -54,7 +54,7 @@ import {
 import { storySensitivityContract } from "../services/storySensitivity.js";
 
 const router = express.Router();
-const STORY_PLAN_FIDELITY_VERSION = 3;
+const STORY_PLAN_FIDELITY_VERSION = 4;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
 
 function generationWorkerId(jobId) {

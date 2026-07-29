@@ -110,6 +110,7 @@ export async function storySceneTextRepairAgent({
   const result = await runAgent({
     name: "storySceneTextRepair",
     clientKind: "story",
+    modelRole: "story_writer",
     system: loadPrompt("story_scene_text_repair.txt"),
     user: (input) => `TARGETED_STORY_REPAIR_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     input: {

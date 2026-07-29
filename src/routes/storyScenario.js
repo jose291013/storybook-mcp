@@ -102,6 +102,7 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
         creatorClarifications,
         worldContract: normalized.answers.universe_story_contract,
         language: normalized.answers.language,
+        requireCausalGraph: true,
       }),
       { sceneEdits, addedCharacters },
     )), repairDirectives, { language: normalized.answers.language });
@@ -112,9 +113,13 @@ async function generateValidatedScenario({ normalized, previousScenario, creator
         valid: audit.status === "approved",
         issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
       };
+      if (!validation.valid) repairDirectives = audit.repairDirectives;
     }
     if (validation.valid) break;
-    repairDirectives = buildStoryScenarioRepairDirectives(scenario, validation);
+    repairDirectives = [
+      ...repairDirectives,
+      ...buildStoryScenarioRepairDirectives(scenario, validation),
+    ].slice(0, 12);
   }
   return { scenario, validation };
 }
