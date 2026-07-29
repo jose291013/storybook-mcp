@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const VERSION = 1;
-export const PREVIEW_RETRY_POLICY_VERSION = 10;
+export const PREVIEW_RETRY_POLICY_VERSION = 11;
 
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
