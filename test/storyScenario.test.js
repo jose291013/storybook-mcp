@@ -1015,7 +1015,9 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
   assert.match(html, /id="storyScenarioPanel"/);
   assert.match(html, /id="scenarioPreparingState"/);
+  assert.match(html, /id="scenarioCreationJourney"/);
   assert.match(html, /id="scenarioPreparingSteps"/);
+  assert.match(html, /id="notifyScenarioEmail"/);
   assert.match(html, /id="retryInitialScenarioButton"/);
   assert.match(html, /id="scenarioReviewContent"/);
   assert.match(html, /id="scenarioStatus"/);
@@ -1029,10 +1031,13 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioWorker, /heartbeatRun/);
   assert.match(scenarioWorker, /retryAvailable/);
   assert.match(scenarioWorker, /retryExhausted/);
+  assert.match(scenarioWorker, /event: "scenario_ready"/);
+  assert.match(scenarioWorker, /event: "scenario_failed"/);
+  assert.match(app, /if \(error\?\.technical\) \{\s*await showGenerationFailure\(\)/);
   assert.match(scenarioRoute, /MAX_TECHNICAL_ATTEMPTS = 2/);
   assert.match(scenarioRoute, /activeScenarioEnqueues/);
   assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
-  assert.match(bridge, /Version: 0\.7\.3/);
+  assert.match(bridge, /Version: 0\.7\.4/);
   assert.match(bridge, /scenario_generating/);
   assert.match(bridge, /Scénario à valider/);
 });

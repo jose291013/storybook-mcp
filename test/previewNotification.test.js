@@ -34,6 +34,19 @@ test("preview emails use signed, separate ready and milestone endpoints", async 
     await notifyPreviewMilestone({
       project,
       identity,
+      event: "scenario_ready",
+      eventId: "job-1:scenario_ready",
+    });
+    await notifyPreviewMilestone({
+      project,
+      identity,
+      event: "scenario_failed",
+      eventId: "job-1:scenario_failed",
+      retryAvailable: true,
+    });
+    await notifyPreviewMilestone({
+      project,
+      identity,
       event: "cover_ready",
       eventId: "job-1:cover:1",
     });
@@ -44,15 +57,19 @@ test("preview emails use signed, separate ready and milestone endpoints", async 
       eventId: "job-1:quality-review",
     });
     await notifyPreviewReady({ project, identity });
-    assert.equal(calls.length, 3);
+    assert.equal(calls.length, 5);
     assert.match(calls[0].url, /calitiki_preview_event=1/);
     assert.match(calls[1].url, /calitiki_preview_event=1/);
-    assert.match(calls[2].url, /calitiki_preview_ready=1/);
+    assert.match(calls[2].url, /calitiki_preview_event=1/);
+    assert.match(calls[3].url, /calitiki_preview_event=1/);
+    assert.match(calls[4].url, /calitiki_preview_ready=1/);
     const milestoneBody = JSON.parse(calls[0].options.body);
-    assert.equal(milestoneBody.event, "cover_ready");
-    assert.equal(milestoneBody.eventId, "job-1:cover:1");
+    assert.equal(milestoneBody.event, "scenario_ready");
+    assert.equal(milestoneBody.eventId, "job-1:scenario_ready");
     assert.equal(milestoneBody.readyUrl, "https://creator.example/api/auth/woocommerce/project?projectId=project-1");
-    assert.equal(JSON.parse(calls[1].options.body).event, "quality_review_required");
+    assert.equal(JSON.parse(calls[1].options.body).event, "scenario_failed");
+    assert.equal(JSON.parse(calls[1].options.body).retryAvailable, true);
+    assert.equal(JSON.parse(calls[3].options.body).event, "quality_review_required");
     assert.equal(
       calls[0].options.headers["X-Calitiki-Signature"],
       crypto.createHmac("sha256", secret).update(calls[0].options.body).digest("hex"),

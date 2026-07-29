@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.3
+ * Version: 0.7.4
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.3') {
-            update_option(self::VERSION_OPTION, '0.7.3');
+        if (get_option(self::VERSION_OPTION) !== '0.7.4') {
+            update_option(self::VERSION_OPTION, '0.7.4');
             flush_rewrite_rules(false);
         }
     }
@@ -116,7 +116,7 @@ final class Calitiki_Woo_Bridge {
         $retry_available = !empty($payload['retryAvailable']);
         $ready_url = isset($payload['readyUrl']) ? esc_url_raw($payload['readyUrl']) : '';
         $user = $customer_id ? get_user_by('id', $customer_id) : false;
-        if (!$user || !$project_id || !$ready_url || !$event_id || !in_array($event, array('preview_ready', 'cover_ready', 'generation_failed', 'quality_review_required'), true)) {
+        if (!$user || !$project_id || !$ready_url || !$event_id || !in_array($event, array('preview_ready', 'scenario_ready', 'scenario_failed', 'cover_ready', 'generation_failed', 'quality_review_required'), true)) {
             wp_send_json_error(array('error' => 'Invalid notification payload'), 400);
         }
         $dedupe_key = 'calitiki_preview_' . md5($project_id . '|' . $event . '|' . $event_id);
@@ -125,7 +125,28 @@ final class Calitiki_Woo_Bridge {
         }
         $locale = strtoupper(isset($payload['locale']) ? sanitize_text_field($payload['locale']) : 'FR');
         $title = isset($payload['title']) ? sanitize_text_field($payload['title']) : 'Calitiki';
-        if ($event === 'cover_ready' && $locale === 'ES') {
+        if ($event === 'scenario_ready' && $locale === 'ES') {
+            $subject = 'El guion de tu libro Calitiki está listo';
+            $message = "El guion de «{$title}» está listo para que lo revises. Todavía no se ha creado ningún texto final ni ilustración.\n\nRevisar mi guion: {$ready_url}\n\nTus fotos y tu creación permanecen privadas.";
+        } elseif ($event === 'scenario_ready' && $locale === 'EN') {
+            $subject = 'Your Calitiki story plan is ready to review';
+            $message = "The story plan for “{$title}” is ready for your review. No final manuscript or illustration has been created yet.\n\nReview my story plan: {$ready_url}\n\nYour photos and creation remain private.";
+        } elseif ($event === 'scenario_ready') {
+            $subject = 'Votre scénario Calitiki est prêt à être relu';
+            $message = "Le scénario de « {$title} » est prêt. Vous pouvez maintenant relire les trois actes avant la création du texte et des illustrations.\n\nRelire mon scénario : {$ready_url}\n\nVos photos et votre création restent privées.";
+        } elseif ($event === 'scenario_failed' && $locale === 'ES') {
+            $subject = 'La preparación de tu guion Calitiki se ha interrumpido';
+            $next_step = $retry_available ? 'Puedes reanudar gratuitamente la preparación del guion.' : 'No se iniciará ningún nuevo intento automático; Calitiki deberá revisar este proyecto.';
+            $message = "No hemos podido terminar el guion de «{$title}» esta vez. Tus respuestas están guardadas y no se ha utilizado ningún crédito.\n\n{$next_step}\n\nVolver a mi creación: {$ready_url}";
+        } elseif ($event === 'scenario_failed' && $locale === 'EN') {
+            $subject = 'Your Calitiki story plan needs your attention';
+            $next_step = $retry_available ? 'You can resume story-plan preparation for free.' : 'No further attempt will start automatically; Calitiki must review this project.';
+            $message = "We could not finish the story plan for “{$title}” this time. Your answers are saved and no credit was used.\n\n{$next_step}\n\nReturn to my creation: {$ready_url}";
+        } elseif ($event === 'scenario_failed') {
+            $subject = 'La préparation de votre scénario Calitiki s’est interrompue';
+            $next_step = $retry_available ? 'Vous pouvez relancer gratuitement la préparation du scénario.' : 'Aucun nouvel essai ne sera lancé automatiquement ; Calitiki doit vérifier ce projet.';
+            $message = "Nous n’avons pas pu terminer le scénario de « {$title} » cette fois-ci. Vos réponses sont conservées et aucun crédit n’a été utilisé.\n\n{$next_step}\n\nRevenir à ma création : {$ready_url}";
+        } elseif ($event === 'cover_ready' && $locale === 'ES') {
             $subject = 'La portada de tu libro Calitiki está lista';
             $message = "La portada de «{$title}» está lista. Las ilustraciones interiores esperan tu aprobación.\n\nRevisar mi portada: {$ready_url}\n\nTus fotos y tu libro permanecen privados.";
         } elseif ($event === 'cover_ready' && $locale === 'EN') {

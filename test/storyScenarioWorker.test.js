@@ -8,6 +8,7 @@ function projectFixture({
   previousScenario = null,
   previousProjectStatus = "ready_for_preview",
   technicalAttempt = 1,
+  notificationRequested = false,
 } = {}) {
   const questionnaire = {
     age: 8,
@@ -24,11 +25,15 @@ function projectFixture({
   }));
   return {
     id: "project-1",
+    customerId: "customer-1",
     status: "scenario_generating",
     questionnaire,
     photoRefs: [],
     generationJobId: "run-1",
     continuitySnapshot: {
+      previewNotification: {
+        emailRequested: notificationRequested,
+      },
       ...(previousScenario ? { storyScenario: previousScenario } : {}),
       storyScenarioGeneration: {
         version: 1,
@@ -62,6 +67,11 @@ function fakeProjects(initial) {
       assert.equal(id, project.id);
       project = { ...project, ...structuredClone(patch) };
       return structuredClone(project);
+    },
+    async getCustomerIdentity(customerId) {
+      return customerId === "customer-1"
+        ? { wooCustomerId: "42", email: "parent@example.test" }
+        : null;
     },
     current() {
       return structuredClone(project);
@@ -124,6 +134,42 @@ test("durable scenario worker persists a completed scenario without storing its 
   assert.equal(completed.continuitySnapshot.storyScenarioGeneration.request, null);
   assert.equal(runs.patches.at(-1).status, "completed");
   assert.ok(runs.patches.some((patch) => patch.currentStep === "scenario:architect:attempt:1"));
+});
+
+test("completed scenario sends one requested email milestone and persists its dedupe key", async () => {
+  const projects = fakeProjects(projectFixture({ notificationRequested: true }));
+  const runs = fakeRuns();
+  const notifications = [];
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:queued",
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => ({
+      scenario: {
+        title: "Bastien et la forêt",
+        summary: "Une aventure.",
+        clarifications: [],
+        scenes: [],
+      },
+      validation: { valid: true, issues: [] },
+    }),
+    notifyMilestone: async (payload) => {
+      notifications.push(payload);
+    },
+  });
+
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].event, "scenario_ready");
+  assert.equal(notifications[0].identity.wooCustomerId, "42");
+  assert.equal(
+    projects.current().continuitySnapshot.previewNotification.milestoneEventIds.scenario_ready,
+    "run-1:scenario_ready",
+  );
 });
 
 test("durable scenario worker stores only provider response checkpoints in run metadata", async () => {
@@ -195,6 +241,36 @@ test("durable scenario timeout preserves the exact request and exposes one free 
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
   assert.ok(failed.continuitySnapshot.storyScenarioGeneration.request);
   assert.equal(runs.patches.at(-1).errorCode, "scenario_timeout");
+});
+
+test("failed scenario sends the requested interruption milestone with its free-retry state", async () => {
+  const projects = fakeProjects(projectFixture({ notificationRequested: true }));
+  const runs = fakeRuns();
+  const notifications = [];
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:architect:attempt:1",
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => {
+      throw new Error("Request timed out.");
+    },
+    notifyMilestone: async (payload) => {
+      notifications.push(payload);
+    },
+  });
+
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].event, "scenario_failed");
+  assert.equal(notifications[0].retryAvailable, true);
+  assert.equal(
+    projects.current().continuitySnapshot.previewNotification.milestoneEventIds.scenario_failed,
+    "run-1:scenario_failed",
+  );
 });
 
 test("a failed free scenario retry stops further automatic attempts", async () => {
