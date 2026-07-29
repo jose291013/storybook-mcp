@@ -47,3 +47,21 @@ test("whole-book planning has a dedicated longer timeout without hidden retries"
   }
 });
 
+test("durable scenario architecture has its own ten-minute request bound", () => {
+  const previousKey = process.env.OPENAI_API_KEY;
+  const previousScenarioTimeout = process.env.OPENAI_SCENARIO_TIMEOUT_MS;
+  const previousScenarioRetries = process.env.OPENAI_SCENARIO_MAX_RETRIES;
+  process.env.OPENAI_API_KEY = "test-key";
+  delete process.env.OPENAI_SCENARIO_TIMEOUT_MS;
+  delete process.env.OPENAI_SCENARIO_MAX_RETRIES;
+  try {
+    const client = createOpenAIClient({ kind: "scenario" });
+    assert.equal(client.timeout, 600000);
+    assert.equal(client.maxRetries, 0);
+  } finally {
+    if (previousKey === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = previousKey;
+    if (previousScenarioTimeout === undefined) delete process.env.OPENAI_SCENARIO_TIMEOUT_MS; else process.env.OPENAI_SCENARIO_TIMEOUT_MS = previousScenarioTimeout;
+    if (previousScenarioRetries === undefined) delete process.env.OPENAI_SCENARIO_MAX_RETRIES; else process.env.OPENAI_SCENARIO_MAX_RETRIES = previousScenarioRetries;
+  }
+});
+

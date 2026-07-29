@@ -1,35 +1,30 @@
 import express from "express";
-import { storyScenarioAgent } from "../agents/storyScenario.js";
 import { storyScenarioAuditAgent } from "../agents/storyScenarioAudit.js";
-import { createPagePlan } from "../config/bookStructure.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
+import { generationRunStore } from "../services/generationRunStore.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { previewRequestFingerprint } from "../services/previewGenerationCheckpoint.js";
 import { projectStore } from "../services/projectStore.js";
 import {
-  applyCreatorStoryScenarioEdits,
   clarificationAnswersForApproval,
-  normalizeStoryScenario,
-  scenarioCharacterRegistry,
-  stabilizeStoryScenario,
-  summarizeStoryScenarioValidation,
   storyScenarioSnapshot,
   validateStoryScenario,
 } from "../services/storyScenario.js";
-import {
-  applyStoryScenarioRepairDirectives,
-  buildStoryScenarioRepairDirectives,
-} from "../services/storyScenarioRepairs.js";
 import {
   childSafetyTextFromQuestionnaire,
   childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
-import { storySensitivityContract } from "../services/storySensitivity.js";
 
 const router = express.Router();
-const EDITABLE_STATUSES = new Set(["ready_for_preview", "scenario_review", "scenario_needs_clarification"]);
-const activeScenarioUpdates = new Set();
+const EDITABLE_STATUSES = new Set([
+  "ready_for_preview",
+  "scenario_review",
+  "scenario_needs_clarification",
+  "scenario_generation_failed",
+]);
+const MAX_TECHNICAL_ATTEMPTS = 2;
+const activeScenarioEnqueues = new Set();
 
 function requireIdentity(req, res) {
   try {
@@ -66,79 +61,77 @@ function safeAddedCharacters(value) {
   })).filter((character) => character.name);
 }
 
-async function generateValidatedScenario({ normalized, previousScenario, creatorClarifications, sceneEdits, addedCharacters, feedback, safetyContract, sensitivityContract }) {
-  const pagePlan = createPagePlan(normalized.answers.page_count);
-  const canonicalCharacters = [...scenarioCharacterRegistry(normalized), ...(previousScenario?.characters || []), ...addedCharacters.map((character) => ({
-    name: character.name, role: "story_character", storyRole: "guest", relationship: "story character",
-  }))].filter((character, index, all) => character.name && all.findIndex((candidate) => candidate.name.localeCompare(character.name, undefined, { sensitivity: "base" }) === 0) === index);
-  const input = {
-    intake: normalized.answers,
-    canonical_characters: canonicalCharacters,
-    page_plan: pagePlan.filter((page) => page.page_type === "image"),
-    creator_clarifications: creatorClarifications,
-    creator_scene_edits: sceneEdits,
-    creator_feedback: String(feedback || "").slice(0, 2000),
-    child_safety_contract: safetyContract,
-    sensitivity_contract: sensitivityContract,
-    previous_scenario: previousScenario || null,
-  };
-  let scenario = null;
-  let validation = { valid: false, issues: ["scenario has not been generated"] };
-  let repairDirectives = [];
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const candidate = await storyScenarioAgent({
-      ...input,
-      ...(scenario ? {
-        previous_scenario: scenario,
-        validation_issues: validation.issues,
-        repair_directives: repairDirectives,
-      } : {}),
-      structural_repair_attempt: attempt,
-    });
-    scenario = applyStoryScenarioRepairDirectives(stabilizeStoryScenario(applyCreatorStoryScenarioEdits(
-      normalizeStoryScenario(candidate, {
-        pagePlan,
-        canonicalCharacters,
-        creatorClarifications,
-        worldContract: normalized.answers.universe_story_contract,
-        language: normalized.answers.language,
-        requireCausalGraph: true,
-      }),
-      { sceneEdits, addedCharacters },
-    )), repairDirectives, { language: normalized.answers.language });
-    validation = validateStoryScenario(scenario);
-    if (validation.valid) {
-      const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
-      validation = {
-        valid: audit.status === "approved",
-        issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
-      };
-      if (!validation.valid) repairDirectives = audit.repairDirectives;
-    }
-    if (validation.valid) break;
-    repairDirectives = [
-      ...repairDirectives,
-      ...buildStoryScenarioRepairDirectives(scenario, validation),
-    ].slice(0, 12);
+function generationSnapshot(project) {
+  return project?.continuitySnapshot?.storyScenarioGeneration || null;
+}
+
+function queuedRequest(project, body, safetyContract, retrying) {
+  const prior = generationSnapshot(project);
+  if (retrying) {
+    return { ...prior.request, safetyContract };
   }
-  return { scenario, validation };
+  const previous = storyScenarioSnapshot(project);
+  return {
+    creatorClarifications: {
+      ...(previous?.creatorClarifications || {}),
+      ...safeAnswers(body?.clarifications),
+    },
+    sceneEdits: safeSceneEdits(body?.sceneEdits),
+    addedCharacters: safeAddedCharacters(body?.addedCharacters),
+    feedback: String(body?.feedback || "").slice(0, 2000),
+    safetyContract,
+  };
 }
 
 router.post("/projects/:id/story-scenario", async (req, res) => {
   const identity = requireIdentity(req, res); if (!identity) return;
+  if (activeScenarioEnqueues.has(req.params.id)) {
+    return res.status(409).json({
+      error: "Scenario update already in progress",
+      code: "scenario_update_in_progress",
+      retryable: true,
+    });
+  }
+  activeScenarioEnqueues.add(req.params.id);
   try {
     const project = await projectStore.getForCustomer(req.params.id, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
+    const activeGeneration = generationSnapshot(project);
+    if (project.status === "scenario_generating"
+      && activeGeneration?.runId
+      && ["queued", "running"].includes(activeGeneration.status)) {
+      return res.status(202).json({
+        jobId: activeGeneration.runId,
+        status: "scenario_generating",
+        resumed: true,
+      });
+    }
     if (!EDITABLE_STATUSES.has(project.status)) {
       return res.status(409).json({ error: "This project can no longer replace its scenario", code: "scenario_locked" });
     }
+    const requestedRetry = req.body?.retry === true;
+    const failedGeneration = generationSnapshot(project);
+    const retrying = requestedRetry
+      && failedGeneration?.status === "failed"
+      && failedGeneration.retryAvailable === true
+      && Boolean(failedGeneration.request);
+    if (requestedRetry
+      && failedGeneration?.status === "failed"
+      && failedGeneration.request
+      && !retrying) {
+      const error = new Error("No further automatic scenario retry is available");
+      error.statusCode = 409;
+      error.code = "scenario_retry_unavailable";
+      throw error;
+    }
+    const priorRequest = retrying ? generationSnapshot(project)?.request : null;
     const safety = await guardChildSafety({
       text: [
         childSafetyTextFromQuestionnaire(project.questionnaire),
-        req.body?.feedback,
-        JSON.stringify(req.body?.clarifications || {}),
-        JSON.stringify(req.body?.sceneEdits || []),
-        JSON.stringify(req.body?.addedCharacters || []),
+        retrying ? priorRequest?.feedback : req.body?.feedback,
+        JSON.stringify(retrying ? priorRequest?.creatorClarifications || {} : req.body?.clarifications || {}),
+        JSON.stringify(retrying ? priorRequest?.sceneEdits || [] : req.body?.sceneEdits || []),
+        JSON.stringify(retrying ? priorRequest?.addedCharacters || [] : req.body?.addedCharacters || []),
       ].filter(Boolean).join("\n"),
       childAge: Number(project.questionnaire?.age),
       locale: project.locale,
@@ -155,77 +148,108 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);
-    const previous = storyScenarioSnapshot(project);
-    const creatorClarifications = { ...(previous?.creatorClarifications || {}), ...safeAnswers(req.body?.clarifications) };
-    const sceneEdits = safeSceneEdits(req.body?.sceneEdits);
-    const addedCharacters = safeAddedCharacters(req.body?.addedCharacters);
-    if (activeScenarioUpdates.has(project.id)) {
-      return res.status(409).json({ error: "Scenario update already in progress", code: "scenario_update_in_progress", retryable: true });
-    }
-    activeScenarioUpdates.add(project.id);
+    const request = queuedRequest(project, req.body, safety.contract, retrying);
+    const technicalAttempt = retrying
+      ? Number(failedGeneration.technicalAttempt || 1) + 1
+      : 1;
+    const previousStatus = project.status === "scenario_generation_failed"
+      ? generationSnapshot(project)?.previousProjectStatus || "ready_for_preview"
+      : project.status;
+    const { run } = await generationRunStore.createRun({
+      projectId: project.id,
+      kind: "story_scenario",
+      status: "created",
+      currentStep: "scenario:created",
+      inputFingerprint: fingerprint,
+      metadata: {
+        requestKind: storyScenarioSnapshot(project) ? "revision" : "initial",
+        retryOf: retrying ? generationSnapshot(project)?.runId || null : null,
+      },
+    });
+    const queuedAt = new Date().toISOString();
     try {
-      const { scenario, validation } = await generateValidatedScenario({
-        normalized,
-        previousScenario: previous?.fingerprint === fingerprint ? previous : null,
-        creatorClarifications,
-        sceneEdits,
-        addedCharacters,
-        feedback: req.body?.feedback,
-        safetyContract: safety.contract,
-        sensitivityContract: storySensitivityContract(project.questionnaire?.story_sensitivity_profile),
-      });
-      if (!validation.valid) {
-        console.warn("[story-scenario] validation failed", { projectId: project.id, issueCount: validation.issues.length });
-        const createdAt = new Date().toISOString();
-        const validationSummary = summarizeStoryScenarioValidation(validation);
-        const storedScenario = {
-          ...scenario,
-          fingerprint,
-          status: "needs_revision",
-          revision: Number(previous?.revision || 0) + 1,
-          validation: validationSummary,
-          createdAt,
-          approvedAt: null,
-        };
-        const continuitySnapshot = {
+      await projectStore.updateForCustomer(project.id, identity, {
+        status: "scenario_generating",
+        generationJobId: run.id,
+        continuitySnapshot: {
           ...project.continuitySnapshot,
-          storyScenarioWorkflow: { required: true, version: 1, startedAt: previous?.createdAt || createdAt },
-          storyScenario: storedScenario,
-        };
-        await projectStore.updateForCustomer(project.id, identity, { status: "scenario_review", continuitySnapshot, generationJobId: null });
-        return res.status(422).json({
-          error: "The provisional scenario needs another update",
-          code: "scenario_invalid",
-          retryable: true,
-          scenario: storedScenario,
-          status: "scenario_review",
-          diagnostics: validationSummary,
-        });
+          storyScenarioGeneration: {
+            version: 1,
+            runId: run.id,
+            status: "queued",
+            phase: "queued",
+            fingerprint,
+            previousProjectStatus,
+            technicalAttempt,
+            maxTechnicalAttempts: MAX_TECHNICAL_ATTEMPTS,
+            retryAvailable: false,
+            request,
+            requestedAt: queuedAt,
+            updatedAt: queuedAt,
+          },
+        },
+      });
+      await generationRunStore.updateRun(run.id, {
+        status: "queued",
+        currentStep: "scenario:queued",
+      });
+    } catch (error) {
+      const failedAt = new Date().toISOString();
+      await generationRunStore.updateRun(run.id, {
+        status: "failed",
+        currentStep: "scenario:queue_failed",
+        errorCode: "scenario_queue_failed",
+        errorMessage: "The scenario could not be queued safely.",
+        completedAt: failedAt,
+      }).catch(() => null);
+      const latest = await projectStore.getForCustomer(project.id, identity).catch(() => null);
+      if (latest?.continuitySnapshot?.storyScenarioGeneration?.runId === run.id) {
+        await projectStore.updateForCustomer(project.id, identity, {
+          status: ["scenario_review", "scenario_needs_clarification"].includes(previousStatus)
+            ? previousStatus
+            : "scenario_generation_failed",
+          generationJobId: run.id,
+          continuitySnapshot: {
+            ...latest.continuitySnapshot,
+            storyScenarioGeneration: {
+              ...latest.continuitySnapshot.storyScenarioGeneration,
+              status: "failed",
+              phase: "queue_failed",
+              errorCode: "scenario_queue_failed",
+              retryAvailable: technicalAttempt < MAX_TECHNICAL_ATTEMPTS,
+              retryExhausted: technicalAttempt >= MAX_TECHNICAL_ATTEMPTS,
+              failedAt,
+              updatedAt: failedAt,
+            },
+          },
+        }).catch(() => null);
       }
-      const createdAt = new Date().toISOString();
-      const storedScenario = {
-        ...scenario,
-        fingerprint,
-        status: scenario.clarifications.length ? "needs_clarification" : "proposed",
-        revision: Number(previous?.revision || 0) + 1,
-        validation,
-        createdAt,
-        approvedAt: null,
-      };
-      const continuitySnapshot = {
-        ...project.continuitySnapshot,
-        storyScenarioWorkflow: { required: true, version: 1, startedAt: previous?.createdAt || createdAt },
-        storyScenario: storedScenario,
-      };
-      const status = storedScenario.status === "needs_clarification" ? "scenario_needs_clarification" : "scenario_review";
-      await projectStore.updateForCustomer(project.id, identity, { status, continuitySnapshot, generationJobId: null });
-      res.set("Cache-Control", "private, no-store");
-      res.json({ scenario: storedScenario, status });
-    } finally {
-      activeScenarioUpdates.delete(project.id);
+      throw error;
     }
+    console.info("[story-scenario] queued", JSON.stringify({
+      runId: run.id,
+      projectId: project.id,
+      requestKind: storyScenarioSnapshot(project) ? "revision" : "initial",
+      retrying,
+    }));
+    res.set("Cache-Control", "private, no-store");
+    return res.status(202).json({
+      jobId: run.id,
+      status: "scenario_generating",
+      retrying,
+    });
   } catch (error) {
-    res.status(500).json({ error: String(error?.message || error) });
+    console.error("[story-scenario] enqueue failed", JSON.stringify({
+      projectId: req.params.id,
+      code: error?.code || "scenario_enqueue_failed",
+      error: String(error?.message || error),
+    }));
+    res.status(error?.statusCode || 500).json({
+      error: String(error?.message || error),
+      code: error?.code || "scenario_enqueue_failed",
+    });
+  } finally {
+    activeScenarioEnqueues.delete(req.params.id);
   }
 });
 

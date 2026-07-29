@@ -6,6 +6,8 @@ import {
 } from "./previewGenerationCheckpoint.js";
 
 const LIBRARY_STATUSES = new Set([
+  "scenario_generating",
+  "scenario_generation_failed",
   "scenario_needs_clarification",
   "scenario_review",
   "preview_generating",

@@ -103,6 +103,7 @@ const state = {
   storyScenarioUpdateFailed: false,
   storyScenarioDirty: false,
   storyScenarioAddedCharacters: [],
+  storyScenarioRetryAvailable: false,
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
   currentPreview: null,
@@ -346,9 +347,9 @@ const GENERATION_STAGE_TEXT = {
 };
 
 const SCENARIO_PREPARATION_TEXT = {
-  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.", steps: ["Organiser le début, le défi et la résolution", "Vérifier les lieux, passages et personnages", "Préparer les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Votre crédit n'a pas été utilisé et vos réponses sont conservées.", retry: "Réessayer gratuitement" },
-  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara en tres actos. No se utiliza ningún crédito durante esta etapa.", steps: ["Organizar el inicio, el reto y la resolución", "Comprobar los lugares, pasos y personajes", "Preparar las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. Tu crédito no se ha utilizado y tus respuestas están guardadas.", retry: "Reintentar gratis" },
-  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. No credit is used during this step.", steps: ["Organize the beginning, challenge and resolution", "Check locations, passages and characters", "Prepare the cards you can review and edit"], error: "The first proposal could not be prepared. Your credit was not used and your answers are saved.", retry: "Retry for free" },
+  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Vous pouvez quitter cette page et revenir depuis Mes créations Calitiki. Aucun crédit n'est utilisé pendant cette étape.", steps: ["L'architecte organise le début, le défi et la résolution", "Le rédacteur en chef vérifie les lieux, passages et personnages", "Calitiki prépare les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Votre crédit n'a pas été utilisé et vos réponses sont conservées.", timeout: "La préparation a pris plus de temps que prévu. Votre travail est conservé et vous pouvez relancer gratuitement.", exhausted: "La seconde tentative technique n'a pas abouti. Votre travail reste conservé et aucun crédit n'a été utilisé. Calitiki doit maintenant vérifier ce projet.", retry: "Réessayer gratuitement" },
+  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara en tres actos. Puedes salir de esta página y volver desde Mis creaciones Calitiki. No se utiliza ningún crédito durante esta etapa.", steps: ["El arquitecto organiza el inicio, el reto y la resolución", "El editor comprueba los lugares, pasos y personajes", "Calitiki prepara las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. Tu crédito no se ha utilizado y tus respuestas están guardadas.", timeout: "La preparación ha tardado más de lo previsto. Tu trabajo está guardado y puedes volver a intentarlo gratis.", exhausted: "El segundo intento técnico no se ha completado. Tu trabajo sigue guardado y no se ha utilizado ningún crédito. Calitiki debe revisar ahora este proyecto.", retry: "Reintentar gratis" },
+  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. You may leave this page and return from My Calitiki creations. No credit is used during this step.", steps: ["The architect organizes the beginning, challenge and resolution", "The editor checks locations, passages and characters", "Calitiki prepares the cards you can review and edit"], error: "The first proposal could not be prepared. Your credit was not used and your answers are saved.", timeout: "Preparation took longer than expected. Your work is saved and you can retry for free.", exhausted: "The second technical attempt did not complete. Your work is still saved and no credit was used. Calitiki must now review this project.", retry: "Retry for free" },
 };
 
 const UNIVERSE_TEXT = {
@@ -814,12 +815,71 @@ function showInitialScenarioPreparation() {
   elements.retryInitialScenarioButton.hidden = true;
   elements.scenarioPreparingState.hidden = false;
   elements.scenarioReviewContent.hidden = true;
+  updateScenarioPreparationProgress("scenario:queued");
   elements.storyScenarioPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function updateScenarioPreparationProgress(step = "") {
+  const items = [...elements.scenarioPreparingSteps.querySelectorAll("li")];
+  let activeIndex = 0;
+  if (/scenario:(validation|editor)/.test(step)) activeIndex = 1;
+  if (/scenario:(finalizing|completed|needs_revision)/.test(step)) activeIndex = 2;
+  items.forEach((item, index) => {
+    item.classList.toggle("is-active", index === activeIndex);
+    item.classList.toggle("is-complete", index < activeIndex);
+  });
+}
+
+async function pollStoryScenarioJob(jobId) {
+  for (;;) {
+    const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`, {
+      cache: "no-store",
+    });
+    const job = await response.json();
+    if (!response.ok) {
+      const error = new Error(job.error || "Scenario job unavailable");
+      error.code = job.errorCode || "scenario_job_unavailable";
+      throw error;
+    }
+    updateScenarioPreparationProgress(job.step);
+    if (job.status === "done") {
+      const projectResponse = await fetch(
+        `/api/projects/${encodeURIComponent(state.projectId)}`,
+        { cache: "no-store" },
+      );
+      const payload = await projectResponse.json();
+      if (!projectResponse.ok || !payload.project?.continuitySnapshot?.storyScenario) {
+        const error = new Error(payload.error || "Scenario result unavailable");
+        error.code = "scenario_result_unavailable";
+        throw error;
+      }
+      return payload.project;
+    }
+    if (job.status === "failed") {
+      const error = new Error(job.error || "Scenario generation failed");
+      error.code = job.errorCode || "scenario_generation_failed";
+      try {
+        const projectResponse = await fetch(
+          `/api/projects/${encodeURIComponent(state.projectId)}`,
+          { cache: "no-store" },
+        );
+        const payload = await projectResponse.json();
+        const checkpoint = payload.project?.continuitySnapshot?.storyScenarioGeneration;
+        error.retryAvailable = checkpoint?.retryAvailable === true;
+        error.retryExhausted = checkpoint?.retryExhausted === true;
+      } catch {
+        error.retryAvailable = false;
+      }
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2200));
+  }
 }
 
 function renderStoryScenario(scenario, { scroll = true } = {}) {
   state.storyScenario = scenario;
   state.storyScenarioUpdateFailed = false;
+  state.storyScenarioRetryAvailable = false;
   state.storyScenarioDirty = false;
   state.storyScenarioAddedCharacters = [];
   document.querySelector("#creator").hidden = true;
@@ -904,9 +964,11 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   if (scroll) elements.storyScenarioPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-async function requestStoryScenario({ includeEdits = false } = {}) {
+async function requestStoryScenario({ includeEdits = false, retry = false } = {}) {
   if (!state.projectId || state.storyScenarioBusy) return;
   const initialRequest = !state.storyScenario && !includeEdits;
+  const retrying = retry || state.storyScenarioRetryAvailable;
+  let queuedJobId = "";
   if (initialRequest) showInitialScenarioPreparation();
   else {
     elements.storyScenarioPanel.hidden = false;
@@ -923,6 +985,7 @@ async function requestStoryScenario({ includeEdits = false } = {}) {
         sceneEdits: includeEdits ? scenarioSceneEdits() : [],
         addedCharacters: state.storyScenarioAddedCharacters,
         feedback: elements.scenarioFeedback.value.trim(),
+        retry: retrying,
       }),
     });
     const payload = await response.json();
@@ -935,14 +998,28 @@ async function requestStoryScenario({ includeEdits = false } = {}) {
       }
       throw new Error(scenarioApiMessage(payload, "scenarioRevisionError"));
     }
+    if (response.status !== 202 || !payload.jobId) {
+      throw new Error(scenarioApiMessage(payload, "scenarioRevisionError"));
+    }
+    queuedJobId = payload.jobId;
+    state.jobId = payload.jobId;
+    const project = await pollStoryScenarioJob(payload.jobId);
+    const scenario = project.continuitySnapshot?.storyScenario;
+    if (!scenario) throw new Error("Scenario result unavailable");
     elements.scenarioFeedback.value = "";
-    renderStoryScenario(payload.scenario);
+    state.storyScenarioRetryAvailable = false;
+    renderStoryScenario(scenario);
   } catch (error) {
+    if (queuedJobId) state.storyScenarioRetryAvailable = error?.retryAvailable === true;
     if (initialRequest) {
       const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
-      elements.scenarioPreparationFeedback.textContent = copy.error;
+      elements.scenarioPreparationFeedback.textContent = error?.retryExhausted
+        ? copy.exhausted
+        : error?.code === "scenario_timeout"
+          ? copy.timeout
+          : copy.error;
       elements.scenarioPreparationFeedback.hidden = false;
-      elements.retryInitialScenarioButton.hidden = false;
+      elements.retryInitialScenarioButton.hidden = !state.storyScenarioRetryAvailable;
       return;
     }
     state.storyScenarioUpdateFailed = true;
@@ -2832,6 +2909,60 @@ async function restoreCompletedPreview() {
   } : null;
   elements.notifyPreviewEmail.checked = project?.continuitySnapshot?.previewNotification?.emailRequested === true;
   const scenario = project?.continuitySnapshot?.storyScenario;
+  const scenarioGeneration = project?.continuitySnapshot?.storyScenarioGeneration;
+  if (project?.status === "scenario_generating" && project.generationJobId) {
+    if (scenario) {
+      renderStoryScenario(scenario, { scroll: false });
+      setScenarioStatus(tr("scenarioUpdating"), "loading");
+    } else {
+      showInitialScenarioPreparation();
+    }
+    setStoryScenarioBusy(true, scenario ? "update" : "prepare");
+    try {
+      const refreshed = await pollStoryScenarioJob(project.generationJobId);
+      renderStoryScenario(refreshed.continuitySnapshot?.storyScenario, { scroll: false });
+    } catch (error) {
+      state.storyScenarioRetryAvailable = error?.retryAvailable === true;
+      if (scenario) {
+        state.storyScenarioUpdateFailed = true;
+        setScenarioStatus(tr("scenarioRevisionError"), "error");
+      } else {
+        const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
+        elements.scenarioPreparationFeedback.textContent = error?.retryExhausted
+          ? copy.exhausted
+          : error?.code === "scenario_timeout"
+            ? copy.timeout
+            : copy.error;
+        elements.scenarioPreparationFeedback.hidden = false;
+        elements.retryInitialScenarioButton.hidden = !state.storyScenarioRetryAvailable;
+      }
+    } finally {
+      setStoryScenarioBusy(false);
+    }
+    return true;
+  }
+  if (project?.status === "scenario_generation_failed"
+    || scenarioGeneration?.status === "failed") {
+    if (scenario) {
+      renderStoryScenario(scenario, { scroll: false });
+      state.storyScenarioRetryAvailable = scenarioGeneration?.retryAvailable === true;
+      state.storyScenarioUpdateFailed = true;
+      elements.scenarioFeedback.value = scenarioGeneration?.request?.feedback || "";
+      setScenarioStatus(tr("scenarioRevisionError"), "error");
+    } else {
+      state.storyScenarioRetryAvailable = scenarioGeneration?.retryAvailable === true;
+      showInitialScenarioPreparation();
+      const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
+      elements.scenarioPreparationFeedback.textContent = scenarioGeneration?.retryExhausted
+        ? copy.exhausted
+        : scenarioGeneration?.errorCode === "scenario_timeout"
+          ? copy.timeout
+          : copy.error;
+      elements.scenarioPreparationFeedback.hidden = false;
+      elements.retryInitialScenarioButton.hidden = !state.storyScenarioRetryAvailable;
+    }
+    return true;
+  }
   if (scenario && (["scenario_review", "scenario_needs_clarification"].includes(project?.status)
     || (project?.status === "ready_for_preview" && scenario?.status === "approved"))) {
     renderStoryScenario(scenario, { scroll: false });
@@ -3112,8 +3243,11 @@ elements.buyCreditsLink.addEventListener("click", rememberCreditPurchase);
 elements.actionBuyCredits.addEventListener("click", rememberCreditPurchase);
 elements.modificationBuyCredits.addEventListener("click", rememberCreditPurchase);
 elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorization);
-elements.retryInitialScenarioButton.addEventListener("click", () => requestStoryScenario());
-elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenario({ includeEdits: true }));
+elements.retryInitialScenarioButton.addEventListener("click", () => requestStoryScenario({ retry: true }));
+elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenario({
+  includeEdits: !state.storyScenarioRetryAvailable,
+  retry: state.storyScenarioRetryAvailable,
+}));
 elements.approveScenarioButton.addEventListener("click", approveStoryScenario);
 elements.scenarioAddCharacterButton.addEventListener("click", addScenarioCharacter);
 elements.scenarioNewCharacterName.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); addScenarioCharacter(); } });

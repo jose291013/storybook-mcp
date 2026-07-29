@@ -382,6 +382,8 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 @keyframes scenario-pulse { 0%, 65%, 100% { transform: translateY(0); box-shadow: none; } 32% { transform: translateY(-6px); box-shadow: 0 8px 16px rgba(72,111,103,.16); } }
 .scenario-preparing-state ol { max-width: 720px; margin: 0 auto; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; list-style: none; counter-reset: preparation-step; }
 .scenario-preparing-state li { padding: 14px; border-radius: 15px; background: rgba(255,255,255,.8); color: var(--teal-deep); font-size: .9rem; line-height: 1.45; }
+.scenario-preparing-state li.is-active { outline: 2px solid rgba(216,111,83,.52); background: #fff8f4; box-shadow: 0 8px 18px rgba(72,111,103,.1); }
+.scenario-preparing-state li.is-complete { background: #e4f1ec; color: #315f55; }
 .scenario-diagnostics { margin: 24px 0; padding: 18px 20px; border: 1px solid #e6aaa3; border-radius: 18px; background: #fff3f1; color: #78332f; }
 .scenario-diagnostics h3 { margin: 0 0 7px; }
 .scenario-diagnostics p { margin: 0; }

@@ -10,7 +10,7 @@ export async function storyScenarioAuditAgent({ intake = {}, scenario = {} } = {
   const language = normalizeBookLanguage(intake.language);
   const result = await runAgent({
     name: "storyScenarioAudit",
-    clientKind: "story",
+    clientKind: "scenario",
     modelRole: "story_editor",
     system: `${bookLanguageInstruction(language)}\n\n${loadPrompt("story_scenario_audit.txt")}`,
     user: (payload) => `SCENARIO_AUDIT_INPUT_JSON:\n${JSON.stringify(payload, null, 2)}\n\nReturn ONLY the requested JSON object.`,
