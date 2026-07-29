@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-provider-background`
 - Last deployed production checkpoint: PR #93 — durable scenario enqueue checkpoint hotfix
 - Current focused checkpoint: durable provider-side scenario execution
-- Pull request: not opened yet
+- Pull request: #94 — open as draft
 - WordPress Bridge source and installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -38,10 +38,9 @@ PR #55 through PR #93 are merged and deployed. The last verified production mode
 
 ## Next verification target
 
-1. Complete the full test suite and open one focused PR.
-2. Do not merge until the customer confirms that no scenario or preview is generating; Render will restart.
-3. After deployment, use **Retry for free** once on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
-4. Verify Render logs `queued → architect → editor → completed`. A restart during architect or editor must resume the same `resp_…` checkpoint without a second provider create.
+1. Keep PR #94 unmerged until the customer confirms that no scenario or preview is generating; Render will restart.
+2. After deployment, use **Retry for free** once on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
+3. Verify Render logs `queued → architect → editor → completed`. A restart during architect or editor must resume the same `resp_…` checkpoint without a second provider create.
 
 ## Protected local state
 
