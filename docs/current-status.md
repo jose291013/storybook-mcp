@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/resumable-story-plan-audit`
 - Last deployed production checkpoint: PR #95 — generation journey, scenario e-mails and explicit JSON input contract
 - Current focused checkpoint: resumable whole-book scenario-fidelity audit
-- Pull request: not published yet
+- Pull request: #96 — open, not merged
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
