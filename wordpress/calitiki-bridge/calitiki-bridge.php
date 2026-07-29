@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.2
+ * Version: 0.7.3
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.2') {
-            update_option(self::VERSION_OPTION, '0.7.2');
+        if (get_option(self::VERSION_OPTION) !== '0.7.3') {
+            update_option(self::VERSION_OPTION, '0.7.3');
             flush_rewrite_rules(false);
         }
     }
@@ -418,6 +418,8 @@ final class Calitiki_Woo_Bridge {
             }
             $status = sanitize_key((string) ($project['status'] ?? ''));
             $status_labels = array(
+                'scenario_generating' => __('Scénario en préparation', 'calitiki-bridge'),
+                'scenario_generation_failed' => __('Préparation du scénario interrompue', 'calitiki-bridge'),
                 'scenario_needs_clarification' => __('Scénario à préciser', 'calitiki-bridge'),
                 'scenario_review' => __('Scénario à valider', 'calitiki-bridge'),
                 'preview_generating' => __('Génération en cours', 'calitiki-bridge'),
@@ -442,7 +444,7 @@ final class Calitiki_Woo_Bridge {
             } else {
                 $button_label = in_array($status, array('preview_ready', 'purchased'), true)
                     ? __('Voir mon livre', 'calitiki-bridge')
-                    : ($status === 'preview_failed'
+                    : (in_array($status, array('preview_failed', 'scenario_generation_failed'), true)
                         ? __('Reprendre mon projet', 'calitiki-bridge')
                         : (in_array($status, array('scenario_needs_clarification', 'scenario_review'), true)
                             ? __('Vérifier le scénario', 'calitiki-bridge')

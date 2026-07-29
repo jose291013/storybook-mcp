@@ -16,7 +16,13 @@ function settingFor(kind, suffix, fallback) {
 
 export function createOpenAIClient({ kind = "request" } = {}) {
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-  const defaultTimeout = kind === "qa" ? 60000 : kind === "story" ? 360000 : 180000;
+  const defaultTimeout = kind === "qa"
+    ? 60000
+    : kind === "scenario"
+      ? 600000
+      : kind === "story"
+        ? 360000
+        : 180000;
   const timeout = integerSetting(settingFor(kind, "TIMEOUT_MS", defaultTimeout), defaultTimeout, {
     minimum: 10000,
     maximum: 600000,

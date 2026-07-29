@@ -8,36 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/causal-story-architecture`
-- Last verified production checkpoint: PR #89 — irreversible lifecycle for discoverable, consumable and transformable plot objects
-- Current focused checkpoint: quality-first narrative model routing and authoritative causal graph
-- Pull request: PR #90 merge authorized; Render verification pending
-- WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
+- Current branch: `codex/durable-async-scenario`
+- Last verified production checkpoint: PR #90 — quality-first narrative routing and authoritative causal graph
+- Current focused checkpoint: durable asynchronous scenario preparation
+- Pull request: #91 — open as draft
+- WordPress Bridge source candidate: `0.7.3`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #89 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #90 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: causal story architecture
+## Current product brick: durable asynchronous scenario preparation
 
-1. New scenarios must declare a versioned causal graph with stable entity and event ids before visible scene prose is accepted.
-2. Generic validation rejects premature results, several producers for one result, several terminal outcomes for one source, post-terminal reappearance, invalid state transitions and transformation cycles.
-3. The explicit graph is authoritative; multilingual wording inference remains only for persisted legacy scenarios and is never merged into a new graph.
-4. The scenario architect and independent narrative editor use separate quality-first model routes and exchange structured repair directives for up to three bounded passes.
-5. Whole-book planning, final causal audit and page-text writing have dedicated model routes through the Responses API. Effective routes are logged at server start without customer content.
+1. Scenario requests pass child safety synchronously, then return an authenticated durable job id before any credit reservation.
+2. The persisted `story_scenario` run exposes architect, editor and finalization stages without storing customer content in job metadata.
+3. A renewable lease lets a new Render process reclaim an interrupted run after deployment or restart.
+4. Refreshing or closing the browser is safe; **My creations** exposes generating and failed scenario states.
+5. A technical failure preserves the private request and any previous scenario, and offers one explicit free retry.
+6. Scenario architect/editor calls use their own ten-minute bound through `OPENAI_SCENARIO_TIMEOUT_MS`; hidden SDK retries remain disabled.
 
 ## Verification completed locally
 
-- Targeted causal-graph tests pass: multi-stage chains, graph authority over conflicting wording, premature results, competing terminal results, stable ids and cycles.
-- Full local suite passes: 228 tests, 0 failures.
-- Production dependency audit reports 0 known vulnerabilities after upgrading the OpenAI SDK to 7.1.0.
+- Full suite passes: 233 tests, 0 failures.
+- Durable worker tests cover successful completion, timeout retry preservation and failed revision preservation.
+- Production dependency audit passes: 0 vulnerabilities.
+- Bridge `0.7.3` archive structure and the complete diff check pass.
 
 ## Next verification target
 
-1. Merge PR #90 while no book is generating.
-2. After Render deployment, verify the `story-model-routing ready` startup log.
-3. Create one new story with a three-stage object transformation and verify the causal order in scenario review before generating illustrations.
+1. Merge PR #91 only after confirming that no preview or scenario is generating; Render will restart.
+2. Install Bridge `0.7.3` after the Node deployment.
+3. Retry the currently preserved scenario and verify `queued → architect → editor → completed`.
+4. During a separate disposable test, refresh the browser while the architect is running and confirm automatic resumption.
 
 ## Protected local state
 

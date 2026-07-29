@@ -962,9 +962,11 @@ test("approved nonphysical characters cannot leak into the visible scene contrac
 });
 
 test("the creator must approve a persisted scenario before the preview route can start", async () => {
-  const [previewRoute, scenarioRoute, scenarioAgent, scenarioPrompt, app, i18n, html, bridge] = await Promise.all([
+  const [previewRoute, scenarioRoute, scenarioGeneration, scenarioWorker, scenarioAgent, scenarioPrompt, app, i18n, html, bridge] = await Promise.all([
     fs.readFile("src/routes/preview.js", "utf8"),
     fs.readFile("src/routes/storyScenario.js", "utf8"),
+    fs.readFile("src/services/storyScenarioGeneration.js", "utf8"),
+    fs.readFile("src/services/storyScenarioWorker.js", "utf8"),
     fs.readFile("src/agents/storyScenario.js", "utf8"),
     fs.readFile("src/prompts/story_scenario.txt", "utf8"),
     fs.readFile("public/app.js", "utf8"),
@@ -994,8 +996,10 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /setStoryScenarioBusy\(true, initialRequest \? "prepare" : "update"\)/);
   assert.match(app, /elements\.scenarioReviewContent\.hidden = true/);
   assert.match(app, /elements\.scenarioReviewContent\.hidden = false/);
-  assert.match(app, /elements\.scenarioPreparationFeedback\.textContent = copy\.error/);
-  assert.match(app, /elements\.retryInitialScenarioButton\.hidden = false/);
+  assert.match(app, /pollStoryScenarioJob/);
+  assert.match(app, /scenario_timeout/);
+  assert.match(app, /elements\.retryInitialScenarioButton\.hidden = !state\.storyScenarioRetryAvailable/);
+  assert.match(app, /copy\.exhausted/);
   assert.match(app, /scenarioNeedsRevision/);
   assert.match(app, /scenarioHasUnansweredClarifications/);
   assert.match(app, /scenarioDefaultsReady/);
@@ -1004,7 +1008,7 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /data-presence-character/);
   assert.match(app, /storyScenarioDirty/);
   assert.match(app, /addedCharacters: state\.storyScenarioAddedCharacters/);
-  assert.match(scenarioRoute, /applyCreatorStoryScenarioEdits/);
+  assert.match(scenarioGeneration, /applyCreatorStoryScenarioEdits/);
   assert.match(scenarioRoute, /character_presences/);
   assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
   assert.match(html, /id="storyScenarioPanel"/);
@@ -1016,11 +1020,17 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(html, /id="scenarioDiagnostics"/);
   assert.match(html, /id="scenarioNewCharacterName"/);
   assert.match(html, /id="scenarioAddCharacterButton"/);
-  assert.match(scenarioRoute, /activeScenarioUpdates/);
-  assert.match(scenarioRoute, /code: "scenario_update_in_progress"/);
-  assert.match(scenarioRoute, /scenario: storedScenario/);
-  assert.match(scenarioRoute, /status: "scenario_review"/);
+  assert.match(scenarioRoute, /kind: "story_scenario"/);
+  assert.match(scenarioRoute, /status: "scenario_generating"/);
+  assert.match(scenarioRoute, /storyScenarioGeneration/);
+  assert.match(scenarioWorker, /claimNextRun/);
+  assert.match(scenarioWorker, /heartbeatRun/);
+  assert.match(scenarioWorker, /retryAvailable/);
+  assert.match(scenarioWorker, /retryExhausted/);
+  assert.match(scenarioRoute, /MAX_TECHNICAL_ATTEMPTS = 2/);
+  assert.match(scenarioRoute, /activeScenarioEnqueues/);
   assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
-  assert.match(bridge, /Version: 0\.7\.2/);
+  assert.match(bridge, /Version: 0\.7\.3/);
+  assert.match(bridge, /scenario_generating/);
   assert.match(bridge, /Scénario à valider/);
 });

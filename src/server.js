@@ -28,6 +28,7 @@ import { startProjectDeletionCleanupWorker } from "./services/projectDeletion.js
 import { generationRunStore } from "./services/generationRunStore.js";
 import { startGenerationRecoveryWorker } from "./services/generationRecoveryWorker.js";
 import { storyModelRoutes } from "./services/modelRouting.js";
+import { startStoryScenarioWorker } from "./services/storyScenarioWorker.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
@@ -79,6 +80,7 @@ await generationRunStore.initialize();
 await familyShareStore.initialize();
 startProjectDeletionCleanupWorker();
 startGenerationRecoveryWorker();
+startStoryScenarioWorker();
 app.listen(port, () => {
   logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
   console.info("story-model-routing ready", storyModelRoutes());

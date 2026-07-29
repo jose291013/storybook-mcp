@@ -38,6 +38,7 @@ router.get("/jobs/:id", async (req, res) => {
       step: localJob?.status === "running" && localJob?.step
         ? localJob.step
         : durableRun.currentStep || localJob?.step || "",
+      errorCode: durableRun.errorCode || undefined,
       error: durableRun.errorMessage || localJob?.error || undefined,
       qualityReview: localJob?.qualityReview || durableRun.metadata?.qualityReview || undefined,
       createdAt: durableRun.createdAt,
