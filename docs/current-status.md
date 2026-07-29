@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/precover-plan-repair`
 - Last deployed production checkpoint: PR #96 — resumable whole-book scenario-fidelity audit
 - Current focused checkpoint: complete pre-cover text and scene-contract repair
-- Pull request: not published yet
+- Pull request: PR #97 — published as draft, not merged
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -38,10 +38,9 @@ PR #55 through PR #96 are merged and deployed. The last verified production mode
 
 ## Next verification target
 
-1. Publish the PR without merging it.
-2. Before merge, confirm that no scenario or preview is generating because Render will restart.
-3. After deployment, use the restored **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
-4. Verify that Render reuses the saved `targeted` candidate, performs one full-plan repair, passes the bounded audit and reaches cover preparation without rewriting the 24 page texts.
+1. Before merging PR #97, confirm that no scenario or preview is generating because Render will restart.
+2. After deployment, use the restored **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
+3. Verify that Render reuses the saved `targeted` candidate, performs one full-plan repair, passes the bounded audit and reaches cover preparation without rewriting the 24 page texts.
 
 ## Protected local state
 
