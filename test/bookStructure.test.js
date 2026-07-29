@@ -1576,6 +1576,10 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /storySceneTextRepairAgent/);
   assert.match(source, /story:scenario-fidelity-targeted-repair/);
   assert.match(source, /story:scenario-fidelity-targeted-recheck/);
+  assert.match(source, /storyScenePlanCandidate/);
+  assert.match(source, /storyPlanProviderResponses/);
+  assert.match(source, /story:scenario-fidelity-resume/);
+  assert.match(source, /backgroundStep:\s*`planner:\$\{attempt\}`/);
   assert.match(source, /if \(!hasCurrentStoryScenePlan\)/);
   assert.match(source, /event: "cover_ready"/);
   assert.match(source, /event: "generation_failed"/);
@@ -1588,6 +1592,20 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(html, /id="visualProofPanel"/);
   assert.match(html, /id="approveVisualProofButton"/);
   assert.match(html, /id="generationNextStep"/);
+});
+
+test("whole-book planner, audit and targeted repair use resumable story execution", async () => {
+  const [planner, audit, repair] = await Promise.all([
+    fs.readFile("src/agents/storyScenePlanner.js", "utf8"),
+    fs.readFile("src/agents/storyScenePlanAudit.js", "utf8"),
+    fs.readFile("src/agents/storySceneTextRepair.js", "utf8"),
+  ]);
+  for (const source of [planner, audit, repair]) {
+    assert.match(source, /backgroundExecution/);
+    assert.match(source, /backgroundStep/);
+    assert.match(source, /clientKind:\s*"story"/);
+  }
+  assert.doesNotMatch(audit, /clientKind:\s*"qa"/);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

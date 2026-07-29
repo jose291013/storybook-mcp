@@ -147,6 +147,22 @@ test("a preview exhausted under policy six receives the relation-first cast reco
   assert.equal(technicalPreviewRetryExhausted(exhaustedImage), false);
 });
 
-test("the relation-first cast recovery policy is version seven", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 7);
+test("a preview exhausted under policy seven receives the resumable audit recovery", () => {
+  const exhaustedAudit = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "story-audit-timeout-book",
+      retryPolicyVersion: 7,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-29T16:30:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "text:24",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedAudit), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedAudit), false);
+});
+
+test("the resumable story-plan audit recovery policy is version eight", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 8);
 });

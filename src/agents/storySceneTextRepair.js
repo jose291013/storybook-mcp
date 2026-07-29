@@ -97,7 +97,10 @@ export async function storySceneTextRepairAgent({
   issues,
   canonicalCharacters = [],
   language = "FR",
-}) {
+}, {
+  backgroundExecution = null,
+  backgroundStep = "story-plan-targeted-repair",
+} = {}) {
   const targets = buildStorySceneTextRepairTargets({
     approvedScenario,
     pageTexts,
@@ -113,6 +116,8 @@ export async function storySceneTextRepairAgent({
     modelRole: "story_writer",
     system: loadPrompt("story_scene_text_repair.txt"),
     user: (input) => `TARGETED_STORY_REPAIR_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY the requested JSON object.`,
+    backgroundExecution,
+    backgroundStep,
     input: {
       language,
       canonical_characters: list(canonicalCharacters, 30)
