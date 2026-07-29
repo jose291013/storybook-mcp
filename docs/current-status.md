@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/generation-journey-notifications`
 - Last deployed production checkpoint: PR #94 — durable provider-side scenario execution
 - Current focused checkpoint: generation journey animation and scenario milestone e-mails
-- Pull request: not published yet
+- Pull request: #95 — open, not merged
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #94 are merged and deployed. The last verified production mode
 - Scenario success and failure tests prove the opt-in, event idempotency and retry-state payload.
 - Browser visual checks cover the scenario and cover journeys on desktop.
 - Full suite passes: 241 tests, 0 failures.
-- Final diff verification remains the last publication gate.
+- JavaScript syntax checks, package inspection and `git diff --check` pass.
 
 ## Next verification target
 
