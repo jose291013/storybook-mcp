@@ -152,7 +152,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     const technicalAttempt = retrying
       ? Number(failedGeneration.technicalAttempt || 1) + 1
       : 1;
-    const previousStatus = project.status === "scenario_generation_failed"
+    const previousProjectStatus = project.status === "scenario_generation_failed"
       ? generationSnapshot(project)?.previousProjectStatus || "ready_for_preview"
       : project.status;
     const { run } = await generationRunStore.createRun({
@@ -205,8 +205,8 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
       const latest = await projectStore.getForCustomer(project.id, identity).catch(() => null);
       if (latest?.continuitySnapshot?.storyScenarioGeneration?.runId === run.id) {
         await projectStore.updateForCustomer(project.id, identity, {
-          status: ["scenario_review", "scenario_needs_clarification"].includes(previousStatus)
-            ? previousStatus
+          status: ["scenario_review", "scenario_needs_clarification"].includes(previousProjectStatus)
+            ? previousProjectStatus
             : "scenario_generation_failed",
           generationJobId: run.id,
           continuitySnapshot: {
