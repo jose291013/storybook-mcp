@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/compiler-legacy-audit-compatibility`
 - Last deployed production checkpoint: PR #98 — deterministic narrative compiler before cover generation
 - Current focused checkpoint: compatibility with saved free-form family-address audits
-- Pull request: not published yet
+- Pull request: draft PR #99
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -37,7 +37,7 @@ PR #55 through PR #98 are merged and deployed. The last verified production mode
 
 ## Next verification target
 
-1. Publish the compatibility PR without merging it.
+1. Review draft PR #99 without merging it.
 2. Before merge, confirm that no scenario or preview is generating because Render will restart.
 3. After deployment, use **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
 4. Verify that Render classifies the saved free-form audit as mechanical, compiles `Marie` to `Maman`, avoids a new paid planning call and reaches cover preparation.
