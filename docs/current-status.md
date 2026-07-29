@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/transformable-object-lifecycle`
-- Latest merged checkpoint: PR #88 — owner-aware recurring-object identity and universe-mechanism lifecycle
-- Current focused checkpoint: irreversible lifecycle for discoverable, consumable and transformable plot objects
-- Pull request: draft PR #89, not merged
+- Current branch: `main`
+- Latest merged checkpoint: PR #89 — irreversible lifecycle for discoverable, consumable and transformable plot objects
+- Current focused checkpoint: production verification of transformable-object causal lifecycle
+- Pull request: PR #89 merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #88 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #89 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: transformable-object causal lifecycle
 
@@ -35,8 +35,8 @@ PR #55 through PR #88 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Review the focused pull request without merging while a customer preview may be running.
-2. After explicit merge confirmation and Render deployment, create one story whose object is discovered, used over several scenes, then irreversibly transformed.
+1. Let Render deploy the PR #89 checkpoint.
+2. Create one story whose object is discovered, used over several scenes, then irreversibly transformed.
 3. Verify in scenario review and the finished manuscript that the source is absent before discovery, cannot return after transformation, and the result appears only after the earned transformation.
 
 ## Protected local state
