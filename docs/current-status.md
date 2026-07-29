@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-compiler`
 - Last deployed production checkpoint: PR #97 — complete pre-cover text and scene-contract repair
 - Current focused checkpoint: deterministic narrative compiler before cover generation
-- Pull request: not published yet
+- Pull request: draft PR #98
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -38,7 +38,7 @@ PR #55 through PR #97 are merged and deployed. The last verified production mode
 
 ## Next verification target
 
-1. Publish the PR without merging it.
+1. Review draft PR #98 without merging it.
 2. Before merge, confirm that no scenario or preview is generating because Render will restart.
 3. After deployment, use **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
 4. Verify that Render reuses its saved `targeted-plan`, compiles `Marie` to `Maman` locally, reuses the completed auditor result, avoids a new paid planning call and reaches cover preparation.
