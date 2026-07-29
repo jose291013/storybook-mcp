@@ -149,10 +149,24 @@ export async function storyScenePlanAuditAgent({
   backgroundStep = "story-plan-audit",
 } = {}) {
   if (!approvedScenario) return { status: "approved", issues: [] };
+  const deterministicIssues = deterministicStoryPlanIssues({
+    approvedScenario,
+    pageTexts,
+    sceneContracts,
+    canonicalCharacters,
+    language,
+  });
+  if (deterministicIssues.length) {
+    return {
+      status: "rejected",
+      issues: deterministicIssues,
+      source: "deterministic",
+    };
+  }
   const result = await runAgent({
     name: "storyScenePlanAudit",
     clientKind: "story",
-    modelRole: "story_editor",
+    modelRole: "story_auditor",
     system: loadPrompt("story_scene_plan_audit.txt"),
     user: (input) => `FINAL_STORY_PLAN_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     backgroundExecution,
@@ -170,14 +184,7 @@ export async function storyScenePlanAuditAgent({
     code: clean(issue?.code, 80) || "scenario_fidelity",
     explanation: clean(issue?.explanation),
   })).filter((issue) => issue.explanation);
-  const deterministicIssues = deterministicStoryPlanIssues({
-    approvedScenario,
-    pageTexts,
-    sceneContracts,
-    canonicalCharacters,
-    language,
-  });
-  const issues = [...deterministicIssues, ...modelIssues]
+  const issues = modelIssues
     .filter((issue, index, all) => all.findIndex((candidate) => (
       candidate.sceneNumber === issue.sceneNumber && candidate.code === issue.code
     )) === index)
@@ -185,5 +192,6 @@ export async function storyScenePlanAuditAgent({
   return {
     status: audit.status === "rejected" || issues.length ? "rejected" : "approved",
     issues,
+    source: "model",
   };
 }

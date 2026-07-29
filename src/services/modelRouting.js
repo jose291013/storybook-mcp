@@ -21,6 +21,12 @@ const ROUTES = {
     defaultModel: "gpt-5.6-terra",
     defaultEffort: "high",
   },
+  story_auditor: {
+    modelEnv: "STORY_AUDITOR_MODEL",
+    effortEnv: "STORY_AUDITOR_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-terra",
+    defaultEffort: "high",
+  },
   story_writer: {
     modelEnv: "STORY_WRITER_MODEL",
     effortEnv: "STORY_WRITER_REASONING_EFFORT",
