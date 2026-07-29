@@ -8,13 +8,26 @@ export async function runAgent({
   input,
   clientKind = "request",
   modelRole = "",
+  backgroundExecution = null,
+  backgroundStep = "",
 }) {
+  const executionFor = (suffix) => {
+    if (!backgroundExecution || !backgroundStep) return null;
+    const stepKey = `${backgroundStep}:${suffix}`;
+    return {
+      getCheckpoint: () => backgroundExecution.getCheckpoint(stepKey),
+      saveCheckpoint: (checkpoint) => (
+        backgroundExecution.saveCheckpoint(stepKey, checkpoint)
+      ),
+    };
+  };
   const originalUser = user(input);
   const out1 = await chatJson({
     system,
     user: originalUser,
     clientKind,
     modelRole,
+    backgroundExecution: executionFor("primary"),
   });
 
   if (out1?.__json_ok) return out1.data;
@@ -27,6 +40,7 @@ export async function runAgent({
     temperature: 0,
     clientKind,
     modelRole,
+    backgroundExecution: executionFor("json-repair"),
   });
 
   if (!out2?.__json_ok) {
