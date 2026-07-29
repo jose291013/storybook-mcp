@@ -179,6 +179,22 @@ test("a preview exhausted under policy eight receives the full-plan repair recov
   assert.equal(technicalPreviewRetryExhausted(exhaustedPlanRepair), false);
 });
 
-test("the full-plan targeted repair policy is version nine", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 9);
+test("a preview exhausted under policy nine receives the narrative compiler recovery", () => {
+  const exhaustedCompilerCandidate = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "family-address-compiler-book",
+      retryPolicyVersion: 9,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-29T21:00:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "story-plan:targeted-candidate",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedCompilerCandidate), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedCompilerCandidate), false);
+});
+
+test("the deterministic narrative compiler policy is version ten", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 10);
 });

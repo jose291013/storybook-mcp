@@ -62,6 +62,7 @@ function usesParentFirstNameAsFamilyReference(quote, name) {
 export function deterministicStoryPlanIssues({
   approvedScenario,
   pageTexts,
+  speechSegmentsByPage = {},
   sceneContracts,
   canonicalCharacters = [],
   language = "FR",
@@ -75,11 +76,20 @@ export function deterministicStoryPlanIssues({
     .filter((character, index, all) => all.findIndex((candidate) => key(candidate.name) === key(character.name)) === index)
     .map((character) => enrichFamilyAddress(character, language));
   const issues = [];
+  const childNames = new Set(characters
+    .filter((character) => (
+      key(character?.role) === "child"
+      || key(character?.relationship) === "hero"
+    ))
+    .map((character) => key(character.name)));
   for (const contract of Array.isArray(sceneContracts) ? sceneContracts : []) {
     const sceneNumber = Number(contract?.scene_number || 0);
     const approvedScene = approvedScenario.scenes?.find((scene) => Number(scene?.sceneNumber) === sceneNumber);
     if (!approvedScene) continue;
     const text = String(pageTexts?.[contract.text_page_number] || "");
+    const speechSegments = Array.isArray(speechSegmentsByPage?.[contract.text_page_number])
+      ? speechSegmentsByPage[contract.text_page_number]
+      : [];
     const presences = Array.isArray(approvedScene.characterPresences) ? approvedScene.characterPresences : [];
     const approvedPhysical = presences.filter((presence) => presence?.mode === "physical").map((presence) => key(presence.name)).sort();
     const contractPhysical = (Array.isArray(contract.named_characters) ? contract.named_characters : []).map((character) => key(character?.name)).filter(Boolean).sort();
@@ -113,10 +123,17 @@ export function deterministicStoryPlanIssues({
       }
     }
     for (const character of characters.filter((item) => item.preferredAddress)) {
-      if (quotedSegments(text).some((quote) => (
+      const structuredViolation = speechSegments.some((segment) => (
+        childNames.has(key(segment?.speaker))
+        && ["dialogue", "thought"].includes(key(segment?.mode))
+        && hasName(segment?.text, character.name)
+        && !hasName(segment?.text, character.preferredAddress)
+      ));
+      const legacyViolation = quotedSegments(text).some((quote) => (
         usesParentFirstNameAsFamilyReference(quote, character.name)
         && !hasName(quote, character.preferredAddress)
-      ))) {
+      ));
+      if (structuredViolation || legacyViolation) {
         issues.push({
           sceneNumber,
           code: "family_address",
@@ -141,6 +158,7 @@ export function deterministicStoryPlanIssues({
 export async function storyScenePlanAuditAgent({
   approvedScenario,
   pageTexts,
+  speechSegmentsByPage = {},
   sceneContracts,
   canonicalCharacters = [],
   language = "FR",
@@ -152,6 +170,7 @@ export async function storyScenePlanAuditAgent({
   const deterministicIssues = deterministicStoryPlanIssues({
     approvedScenario,
     pageTexts,
+    speechSegmentsByPage,
     sceneContracts,
     canonicalCharacters,
     language,
@@ -175,6 +194,7 @@ export async function storyScenePlanAuditAgent({
       approved_scenario: approvedScenario,
       canonical_characters: canonicalCharacters.map((character) => enrichFamilyAddress(character, language)),
       page_texts: pageTexts,
+      speech_segments_by_page: speechSegmentsByPage,
       scene_contracts: sceneContracts,
     },
   });

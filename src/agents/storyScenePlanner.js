@@ -2,6 +2,7 @@ import { runAgent } from "../services/agentRunner.js";
 import { loadPrompt } from "../services/loadPrompt.js";
 import { aliasesFromSceneContract, compactImageSceneContract, neutralizeImageText } from "../services/imageVisualContract.js";
 import { enrichFamilyAddress } from "../services/characterRelationships.js";
+import { compileStoryPlan } from "../services/storyPlanCompiler.js";
 import { canonicalizeWrittenNames } from "./blueprintFiller.js";
 
 function key(value) {
@@ -181,7 +182,19 @@ export async function storyScenePlannerAgent({
     },
   });
   const candidate = response?.json ?? response?.data ?? response?.output ?? response;
-  const plannedTexts = new Map(list(candidate?.page_texts, 50).map((item) => [Number(item?.page_number), String(item?.text || "")]));
+  const plannedPageTexts = list(candidate?.page_texts, 50);
+  const plannedTexts = new Map(plannedPageTexts.map((item) => [Number(item?.page_number), String(item?.text || "")]));
+  const speechSegmentsByPage = Object.fromEntries(plannedPageTexts
+    .map((item) => {
+      const pageNumber = Number(item?.page_number || 0);
+      const segments = list(item?.speech_segments, 20).map((segment) => ({
+        speaker: canonicalName(segment?.speaker, canonicalCharacters) || String(segment?.speaker || "").trim(),
+        mode: ["dialogue", "thought"].includes(key(segment?.mode)) ? key(segment.mode) : "dialogue",
+        text: String(segment?.text || "").trim(),
+      })).filter((segment) => segment.speaker && segment.text);
+      return [pageNumber, segments];
+    })
+    .filter(([pageNumber]) => pageNumber));
   const finalPageTexts = Object.fromEntries([...textByPage].map(([pageNumber, original]) => [
     pageNumber,
     canonicalizeWrittenNames(plannedTexts.get(pageNumber) || original, canonicalCharacters),
@@ -197,7 +210,16 @@ export async function storyScenePlannerAgent({
       prose: finalPageTexts[expected.text_page_number] || expected.prose,
     }, canonicalCharacters);
   });
-  return { pageTexts: finalPageTexts, sceneContracts };
+  return compileStoryPlan({
+    pageTexts: finalPageTexts,
+    speechSegmentsByPage,
+    sceneContracts,
+  }, {
+    canonicalCharacters,
+    heroName: blueprint?.hero?.name,
+    language: blueprint?.language,
+    issues: validationIssues,
+  });
 }
 
 export function sceneContractImagePrompt({

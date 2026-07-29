@@ -8,38 +8,40 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Last deployed production checkpoint: PR #96 — resumable whole-book scenario-fidelity audit
-- Current focused checkpoint: PR #97 merged; Render verification pending
-- Pull request: PR #97 — complete pre-cover text and scene-contract repair
+- Current branch: `codex/narrative-compiler`
+- Last deployed production checkpoint: PR #97 — complete pre-cover text and scene-contract repair
+- Current focused checkpoint: deterministic narrative compiler before cover generation
+- Pull request: not published yet
 - WordPress Bridge source candidate: `0.7.4`; installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #96 are merged and deployed. PR #97 is merged and awaiting Render verification. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #97 are merged and deployed. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: bounded pre-cover repair
+## Current product brick: deterministic narrative compiler
 
-1. Project `cd42acad-b8fb-4be2-bc7b-37517c914edd` now reaches the durable audit, which correctly found a symbolic-object rule, a family-address rule and one mixed crossing moment.
-2. The former final repair changed only page prose, so it could not repair required/forbidden elements, cast or the illustrated instant and necessarily failed its recheck.
-3. The audit now runs deterministic checks first and calls the model only after local invariants pass.
-4. The independent whole-book auditor uses the balanced `story_auditor` route instead of the flagship scenario editor.
-5. A semantic rejection goes directly to the bounded full-plan repair instead of paying for an intermediate audit that cannot resolve the reported issue. The pipeline uses at most two model audits.
-6. The bounded final repair uses the whole-book planner once more with the remaining issues, updating page text and every dependent scene-contract field together.
-7. Persisted legacy `targeted` candidates are recognized and upgraded through the new full-plan repair; a new `targeted-plan` candidate cannot loop indefinitely.
-8. Preview retry policy version 9 grants projects exhausted under policy 8 one checkpointed recovery.
+1. PR #97 repaired the symbolic representation and mixed crossing moment in project `cd42acad-b8fb-4be2-bc7b-37517c914edd`, but its final audit still rejected the single sentence `Marie aimait...` inside Bastien's dialogue.
+2. The local detector returned no issue for that exact sentence because it recognized only a narrow set of family-address formulations; the balanced auditor found it only after the expensive plan attempts were consumed.
+3. Whole-book output now carries structured `speech_segments` with canonical speaker, dialogue/thought mode and exact words.
+4. Compiler version 1 normalizes a child's reference to a parent using the localized `preferredAddress` while preserving the parent's civil name in narration and in another adult's dialogue.
+5. Legacy saved candidates remain compatible: a returned `family_address` or `parent_first_name_in_dialogue` issue scopes the deterministic repair to the affected scene.
+6. Compiler-fixable issues are separated from creative issues. A locally resolved auditor issue is accepted without another planner or auditor call; mixed issue sets send only the remaining creative defects back to the planner.
+7. Logs expose only compiler version, counts, page numbers and whether a paid model retry was avoided; no manuscript text is logged.
+8. Preview retry policy version 10 grants the policy-9 failed project one explicit checkpointed recovery.
 
 ## Verification completed locally
 
-- Focused narrative, routing and checkpoint suite: 123/123 passing.
-- Complete `npm test` suite: 244/244 passing.
-- JavaScript syntax checks and `git diff --check`: passing.
+- Compiler, narrative, routing and checkpoint focused suite: 128/128 passing.
+- Complete `npm test` suite: 249/249 passing.
+- Syntax checks and `git diff --check`: passing.
 
 ## Next verification target
 
-1. After deployment, use the restored **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
-2. Verify that Render reuses the saved `targeted` candidate, performs one full-plan repair, passes the bounded audit and reaches cover preparation without rewriting the 24 page texts.
+1. Publish the PR without merging it.
+2. Before merge, confirm that no scenario or preview is generating because Render will restart.
+3. After deployment, use **Retry for free** on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
+4. Verify that Render reuses its saved `targeted-plan`, compiles `Marie` to `Maman` locally, reuses the completed auditor result, avoids a new paid planning call and reaches cover preparation.
 
 ## Protected local state
 

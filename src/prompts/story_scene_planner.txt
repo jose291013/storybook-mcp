@@ -22,6 +22,7 @@ MANUSCRIPT COHERENCE
 - Never change a canonical character name. Accents and spelling are exact and immutable.
 - Canonical characters may include relationship and preferredAddress. In narration, introduce a parent naturally as "Name, the child's mother/father" and the name may remain afterward. In the child's dialogue or inner thoughts, use preferredAddress (for example Maman, Papa, Mamá or Dad) instead of making the child refer to that parent by their first name, unless the creator explicitly requested first-name use.
 - Apply preferredAddress consistently to dialogue-like wording copied into story_beat, main_action, character actions, continuity fields and required-element instructions; the repaired scene contract must not reintroduce a civil first name that the reader prose correctly replaced.
+- For every direct line or inner thought in page_texts, also return an exact speech_segments entry with its canonical speaker, mode and exact words without quotation marks. This metadata is mandatory even when there is only one line. Do not invent a speaker when a page contains no dialogue or thought.
 - Do not replace a generic person (for example "a new friend", "other children", "a shopkeeper") with a recurring named character merely because a photo exists.
 - Do not add a photographed character to an action unless the prose explicitly assigns that action to that exact canonical name.
 
@@ -42,7 +43,11 @@ SCENE CONTRACTS
 
 OUTPUT
 {
-  "page_texts": [{"page_number": 2, "text": "final reader-visible prose"}],
+  "page_texts": [{
+    "page_number": 2,
+    "text": "final reader-visible prose",
+    "speech_segments": [{"speaker": "exact canonical name", "mode": "dialogue | thought", "text": "exact words as they appear inside the prose"}]
+  }],
   "scene_contracts": [{
     "spread_number": 1,
     "scene_number": 1,
