@@ -22,7 +22,7 @@ import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { textWriterAgent } from "../agents/textWriter.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
-import { storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
+import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
@@ -51,6 +51,11 @@ import {
   guardChildSafety,
 } from "../services/childSafety.js";
 import { storySensitivityContract } from "../services/storySensitivity.js";
+import {
+  classifyStoryPlanIssues,
+  compileStoryPlan,
+  STORY_PLAN_COMPILER_VERSION,
+} from "../services/storyPlanCompiler.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 4;
@@ -760,6 +765,7 @@ router.post("/preview", async (req, res) => {
           return storyScenePlanAuditAgent({
             approvedScenario,
             pageTexts: storyScenePlan.pageTexts,
+            speechSegmentsByPage: storyScenePlan.speechSegmentsByPage,
             sceneContracts: storyScenePlan.sceneContracts,
             canonicalCharacters: canonicalStoryCharacters,
             language: final_blueprint.language,
@@ -779,8 +785,84 @@ router.post("/preview", async (req, res) => {
           : "";
         let planAudit = { status: "rejected", issues: [] };
         let semanticAuditRejected = false;
+        const persistCompiledCandidate = async ({ reason, issues = [] } = {}) => {
+          if (!storyScenePlan) return;
+          const previousCompilerVersion = Number(storyScenePlan?.compiler?.version || 0);
+          storyScenePlan = compileStoryPlan(storyScenePlan, {
+            canonicalCharacters: canonicalStoryCharacters,
+            heroName: final_blueprint.hero?.name,
+            language: final_blueprint.language,
+            issues,
+          });
+          const compiler = storyScenePlan.compiler || {};
+          if (Number(compiler.replacements || 0) > 0
+            || previousCompilerVersion < STORY_PLAN_COMPILER_VERSION) {
+            await persistCheckpoint({
+              storyScenePlanCandidate: storyScenePlan,
+              storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
+              storyScenePlanCandidateAttempt: candidateAttempt,
+              storyScenePlanCandidateStage: candidateStage,
+              storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
+            });
+          }
+          console.info("[preview] story plan compiler", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            reason,
+            version: STORY_PLAN_COMPILER_VERSION,
+            replacements: Number(compiler.replacements || 0),
+            changedPages: compiler.changedPages || [],
+            issueCount: issues.length,
+          }));
+        };
+        const applyLocalCompilerIssues = async (audit, reason) => {
+          if (audit?.status === "approved") return audit;
+          const classified = classifyStoryPlanIssues(audit?.issues || []);
+          if (!classified.autoFixable.length) return audit;
+          await persistCompiledCandidate({
+            reason,
+            issues: classified.autoFixable,
+          });
+          const unresolvedKeys = new Set(storyScenePlan?.compiler?.unresolvedIssueKeys || []);
+          const unresolvedAuto = classified.autoFixable.filter((issue) => (
+            unresolvedKeys.has(`${Number(issue?.sceneNumber || 0)}:${issue?.code}`)
+          ));
+          const localIssues = deterministicStoryPlanIssues({
+            approvedScenario,
+            pageTexts: storyScenePlan.pageTexts,
+            speechSegmentsByPage: storyScenePlan.speechSegmentsByPage,
+            sceneContracts: storyScenePlan.sceneContracts,
+            canonicalCharacters: canonicalStoryCharacters,
+            language: final_blueprint.language,
+          });
+          const remaining = [...classified.creative, ...unresolvedAuto, ...localIssues]
+            .filter((issue, index, all) => all.findIndex((candidate) => (
+              Number(candidate?.sceneNumber || 0) === Number(issue?.sceneNumber || 0)
+              && String(candidate?.code || "") === String(issue?.code || "")
+            )) === index);
+          if (!remaining.length) {
+            console.info("[preview] story plan compiler resolved audit", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              reason,
+              resolvedIssueCount: classified.autoFixable.length,
+              modelRetryAvoided: audit?.source === "model",
+            }));
+            return {
+              status: "approved",
+              issues: [],
+              source: "compiler",
+            };
+          }
+          return {
+            status: "rejected",
+            issues: remaining,
+            source: classified.creative.length ? audit?.source : "deterministic",
+          };
+        };
 
         if (storyScenePlan) {
+          await persistCompiledCandidate({ reason: "resume-preflight" });
           planAudit = await auditCurrentStoryPlan({
             jobStep: ["targeted", "targeted-plan"].includes(candidateStage)
               ? "story:scenario-fidelity-targeted-recheck"
@@ -791,6 +873,7 @@ router.post("/preview", async (req, res) => {
                 ? "audit:targeted"
               : `audit:${candidateAttempt}`,
           });
+          planAudit = await applyLocalCompilerIssues(planAudit, "resume-audit");
           semanticAuditRejected = planAudit.status !== "approved"
             && planAudit.source === "model";
         }
@@ -820,6 +903,7 @@ router.post("/preview", async (req, res) => {
               storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
               storyScenePlanCandidateAttempt: candidateAttempt,
               storyScenePlanCandidateStage: candidateStage,
+              storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
               phase: `story-plan:candidate:${attempt}`,
             });
             planAudit = await auditCurrentStoryPlan({
@@ -828,6 +912,7 @@ router.post("/preview", async (req, res) => {
                 : "story:scenario-fidelity-recheck",
               backgroundStep: `audit:${attempt}`,
             });
+            planAudit = await applyLocalCompilerIssues(planAudit, `planner-audit:${attempt}`);
             if (planAudit.status === "approved") break;
             semanticAuditRejected = planAudit.source === "model";
             console.warn("[preview] story plan contradicts approved scenario", JSON.stringify({
@@ -857,12 +942,14 @@ router.post("/preview", async (req, res) => {
             storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
             storyScenePlanCandidateAttempt: candidateAttempt,
             storyScenePlanCandidateStage: candidateStage,
+            storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
             phase: "story-plan:targeted-candidate",
           });
           planAudit = await auditCurrentStoryPlan({
             jobStep: "story:scenario-fidelity-targeted-recheck",
             backgroundStep: "audit:targeted",
           });
+          planAudit = await applyLocalCompilerIssues(planAudit, "targeted-audit");
         }
         if (planAudit.status !== "approved") {
           throw new Error(`Approved scenario fidelity failed: ${planAudit.issues.map((issue) => `scene-${issue.sceneNumber}: ${issue.explanation}`).join(" | ")}`);
@@ -913,10 +1000,12 @@ router.post("/preview", async (req, res) => {
         await persistCheckpoint({
           storyScenePlan,
           storyScenePlanFidelityVersion: STORY_PLAN_FIDELITY_VERSION,
+          storyScenePlanCompilerVersion: STORY_PLAN_COMPILER_VERSION,
           storyScenePlanCandidate: null,
           storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
           storyScenePlanCandidateAttempt: null,
           storyScenePlanCandidateStage: "",
+          storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
           storyPlanProviderResponses: {},
           draftTexts: Object.fromEntries(draftTextByPage),
           finalBlueprint: final_blueprint,

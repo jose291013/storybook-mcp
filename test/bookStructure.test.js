@@ -1578,6 +1578,9 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /backgroundStep:\s*"planner:targeted"/);
   assert.match(source, /candidateStage = "targeted-plan"/);
   assert.match(source, /storyScenePlanCandidate/);
+  assert.match(source, /compileStoryPlan/);
+  assert.match(source, /applyLocalCompilerIssues/);
+  assert.match(source, /modelRetryAvoided/);
   assert.match(source, /storyPlanProviderResponses/);
   assert.match(source, /story:scenario-fidelity-resume/);
   assert.match(source, /backgroundStep:\s*`planner:\$\{attempt\}`/);
@@ -1613,6 +1616,8 @@ test("whole-book planner and audit use bounded resumable story execution", async
   assert.match(prompt, /changing prose alone is not a repair/i);
   assert.match(prompt, /approved symbolic representation/i);
   assert.match(prompt, /One scene contract shows one instant only/i);
+  assert.match(prompt, /speech_segments/i);
+  assert.match(prompt, /canonical speaker, mode and exact words/i);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

@@ -17,6 +17,8 @@ Reject only explicit contradictions:
 
 Do not reject wording, tone, style, dialogue length or harmless descriptive additions that preserve the exact approved causal facts. A remembered character may be named in prose when the text clearly presents a memory and gives that character no physical action.
 
+Use the exact code `parent_first_name_in_dialogue` for the family-address defect above so the deterministic compiler can repair it without another model call.
+
 OUTPUT
 {
   "audit": {
