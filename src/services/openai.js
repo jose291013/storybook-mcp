@@ -16,6 +16,10 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+function jsonInput(value) {
+  return `Return one valid JSON object.\n\n${String(value || "")}`;
+}
+
 function backgroundSettings() {
   return {
     pollMs: boundedInteger(
@@ -161,7 +165,7 @@ export async function chatJson({
     const request = {
       model: route.model,
       instructions: system,
-      input: user,
+      input: jsonInput(user),
       reasoning: { effort: route.reasoningEffort },
       text: { format: { type: "json_object" } },
       store: false,
@@ -189,7 +193,7 @@ export async function chatJson({
     model: route.model,
     messages: [
       { role: "system", content: system },
-      { role: "user", content: user },
+      { role: "user", content: jsonInput(user) },
     ],
     // JSON mode prevents Markdown fences and most malformed/truncated structures.
     response_format: { type: "json_object" },

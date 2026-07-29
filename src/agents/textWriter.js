@@ -84,7 +84,7 @@ export async function textWriterAgent({
   const res = await getClient().responses.create({
     model: route.model,
     instructions: `${bookLanguageInstruction(targetLanguage)}\n\n${template}`,
-    input: `DATA:\n${JSON.stringify(inputPayload, null, 2)}`,
+    input: `Return one valid JSON object.\n\nJSON INPUT DATA:\n${JSON.stringify(inputPayload, null, 2)}`,
     reasoning: { effort: route.reasoningEffort },
     text: { format: { type: "json_object" } },
     store: false,

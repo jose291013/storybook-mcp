@@ -3,6 +3,7 @@ import { generationRunStore } from "./generationRunStore.js";
 import { normalizeBookRequest } from "./normalizeBookRequest.js";
 import { previewRequestFingerprint } from "./previewGenerationCheckpoint.js";
 import { projectStore } from "./projectStore.js";
+import { notifyPreviewMilestone } from "./previewNotification.js";
 import { generateValidatedScenario } from "./storyScenarioGeneration.js";
 import {
   summarizeStoryScenarioValidation,
@@ -124,6 +125,59 @@ function startHeartbeat(runs, runId, workerId, leaseMs, heartbeatMs) {
   return () => clearInterval(timer);
 }
 
+async function notifyScenarioMilestoneIfRequested({
+  projects,
+  projectId,
+  event,
+  eventId,
+  retryAvailable = false,
+  notifyMilestone = notifyPreviewMilestone,
+}) {
+  try {
+    const project = await projects.get(projectId);
+    const notification = project?.continuitySnapshot?.previewNotification || {};
+    if (!project || notification.emailRequested !== true) return false;
+    if (notification.milestoneEventIds?.[event] === eventId) return false;
+    const identity = typeof projects.getCustomerIdentity === "function"
+      ? await projects.getCustomerIdentity(project.customerId)
+      : null;
+    if (!identity?.wooCustomerId) return false;
+    await notifyMilestone({
+      project,
+      identity,
+      event,
+      eventId,
+      retryAvailable,
+    });
+    const refreshed = await projects.get(projectId);
+    const refreshedNotification = refreshed?.continuitySnapshot?.previewNotification || {};
+    await projects.update(projectId, {
+      continuitySnapshot: {
+        ...refreshed.continuitySnapshot,
+        previewNotification: {
+          ...refreshedNotification,
+          milestoneEventIds: {
+            ...(refreshedNotification.milestoneEventIds || {}),
+            [event]: eventId,
+          },
+          milestoneSentAt: {
+            ...(refreshedNotification.milestoneSentAt || {}),
+            [event]: now(),
+          },
+        },
+      },
+    });
+    return true;
+  } catch (error) {
+    console.warn("[story-scenario] notification failed", JSON.stringify({
+      projectId,
+      event,
+      error: String(error?.message || error),
+    }));
+    return false;
+  }
+}
+
 async function completeScenario({
   projects,
   runs,
@@ -131,6 +185,7 @@ async function completeScenario({
   run,
   scenario,
   validation,
+  notifyMilestone,
 }) {
   const latest = await projects.get(project.id);
   const previous = storyScenarioSnapshot(latest);
@@ -187,6 +242,13 @@ async function completeScenario({
     leaseOwner: "",
     leaseExpiresAt: null,
   });
+  await notifyScenarioMilestoneIfRequested({
+    projects,
+    projectId: project.id,
+    event: "scenario_ready",
+    eventId: `${run.id}:scenario_ready`,
+    notifyMilestone,
+  });
   console.info("[story-scenario] completed", JSON.stringify({
     runId: run.id,
     projectId: project.id,
@@ -203,6 +265,7 @@ async function failScenario({
   run,
   error,
   startedAt,
+  notifyMilestone,
 }) {
   const latest = await projects.get(project.id).catch(() => project);
   const generation = scenarioGenerationSnapshot(latest);
@@ -245,6 +308,14 @@ async function failScenario({
     leaseOwner: "",
     leaseExpiresAt: null,
   }).catch(() => null);
+  await notifyScenarioMilestoneIfRequested({
+    projects,
+    projectId: project.id,
+    event: "scenario_failed",
+    eventId: `${run.id}:scenario_failed`,
+    retryAvailable,
+    notifyMilestone,
+  });
   console.error("[story-scenario] failed", JSON.stringify({
     runId: run.id,
     projectId: project.id,
@@ -265,6 +336,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
   const leaseMs = dependencies.leaseMs || DEFAULT_LEASE_MS;
   const heartbeatMs = dependencies.heartbeatMs || DEFAULT_HEARTBEAT_MS;
   const generate = dependencies.generate || generateValidatedScenario;
+  const notifyMilestone = dependencies.notifyMilestone || notifyPreviewMilestone;
   const startedAt = Date.now();
   const stopHeartbeat = startHeartbeat(runs, run.id, workerId, leaseMs, heartbeatMs);
   let project = null;
@@ -326,6 +398,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       run,
       scenario,
       validation,
+      notifyMilestone,
     });
   } catch (error) {
     await failScenario({
@@ -335,6 +408,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       run,
       error,
       startedAt,
+      notifyMilestone,
     });
     return null;
   } finally {

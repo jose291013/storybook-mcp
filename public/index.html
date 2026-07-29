@@ -250,9 +250,10 @@
         <p class="section-kicker" id="storyScenarioKicker" data-i18n="scenarioKicker">VOTRE SCÉNARIO</p>
         <h2 id="storyScenarioTitle" data-i18n="scenarioTitle">Vérifiez le déroulement avant les illustrations</h2>
         <section class="scenario-preparing-state" id="scenarioPreparingState" hidden>
-          <div class="scenario-preparing-orbit" aria-hidden="true"><span>1</span><span>2</span><span>3</span></div>
+          <div class="calitiki-creation-journey" id="scenarioCreationJourney" aria-live="polite"></div>
           <p id="scenarioPreparingLead">Nous transformons vos réponses en un déroulement clair en trois actes. Aucun crédit n'est utilisé pendant cette étape.</p>
           <ol id="scenarioPreparingSteps"></ol>
+          <label class="generation-notification scenario-generation-notification"><input type="checkbox" id="notifyScenarioEmail" /> <span data-i18n="notifyScenarioEmail">M'avertir par e-mail lorsque le scénario est prêt ou si sa préparation s'interrompt</span></label>
           <p class="scenario-preparation-feedback" id="scenarioPreparationFeedback" role="alert" hidden></p>
           <button type="button" class="toolbar-button" id="retryInitialScenarioButton" hidden>Réessayer gratuitement</button>
         </section>
@@ -294,7 +295,7 @@
       </section>
 
       <section class="generation-panel" id="generationPanel" hidden>
-        <div class="generation-orbit"><span>✦</span></div>
+        <div class="calitiki-creation-journey generation-creation-journey" id="generationCreationJourney" aria-live="polite"></div>
         <p class="section-kicker" id="generationKicker" data-i18n="generationKicker">CREATION EN COURS</p>
         <h2 id="generationTitle" data-i18n="generationTitle">Nous ecrivons une histoire unique...</h2>
         <p id="generationMessage" data-i18n="generationMessage">Le héros et son univers prennent forme.</p>
