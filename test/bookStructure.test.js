@@ -1573,9 +1573,10 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /visualProofAction === "regenerate"/);
   assert.match(source, /storyScenePlanAuditAgent/);
   assert.match(source, /story:scenario-fidelity-repair/);
-  assert.match(source, /storySceneTextRepairAgent/);
   assert.match(source, /story:scenario-fidelity-targeted-repair/);
   assert.match(source, /story:scenario-fidelity-targeted-recheck/);
+  assert.match(source, /backgroundStep:\s*"planner:targeted"/);
+  assert.match(source, /candidateStage = "targeted-plan"/);
   assert.match(source, /storyScenePlanCandidate/);
   assert.match(source, /storyPlanProviderResponses/);
   assert.match(source, /story:scenario-fidelity-resume/);
@@ -1594,18 +1595,24 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(html, /id="generationNextStep"/);
 });
 
-test("whole-book planner, audit and targeted repair use resumable story execution", async () => {
-  const [planner, audit, repair] = await Promise.all([
+test("whole-book planner and audit use bounded resumable story execution", async () => {
+  const [planner, audit, prompt] = await Promise.all([
     fs.readFile("src/agents/storyScenePlanner.js", "utf8"),
     fs.readFile("src/agents/storyScenePlanAudit.js", "utf8"),
-    fs.readFile("src/agents/storySceneTextRepair.js", "utf8"),
+    fs.readFile("src/prompts/story_scene_planner.txt", "utf8"),
   ]);
-  for (const source of [planner, audit, repair]) {
+  for (const source of [planner, audit]) {
     assert.match(source, /backgroundExecution/);
     assert.match(source, /backgroundStep/);
     assert.match(source, /clientKind:\s*"story"/);
   }
   assert.doesNotMatch(audit, /clientKind:\s*"qa"/);
+  assert.match(audit, /source:\s*"deterministic"/);
+  assert.match(audit, /modelRole:\s*"story_auditor"/);
+  assert.ok(audit.indexOf("const deterministicIssues") < audit.indexOf("const result = await runAgent"));
+  assert.match(prompt, /changing prose alone is not a repair/i);
+  assert.match(prompt, /approved symbolic representation/i);
+  assert.match(prompt, /One scene contract shows one instant only/i);
 });
 
 test("text pages render as a square 21 cm preview", async () => {

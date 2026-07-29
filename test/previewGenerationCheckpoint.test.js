@@ -163,6 +163,22 @@ test("a preview exhausted under policy seven receives the resumable audit recove
   assert.equal(technicalPreviewRetryExhausted(exhaustedAudit), false);
 });
 
-test("the resumable story-plan audit recovery policy is version eight", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 8);
+test("a preview exhausted under policy eight receives the full-plan repair recovery", () => {
+  const exhaustedPlanRepair = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "story-contract-repair-book",
+      retryPolicyVersion: 8,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-29T18:00:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "story-plan:targeted-candidate",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedPlanRepair), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedPlanRepair), false);
+});
+
+test("the full-plan targeted repair policy is version nine", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 9);
 });
