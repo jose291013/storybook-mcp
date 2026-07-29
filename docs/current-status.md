@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-enqueue-previous-status`
 - Last deployed production checkpoint: PR #92 — PostgreSQL compatibility for the scenario run staging state
 - Current focused checkpoint: scenario enqueue checkpoint variable hotfix
-- Pull request: pending
+- Pull request: #93 — open as draft
 - WordPress Bridge source and installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,10 +35,9 @@ PR #55 through PR #91 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Run the focused and full test suites, then publish the hotfix PR.
-2. Merge only after confirming that no preview or scenario is generating; Render will restart.
-3. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
-4. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by either failed enqueue.
+1. Merge PR #93 only after confirming that no preview or scenario is generating; Render will restart.
+2. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
+3. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by either failed enqueue.
 
 ## Protected local state
 
