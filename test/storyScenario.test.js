@@ -979,6 +979,8 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioRoute, /story-scenario\/approve/);
   assert.match(scenarioRoute, /validateStoryScenario\(scenario\)/);
   assert.match(scenarioRoute, /clarificationAnswersForApproval\(scenario\)/);
+  assert.match(scenarioRoute, /const previousProjectStatus = project\.status/);
+  assert.match(scenarioRoute, /previousProjectStatus,\s*technicalAttempt/);
   assert.match(scenarioRoute, /clarifications: \[\]/);
   assert.match(scenarioAgent, /bookLanguageInstruction\(language\)/);
   assert.match(scenarioAgent, /normalizeBookLanguage\(input\?\.intake\?\.language\)/);

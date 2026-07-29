@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/generation-run-created-status`
-- Last verified production checkpoint: PR #91 — durable asynchronous scenario preparation
-- Current focused checkpoint: PostgreSQL compatibility for the scenario run staging state
-- Pull request: #92 — open as draft
+- Current branch: `codex/scenario-enqueue-previous-status`
+- Last deployed production checkpoint: PR #92 — PostgreSQL compatibility for the scenario run staging state
+- Current focused checkpoint: scenario enqueue checkpoint variable hotfix
+- Pull request: pending
 - WordPress Bridge source and installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,25 +19,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #91 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: scenario queue compatibility
+## Current product brick: scenario enqueue hotfix
 
-1. The durable scenario route deliberately creates a non-claimable `created` run before persisting the matching project checkpoint.
-2. Production PostgreSQL retained an older `generation_runs_status_check` that rejected this staging state with SQLSTATE `23514`.
-3. Migration `012_generation_run_created_status.sql` upgrades the existing constraint idempotently while migration 011 now provisions new databases with the same state.
-4. The worker still claims only `queued` or expired `running` runs, so it cannot process a partially persisted request.
-5. The failed production request reached neither the scenario architect nor credit reservation; the customer's questionnaire remains preserved.
+1. PR #92 successfully removed SQLSTATE `23514`; production now accepts the non-claimable `created` run.
+2. The route then exposed a second enqueue defect: it computed `previousStatus` but attempted to persist the undefined shorthand `previousProjectStatus`.
+3. The hotfix uses one canonical variable name throughout checkpoint creation and queue-failure recovery.
+4. A focused route contract test locks the computed and persisted field names together.
+5. Both failed requests reached neither the scenario architect nor credit reservation; the customer's questionnaire remains preserved.
 
 ## Verification completed locally
 
-- Focused PostgreSQL orchestration tests pass: 2 tests, 0 failures.
+- Scenario-focused suite passes: 36 tests, 0 failures.
 - Full suite passes: 233 tests, 0 failures.
-- `git diff --check` passes.
+- Route syntax and `git diff --check` pass.
 
 ## Next verification target
 
-1. Merge PR #92 only after confirming that no preview or scenario is generating; Render will restart and execute migration 012.
-2. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
-3. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by the failed enqueue.
+1. Run the focused and full test suites, then publish the hotfix PR.
+2. Merge only after confirming that no preview or scenario is generating; Render will restart.
+3. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
+4. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by either failed enqueue.
 
 ## Protected local state
 
