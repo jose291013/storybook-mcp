@@ -57,6 +57,16 @@ const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 4;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
 
+function safeProviderResponseCheckpoint(value) {
+  return {
+    responseId: String(value?.responseId || "").slice(0, 200),
+    status: String(value?.status || "").slice(0, 40),
+    startedAt: value?.startedAt || null,
+    updatedAt: value?.updatedAt || null,
+    completedAt: value?.completedAt || null,
+  };
+}
+
 function generationWorkerId(jobId) {
   return `render:${process.pid}:${jobId}`;
 }
@@ -729,37 +739,100 @@ router.post("/preview", async (req, res) => {
           childSafetyContract: safety.contract,
           sensitivityContract,
         };
-        let planAudit = { status: "approved", issues: [] };
-        for (let attempt = 1; attempt <= 2; attempt += 1) {
-          storyScenePlan = await storyScenePlannerAgent({
-            ...planningInput,
-            ...(attempt > 1 ? {
-              previousPlan: storyScenePlan,
-              validationIssues: planAudit.issues,
-            } : {}),
-          });
-          updateJob(job.id, { step: attempt === 1 ? "story:scenario-fidelity-check" : "story:scenario-fidelity-recheck" });
-          planAudit = await storyScenePlanAuditAgent({
+        const canonicalStoryCharacters = [
+          ...characterCanons,
+          { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
+          ...(final_blueprint.cast || []),
+        ];
+        const storyPlanBackgroundExecution = {
+          async getCheckpoint(stepKey) {
+            return checkpoint.storyPlanProviderResponses?.[stepKey] || null;
+          },
+          async saveCheckpoint(stepKey, providerCheckpoint) {
+            const storyPlanProviderResponses = {
+              ...(checkpoint.storyPlanProviderResponses || {}),
+              [stepKey]: safeProviderResponseCheckpoint(providerCheckpoint),
+            };
+            await persistCheckpoint({ storyPlanProviderResponses });
+          },
+        };
+        const auditCurrentStoryPlan = async ({ jobStep, backgroundStep }) => {
+          updateJob(job.id, { step: jobStep });
+          return storyScenePlanAuditAgent({
             approvedScenario,
             pageTexts: storyScenePlan.pageTexts,
             sceneContracts: storyScenePlan.sceneContracts,
-            canonicalCharacters: [
-              ...characterCanons,
-              { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
-              ...(final_blueprint.cast || []),
-            ],
+            canonicalCharacters: canonicalStoryCharacters,
             language: final_blueprint.language,
+          }, {
+            backgroundExecution: storyPlanBackgroundExecution,
+            backgroundStep,
           });
-          if (planAudit.status === "approved") break;
-          console.warn("[preview] story plan contradicts approved scenario", JSON.stringify({
-            jobId: job.id,
-            projectId,
-            attempt,
-            issues: planAudit.issues,
-          }));
-          if (attempt === 1) updateJob(job.id, { step: "story:scenario-fidelity-repair" });
+        };
+        const savedCandidateIsCurrent = Boolean(checkpoint.storyScenePlanCandidate)
+          && Number(checkpoint.storyScenePlanCandidateVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
+        storyScenePlan = savedCandidateIsCurrent ? checkpoint.storyScenePlanCandidate : null;
+        let candidateAttempt = savedCandidateIsCurrent
+          ? Math.max(1, Number(checkpoint.storyScenePlanCandidateAttempt || 1))
+          : 0;
+        let candidateStage = savedCandidateIsCurrent
+          ? String(checkpoint.storyScenePlanCandidateStage || "planner")
+          : "";
+        let planAudit = { status: "rejected", issues: [] };
+
+        if (storyScenePlan) {
+          planAudit = await auditCurrentStoryPlan({
+            jobStep: candidateStage === "targeted"
+              ? "story:scenario-fidelity-targeted-recheck"
+              : "story:scenario-fidelity-resume",
+            backgroundStep: candidateStage === "targeted"
+              ? "targeted-recheck"
+              : `audit:${candidateAttempt}`,
+          });
         }
-        if (planAudit.status !== "approved") {
+
+        if (candidateStage !== "targeted") {
+          for (
+            let attempt = storyScenePlan ? candidateAttempt + 1 : 1;
+            (!storyScenePlan || planAudit.status !== "approved") && attempt <= 2;
+            attempt += 1
+          ) {
+            storyScenePlan = await storyScenePlannerAgent({
+              ...planningInput,
+              ...(attempt > 1 ? {
+                previousPlan: storyScenePlan,
+                validationIssues: planAudit.issues,
+              } : {}),
+            }, {
+              backgroundExecution: storyPlanBackgroundExecution,
+              backgroundStep: `planner:${attempt}`,
+            });
+            candidateAttempt = attempt;
+            candidateStage = "planner";
+            await persistCheckpoint({
+              storyScenePlanCandidate: storyScenePlan,
+              storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
+              storyScenePlanCandidateAttempt: candidateAttempt,
+              storyScenePlanCandidateStage: candidateStage,
+              phase: `story-plan:candidate:${attempt}`,
+            });
+            planAudit = await auditCurrentStoryPlan({
+              jobStep: attempt === 1
+                ? "story:scenario-fidelity-check"
+                : "story:scenario-fidelity-recheck",
+              backgroundStep: `audit:${attempt}`,
+            });
+            if (planAudit.status === "approved") break;
+            console.warn("[preview] story plan contradicts approved scenario", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              attempt,
+              issues: planAudit.issues,
+            }));
+            if (attempt === 1) updateJob(job.id, { step: "story:scenario-fidelity-repair" });
+          }
+        }
+        if (planAudit.status !== "approved" && candidateStage !== "targeted") {
           updateJob(job.id, { step: "story:scenario-fidelity-targeted-repair" });
           storyScenePlan = {
             ...storyScenePlan,
@@ -768,25 +841,24 @@ router.post("/preview", async (req, res) => {
               pageTexts: storyScenePlan.pageTexts,
               sceneContracts: storyScenePlan.sceneContracts,
               issues: planAudit.issues,
-              canonicalCharacters: [
-                ...characterCanons,
-                { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
-                ...(final_blueprint.cast || []),
-              ],
+              canonicalCharacters: canonicalStoryCharacters,
               language: final_blueprint.language,
+            }, {
+              backgroundExecution: storyPlanBackgroundExecution,
+              backgroundStep: "targeted-repair",
             }),
           };
-          updateJob(job.id, { step: "story:scenario-fidelity-targeted-recheck" });
-          planAudit = await storyScenePlanAuditAgent({
-            approvedScenario,
-            pageTexts: storyScenePlan.pageTexts,
-            sceneContracts: storyScenePlan.sceneContracts,
-            canonicalCharacters: [
-              ...characterCanons,
-              { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
-              ...(final_blueprint.cast || []),
-            ],
-            language: final_blueprint.language,
+          candidateStage = "targeted";
+          await persistCheckpoint({
+            storyScenePlanCandidate: storyScenePlan,
+            storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
+            storyScenePlanCandidateAttempt: Math.max(2, candidateAttempt),
+            storyScenePlanCandidateStage: candidateStage,
+            phase: "story-plan:targeted-candidate",
+          });
+          planAudit = await auditCurrentStoryPlan({
+            jobStep: "story:scenario-fidelity-targeted-recheck",
+            backgroundStep: "targeted-recheck",
           });
         }
         if (planAudit.status !== "approved") {
@@ -838,6 +910,11 @@ router.post("/preview", async (req, res) => {
         await persistCheckpoint({
           storyScenePlan,
           storyScenePlanFidelityVersion: STORY_PLAN_FIDELITY_VERSION,
+          storyScenePlanCandidate: null,
+          storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
+          storyScenePlanCandidateAttempt: null,
+          storyScenePlanCandidateStage: "",
+          storyPlanProviderResponses: {},
           draftTexts: Object.fromEntries(draftTextByPage),
           finalBlueprint: final_blueprint,
           phase: "scene-contracts",

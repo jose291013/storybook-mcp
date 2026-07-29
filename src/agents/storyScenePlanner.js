@@ -134,7 +134,10 @@ export async function storyScenePlannerAgent({
   sensitivityContract = null,
   previousPlan = null,
   validationIssues = [],
-}) {
+}, {
+  backgroundExecution = null,
+  backgroundStep = "story-plan",
+} = {}) {
   const canonicalCharacters = [
     ...characterCanons.map((item) => ({ name: item.name, role: item.role, relationship: item.relationship })),
     { name: blueprint?.hero?.name, role: "child" },
@@ -163,6 +166,8 @@ export async function storyScenePlannerAgent({
     modelRole: "story_planner",
     system: loadPrompt("story_scene_planner.txt"),
     user: (input) => `COMPLETE_BOOK_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
+    backgroundExecution,
+    backgroundStep,
     input: {
       language: blueprint?.language,
       canonical_characters: canonicalCharacters,
