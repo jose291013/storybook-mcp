@@ -22,9 +22,45 @@ function scenarioGenerationSnapshot(project) {
   return project?.continuitySnapshot?.storyScenarioGeneration || null;
 }
 
+function safeProviderCheckpoint(value) {
+  return {
+    responseId: String(value?.responseId || "").slice(0, 200),
+    status: String(value?.status || "").slice(0, 40),
+    startedAt: value?.startedAt || null,
+    updatedAt: value?.updatedAt || null,
+    completedAt: value?.completedAt || null,
+  };
+}
+
+function createBackgroundExecution({ runs, run }) {
+  let metadata = { ...(run.metadata || {}) };
+  let checkpoints = { ...(metadata.providerResponses || {}) };
+  return {
+    async getCheckpoint(stepKey) {
+      return checkpoints[stepKey] || null;
+    },
+    async saveCheckpoint(stepKey, checkpoint) {
+      checkpoints = {
+        ...checkpoints,
+        [stepKey]: safeProviderCheckpoint(checkpoint),
+      };
+      const latestRun = typeof runs.getRun === "function"
+        ? await runs.getRun(run.id).catch(() => null)
+        : null;
+      metadata = {
+        ...(latestRun?.metadata || metadata),
+        providerResponses: checkpoints,
+      };
+      const updated = await runs.updateRun(run.id, { metadata });
+      metadata = updated?.metadata || metadata;
+    },
+  };
+}
+
 function safeTechnicalError(error) {
   const message = String(error?.message || error || "");
-  if (/timed out|timeout/i.test(message)) {
+  if (error?.code === "scenario_background_timeout"
+    || /timed out|timeout/i.test(message)) {
     return {
       code: "scenario_timeout",
       message: "The narrative service took too long to answer. Retry is available.",
@@ -260,6 +296,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
     }
     const previous = storyScenarioSnapshot(project);
     const request = generation.request;
+    const backgroundExecution = createBackgroundExecution({ runs, run });
     const onStep = ({ phase, attempt }) => persistGenerationProgress({
       projects,
       runs,
@@ -280,6 +317,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         project.questionnaire?.story_sensitivity_profile,
       ),
       onStep,
+      backgroundExecution,
     });
     return await completeScenario({
       projects,

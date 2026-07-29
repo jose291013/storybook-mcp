@@ -8,36 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-enqueue-previous-status`
-- Last deployed production checkpoint: PR #92 — PostgreSQL compatibility for the scenario run staging state
-- Current focused checkpoint: scenario enqueue checkpoint variable hotfix
-- Pull request: #93 — open as draft
+- Current branch: `codex/scenario-provider-background`
+- Last deployed production checkpoint: PR #93 — durable scenario enqueue checkpoint hotfix
+- Current focused checkpoint: durable provider-side scenario execution
+- Pull request: #94 — open as draft
 - WordPress Bridge source and installed production package: `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #91 are merged. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #93 are merged and deployed. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: scenario enqueue hotfix
+## Current product brick: durable OpenAI scenario responses
 
-1. PR #92 successfully removed SQLSTATE `23514`; production now accepts the non-claimable `created` run.
-2. The route then exposed a second enqueue defect: it computed `previousStatus` but attempted to persist the undefined shorthand `previousProjectStatus`.
-3. The hotfix uses one canonical variable name throughout checkpoint creation and queue-failure recovery.
-4. A focused route contract test locks the computed and persisted field names together.
-5. Both failed requests reached neither the scenario architect nor credit reservation; the customer's questionnaire remains preserved.
+1. The PostgreSQL scenario worker and browser polling deployed through PR #93 work correctly.
+2. Project `cd42acad-b8fb-4be2-bc7b-37517c914edd` reached the architect but its synchronous Responses API connection ended after about five minutes, before the application's ten-minute SDK timeout.
+3. Scenario architect, independent editor and JSON-repair calls now use Responses background mode.
+4. Each logical call persists only its provider response id, bounded status and timestamps in `generation_runs.metadata`; no questionnaire, prompt, scenario or provider output is duplicated there.
+5. A reclaimed worker retrieves the same provider response after a Render restart instead of creating another paid response.
+6. Transient polling failures retry the retrieval only. They never recreate the reasoning request.
+7. The existing customer project and its single free retry remain preserved until this brick is deployed.
 
 ## Verification completed locally
 
-- Scenario-focused suite passes: 36 tests, 0 failures.
-- Full suite passes: 233 tests, 0 failures.
-- Route syntax and `git diff --check` pass.
+- Provider-background and scenario-worker focused suite passes: 10 tests, 0 failures.
+- Interruption coverage proves that one persisted provider id is resumed after process loss and that the create-call count remains one.
+- Full suite passes: 239 tests, 0 failures.
+- JavaScript syntax checks and `git diff --check` pass.
 
 ## Next verification target
 
-1. Merge PR #93 only after confirming that no preview or scenario is generating; Render will restart.
-2. Reopen project `ba8611dc-b303-498f-af0b-3bc906d568dc` from **My creations** and request its preserved scenario again.
-3. Verify Render logs `queued → architect → editor → completed` and confirm that no credit was consumed by either failed enqueue.
+1. Keep PR #94 unmerged until the customer confirms that no scenario or preview is generating; Render will restart.
+2. After deployment, use **Retry for free** once on project `cd42acad-b8fb-4be2-bc7b-37517c914edd`.
+3. Verify Render logs `queued → architect → editor → completed`. A restart during architect or editor must resume the same `resp_…` checkpoint without a second provider create.
 
 ## Protected local state
 

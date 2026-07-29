@@ -69,15 +69,23 @@ function fakeProjects(initial) {
   };
 }
 
-function fakeRuns() {
+function fakeRuns(metadata = {}) {
   const patches = [];
+  let current = { id: "run-1", metadata: structuredClone(metadata) };
   return {
+    async getRun(id) {
+      return id === current.id ? structuredClone(current) : null;
+    },
     async heartbeatRun() {
       return {};
     },
     async updateRun(id, patch) {
       patches.push({ id, ...structuredClone(patch) });
-      return { id, ...patch };
+      current = { ...current, ...structuredClone(patch) };
+      return structuredClone(current);
+    },
+    current() {
+      return structuredClone(current);
     },
     patches,
   };
@@ -116,6 +124,51 @@ test("durable scenario worker persists a completed scenario without storing its 
   assert.equal(completed.continuitySnapshot.storyScenarioGeneration.request, null);
   assert.equal(runs.patches.at(-1).status, "completed");
   assert.ok(runs.patches.some((patch) => patch.currentStep === "scenario:architect:attempt:1"));
+});
+
+test("durable scenario worker stores only provider response checkpoints in run metadata", async () => {
+  const projects = fakeProjects(projectFixture());
+  const runs = fakeRuns({ requestKind: "initial" });
+  const scenario = {
+    title: "Bastien et la forêt",
+    summary: "Une aventure.",
+    clarifications: [],
+    scenes: [],
+  };
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:queued",
+    metadata: { requestKind: "initial" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async ({ backgroundExecution }) => {
+      await backgroundExecution.saveCheckpoint("architect:1:primary", {
+        responseId: "resp_architect",
+        status: "in_progress",
+        startedAt: "2026-07-29T10:00:00.000Z",
+        updatedAt: "2026-07-29T10:00:02.000Z",
+        privateOutput: "must not be persisted",
+      });
+      return { scenario, validation: { valid: true, issues: [] } };
+    },
+  });
+
+  assert.deepEqual(runs.current().metadata, {
+    requestKind: "initial",
+    providerResponses: {
+      "architect:1:primary": {
+        responseId: "resp_architect",
+        status: "in_progress",
+        startedAt: "2026-07-29T10:00:00.000Z",
+        updatedAt: "2026-07-29T10:00:02.000Z",
+        completedAt: null,
+      },
+    },
+  });
 });
 
 test("durable scenario timeout preserves the exact request and exposes one free retry", async () => {

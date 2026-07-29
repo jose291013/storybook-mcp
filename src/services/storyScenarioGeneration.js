@@ -23,6 +23,7 @@ export async function generateValidatedScenario({
   safetyContract,
   sensitivityContract,
   onStep = async () => {},
+  backgroundExecution = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const canonicalCharacters = [
@@ -58,15 +59,21 @@ export async function generateValidatedScenario({
   let repairDirectives = [];
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     await onStep({ phase: "architect", attempt });
-    const candidate = await storyScenarioAgent({
-      ...input,
-      ...(scenario ? {
-        previous_scenario: scenario,
-        validation_issues: validation.issues,
-        repair_directives: repairDirectives,
-      } : {}),
-      structural_repair_attempt: attempt,
-    });
+    const candidate = await storyScenarioAgent(
+      {
+        ...input,
+        ...(scenario ? {
+          previous_scenario: scenario,
+          validation_issues: validation.issues,
+          repair_directives: repairDirectives,
+        } : {}),
+        structural_repair_attempt: attempt,
+      },
+      {
+        backgroundExecution,
+        backgroundStep: `architect:${attempt}`,
+      },
+    );
     scenario = applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
       applyCreatorStoryScenarioEdits(
         normalizeStoryScenario(candidate, {
@@ -84,10 +91,16 @@ export async function generateValidatedScenario({
     validation = validateStoryScenario(scenario);
     if (validation.valid) {
       await onStep({ phase: "editor", attempt });
-      const audit = await storyScenarioAuditAgent({
-        intake: normalized.answers,
-        scenario,
-      });
+      const audit = await storyScenarioAuditAgent(
+        {
+          intake: normalized.answers,
+          scenario,
+        },
+        {
+          backgroundExecution,
+          backgroundStep: `editor:${attempt}`,
+        },
+      );
       validation = {
         valid: audit.status === "approved",
         issues: audit.issues.map((issue) => (
