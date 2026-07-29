@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/causal-story-architecture`
 - Latest merged checkpoint: PR #89 — irreversible lifecycle for discoverable, consumable and transformable plot objects
 - Current focused checkpoint: quality-first narrative model routing and authoritative causal graph
-- Pull request: not published yet
+- Pull request: PR #90 open as draft
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,8 +35,8 @@ PR #55 through PR #89 are merged. The last verified production modes were `CHILD
 
 ## Next verification target
 
-1. Publish the focused pull request without merging while the creator's current scenario review remains active.
-2. After explicit merge confirmation and Render deployment, verify the `story-model-routing ready` startup log.
+1. Wait for explicit merge confirmation and ensure that no book is generating before merging PR #90.
+2. After Render deployment, verify the `story-model-routing ready` startup log.
 3. Create one new story with a three-stage object transformation and verify the causal order in scenario review before generating illustrations.
 
 ## Protected local state
