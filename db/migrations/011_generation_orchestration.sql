@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS generation_runs (
   project_id uuid NOT NULL REFERENCES book_projects(id) ON DELETE CASCADE,
   kind text NOT NULL DEFAULT 'preview',
   status text NOT NULL DEFAULT 'queued'
-    CHECK (status IN ('queued','running','waiting_input','repair_pending','completed','failed','cancelled')),
+    CHECK (status IN ('created','queued','running','waiting_input','repair_pending','completed','failed','cancelled')),
   current_step text NOT NULL DEFAULT '',
   input_fingerprint text NOT NULL DEFAULT '',
   attempt_count integer NOT NULL DEFAULT 0,

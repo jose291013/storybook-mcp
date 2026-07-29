@@ -82,11 +82,18 @@ test("generation runs, steps and candidates are idempotent and durable in local 
 
 test("PostgreSQL orchestration schema supports leases, step isolation and preserved candidates", async () => {
   const migration = await fs.readFile("db/migrations/011_generation_orchestration.sql", "utf8");
+  const createdStatusMigration = await fs.readFile("db/migrations/012_generation_run_created_status.sql", "utf8");
   const store = await fs.readFile("src/services/generationRunStore.js", "utf8");
   const preview = await fs.readFile("src/routes/preview.js", "utf8");
+  const storyScenario = await fs.readFile("src/routes/storyScenario.js", "utf8");
   const jobs = await fs.readFile("src/routes/jobs.js", "utf8");
 
   assert.match(migration, /CREATE TABLE IF NOT EXISTS generation_runs/);
+  assert.match(migration, /status IN \('created','queued','running'/);
+  assert.match(createdStatusMigration, /generation_runs_status_check/);
+  assert.match(createdStatusMigration, /position\('created' IN current_definition\) = 0/);
+  assert.match(createdStatusMigration, /DROP CONSTRAINT IF EXISTS generation_runs_status_check/);
+  assert.match(createdStatusMigration, /'created',\s*'queued',\s*'running'/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS generation_steps/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS generation_candidates/);
   assert.match(migration, /lease_expires_at/);
@@ -100,6 +107,8 @@ test("PostgreSQL orchestration schema supports leases, step isolation and preser
   assert.match(preview, /generationRunStore\.upsertStep/);
   assert.match(preview, /status: "waiting_input"/);
   assert.match(preview, /status: "completed"/);
+  assert.match(storyScenario, /status: "created"/);
+  assert.match(storyScenario, /status: "queued"/);
   assert.match(jobs, /generationRunStore\.getRun/);
   assert.match(jobs, /durable: true/);
 });
