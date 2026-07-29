@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/transformable-object-lifecycle`
 - Latest merged checkpoint: PR #88 — owner-aware recurring-object identity and universe-mechanism lifecycle
 - Current focused checkpoint: irreversible lifecycle for discoverable, consumable and transformable plot objects
-- Pull request: not published yet
+- Pull request: draft PR #89, not merged
 - WordPress Bridge source candidate: `0.7.2`; installed production package remains `0.7.1`
 - WordPress theme source candidate: `1.2.1`; installed production theme is `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
