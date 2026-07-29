@@ -149,6 +149,7 @@ export async function storyScenePlanAuditAgent({
   const result = await runAgent({
     name: "storyScenePlanAudit",
     clientKind: "qa",
+    modelRole: "story_editor",
     system: loadPrompt("story_scene_plan_audit.txt"),
     user: (input) => `FINAL_STORY_PLAN_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     input: {

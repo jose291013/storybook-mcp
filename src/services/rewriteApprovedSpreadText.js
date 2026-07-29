@@ -39,6 +39,7 @@ export async function rewriteApprovedSpreadText({
   const result = await runAgent({
     name: "targeted-preview-text-revision",
     clientKind: "story",
+    modelRole: "story_writer",
     system: [
       "You revise exactly one already-approved children's-book spread.",
       `Write only in the authoritative book language ${language}.`,

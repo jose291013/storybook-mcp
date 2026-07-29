@@ -27,6 +27,7 @@ import { interactiveReaderInstallManifest } from "./services/interactiveReaderIn
 import { startProjectDeletionCleanupWorker } from "./services/projectDeletion.js";
 import { generationRunStore } from "./services/generationRunStore.js";
 import { startGenerationRecoveryWorker } from "./services/generationRecoveryWorker.js";
+import { storyModelRoutes } from "./services/modelRouting.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
@@ -80,5 +81,6 @@ startProjectDeletionCleanupWorker();
 startGenerationRecoveryWorker();
 app.listen(port, () => {
   logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
+  console.info("story-model-routing ready", storyModelRoutes());
   console.log(`✅ Server listening on port ${port}`);
 });

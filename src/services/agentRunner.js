@@ -1,9 +1,21 @@
 // src/services/agentRunner.js
 import { chatJson } from "./openai.js";
 
-export async function runAgent({ name, system, user, input, clientKind = "request" }) {
+export async function runAgent({
+  name,
+  system,
+  user,
+  input,
+  clientKind = "request",
+  modelRole = "",
+}) {
   const originalUser = user(input);
-  const out1 = await chatJson({ system, user: originalUser, clientKind });
+  const out1 = await chatJson({
+    system,
+    user: originalUser,
+    clientKind,
+    modelRole,
+  });
 
   if (out1?.__json_ok) return out1.data;
 
@@ -14,6 +26,7 @@ export async function runAgent({ name, system, user, input, clientKind = "reques
     user: `${originalUser}\n\nINVALID_PREVIOUS_OUTPUT:\n${String(out1.raw || "").slice(0, 12000)}\n\nReturn the complete corrected JSON object.`,
     temperature: 0,
     clientKind,
+    modelRole,
   });
 
   if (!out2?.__json_ok) {

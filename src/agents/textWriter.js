@@ -3,6 +3,7 @@ import { loadPrompt } from "../services/loadPrompt.js";
 import { bookLanguageInstruction, normalizeBookLanguage } from "../config/bookLanguages.js";
 import { getWordsTargetByAge } from "../config/readingGuidance.js";
 import { createOpenAIClient } from "../services/openaiClient.js";
+import { modelRoute } from "../services/modelRouting.js";
 
 export { getWordsTargetByAge };
 
@@ -78,19 +79,15 @@ export async function textWriterAgent({
     word_tolerance: tolerance
   };
 
-  const model = process.env.TEXT_MODEL || "gpt-4.1-mini";
+  const route = modelRoute("story_writer");
 
   const res = await getClient().responses.create({
-    model,
-    input: [
-      {
-        role: "user",
-        content: [
-          { type: "input_text", text: `${bookLanguageInstruction(targetLanguage)}\n\n${template}` },
-          { type: "input_text", text: "\n\nDATA:\n" + JSON.stringify(inputPayload, null, 2) }
-        ]
-      }
-    ]
+    model: route.model,
+    instructions: `${bookLanguageInstruction(targetLanguage)}\n\n${template}`,
+    input: `DATA:\n${JSON.stringify(inputPayload, null, 2)}`,
+    reasoning: { effort: route.reasoningEffort },
+    text: { format: { type: "json_object" } },
+    store: false,
   });
 
   const text = extractText(res);
