@@ -37,6 +37,8 @@ CAUSAL RULES
 - A guide may instead be present as thought, memory or voice. Such a guide is not physically visible and must never be included among travelers.
 - The child remains the active hero. Guides advise but do not solve the climax.
 - Track every recurring wearable, carried or plot-critical object. Give it exactly one state per scene. A hat cannot be both worn and held; when held, explicitly say that it is not worn and that only one hat exists.
+- Give every discoverable, consumable or transformable plot object a version-1 lifecycle. Its events are the causal authority: an object is absent before introduce/acquire, planting changes the original object to planted, consumption or destruction is terminal, and transformation replaces the source with its declared resulting object. A planted, consumed, transformed, destroyed or used-up object never returns to a hand unless a later explicit retrieve event makes that physically possible. Never depict the same unique seed, ingredient, ticket, key or material both before and after it has been irreversibly used.
+- Discovery starts a useful sequence rather than completing it. For a transformable quest object, separate introduction, observation or imperfect attempts, decisive use, and visible result across the arc. Do not transform or consume it in the same or immediately following scene when the story is about learning, patience or perseverance.
 - canonical_characters may contain an outfitContract selected by the creator. Return one wardrobe_plan entry for every such human character. Preserve a reference-photo outfit when requested. Otherwise activate the adventure outfit in a scene before that character enters the adventure zone; make that clothing change explicit in the scene action and never activate it after entry. Do not alter a face, body identity, animal or plush character to satisfy a wardrobe request.
 - A personal mechanism or recurring object is identified by both its name and its owner. When several characters each need the same mechanism, declare one owner-specific copy per character and keep one state per copy in every scene. Never treat two people's breathing bubbles, helmets, bracelets or similar belongings as one shared physical object.
 - Follow any required mechanism lifecycle supplied by the universe contract. Owner-specific safety equipment is stored before preparation, introduced and put on in a physical scene before zone entry, kept active only while needed, then stored after exit. Never mark equipment as worn before it has been introduced.
@@ -66,7 +68,17 @@ OUTPUT
     "clarifications": [{"id":"stable_snake_case_id","question":"creator-facing question","reason":"why chronology depends on it","suggested_answer":"safe default"}],
     "characters": [{"name":"exact canonical name","initial_location":"explicit place","default_presence_mode":"physical | thought | memory | voice"}],
     "wardrobe_plan": [{"character_name":"exact canonical human name","activation_scene_number":1}],
-    "objects": [{"name":"stable object name","owner":"canonical name","initial_state":"worn | held | carried | stored | visible | absent | left_behind","track_every_scene":true}],
+    "objects": [{
+      "name":"stable object name",
+      "owner":"canonical name",
+      "initial_state":"worn | held | carried | stored | visible | absent | left_behind | planted | installed | consumed | transformed | destroyed | used_up",
+      "track_every_scene":true,
+      "lifecycle":{
+        "version":1,
+        "kind":"persistent | discoverable | transformable | consumable",
+        "events":[{"scene_number":2,"type":"introduce | acquire | plant | install | consume | transform | destroy | retrieve | store | transfer | use","state":"one allowed object state","resulting_object":"declared tracked object created by this transformation or empty","resulting_state":"visible or another allowed object state"}]
+      }
+    }],
     "scenes": [{
       "scene_number": 1,
       "story_role": "exact page_plan role",
@@ -85,7 +97,7 @@ OUTPUT
       "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","phase":"start | throughout | end, or empty for nonphysical presence","location":"exact focal location for the selected physical phase, or empty for nonphysical presence","action":"role in this exact scene"}],
       "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel | join_travel","mechanism_id":"stable_snake_case_id or empty","mechanism":"named portal, route or vehicle, or empty","from":"traveler origin","to":"destination","characters":["exact canonical names who travel"]},
       "character_movements": [{"id":"movement-1","kind":"ordinary_travel | return_travel | cross_passage | join_travel","from":"group's established origin","to":"group's destination","characters":["exact canonical physical travelers in this group"],"mechanism_id":"stable passage id or empty","mechanism":"named portal, route or vehicle, or empty"}],
-      "object_states": [{"name":"tracked object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind","quantity":1,"instruction":"unambiguous visual rule"}],
+      "object_states": [{"name":"tracked object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind | planted | installed | consumed | transformed | destroyed | used_up","quantity":1,"instruction":"unambiguous visual rule"}],
       "continuity_to_next":"state that the next scene inherits"
     }]
   }
@@ -101,5 +113,6 @@ MANDATORY
 - Every physical movement appears exactly once in character_movements. A resident has no movement. Several movement events may coexist in one scene, but each event must begin at every named traveler's current ledger location.
 - Use phase start for a character shown before leaving, phase end for a character shown after arriving, and throughout only for a character who stays at the same focal location for the whole scene.
 - Nonphysical thoughts, memories and voices are narratively present but not physically visible.
+- Every tracked object must match the latest lifecycle event in every scene. If an object is first discovered after scene 1, its initial_state and every earlier scene state are absent. A resulting object remains absent until its source transformation event.
 - Return narrative_contract.version 1. Use no more than one primary symbol and two secondary symbols. An empty primary_symbol is allowed when the story is stronger without a recurring symbol.
 - Every scene must contain a non-empty narrative_function, dominant_emotion, emotional_shift and story_change. Do not duplicate a narrative function and story change across scenes.

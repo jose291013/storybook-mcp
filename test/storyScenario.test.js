@@ -228,6 +228,209 @@ test("one unique recurring object may change hands without becoming a second cop
   assert.deepEqual(validateStoryScenario(scenario), { valid: true, issues: [] });
 });
 
+function transformableSeedScenario() {
+  const scene = (sceneNumber, title, action, seedState = "held", flowerState = "absent") => ({
+    id: `scene-${sceneNumber}`,
+    sceneNumber,
+    storyRole: ["character_and_desire", "external_problem", "internal_problem", "simple_plan", "attempt", "success_and_transformation"][sceneNumber - 1],
+    title,
+    action,
+    locationBefore: "forêt enchantée",
+    locationAfter: "forêt enchantée",
+    prerequisiteSceneIds: sceneNumber === 1 ? [] : [`scene-${sceneNumber - 1}`],
+    characterPresences: [{
+      name: "Bastien",
+      mode: "physical",
+      phase: "throughout",
+      location: "forêt enchantée",
+      action: "agit dans la scène",
+    }],
+    transition: {
+      kind: "none",
+      mechanism: "",
+      mechanismId: "",
+      from: "forêt enchantée",
+      to: "forêt enchantée",
+      characters: [],
+    },
+    objectStates: [
+      { name: "graine aux mille couleurs", owner: "Bastien", state: seedState, quantity: 1 },
+      { name: "fleur éclatante", owner: "Bastien", state: flowerState, quantity: 1 },
+    ],
+  });
+  return {
+    language: "FR",
+    title: "La graine aux mille couleurs",
+    summary: "Bastien découvre une graine, apprend à en prendre soin et voit naître une fleur.",
+    characters: [{ name: "Bastien", initialLocation: "forêt enchantée" }],
+    objects: [
+      { name: "graine aux mille couleurs", owner: "Bastien", initialState: "held", trackEveryScene: true },
+      { name: "fleur éclatante", owner: "Bastien", initialState: "absent", trackEveryScene: true },
+    ],
+    scenes: [
+      scene(1, "Le désir", "Bastien cherche une manière de mieux comprendre ses émotions."),
+      scene(2, "La découverte", "Bastien trouve une graine aux mille couleurs au bord du sentier."),
+      scene(3, "La première observation", "Bastien observe la graine et remarque ses changements de couleur."),
+      scene(4, "La plantation", "Bastien plante la graine aux mille couleurs dans la terre."),
+      scene(5, "La patience", "Bastien arrose la terre et attend malgré son impatience."),
+      scene(6, "La transformation", "Une fleur éclatante pousse enfin devant Bastien."),
+    ],
+  };
+}
+
+test("a discovered transformable object is absent before discovery and cannot reappear after planting", () => {
+  const stabilized = stabilizeStoryScenario(transformableSeedScenario());
+  assert.deepEqual(
+    stabilized.scenes.map((scene) => scene.objectStates.find((state) => state.name.startsWith("graine"))?.state),
+    ["absent", "held", "held", "planted", "planted", "transformed"],
+  );
+  assert.deepEqual(
+    stabilized.scenes.map((scene) => scene.objectStates.find((state) => state.name === "fleur éclatante")?.state),
+    ["absent", "absent", "absent", "absent", "absent", "visible"],
+  );
+  assert.equal(stabilized.objects[0].lifecycle.kind, "transformable");
+  assert.equal(stabilized.objects[0].lifecycle.events.at(-1).resultingObject, "fleur éclatante");
+  assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
+test("transformable-object inference recognizes French, Spanish and English causal wording", () => {
+  const fixtures = [
+    {
+      language: "ES",
+      source: "semilla de colores",
+      result: "flor brillante",
+      actions: [
+        "Bastien busca una manera de comprender sus emociones.",
+        "Bastien encuentra una semilla de colores.",
+        "Bastien observa la semilla de colores.",
+        "Bastien planta la semilla de colores.",
+        "Bastien cuida la tierra con paciencia.",
+        "Una flor brillante crece delante de Bastien.",
+      ],
+    },
+    {
+      language: "EN",
+      source: "many-colored seed",
+      result: "bright flower",
+      actions: [
+        "Bastien looks for a way to understand his feelings.",
+        "Bastien finds a many-colored seed.",
+        "Bastien observes the many-colored seed.",
+        "Bastien plants the many-colored seed.",
+        "Bastien patiently cares for the soil.",
+        "A bright flower grows in front of Bastien.",
+      ],
+    },
+  ];
+  for (const fixture of fixtures) {
+    const scenario = transformableSeedScenario();
+    scenario.language = fixture.language;
+    scenario.objects[0].name = fixture.source;
+    scenario.objects[1].name = fixture.result;
+    scenario.scenes.forEach((scene, index) => {
+      scene.action = fixture.actions[index];
+      scene.objectStates[0].name = fixture.source;
+      scene.objectStates[1].name = fixture.result;
+    });
+    const stabilized = stabilizeStoryScenario(scenario);
+    assert.deepEqual(
+      stabilized.scenes.map((scene) => scene.objectStates.find((state) => state.name === fixture.source)?.state),
+      ["absent", "held", "held", "planted", "planted", "transformed"],
+    );
+    assert.equal(stabilized.objects[0].lifecycle.events.at(-1).resultingObject, fixture.result);
+    assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+  }
+});
+
+test("ordinary growth and English travel wording do not create false terminal events", () => {
+  const scenario = coherentPortalScenario();
+  scenario.objects = [
+    { name: "plante verte", owner: "Nolan", initialState: "visible", trackEveryScene: true },
+    { name: "silver key", owner: "Nolan", initialState: "carried", trackEveryScene: true },
+  ];
+  scenario.scenes.forEach((scene) => {
+    scene.objectStates = [
+      { name: "plante verte", owner: "Nolan", state: "visible", quantity: 1 },
+      { name: "silver key", owner: "Nolan", state: "carried", quantity: 1 },
+    ];
+  });
+  scenario.scenes[0].action = "La plante verte pousse près du portail.";
+  scenario.scenes[2].action = "Nolan and Mathéo come home carrying the silver key.";
+  const stabilized = stabilizeStoryScenario(scenario);
+  assert.equal(stabilized.objects[0].lifecycle, undefined);
+  assert.equal(stabilized.objects[1].lifecycle, undefined);
+  assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
+test("explicit lifecycle events survive normalization and drive deterministic scene states", () => {
+  const normalized = normalizeStoryScenario({ scenario: {
+    title: "Le ticket unique",
+    summary: "Lina découvre puis utilise son ticket.",
+    characters: [{ name: "Lina", initial_location: "la gare" }],
+    objects: [{
+      name: "ticket doré",
+      owner: "Lina",
+      initial_state: "held",
+      track_every_scene: true,
+      lifecycle: {
+        version: 1,
+        kind: "consumable",
+        events: [
+          { scene_number: 2, type: "introduce", state: "held" },
+          { scene_number: 4, type: "consume", state: "used_up" },
+        ],
+      },
+    }],
+    scenes: Array.from({ length: 6 }, (_, index) => ({
+      scene_number: index + 1,
+      title: `Étape ${index + 1}`,
+      action: index === 1 ? "Lina reçoit le ticket doré." : index === 3 ? "Lina utilise le ticket doré pour ouvrir la porte." : "Lina avance.",
+      location_before: "la gare",
+      location_after: "la gare",
+      character_presences: [{ name: "Lina", mode: "physical", phase: "throughout", location: "la gare" }],
+      transition: { kind: "none", from: "la gare", to: "la gare", characters: [] },
+      object_states: [{ name: "ticket doré", owner: "Lina", state: "held", quantity: 1 }],
+    })),
+  } }, {
+    pagePlan: Array.from({ length: 6 }, (_, index) => ({
+      page_type: "image",
+      scene_number: index + 1,
+      story_role: `role-${index + 1}`,
+    })),
+    canonicalCharacters: [{ name: "Lina", role: "child", storyRole: "hero" }],
+  });
+  const stabilized = stabilizeStoryScenario(normalized);
+  assert.deepEqual(stabilized.scenes.map((scene) => scene.objectStates[0].state), [
+    "absent", "held", "held", "used_up", "used_up", "used_up",
+  ]);
+  assert.equal(stabilized.objects[0].initialState, "absent");
+  assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
+test("scenario validation rejects an intact object returning after an irreversible event", () => {
+  const scenario = stabilizeStoryScenario(transformableSeedScenario());
+  scenario.scenes[5].objectStates.find((state) => state.name.startsWith("graine")).state = "held";
+  const result = validateStoryScenario(scenario);
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.includes("must be transformed according to its lifecycle")));
+});
+
+test("whole-book deterministic audit rejects a planted object described in a hand", () => {
+  const approvedScenario = stabilizeStoryScenario(transformableSeedScenario());
+  const issues = deterministicStoryPlanIssues({
+    approvedScenario,
+    pageTexts: { 8: "Bastien tient à nouveau la graine aux mille couleurs dans sa main." },
+    sceneContracts: [{
+      scene_number: 4,
+      text_page_number: 8,
+      named_characters: [{ name: "Bastien" }],
+    }],
+    canonicalCharacters: [{ name: "Bastien" }],
+    language: "FR",
+  });
+  assert.ok(issues.some((issue) => issue.code === "irreversible_object_reappears"));
+});
+
 test("personal universe mechanisms activate before zone entry and are stored outside it", () => {
   const characters = [
     { name: "Bastien", initialLocation: "maison de Bastien" },

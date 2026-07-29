@@ -11,7 +11,23 @@ export const STORY_SCENARIO_VERSION = 2;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
 const PRESENCE_PHASES = new Set(["start", "throughout", "end"]);
 const TRANSITION_KINDS = new Set(["none", "discover_passage", "cross_passage", "ordinary_travel", "return_travel", "join_travel"]);
-const OBJECT_STATES = new Set(["worn", "held", "carried", "stored", "visible", "absent", "left_behind"]);
+const OBJECT_STATES = new Set([
+  "worn", "held", "carried", "stored", "visible", "absent", "left_behind",
+  "planted", "installed", "consumed", "transformed", "destroyed", "used_up",
+]);
+const OBJECT_LIFECYCLE_KINDS = new Set(["persistent", "discoverable", "transformable", "consumable"]);
+const OBJECT_EVENT_TYPES = new Set([
+  "introduce", "acquire", "plant", "install", "consume", "transform", "destroy",
+  "retrieve", "store", "transfer", "use",
+]);
+const OBJECT_TERMINAL_STATES = new Set(["consumed", "transformed", "destroyed", "used_up"]);
+const OBJECT_POSSESSION_STATES = new Set(["worn", "held", "carried"]);
+const DISCOVERY_EVENT_PATTERN = /\b(?:trouve|trouvent|trouver|decouvre|decouvrent|decouvrir|recoit|recoivent|ramasse|obtient|finds?|found|discover(?:s|ed)?|receives?|picks? up|encuentra|encuentran|descubre|descubren|recibe|recogen?)\b/iu;
+const PLANT_EVENT_PATTERN = /\b(?:plante|plantent|planter|seme|sement|semer|enterre|enterrent|plants|planted|sows?|sowed|buries|buried|planta|plantan|plantar|siembra|siembran|entierra|entierran)\b/iu;
+const CONSUME_EVENT_PATTERN = /\b(?:mange|mangent|boit|boivent|consomme|consomment|eat(?:s|en)?|drink(?:s|ing)?|consume(?:s|d)?|se come|come (?:el|la|un|una)|comen|bebe|beben|consume|consumen)\b/iu;
+const DESTROY_EVENT_PATTERN = /\b(?:detruit|detruisent|brise|brisent|dechire|dechirent|destroy(?:s|ed)?|breaks?|broke|tears?|tore|destruye|destruyen|rompe|rompen|rasga|rasgan)\b/iu;
+const TRANSFORM_EVENT_PATTERN = /\b(?:devient|deviennent|se transforme|se transforment|becomes?|turns? into|transforms?|se convierte|se convierten|se transforma|se transforman)\b/iu;
+const RESULT_EMERGENCE_PATTERN = /\b(?:eclot|eclosent|pousse|grandit|fleurit|hatches?|sprouts?|grows?|blooms?|brota|brotan|crece|crecen|florece|florecen)\b/iu;
 
 function text(value) {
   return String(value || "").trim();
@@ -34,6 +50,37 @@ function objectInstanceKey(value = {}, declaredObjects = []) {
 
 function list(value, maximum = 50) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
+}
+
+function normalizedLifecycleEvent(item = {}) {
+  const sceneNumber = Number(item?.scene_number || item?.sceneNumber);
+  const type = text(item?.type || item?.event);
+  const state = text(item?.state || item?.to_state || item?.toState);
+  if (!Number.isInteger(sceneNumber) || sceneNumber < 1 || !OBJECT_EVENT_TYPES.has(type) || !OBJECT_STATES.has(state)) return null;
+  return {
+    sceneNumber,
+    type,
+    state,
+    resultingObject: text(item?.resulting_object || item?.resultingObject),
+    resultingState: OBJECT_STATES.has(item?.resulting_state || item?.resultingState)
+      ? text(item?.resulting_state || item?.resultingState)
+      : "visible",
+  };
+}
+
+function normalizedObjectLifecycle(item = {}) {
+  const raw = item?.lifecycle && typeof item.lifecycle === "object" ? item.lifecycle : {};
+  const kind = text(raw?.kind || item?.lifecycle_kind || item?.lifecycleKind);
+  const events = list(raw?.events || item?.lifecycle_events || item?.lifecycleEvents, 20)
+    .map(normalizedLifecycleEvent)
+    .filter(Boolean)
+    .sort((left, right) => left.sceneNumber - right.sceneNumber);
+  if (!OBJECT_LIFECYCLE_KINDS.has(kind) && !events.length) return null;
+  return {
+    version: 1,
+    kind: OBJECT_LIFECYCLE_KINDS.has(kind) ? kind : "persistent",
+    events,
+  };
 }
 
 function canonicalName(value, characters) {
@@ -118,12 +165,16 @@ export function normalizeStoryScenario(candidate = {}, {
       defaultPresenceMode: presenceMode,
     }, language);
   });
-  const objects = list(raw?.objects, 20).map((item) => ({
-    name: text(item?.name),
-    owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
-    initialState: OBJECT_STATES.has(item?.initial_state) ? item.initial_state : "visible",
-    trackEveryScene: item?.track_every_scene === true,
-  })).filter((item, index, all) => (
+  const objects = list(raw?.objects, 20).map((item) => {
+    const lifecycle = normalizedObjectLifecycle(item);
+    return {
+      name: text(item?.name),
+      owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
+      initialState: OBJECT_STATES.has(item?.initial_state) ? item.initial_state : "visible",
+      trackEveryScene: item?.track_every_scene === true,
+      ...(lifecycle ? { lifecycle } : {}),
+    };
+  }).filter((item, index, all) => (
     item.name
     && all.findIndex((candidate) => objectDefinitionKey(candidate) === objectDefinitionKey(item)) === index
   ));
@@ -476,6 +527,267 @@ function stabilizeRequiredMechanismLifecycles(scenario = {}) {
   }
 }
 
+const OBJECT_NAME_STOP_WORDS = new Set([
+  "avec", "dans", "pour", "sans", "sous", "the", "with", "from", "into", "une", "des",
+  "aux", "mille", "couleurs", "magique", "magical", "magic", "magica", "magico",
+]);
+
+function sceneObjectText(scene = {}) {
+  return key([
+    scene.title,
+    scene.action,
+    scene.storyChange,
+    scene.continuityToNext,
+  ].filter(Boolean).join(" "));
+}
+
+function objectMentionedInScene(scene, object) {
+  const searchable = sceneObjectText(scene);
+  const words = key(object?.name).split(" ").filter((word) => (
+    word.length >= 4 && !OBJECT_NAME_STOP_WORDS.has(word)
+  ));
+  return words.some((word) => searchable.split(" ").includes(word));
+}
+
+function objectEventPatternMatches(scene, object, pattern) {
+  const match = sceneObjectText(scene).match(pattern);
+  if (!match) return false;
+  const matchedWords = key(match[0]).split(" ");
+  const objectWords = new Set(key(object?.name).split(" "));
+  if (matchedWords.length === 1 && ["plant", "plante", "planta"].includes(matchedWords[0]) && objectWords.has(matchedWords[0])) {
+    return false;
+  }
+  return true;
+}
+
+function inferredObjectLifecycle(object, scenes, objects) {
+  const mentioned = scenes.filter((scene) => objectMentionedInScene(scene, object));
+  const discoveryScene = mentioned.find((scene) => objectEventPatternMatches(scene, object, DISCOVERY_EVENT_PATTERN));
+  const plantScene = mentioned.find((scene) => objectEventPatternMatches(scene, object, PLANT_EVENT_PATTERN));
+  const consumeScene = mentioned.find((scene) => objectEventPatternMatches(scene, object, CONSUME_EVENT_PATTERN));
+  const destroyScene = mentioned.find((scene) => objectEventPatternMatches(scene, object, DESTROY_EVENT_PATTERN));
+  let transformScene = mentioned.find((scene) => objectEventPatternMatches(scene, object, TRANSFORM_EVENT_PATTERN));
+  const emergenceScene = mentioned.find((scene) => objectEventPatternMatches(scene, object, RESULT_EMERGENCE_PATTERN));
+  const emergesAsResult = Boolean(
+    (transformScene || emergenceScene)
+    && !discoveryScene
+    && !plantScene
+    && !consumeScene
+    && !destroyScene
+    && object.initialState === "absent"
+    && Number(mentioned[0]?.sceneNumber) === Number((transformScene || emergenceScene).sceneNumber)
+  );
+  let resultingObject = "";
+
+  if (!transformScene && plantScene) {
+    transformScene = scenes.find((scene) => (
+      Number(scene.sceneNumber) > Number(plantScene.sceneNumber)
+      && (TRANSFORM_EVENT_PATTERN.test(sceneObjectText(scene)) || RESULT_EMERGENCE_PATTERN.test(sceneObjectText(scene)))
+      && objects.some((candidate) => (
+        objectDefinitionKey(candidate) !== objectDefinitionKey(object)
+        && objectMentionedInScene(scene, candidate)
+      ))
+    ));
+  }
+  if (transformScene) {
+    resultingObject = objects.find((candidate) => (
+      objectDefinitionKey(candidate) !== objectDefinitionKey(object)
+      && objectMentionedInScene(transformScene, candidate)
+    ))?.name || "";
+  }
+
+  const events = [];
+  if (emergesAsResult) {
+    events.push({
+      sceneNumber: Number((transformScene || emergenceScene).sceneNumber),
+      type: "introduce",
+      state: "visible",
+      resultingObject: "",
+      resultingState: "visible",
+    });
+    transformScene = null;
+  }
+  if (discoveryScene) {
+    const supplied = list(discoveryScene.objectStates, 30).find((state) => (
+      objectInstanceKey(state, objects) === objectInstanceKey(object, objects)
+    ));
+    events.push({
+      sceneNumber: Number(discoveryScene.sceneNumber),
+      type: "introduce",
+      state: supplied && supplied.state !== "absent" ? supplied.state : "visible",
+      resultingObject: "",
+      resultingState: "visible",
+    });
+  }
+  if (plantScene) {
+    events.push({
+      sceneNumber: Number(plantScene.sceneNumber),
+      type: "plant",
+      state: "planted",
+      resultingObject: "",
+      resultingState: "visible",
+    });
+  }
+  if (consumeScene) {
+    events.push({
+      sceneNumber: Number(consumeScene.sceneNumber),
+      type: "consume",
+      state: "consumed",
+      resultingObject: "",
+      resultingState: "visible",
+    });
+  }
+  if (destroyScene) {
+    events.push({
+      sceneNumber: Number(destroyScene.sceneNumber),
+      type: "destroy",
+      state: "destroyed",
+      resultingObject: "",
+      resultingState: "visible",
+    });
+  }
+  if (transformScene) {
+    events.push({
+      sceneNumber: Number(transformScene.sceneNumber),
+      type: "transform",
+      state: "transformed",
+      resultingObject,
+      resultingState: "visible",
+    });
+  }
+  const ordered = events
+    .filter((event, index, all) => all.findIndex((candidate) => (
+      candidate.sceneNumber === event.sceneNumber && candidate.type === event.type
+    )) === index)
+    .sort((left, right) => left.sceneNumber - right.sceneNumber);
+  if (!ordered.length) return null;
+  const kind = ordered.some((event) => ["plant", "transform"].includes(event.type))
+    ? "transformable"
+    : ordered.some((event) => event.type === "consume")
+      ? "consumable"
+      : "discoverable";
+  return { version: 1, kind, events: ordered };
+}
+
+function mergedObjectLifecycle(object, scenes, objects) {
+  const inferred = inferredObjectLifecycle(object, scenes, objects);
+  const explicit = object?.lifecycle?.version === 1 ? object.lifecycle : null;
+  if (!explicit) return inferred;
+  const events = [...list(inferred?.events, 20), ...list(explicit.events, 20)]
+    .filter((event, index, all) => all.findLastIndex((candidate) => (
+      candidate.sceneNumber === event.sceneNumber && candidate.type === event.type
+    )) === index)
+    .sort((left, right) => left.sceneNumber - right.sceneNumber);
+  return {
+    version: 1,
+    kind: explicit.kind || inferred?.kind || "persistent",
+    events,
+  };
+}
+
+function lifecycleInstruction({ object, event, state, language }) {
+  const name = object.name;
+  if (language === "ES") {
+    if (state === "absent") return `${name} todavía no aparece en esta escena.`;
+    if (state === "planted") return `${name} está plantado y ya no puede estar en una mano.`;
+    if (OBJECT_TERMINAL_STATES.has(state)) return `${name} está ${state}; el objeto original ya no puede reaparecer intacto.`;
+  } else if (language === "EN") {
+    if (state === "absent") return `${name} has not appeared yet and must remain absent from this scene.`;
+    if (state === "planted") return `${name} is planted and can no longer be held.`;
+    if (OBJECT_TERMINAL_STATES.has(state)) return `${name} is ${state}; the original object cannot reappear intact.`;
+  } else {
+    if (state === "absent") return `${name} n’est pas encore apparu et doit rester absent de cette scène.`;
+    if (state === "planted") return `${name} est planté et ne peut plus être tenu dans une main.`;
+    if (OBJECT_TERMINAL_STATES.has(state)) return `${name} est ${state} ; l’objet d’origine ne peut plus réapparaître intact.`;
+  }
+  if (event?.type === "introduce") return `${name}: first physical appearance in this scene; exactly one copy.`;
+  return `${name}: preserve exactly this lifecycle state (${state}) and one copy.`;
+}
+
+function upsertObjectState(scene, object, objects, state, instruction) {
+  scene.objectStates ||= [];
+  const instanceKey = objectInstanceKey(object, objects);
+  const stateIndex = scene.objectStates.findIndex((item) => objectInstanceKey(item, objects) === instanceKey);
+  const existing = stateIndex >= 0 ? scene.objectStates[stateIndex] : null;
+  const next = {
+    name: object.name,
+    owner: existing?.owner || object.owner,
+    state,
+    quantity: 1,
+    instruction,
+  };
+  if (stateIndex >= 0) scene.objectStates[stateIndex] = next;
+  else scene.objectStates.push(next);
+}
+
+function stabilizeNarrativeObjectLifecycles(scenario = {}) {
+  const scenes = list(scenario.scenes, 30);
+  const objects = list(scenario.objects, 30).filter((object) => object.trackEveryScene);
+  const language = ["FR", "ES", "EN"].includes(text(scenario.language).toUpperCase())
+    ? text(scenario.language).toUpperCase()
+    : "FR";
+  const lifecycles = new Map(objects.map((object) => [
+    objectInstanceKey(object, objects),
+    mergedObjectLifecycle(object, scenes, objects),
+  ]));
+
+  for (const object of objects) {
+    const lifecycle = lifecycles.get(objectInstanceKey(object, objects));
+    if (!lifecycle?.events?.length) continue;
+    object.lifecycle = lifecycle;
+    const introduction = lifecycle.events.find((event) => ["introduce", "acquire"].includes(event.type));
+    if (introduction && introduction.sceneNumber > 1) object.initialState = "absent";
+    let currentState = object.initialState;
+    for (const scene of scenes) {
+      const events = lifecycle.events.filter((event) => event.sceneNumber === Number(scene.sceneNumber));
+      for (const event of events) currentState = event.state;
+      const activeEvent = events.at(-1) || lifecycle.events.filter((event) => event.sceneNumber < Number(scene.sceneNumber)).at(-1);
+      upsertObjectState(
+        scene,
+        object,
+        objects,
+        currentState,
+        lifecycleInstruction({ object, event: activeEvent, state: currentState, language }),
+      );
+    }
+  }
+
+  for (const source of objects) {
+    const sourceLifecycle = lifecycles.get(objectInstanceKey(source, objects));
+    for (const event of list(sourceLifecycle?.events, 20).filter((item) => item.resultingObject)) {
+      const target = objects.find((candidate) => key(candidate.name) === key(event.resultingObject));
+      if (!target) continue;
+      const targetKey = objectInstanceKey(target, objects);
+      const existing = lifecycles.get(targetKey) || { version: 1, kind: "discoverable", events: [] };
+      if (!existing.events.some((candidate) => candidate.type === "introduce")) {
+        existing.events.push({
+          sceneNumber: event.sceneNumber,
+          type: "introduce",
+          state: event.resultingState || "visible",
+          resultingObject: "",
+          resultingState: "visible",
+        });
+      }
+      existing.events.sort((left, right) => left.sceneNumber - right.sceneNumber);
+      target.lifecycle = existing;
+      target.initialState = event.sceneNumber > 1 ? "absent" : target.initialState;
+      let targetState = target.initialState;
+      for (const scene of scenes) {
+        const events = existing.events.filter((candidate) => candidate.sceneNumber === Number(scene.sceneNumber));
+        for (const targetEvent of events) targetState = targetEvent.state;
+        const activeEvent = events.at(-1) || existing.events.filter((candidate) => candidate.sceneNumber < Number(scene.sceneNumber)).at(-1);
+        upsertObjectState(
+          scene,
+          target,
+          objects,
+          targetState,
+          lifecycleInstruction({ object: target, event: activeEvent, state: targetState, language }),
+        );
+      }
+    }
+  }
+}
+
 export function stabilizeStoryScenario(input = {}) {
   const scenario = structuredClone(input);
   const scenes = list(scenario.scenes, 30);
@@ -600,7 +912,74 @@ export function stabilizeStoryScenario(input = {}) {
     previous = scene;
   }
   stabilizeRequiredMechanismLifecycles(scenario);
+  stabilizeNarrativeObjectLifecycles(scenario);
   return scenario;
+}
+
+function validateNarrativeObjectLifecycles(scenario = {}) {
+  const issues = [];
+  const scenes = list(scenario.scenes, 30);
+  const objects = list(scenario.objects, 30).filter((object) => object.trackEveryScene);
+  for (const object of objects) {
+    const lifecycle = mergedObjectLifecycle(object, scenes, objects);
+    if (!lifecycle?.events?.length) continue;
+    const events = lifecycle.events.slice().sort((left, right) => left.sceneNumber - right.sceneNumber);
+    const introduction = events.find((event) => ["introduce", "acquire"].includes(event.type));
+    const transform = events.find((event) => ["transform", "consume"].includes(event.type));
+    const plant = events.find((event) => event.type === "plant");
+    if (introduction && transform && scenes.length >= 6 && transform.sceneNumber <= introduction.sceneNumber + 1) {
+      issues.push(`scene-${transform.sceneNumber}: object ${object.name} transforms before the story shows a meaningful attempt`);
+    }
+    if (plant && transform && transform.sceneNumber <= plant.sceneNumber) {
+      issues.push(`scene-${transform.sceneNumber}: object ${object.name} transforms before time passes after planting`);
+    }
+
+    let expectedState = object.initialState;
+    let irreversibleState = OBJECT_TERMINAL_STATES.has(expectedState) ? expectedState : "";
+    let planted = expectedState === "planted";
+    for (const scene of scenes) {
+      const sceneEvents = events.filter((event) => event.sceneNumber === Number(scene.sceneNumber));
+      for (const event of sceneEvents) {
+        if (
+          (irreversibleState || planted)
+          && OBJECT_POSSESSION_STATES.has(event.state)
+          && event.type !== "retrieve"
+        ) {
+          issues.push(`scene-${scene.sceneNumber}: object ${object.name} cannot return from ${irreversibleState || "planted"} to ${event.state} without an explicit retrieve event`);
+        }
+        expectedState = event.state;
+        if (OBJECT_TERMINAL_STATES.has(expectedState)) irreversibleState = expectedState;
+        if (expectedState === "planted") planted = true;
+        if (event.type === "retrieve") {
+          irreversibleState = "";
+          planted = false;
+        }
+      }
+      const supplied = list(scene.objectStates, 30).find((state) => (
+        objectInstanceKey(state, objects) === objectInstanceKey(object, objects)
+      ));
+      if (!supplied || supplied.state !== expectedState) {
+        issues.push(`scene-${scene.sceneNumber}: object ${object.name} must be ${expectedState} according to its lifecycle`);
+      }
+    }
+
+    for (const event of events.filter((item) => item.resultingObject)) {
+      const target = objects.find((candidate) => key(candidate.name) === key(event.resultingObject));
+      if (!target) {
+        issues.push(`scene-${event.sceneNumber}: transformed object ${object.name} requires declared result ${event.resultingObject}`);
+        continue;
+      }
+      for (const scene of scenes.filter((candidate) => Number(candidate.sceneNumber) < event.sceneNumber)) {
+        const targetState = list(scene.objectStates, 30).find((state) => (
+          objectInstanceKey(state, objects) === objectInstanceKey(target, objects)
+        ));
+        if (targetState && targetState.state !== "absent") {
+          issues.push(`scene-${scene.sceneNumber}: resulting object ${target.name} must remain absent before ${object.name} transforms`);
+        }
+      }
+    }
+  }
+  return [...new Set(issues)];
 }
 
 export function validateStoryScenario(scenario = {}) {
@@ -708,6 +1087,7 @@ export function validateStoryScenario(scenario = {}) {
     }
     previous = scene;
   }
+  issues.push(...validateNarrativeObjectLifecycles(scenario));
   const movementValidation = validateCharacterMovementLedger(scenario);
   issues.push(...movementValidation.issues);
   return { valid: issues.length === 0, issues };

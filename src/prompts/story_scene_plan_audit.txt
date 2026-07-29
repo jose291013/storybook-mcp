@@ -8,6 +8,8 @@ Reject only explicit contradictions:
 - a physical character appears at a location without the approved transition;
 - a passage is crossed before its approved discovery or under a different causal identity;
 - a recurring object has a different state or quantity;
+- a unique object is visible before introduction or reappears intact after planting, consumption, transformation, destruction or use-up;
+- a resulting object appears before the approved transformation of its source;
 - the scene contract's visible named cast differs from the approved physical presences;
 - the manuscript and illustration contract describe different moments.
 - a child refers to a mother or father by that parent's first name inside dialogue or inner thoughts when canonical_characters supplies a preferredAddress;
