@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
-import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
+import {
+  buildStorySceneTextRepairTargets,
+  mergeStorySceneTextRepairResult,
+  sanitizeStoryRepairText,
+} from "../src/agents/storySceneTextRepair.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, hasCurrentStoryScenarioAuditEvidence, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario, withStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
 import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
 import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
@@ -727,6 +731,71 @@ test("targeted story repair falls back to the approved action if every generated
     fallbackText: "Lua résout seule l'énigme du château.",
   });
   assert.equal(repaired, "Lua résout seule l'énigme du château.");
+});
+
+test("targeted story repair replaces only affected prose and its structured speaker", () => {
+  const targets = buildStorySceneTextRepairTargets({
+    approvedScenario: {
+      scenes: [{
+        sceneNumber: 8,
+        action: "Noa demande un moment avant de réessayer.",
+        characterPresences: [
+          { name: "Noa", mode: "physical" },
+          { name: "Eva", mode: "physical" },
+        ],
+      }],
+    },
+    pageTexts: {
+      16: "Eva lève la main et dit «Necesito un momento».",
+      18: "La page suivante reste identique.",
+    },
+    speechSegmentsByPage: {
+      16: [{ speaker: "Eva", mode: "dialogue", text: "Necesito un momento" }],
+      18: [],
+    },
+    sceneContracts: [{
+      scene_number: 8,
+      text_page_number: 16,
+    }],
+    issues: [{
+      sceneNumber: 8,
+      code: "pause_requested_by_wrong_character",
+      explanation: "Noa, not Eva, asks for the pause.",
+    }],
+    canonicalCharacters: [{ name: "Noa" }, { name: "Eva" }],
+  });
+  const repaired = mergeStorySceneTextRepairResult({
+    pageTexts: {
+      16: "Eva lève la main et dit «Necesito un momento».",
+      18: "La page suivante reste identique.",
+    },
+    speechSegmentsByPage: {
+      16: [{ speaker: "Eva", mode: "dialogue", text: "Necesito un momento" }],
+      18: [],
+    },
+    targets,
+    result: {
+      page_texts: [{
+        page_number: 16,
+        text: "Noa lève la main et dit «Necesito un momento».",
+        speech_segments: [{
+          speaker: "Noa",
+          mode: "dialogue",
+          text: "Necesito un momento",
+        }],
+      }],
+    },
+    canonicalCharacters: [{ name: "Noa" }, { name: "Eva" }],
+  });
+
+  assert.equal(repaired.pageTexts[16], "Noa lève la main et dit «Necesito un momento».");
+  assert.equal(repaired.pageTexts[18], "La page suivante reste identique.");
+  assert.deepEqual(repaired.speechSegmentsByPage[16], [{
+    speaker: "Noa",
+    mode: "dialogue",
+    text: "Necesito un momento",
+  }]);
+  assert.deepEqual(repaired.speechSegmentsByPage[18], []);
 });
 
 test("invalid scenario diagnostics identify editable scenes without exposing character names", () => {

@@ -24,6 +24,7 @@ import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent } from "../agents/manuscriptEditor.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
+import { storySceneTextRepairAgent } from "../agents/storySceneTextRepair.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { projectStore } from "../services/projectStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
@@ -69,6 +70,7 @@ const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
 const STORY_PLAN_FIDELITY_VERSION = 4;
 const STORY_PLAN_TARGETED_REPAIR_VERSION = 2;
+const STORY_PLAN_TEXT_REPAIR_VERSION = 3;
 const MANUSCRIPT_REVIEW_VERSION = 1;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
 
@@ -1035,6 +1037,50 @@ router.post("/preview", async (req, res) => {
             modelRole: "story_repair",
           });
           planAudit = await applyLocalCompilerIssues(planAudit, "targeted-audit");
+        }
+        const targetedTextRepairRequiresUpgrade = planAudit.status !== "approved"
+          && candidateStage === "targeted-plan"
+          && candidateRepairVersion < STORY_PLAN_TEXT_REPAIR_VERSION;
+        if (targetedTextRepairRequiresUpgrade) {
+          updateJob(job.id, { step: "story:scenario-fidelity-targeted-text-repair" });
+          const repairedText = await storySceneTextRepairAgent({
+            approvedScenario,
+            pageTexts: storyScenePlan.pageTexts,
+            speechSegmentsByPage: storyScenePlan.speechSegmentsByPage,
+            sceneContracts: storyScenePlan.sceneContracts,
+            issues: planAudit.issues,
+            canonicalCharacters: canonicalStoryCharacters,
+            language: final_blueprint.language,
+          }, {
+            backgroundExecution: storyPlanBackgroundExecution,
+            backgroundStep: `writer:targeted:v${STORY_PLAN_TEXT_REPAIR_VERSION}`,
+          });
+          storyScenePlan = compileStoryPlan({
+            ...storyScenePlan,
+            pageTexts: repairedText.pageTexts,
+            speechSegmentsByPage: repairedText.speechSegmentsByPage,
+          }, {
+            canonicalCharacters: canonicalStoryCharacters,
+            heroName: final_blueprint.hero?.name,
+            language: final_blueprint.language,
+            issues: planAudit.issues,
+          });
+          candidateRepairVersion = STORY_PLAN_TEXT_REPAIR_VERSION;
+          await persistCheckpoint({
+            storyScenePlanCandidate: storyScenePlan,
+            storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
+            storyScenePlanCandidateAttempt: candidateAttempt,
+            storyScenePlanCandidateStage: candidateStage,
+            storyScenePlanCandidateRepairVersion: candidateRepairVersion,
+            storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
+            phase: "story-plan:targeted-text-candidate",
+          });
+          planAudit = await auditCurrentStoryPlan({
+            jobStep: "story:scenario-fidelity-targeted-text-recheck",
+            backgroundStep: `audit:targeted:v${STORY_PLAN_TEXT_REPAIR_VERSION}`,
+            modelRole: "story_repair",
+          });
+          planAudit = await applyLocalCompilerIssues(planAudit, "targeted-text-audit");
         }
         if (planAudit.status !== "approved") {
           throw new Error(`Approved scenario fidelity failed: ${planAudit.issues.map((issue) => `scene-${issue.sceneNumber}: ${issue.explanation}`).join(" | ")}`);

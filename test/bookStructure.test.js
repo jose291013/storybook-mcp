@@ -1582,6 +1582,11 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /story:scenario-fidelity-targeted-repair/);
   assert.match(source, /story:scenario-fidelity-targeted-recheck/);
   assert.match(source, /backgroundStep:\s*`planner:targeted:v\$\{STORY_PLAN_TARGETED_REPAIR_VERSION\}`/);
+  assert.match(source, /storySceneTextRepairAgent/);
+  assert.match(source, /story:scenario-fidelity-targeted-text-repair/);
+  assert.match(source, /backgroundStep:\s*`writer:targeted:v\$\{STORY_PLAN_TEXT_REPAIR_VERSION\}`/);
+  assert.match(source, /story:scenario-fidelity-targeted-text-recheck/);
+  assert.match(source, /phase:\s*"story-plan:targeted-text-candidate"/);
   assert.match(source, /candidateStage = "targeted-plan"/);
   assert.match(source, /storyScenePlanCandidateRepairVersion/);
   assert.match(source, /storyScenePlanCandidate/);

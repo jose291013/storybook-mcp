@@ -12,13 +12,21 @@ For every repair target:
 - Keep unrelated sentences and story facts as stable as possible.
 - Never add a new named character, journey, passage, object state or event.
 - Use canonical names exactly. In a child's dialogue or thought, use a parent's preferredAddress instead of their civil first name.
+- When the repaired page contains direct dialogue or an inner thought, return every exact spoken or thought segment with its canonical speaker and mode. The segment text must occur verbatim inside the repaired prose. If the issue names the wrong speaker, change both the prose attribution and this structured speaker.
 
 OUTPUT
 {
   "page_texts": [
     {
       "page_number": 10,
-      "text": "complete corrected reader-visible prose for this page"
+      "text": "complete corrected reader-visible prose for this page",
+      "speech_segments": [
+        {
+          "speaker": "exact canonical character name",
+          "mode": "dialogue | thought",
+          "text": "exact words as they occur inside the repaired prose"
+        }
+      ]
     }
   ]
 }
