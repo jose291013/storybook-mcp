@@ -12,7 +12,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Main checkpoint: PR #100 — objective visual guard for impossible anatomy and duplicated recurring identities
 - Last production deployment explicitly reverified in this document: PR #99; verify Render before treating PR #100 as deployed
 - Current focused checkpoint: private per-book OpenAI production-cost ledger and WooCommerce economic dashboard
-- Pull request: not yet opened
+- Pull request: draft PR #101
 - WordPress Bridge source candidate: `0.7.5`; installed production package last recorded as `0.7.3`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -37,7 +37,7 @@ PR #55 through PR #99 are merged and deployed; PR #100 is present on `main`. The
 
 ## Next verification target
 
-1. Complete local tests and open a draft pull request without merging it.
+1. Review draft PR #101 without merging it.
 2. Before merge, confirm that no scenario or preview is generating because Render will restart.
 3. After deployment and Bridge `0.7.5` installation, create one new test book and compare **WooCommerce > Pilotage Calitiki** with the OpenAI usage export.
 4. Verify that a customer account and **Mes créations Calitiki** expose no production-cost field, amount or navigation entry.
