@@ -20,6 +20,7 @@ import {
 } from "../services/qualityReviewResolution.js";
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
+import { withOpenAICostContext } from "../services/openaiCostContext.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
@@ -289,7 +290,13 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
   resolvingProjects.add(project.id);
   res.json({ jobId: job.id, pageNumber, scope });
 
-  (async () => {
+  withOpenAICostContext({
+    projectId: project.id,
+    runId: job.id,
+    workflow: "quality_review",
+    attemptKind: "quality_repair",
+    getStage: () => `quality:${scope}:page:${pageNumber}`,
+  }, async () => {
     let temporaryDirectory = "";
     try {
       temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "storybook-quality-review-"));
@@ -513,7 +520,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         await fs.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => null);
       }
     }
-  })();
+  });
 });
 
 export default router;

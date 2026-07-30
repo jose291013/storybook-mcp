@@ -56,6 +56,7 @@ import {
   compileStoryPlan,
   STORY_PLAN_COMPILER_VERSION,
 } from "../services/storyPlanCompiler.js";
+import { inferAttemptKind, withOpenAICostContext } from "../services/openaiCostContext.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 4;
@@ -566,7 +567,13 @@ router.post("/preview", async (req, res) => {
   console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
   res.json({ jobId: job.id });
 
-  (async () => {
+  withOpenAICostContext({
+    projectId,
+    runId: job.id,
+    workflow: "preview",
+    getStage: () => getJob(job.id)?.step || checkpoint?.phase || "preview",
+    getAttemptKind: () => inferAttemptKind(getJob(job.id)?.step || checkpoint?.phase),
+  }, async () => {
     const stopHeartbeat = startGenerationRunHeartbeat(job.id);
     try {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
@@ -1576,7 +1583,7 @@ router.post("/preview", async (req, res) => {
     } finally {
       stopHeartbeat();
     }
-  })();
+  });
 });
 
 export default router;
