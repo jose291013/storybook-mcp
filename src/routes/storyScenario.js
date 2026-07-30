@@ -6,6 +6,10 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { previewRequestFingerprint } from "../services/previewGenerationCheckpoint.js";
 import { projectStore } from "../services/projectStore.js";
 import {
+  compileNarrativeV2Shadow,
+  narrativeV2ShadowEnabled,
+} from "../services/narrativeV2Shadow.js";
+import {
   clarificationAnswersForApproval,
   hasCurrentStoryScenarioAuditEvidence,
   recoverLegacyLifecycleValidation,
@@ -364,6 +368,16 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       approvedAt: new Date().toISOString(),
     };
     const continuitySnapshot = { ...project.continuitySnapshot, storyScenario: approved };
+    if (narrativeV2ShadowEnabled(project.id)) {
+      const shadow = compileNarrativeV2Shadow({ project, scenario: approved });
+      continuitySnapshot.narrativeV2Shadow = shadow;
+      console.info("[narrative-v2-shadow] compiled", JSON.stringify({
+        projectId: project.id,
+        status: shadow.status,
+        artifactDigest: shadow.artifactDigest?.slice(0, 12) || "",
+        issueCodes: (shadow.issues || []).map((issue) => issue.code),
+      }));
+    }
     await projectStore.updateForCustomer(project.id, identity, { status: "ready_for_preview", continuitySnapshot });
     res.set("Cache-Control", "private, no-store");
     res.json({ scenario: approved, status: "ready_for_preview" });

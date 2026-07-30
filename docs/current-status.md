@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-pipeline-v2-compiler`
+- Current branch: `codex/narrative-v2-shadow-benchmark`
 - Production/main checkpoint: PR #111 merged; Narrative Pipeline V2 contract foundation
-- Current focused checkpoint: pure approved-scenario → NarrativeBookSpec compiler
-- Pull request: draft PR #112
+- Current focused checkpoint: allowlisted Narrative V2 shadow compilation and synthetic Luna/Sol benchmark
+- Pull request: not yet published; stacked on draft PR #112
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,31 +19,29 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #111 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Narrative Pipeline V2 pure compiler
+## Current product brick: Narrative Pipeline V2 shadow benchmark
 
-1. `src/contracts/compileNarrativeBookSpec.js` compiles only an approved, currently audited scenario v2 with movement ledger v1 and causal graph v1.
-2. The compiler is a synchronous pure function: it performs no AI call, storage read/write, network request or production-route integration.
-3. Book page bindings come from the deterministic format plan. Character, location, object and passage registries are stable and every reference is resolved before the artifact is returned.
-4. Every illustration targets the end of one approved scene. Visible characters derive from physical end/throughout presences; thought, memory and voice characters are evoked; every other canonical character is forbidden.
-5. Passage discovery is projected into an explicit stationary canonical movement. Crossing and return reuse the same two-sided passage registry and cannot be compiled without a prior discovery.
-6. Every declared object must be tracked in every scene and have a matching causal graph entity. State, owner and quantity changes without one exact causal event stop compilation.
-7. A causal transformation becomes one source event plus one deterministic result-introduction event; the compiler does not ask a model to infer missing state.
-8. The returned artifact carries a stable digest and a `pending` semantic-audit slot. Mechanical validation runs before return; semantic approval is never fabricated.
-9. Structured `NarrativeBookSpecCompileError` issues are bounded and reject stale audits, legacy ledgers, ambiguous identifiers, unresolved passages and incomplete editorial fields.
-10. This brick changes no production route, model call, customer project, credit behavior, Render variable or WordPress package.
+1. The pure PR #112 compiler remains the immutable base and is still not consumed by prose, illustration, credits or delivery.
+2. `NARRATIVE_V2_SHADOW_MODE` defaults to `off`; `observe` also requires an exact project id in `NARRATIVE_V2_SHADOW_PROJECT_IDS`.
+3. An eligible scenario compiles only after current audit and explicit creator approval. The private spec and bounded comparison are stored beside the legacy project.
+4. Compiler rejection stores only issue codes and schema paths. It never stores explanations in diagnostics and never blocks the approved legacy flow.
+5. The explicit local `benchmark:narrative-models` command accepts synthetic fixtures only and compares isolated Sol/high and Luna/high routes.
+6. Benchmark output contains validation, canonical compilation, duration, request count and attributable cost, but no scenario prose or customer content.
+7. The price ledger uses the new non-retroactive `openai-standard-2026-07-30-luna-reduction` snapshot: Luna USD 0.20/1.20 and Terra USD 2/12 per million standard input/output tokens.
+8. No Render variable is activated and no customer receives a duplicate model call from this brick.
 
 ## Verification
 
-- Focused compiler tests: 8/8 passing.
-- Complete `npm test`: 302/302 passing.
-- Complete npm production dependency audit: 0 known vulnerabilities.
+- Focused shadow, benchmark and pricing tests: 16/16 passing.
+- Complete `npm test`: 311/311 passing.
+- Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review the compiler PR and confirm that it remains disconnected from production.
-2. After explicit merge approval, merge this brick without deploying or activating V2.
-3. Implement shadow compilation as a separate brick after the pure compiler is accepted.
+1. Publish this brick as a stacked draft PR targeting the compiler branch.
+2. Merge PR #112 first after explicit user approval and a no-generation window.
+3. Rebase or retarget the shadow PR to `main`, then request separate merge approval.
 
 ## Protected local state
 

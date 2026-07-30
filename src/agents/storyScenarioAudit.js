@@ -12,6 +12,7 @@ export async function storyScenarioAuditAgent(
     backgroundExecution = null,
     backgroundStep = "",
     modelRole = "story_editor",
+    jsonRepairModelRole = "story_repair",
   } = {},
 ) {
   const language = normalizeBookLanguage(intake.language);
@@ -19,7 +20,7 @@ export async function storyScenarioAuditAgent(
     name: "storyScenarioAudit",
     clientKind: "scenario",
     modelRole,
-    jsonRepairModelRole: "story_repair",
+    jsonRepairModelRole,
     system: `${bookLanguageInstruction(language)}\n\n${loadPrompt("story_scenario_audit.txt")}`,
     user: (payload) => `SCENARIO_AUDIT_INPUT_JSON:\n${JSON.stringify(payload, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     input: { intake, scenario },

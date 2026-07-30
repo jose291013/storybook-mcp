@@ -6,13 +6,14 @@ export async function storyScenarioAgent(input, {
   backgroundExecution = null,
   backgroundStep = "",
   modelRole = "story_architect",
+  jsonRepairModelRole = "story_repair",
 } = {}) {
   const language = normalizeBookLanguage(input?.intake?.language);
   return runAgent({
     name: "storyScenario",
     clientKind: "scenario",
     modelRole,
-    jsonRepairModelRole: "story_repair",
+    jsonRepairModelRole,
     system: `${bookLanguageInstruction(language)}\n\n${loadPrompt("story_scenario.txt")}`,
     user: (payload) => `STORY_INPUT_JSON:\n${JSON.stringify(payload, null, 2)}\n\nReturn ONLY JSON as specified.`,
     input,

@@ -1,9 +1,9 @@
-export const OPENAI_PRICE_VERSION = "openai-standard-2026-07-30";
+export const OPENAI_PRICE_VERSION = "openai-standard-2026-07-30-luna-reduction";
 
 const TEXT_PRICES = [
   { pattern: /^gpt-5\.6-sol(?:-|$)/, input: 5, cached: 0.5, cacheWrite: 6.25, output: 30, longInput: 10, longCached: 1, longCacheWrite: 12.5, longOutput: 45 },
-  { pattern: /^gpt-5\.6-terra(?:-|$)/, input: 2.5, cached: 0.25, cacheWrite: 3.125, output: 15, longInput: 5, longCached: 0.5, longCacheWrite: 6.25, longOutput: 22.5 },
-  { pattern: /^gpt-5\.6-luna(?:-|$)/, input: 1, cached: 0.1, cacheWrite: 1.25, output: 6, longInput: 2, longCached: 0.2, longCacheWrite: 2.5, longOutput: 9 },
+  { pattern: /^gpt-5\.6-terra(?:-|$)/, input: 2, cached: 0.2, cacheWrite: 2.5, output: 12, longInput: 4, longCached: 0.4, longCacheWrite: 5, longOutput: 18 },
+  { pattern: /^gpt-5\.6-luna(?:-|$)/, input: 0.2, cached: 0.02, cacheWrite: 0.25, output: 1.2, longInput: 0.4, longCached: 0.04, longCacheWrite: 0.5, longOutput: 1.8 },
   { pattern: /^gpt-4\.1-mini(?:-|$)/, input: 0.4, cached: 0.1, cacheWrite: 0.4, output: 1.6 },
   { pattern: /^gpt-4o-mini(?:-|$)/, input: 0.15, cached: 0.075, cacheWrite: 0.15, output: 0.6 },
 ];

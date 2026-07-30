@@ -24,15 +24,32 @@ test("GPT-5.6 cost calculation separates regular, cached and cache-write tokens"
   assert.equal(result.costUsdMicros, 747500);
 });
 
-test("provider default tier uses the standard price table", () => {
+test("provider default tier uses the reduced Luna standard price table", () => {
   const result = calculateOpenAICost({
     model: "gpt-5.6-luna",
     endpoint: "responses.create",
     serviceTier: "default",
-    usage: { inputTokens: 1000000, outputTokens: 0 },
+    usage: { inputTokens: 100000, outputTokens: 10000 },
   });
-  assert.equal(result.costUsdMicros, 2000000);
+  assert.equal(result.costUsdMicros, 32000);
   assert.equal(result.pricingComplete, true);
+});
+
+test("Luna and Terra long-context prices retain the documented multipliers", () => {
+  const luna = calculateOpenAICost({
+    model: "gpt-5.6-luna",
+    endpoint: "responses.create",
+    usage: { inputTokens: 1000000, outputTokens: 100000 },
+  });
+  const terra = calculateOpenAICost({
+    model: "gpt-5.6-terra",
+    endpoint: "responses.create",
+    usage: { inputTokens: 1000000, outputTokens: 100000 },
+  });
+  assert.equal(luna.costUsdMicros, 580000);
+  assert.equal(terra.costUsdMicros, 5800000);
+  assert.equal(luna.pricingComplete, true);
+  assert.equal(terra.pricingComplete, true);
 });
 
 test("GPT Image 2 calculation uses separate text, image and output-image rates", () => {
