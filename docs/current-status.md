@@ -8,38 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-validation-recovery`
-- Main checkpoint: PR #102 — scenario-ready e-mail preference remains interactive during durable generation
-- Last production deployment reported by the creator: PR #102 with Calitiki Bridge `0.7.5`
-- Current focused checkpoint: versioned scenario diagnostics and safe recovery of the legacy repeated-object-introduction false positive
-- Pull request: #103 — `Recover false scenario validation failures` (draft, awaiting creator merge confirmation)
+- Current branch: `codex/authoritative-story-plan-audit`
+- Main checkpoint: PR #103 — legacy scenario validation recovery
+- Last production deployment reported by the creator: PR #103 with Calitiki Bridge `0.7.5`
+- Current focused checkpoint: audit only the scene-contract fields actually sent to illustration generation
+- Pull request: #104 — ready to publish as a draft; never merge without creator confirmation
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #102 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #103 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: scenario validation recovery
+## Current product brick: authoritative story-plan audit
 
-1. A lifecycle introduction is labelled as a first physical appearance only in its actual event scene, never in every later scene.
-2. Semantic editor failures retain bounded creator-safe scene explanations instead of collapsing into an unexplained generic category.
-3. A private authenticated compatibility endpoint repairs an old saved scenario without an AI call only when every red scene carries the known repeated-first-appearance signature and the complete deterministic validator passes afterward.
-4. The creator's visible title, action and chronology are unchanged by that compatibility repair; unrelated legacy or genuine semantic failures remain blocked.
+1. Whole-book fidelity checks receive a versioned projection containing only the scene metadata, action, visible cast, required elements, object states, spatial relationships and forbidden elements that can influence the illustration prompt.
+2. Earlier `story_beat`, source prose, draft image context and planner continuity notes remain private provenance but cannot block a book because image generation never receives them.
+3. Reader-visible page text remains independently audited against the approved scenario.
+4. Preview retry policy version 12 grants one creator-free recovery to books exhausted under policy 11, including the saved targeted candidate for Noa's doll.
 
 ## Verification completed locally
 
-- Focused scenario and worker tests: passing.
-- The saved Noa diagnostic fixture revalidates locally as `proposed`; only the legitimate first appearances remain.
-- Complete `npm test` suite: 263/263 passing.
+- Focused audit-contract and retry tests: 22/22 passing.
+- Regression proves that the stale “doll in her arms” draft context is excluded while the authoritative “secured in the closed band, not in her arms” object state remains audited.
+- Complete `npm test` suite: 265/265 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Run the complete test suite and create the pull request.
+1. Publish PR #104 as a draft.
 2. Do not merge while a creator preview is generating; Render would restart it.
-3. After deployment, reopen project `dbeb57e7-5914-4ee1-a0f8-d83c254589d2` and verify that it is automatically validable without a new paid AI request or visible story change.
-4. Generate one deliberately contradictory scenario and verify that its exact creator-safe explanation is visible while approval remains blocked.
+3. After deployment, reopen project `dbeb57e7-5914-4ee1-a0f8-d83c254589d2` and click **Réessayer gratuitement**.
+4. Verify that the saved candidate resumes at the audit, no scenario or manuscript is regenerated, and the book reaches cover preparation.
+5. Verify that a real contradiction in an authoritative object state or visible cast still blocks generation.
 
 ## Protected local state
 

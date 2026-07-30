@@ -211,6 +211,22 @@ test("a preview exhausted under policy ten receives the legacy audit compatibili
   assert.equal(technicalPreviewRetryExhausted(exhaustedLegacyAuditCandidate), false);
 });
 
-test("the legacy-compatible narrative compiler policy is version eleven", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 11);
+test("a preview exhausted under policy eleven receives the authoritative audit recovery", () => {
+  const exhaustedStaleAuditCandidate = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "stale-non-rendered-audit-context",
+      retryPolicyVersion: 11,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-30T10:00:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "story-plan:targeted-candidate",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedStaleAuditCandidate), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedStaleAuditCandidate), false);
+});
+
+test("the rendered-contract audit recovery policy is version twelve", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 12);
 });
