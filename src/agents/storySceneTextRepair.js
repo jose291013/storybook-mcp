@@ -35,6 +35,13 @@ function uniqueNames(characters) {
     .filter((name, index, all) => name && all.findIndex((candidate) => key(candidate) === key(name)) === index);
 }
 
+function canonicalName(value, characters) {
+  const supplied = clean(value, 120);
+  return list(characters, 50).find(
+    (character) => key(character?.name) === key(supplied),
+  )?.name || supplied;
+}
+
 export function sanitizeStoryRepairText({
   text,
   forbiddenCharacters = [],
@@ -55,6 +62,7 @@ export function sanitizeStoryRepairText({
 export function buildStorySceneTextRepairTargets({
   approvedScenario,
   pageTexts,
+  speechSegmentsByPage = {},
   sceneContracts,
   issues,
   canonicalCharacters = [],
@@ -82,6 +90,7 @@ export function buildStorySceneTextRepairTargets({
       scene_number: sceneNumber,
       text_page_number: textPageNumber,
       current_text: clean(pageTexts?.[textPageNumber], 5000),
+      current_speech_segments: list(speechSegmentsByPage?.[textPageNumber], 20),
       approved_scene: approvedScene,
       forbidden_characters: canonicalNames.filter((name) => !approvedNames.has(key(name))),
       issues: sceneIssues,
@@ -90,9 +99,67 @@ export function buildStorySceneTextRepairTargets({
   return targets;
 }
 
+export function mergeStorySceneTextRepairResult({
+  pageTexts,
+  speechSegmentsByPage = {},
+  targets,
+  result,
+  canonicalCharacters = [],
+}) {
+  const suppliedItems = list(result?.page_texts, targets.length + 5);
+  const supplied = new Map(suppliedItems
+    .map((item) => [Number(item?.page_number || 0), item])
+    .filter(([pageNumber]) => pageNumber));
+  if (suppliedItems.length !== targets.length || supplied.size !== targets.length) {
+    throw new Error("Targeted story repair must return every requested text page exactly once");
+  }
+  const repairedPageTexts = { ...pageTexts };
+  const repairedSpeechSegments = Object.fromEntries(
+    Object.entries(speechSegmentsByPage || {}).map(([page, segments]) => [
+      page,
+      list(segments, 20).map((segment) => ({ ...segment })),
+    ]),
+  );
+  for (const target of targets) {
+    const suppliedPage = supplied.get(target.text_page_number);
+    const text = clean(suppliedPage?.text, 5000);
+    if (!text) {
+      throw new Error(`Targeted story repair omitted text page ${target.text_page_number}`);
+    }
+    const canonicalized = canonicalizeWrittenNames(text, canonicalCharacters);
+    const sanitized = sanitizeStoryRepairText({
+      text: canonicalized,
+      forbiddenCharacters: target.forbidden_characters,
+      fallbackText: target.approved_scene?.action,
+    });
+    if (!sanitized) {
+      throw new Error(`Targeted story repair left no approved prose for text page ${target.text_page_number}`);
+    }
+    repairedPageTexts[target.text_page_number] = sanitized;
+    repairedSpeechSegments[target.text_page_number] = list(suppliedPage?.speech_segments, 20)
+      .map((segment) => ({
+        speaker: canonicalName(segment?.speaker, canonicalCharacters),
+        mode: ["dialogue", "thought"].includes(key(segment?.mode))
+          ? key(segment.mode)
+          : "dialogue",
+        text: canonicalizeWrittenNames(clean(segment?.text, 900), canonicalCharacters),
+      }))
+      .filter((segment) => (
+        segment.speaker
+        && segment.text
+        && sanitized.includes(segment.text)
+      ));
+  }
+  return {
+    pageTexts: repairedPageTexts,
+    speechSegmentsByPage: repairedSpeechSegments,
+  };
+}
+
 export async function storySceneTextRepairAgent({
   approvedScenario,
   pageTexts,
+  speechSegmentsByPage = {},
   sceneContracts,
   issues,
   canonicalCharacters = [],
@@ -104,11 +171,17 @@ export async function storySceneTextRepairAgent({
   const targets = buildStorySceneTextRepairTargets({
     approvedScenario,
     pageTexts,
+    speechSegmentsByPage,
     sceneContracts,
     issues,
     canonicalCharacters,
   });
-  if (!targets.length) return { ...pageTexts };
+  if (!targets.length) {
+    return {
+      pageTexts: { ...pageTexts },
+      speechSegmentsByPage: { ...speechSegmentsByPage },
+    };
+  }
 
   const result = await runAgent({
     name: "storySceneTextRepair",
@@ -126,24 +199,11 @@ export async function storySceneTextRepairAgent({
     },
   });
 
-  const supplied = new Map(list(result?.page_texts, targets.length + 5)
-    .map((item) => [Number(item?.page_number || 0), clean(item?.text, 5000)]));
-  const repaired = { ...pageTexts };
-  for (const target of targets) {
-    const text = supplied.get(target.text_page_number);
-    if (!text) {
-      throw new Error(`Targeted story repair omitted text page ${target.text_page_number}`);
-    }
-    const canonicalized = canonicalizeWrittenNames(text, canonicalCharacters);
-    const sanitized = sanitizeStoryRepairText({
-      text: canonicalized,
-      forbiddenCharacters: target.forbidden_characters,
-      fallbackText: target.approved_scene?.action,
-    });
-    if (!sanitized) {
-      throw new Error(`Targeted story repair left no approved prose for text page ${target.text_page_number}`);
-    }
-    repaired[target.text_page_number] = sanitized;
-  }
-  return repaired;
+  return mergeStorySceneTextRepairResult({
+    pageTexts,
+    speechSegmentsByPage,
+    targets,
+    result,
+    canonicalCharacters,
+  });
 }

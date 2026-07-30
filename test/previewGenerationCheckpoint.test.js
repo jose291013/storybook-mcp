@@ -267,6 +267,24 @@ test("a targeted candidate exhausted under policy fourteen receives the structur
   assert.equal(technicalPreviewRetryExhausted(exhaustedTargetedCandidate), false);
 });
 
-test("the structured targeted-plan recovery policy is version fifteen", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 15);
+test("a structured plan exhausted under policy fifteen receives the targeted text recovery", () => {
+  const exhaustedStructuredPlan = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "targeted-text-repair-book",
+      retryPolicyVersion: 15,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-30T20:15:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "story-plan:targeted-candidate",
+      storyScenePlanCandidateStage: "targeted-plan",
+      storyScenePlanCandidateRepairVersion: 2,
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedStructuredPlan), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
+});
+
+test("the targeted text recovery policy is version sixteen", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 16);
 });
