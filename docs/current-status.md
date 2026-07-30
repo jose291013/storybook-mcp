@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/targeted-story-text-repair-v3`
 - Main checkpoint and last production deployment: PR #109 — structured versioned repair for rejected whole-book plans
 - Current focused checkpoint: versioned last-mile text repair for a partially corrected whole-book plan
-- Pull request: pending creation; do not merge without fresh creator confirmation
+- Pull request: #110 open as draft; do not merge without fresh creator confirmation
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,10 +36,9 @@ PR #55 through PR #109 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the focused pull request without merging it.
-2. Wait for explicit creator confirmation before merging; warn that Render may restart and interrupt an active generation.
-3. After deployment, use the explicit free retry on project `4bd27e64-2a32-456f-b931-c061cfa39e65`.
-4. Confirm that the log records `writer:targeted:v3`, that scenes 8 and 10 pass `story:scenario-fidelity-targeted-text-recheck`, and that cover preparation begins without another scenario, blueprint or full-plan call.
+1. Wait for explicit creator confirmation before merging PR #110; warn that Render may restart and interrupt an active generation.
+2. After deployment, use the explicit free retry on project `4bd27e64-2a32-456f-b931-c061cfa39e65`.
+3. Confirm that the log records `writer:targeted:v3`, that scenes 8 and 10 pass `story:scenario-fidelity-targeted-text-recheck`, and that cover preparation begins without another scenario, blueprint or full-plan call.
 
 ## Protected local state
 
