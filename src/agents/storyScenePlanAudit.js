@@ -12,6 +12,12 @@ function list(value, maximum = 20) {
 
 export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 1;
 
+export function versionedStoryPlanAuditStep(step = "story-plan-audit") {
+  const prefix = `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:`;
+  const normalized = String(step || "story-plan-audit").trim();
+  return normalized.startsWith(prefix) ? normalized : `${prefix}${normalized}`;
+}
+
 export function authoritativeSceneContractForAudit(contract = {}) {
   return {
     audit_contract_version: STORY_PLAN_AUDIT_CONTRACT_VERSION,
@@ -241,7 +247,7 @@ export async function storyScenePlanAuditAgent({
     system: loadPrompt("story_scene_plan_audit.txt"),
     user: (input) => `FINAL_STORY_PLAN_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     backgroundExecution,
-    backgroundStep,
+    backgroundStep: versionedStoryPlanAuditStep(backgroundStep),
     input: {
       approved_scenario: approvedScenario,
       canonical_characters: canonicalCharacters.map((character) => enrichFamilyAddress(character, language)),
