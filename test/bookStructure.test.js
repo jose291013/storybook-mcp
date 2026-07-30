@@ -1588,6 +1588,8 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /applyLocalCompilerIssues/);
   assert.match(source, /modelRetryAvoided/);
   assert.match(source, /storyPlanProviderResponses/);
+  assert.match(source, /backgroundStep:\s*`blueprint:v\$\{BLUEPRINT_CONTRACT_VERSION\}`/);
+  assert.match(source, /backgroundExecution:\s*providerBackgroundExecution/);
   assert.match(source, /story:scenario-fidelity-resume/);
   assert.match(source, /backgroundStep:\s*`planner:\$\{attempt\}`/);
   assert.match(source, /if \(!hasCurrentStoryScenePlan\)/);

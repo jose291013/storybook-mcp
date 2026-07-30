@@ -4,6 +4,8 @@ import { modelRoute } from "../src/services/modelRouting.js";
 
 const VARIABLES = [
   "TEXT_MODEL",
+  "BLUEPRINT_MODEL",
+  "BLUEPRINT_REASONING_EFFORT",
   "STORY_ARCHITECT_MODEL",
   "STORY_ARCHITECT_REASONING_EFFORT",
   "STORY_EDITOR_MODEL",
@@ -31,6 +33,12 @@ function withCleanEnvironment(callback) {
 
 test("quality-first defaults separate architect and editor from legacy text calls", () => {
   withCleanEnvironment(() => {
+    assert.deepEqual(modelRoute("blueprint"), {
+      role: "blueprint",
+      model: "gpt-4.1-mini",
+      reasoningEffort: "",
+      api: "responses",
+    });
     assert.deepEqual(modelRoute("story_architect"), {
       role: "story_architect",
       model: "gpt-5.6-sol",
@@ -69,5 +77,7 @@ test("Render can override a narrative role without changing source code", () => 
     assert.equal(modelRoute("story_auditor").reasoningEffort, "medium");
     process.env.MANUSCRIPT_EDITOR_MODEL = "custom-language-editor";
     assert.equal(modelRoute("manuscript_editor").model, "custom-language-editor");
+    process.env.BLUEPRINT_MODEL = "custom-blueprint-model";
+    assert.equal(modelRoute("blueprint").model, "custom-blueprint-model");
   });
 });

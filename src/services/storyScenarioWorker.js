@@ -378,6 +378,8 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       costStage = `scenario:${phase || "generation"}:attempt:${Number(attempt || 0)}`;
       costAttemptKind = Number(generation.technicalAttempt || 1) > 1
         ? "technical_retry"
+        : phase === "revision"
+          ? "customer_change"
         : phase === "repair"
           ? "quality_repair"
           : "normal";

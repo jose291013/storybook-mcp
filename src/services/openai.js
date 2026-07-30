@@ -166,7 +166,7 @@ export async function chatJson({
       model: route.model,
       instructions: system,
       input: jsonInput(user),
-      reasoning: { effort: route.reasoningEffort },
+      ...(route.reasoningEffort ? { reasoning: { effort: route.reasoningEffort } } : {}),
       text: { format: { type: "json_object" } },
       store: false,
     };
