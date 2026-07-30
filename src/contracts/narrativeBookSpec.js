@@ -7,6 +7,7 @@ export const NARRATIVE_BOOK_SPEC_VALIDATOR_VERSION = 1;
 
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
 const PHYSICAL_PHASES = new Set(["start", "throughout", "end"]);
+const VISIBLE_PHASES = new Set(["start", "during", "end"]);
 const PASSAGE_MOVEMENTS = new Set(["discover_passage", "cross_passage", "return_travel"]);
 const NON_TERMINAL_OBJECT_STATES = new Set([
   "worn",
@@ -97,6 +98,45 @@ function validateSafety(spec, issues) {
       "restricted_sensitivity_contract",
       "safety.sensitivity",
       "Restricted or invalid sensitivity input must stop before canonical compilation.",
+    );
+  }
+  const hasSafetyContract = Boolean(
+    childSafety?.contractId
+    || childSafety?.contractVersion
+    || childSafety?.contractDigest,
+  );
+  if (childSafety?.category === "protective_education") {
+    if (
+      childSafety?.contractId !== "body_safety_v1"
+      || !Number.isInteger(childSafety?.contractVersion)
+      || childSafety.contractVersion < 1
+      || !/^[a-f0-9]{64}$/.test(String(childSafety?.contractDigest || ""))
+    ) {
+      addIssue(
+        issues,
+        "protective_safety_contract_required",
+        "safety.childSafety",
+        "Protective education requires an immutable body_safety_v1 contract reference.",
+      );
+    }
+  } else if (hasSafetyContract) {
+    addIssue(
+      issues,
+      "unexpected_safety_contract",
+      "safety.childSafety",
+      "A Child Safety contract reference is allowed only for protective education.",
+    );
+  }
+  if (
+    !Number.isInteger(sensitivity?.contractVersion)
+    || sensitivity.contractVersion < 1
+    || !/^[a-f0-9]{64}$/.test(String(sensitivity?.contractDigest || ""))
+  ) {
+    addIssue(
+      issues,
+      "sensitivity_contract_required",
+      "safety.sensitivity",
+      "Sensitivity guidance must reference an immutable contract version and digest.",
     );
   }
   const serialized = JSON.stringify(spec?.safety || {});
@@ -216,6 +256,37 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
     if (event?.resultObjectId && !objectIds.has(event.resultObjectId)) {
       addIssue(issues, "unknown_result_object", `registries.causalEvents[${index}].resultObjectId`, "Result object is unknown.");
     }
+    for (const field of ["fromOwnerCharacterId", "toOwnerCharacterId"]) {
+      if (event?.[field] && !characterIds.has(event[field])) {
+        addIssue(
+          issues,
+          "unknown_event_owner",
+          `registries.causalEvents[${index}].${field}`,
+          `${event[field]} is not a canonical character.`,
+        );
+      }
+    }
+    for (const field of ["fromQuantity", "toQuantity"]) {
+      if (!Number.isInteger(event?.[field]) || event[field] < 0) {
+        addIssue(
+          issues,
+          "invalid_event_quantity",
+          `registries.causalEvents[${index}].${field}`,
+          "Object event quantities must be non-negative integers.",
+        );
+      }
+    }
+    for (const [stateField, quantityField] of [["fromState", "fromQuantity"], ["toState", "toQuantity"]]) {
+      const absent = event?.[stateField] === "absent";
+      if ((absent && event?.[quantityField] !== 0) || (!absent && !(Number(event?.[quantityField]) > 0))) {
+        addIssue(
+          issues,
+          "event_quantity_state_mismatch",
+          `registries.causalEvents[${index}].${quantityField}`,
+          "Absent event states require quantity 0; present event states require a positive quantity.",
+        );
+      }
+    }
   }
 
   const sceneNumbers = new Set();
@@ -232,6 +303,7 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
 
   for (const [sceneIndex, scene] of scenes.entries()) {
     const path = `scenes[${sceneIndex}]`;
+    const sceneStartLocations = new Map(characterLocations);
     if (!Number.isInteger(scene?.sceneNumber) || scene.sceneNumber <= previousSceneNumber) {
       addIssue(issues, "scene_order_invalid", `${path}.sceneNumber`, "Scene numbers must be strictly increasing.");
     }
@@ -305,16 +377,35 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
       }
     }
 
+    const visiblePhase = scene?.timeline?.visiblePhase;
+    if (!VISIBLE_PHASES.has(visiblePhase)) {
+      addIssue(
+        issues,
+        "invalid_visible_phase",
+        `${path}.timeline.visiblePhase`,
+        "The illustration must target exactly one canonical scene phase.",
+      );
+    }
+    const expectedVisible = new Set(
+      presences
+        .filter((presence) => (
+          presence?.mode === "physical"
+          && (presence?.phase === "throughout" || presence?.phase === visiblePhase)
+        ))
+        .map((presence) => presence.characterId),
+    );
     const visible = idSet(scene?.illustration?.visibleCharacterIds);
     const evoked = idSet(scene?.illustration?.evokedCharacterIds);
     const forbidden = idSet(scene?.illustration?.forbiddenCharacterIds);
-    const expectedForbidden = new Set([...characterIds].filter((id) => !physical.has(id) && !nonphysical.has(id)));
-    if (!equalSets(visible, physical)) {
+    const expectedForbidden = new Set(
+      [...characterIds].filter((id) => !expectedVisible.has(id) && !nonphysical.has(id)),
+    );
+    if (!equalSets(visible, expectedVisible)) {
       addIssue(
         issues,
         "visible_cast_mismatch",
         `${path}.illustration.visibleCharacterIds`,
-        "Visible illustration cast must equal physical scene presences exactly.",
+        "Visible illustration cast must equal the physical presences at the selected scene phase exactly.",
       );
     }
     if (!equalSets(evoked, nonphysical)) {
@@ -343,6 +434,7 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
     }
 
     const movements = list(scene?.movements).slice().sort((left, right) => left.sequence - right.sequence);
+    const movedCharacterIds = new Set();
     for (const [movementIndex, movement] of movements.entries()) {
       const movementPath = `${path}.movements[${movementIndex}]`;
       if (!locationIds.has(movement?.fromLocationId) || !locationIds.has(movement?.toLocationId)) {
@@ -382,6 +474,33 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
           );
         }
         characterLocations.set(travelerId, movement.toLocationId);
+        if (movement.fromLocationId !== movement.toLocationId) {
+          movedCharacterIds.add(travelerId);
+        }
+      }
+    }
+    for (const [presenceIndex, presence] of presences.entries()) {
+      if (presence?.mode !== "physical") continue;
+      const presencePath = `${path}.presences[${presenceIndex}]`;
+      const startLocation = sceneStartLocations.get(presence.characterId);
+      const endLocation = characterLocations.get(presence.characterId);
+      const matchesPhase = (
+        (presence.phase === "start" && presence.locationId === startLocation)
+        || (presence.phase === "end" && presence.locationId === endLocation)
+        || (
+          presence.phase === "throughout"
+          && presence.locationId === startLocation
+          && presence.locationId === endLocation
+          && !movedCharacterIds.has(presence.characterId)
+        )
+      );
+      if (!matchesPhase) {
+        addIssue(
+          issues,
+          "physical_presence_location_mismatch",
+          presencePath,
+          `${presence.characterId} is not physically at ${presence.locationId || "the declared location"} during the declared phase.`,
+        );
       }
     }
 
@@ -439,23 +558,48 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
           "Object event must belong to this scene and object.",
         );
       } else if (event) {
-        if (previous?.state !== event.fromState || snapshot.state !== event.toState) {
+        const previousOwner = previous?.ownerCharacterId || null;
+        const snapshotOwner = snapshot.ownerCharacterId || null;
+        const eventFromOwner = event.fromOwnerCharacterId || null;
+        const eventToOwner = event.toOwnerCharacterId || null;
+        if (
+          previous?.state !== event.fromState
+          || previousOwner !== eventFromOwner
+          || previous?.quantity !== event.fromQuantity
+          || snapshot.state !== event.toState
+          || snapshotOwner !== eventToOwner
+          || snapshot.quantity !== event.toQuantity
+        ) {
           addIssue(
             issues,
             "object_event_state_mismatch",
             snapshotPath,
-            `Event ${event.id} does not match the previous and resulting object states.`,
+            `Event ${event.id} does not match the previous and resulting object state, owner and quantity.`,
           );
         }
-      } else if (previous && previous.state !== snapshot.state) {
+      } else if (
+        previous
+        && (
+          previous.state !== snapshot.state
+          || previous.quantity !== snapshot.quantity
+          || previous.ownerCharacterId !== (snapshot.ownerCharacterId || null)
+        )
+      ) {
         addIssue(
           issues,
           "object_changed_without_event",
           snapshotPath,
-          `${snapshot.objectId} changes from ${previous.state} to ${snapshot.state} without a causal event.`,
+          `${snapshot.objectId} changes state, owner or quantity without a causal event.`,
         );
       }
-      if (previous?.terminal && snapshot.state !== previous.state) {
+      if (
+        previous?.terminal
+        && (
+          snapshot.state !== previous.state
+          || snapshot.quantity !== previous.quantity
+          || (snapshot.ownerCharacterId || null) !== previous.ownerCharacterId
+        )
+      ) {
         addIssue(
           issues,
           "terminal_object_reappears",

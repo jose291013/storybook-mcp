@@ -137,15 +137,21 @@ model to guess.
 Each registered object is represented exactly once in every scene. `absent`
 means quantity `0`; every other state means a positive quantity. This prevents a
 planted seed, stored doll or destroyed key from reappearing through omitted
-state.
+state. Any change of state, quantity or owner requires one causal event whose
+before and after values match the two adjacent scene snapshots exactly.
 
 Each physical character has one explicit scene phase and location. Thought,
-memory and voice presences cannot move or appear in the visible cast.
+memory and voice presences cannot move or appear in the visible cast. The
+validator reconstructs every character's location from ordered movements, so a
+matching presence and illustration cast cannot disguise a teleportation.
 
-The illustration's `visibleCharacterIds` is derived from physical presences. It
-is never authored by the planner. `evokedCharacterIds` is derived from thought,
-memory and voice presences. A character in neither list is absent from that
-visible moment.
+Every scene selects exactly one `visiblePhase`: `start`, `during` or `end`.
+The illustration's `visibleCharacterIds` is derived only from physical
+presences at that phase (plus presences declared throughout). It is never
+authored by the planner. `evokedCharacterIds` is derived from thought, memory
+and voice presences. Every other canonical character is explicitly forbidden
+from that visible moment. This prevents one illustration from merging departure
+and arrival or showing the same character on both sides of a passage.
 
 ## Generation rules
 
@@ -244,9 +250,10 @@ scene id so cost can be attributed without exposing internal cost to customers.
 1. The same approved scenario compiles to the same digest in repeated runs.
 2. All registry references resolve.
 3. Scene numbers and page bindings are unique and ordered.
-4. Visible cast equals physical presence exactly.
+4. Visible cast equals physical presence at the selected scene phase exactly.
 5. Nonphysical characters never move or appear visibly.
-6. Every tracked object has one state in every scene.
+6. Every tracked object has one state, quantity and owner in every scene, and
+   every change has one matching causal event.
 7. Passage crossing cannot precede discovery.
 8. Movement origins match the previous canonical location.
 9. Unchanged artifacts are never re-audited.

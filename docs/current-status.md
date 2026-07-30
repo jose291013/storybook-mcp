@@ -25,13 +25,17 @@ PR #55 through PR #110 are merged on `main`. The last verified production modes 
 2. `src/contracts/narrativeBookSpec.v1.schema.json` declares canonical registries, scenes, safety references, exact visible moments and versioned validation evidence.
 3. `src/contracts/narrativeBookSpec.js` supplies a pure digest and deterministic invariant validator without an AI call or production integration.
 4. The reference fixture explicitly keeps a guide in the adventure world after the hero and parent return; reintroducing that guide in the return illustration is rejected deterministically.
-5. Child Safety remains a separate repeated gate. A support/refusal or restricted profile cannot produce a canonical book contract, while sanitized allowed contract references remain immutable.
-6. This brick changes no production route, model call, customer project, credit behavior, Render variable or WordPress package.
+5. Physical locations are reconstructed from ordered movements independently from presence and cast declarations. Each illustration targets one explicit scene phase, preventing a matching presence/cast edit from disguising a teleportation or a mixed departure/arrival moment.
+6. Object events now prove complete before/after state, owner and quantity values. A silent owner or quantity change is rejected even if the coarse state is unchanged.
+7. Child Safety remains a separate repeated gate. A support/refusal or restricted profile cannot produce a canonical book contract. Protective education requires an immutable `body_safety_v1` reference; ordinary stories cannot carry a stray protective contract.
+8. The JSON Schema is compiled and executed in the focused test suite with AJV instead of being checked only as a static document.
+9. This brick changes no production route, model call, customer project, credit behavior, Render variable or WordPress package.
 
 ## Verification
 
-- Focused Narrative Book Spec tests: 9/9 passing.
-- Complete `npm test`: 287/287 passing.
+- Focused Narrative Book Spec tests: 16/16 passing.
+- Complete `npm test`: 294/294 passing.
+- Complete npm dependency audit: 0 known vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target

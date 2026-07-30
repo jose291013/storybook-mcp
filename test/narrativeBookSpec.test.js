@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 
 import {
   NARRATIVE_BOOK_SPEC_ID,
@@ -11,13 +13,21 @@ import {
 
 const schemaUrl = new URL("../src/contracts/narrativeBookSpec.v1.schema.json", import.meta.url);
 const exampleUrl = new URL("../src/contracts/narrativeBookSpec.v1.example.json", import.meta.url);
+const schema = JSON.parse(fs.readFileSync(schemaUrl, "utf8"));
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: true,
+  strictRequired: false,
+  allowUnionTypes: true,
+});
+addFormats(ajv);
+const validateSchema = ajv.compile(schema);
 
 function fixture() {
   return JSON.parse(fs.readFileSync(exampleUrl, "utf8"));
 }
 
 test("canonical schema and reference fixture declare the same immutable contract", () => {
-  const schema = JSON.parse(fs.readFileSync(schemaUrl, "utf8"));
   const example = fixture();
 
   assert.equal(schema.properties.schemaVersion.const, NARRATIVE_BOOK_SPEC_VERSION);
@@ -27,6 +37,15 @@ test("canonical schema and reference fixture declare the same immutable contract
   assert.ok(schema.required.includes("safety"));
   assert.ok(schema.required.includes("registries"));
   assert.ok(schema.required.includes("scenes"));
+  assert.equal(validateSchema(example), true, JSON.stringify(validateSchema.errors, null, 2));
+});
+
+test("JSON Schema rejects structurally invalid canonical artifacts", () => {
+  const example = fixture();
+  example.scenes[0].timeline.unexpectedField = true;
+
+  assert.equal(validateSchema(example), false);
+  assert.ok(validateSchema.errors.some((error) => error.keyword === "additionalProperties"));
 });
 
 test("reference canonical book passes deterministic mechanical validation", () => {
@@ -87,6 +106,36 @@ test("a character left in the adventure world cannot reappear in the porch illus
   assert.ok(result.issues.some((issue) => issue.code === "visible_cast_mismatch"));
 });
 
+test("a physical character cannot teleport by changing both presence and visible cast", () => {
+  const example = fixture();
+  const returnScene = example.scenes.find((scene) => scene.id === "scene-3");
+  returnScene.presences.push({
+    characterId: "forest_fairy",
+    mode: "physical",
+    phase: "end",
+    locationId: "garden",
+    action: "apparaît sans déplacement",
+  });
+  returnScene.illustration.visibleCharacterIds.push("forest_fairy");
+  returnScene.illustration.forbiddenCharacterIds = [];
+
+  const result = validateNarrativeBookSpec(example, { verifyDigest: false });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.code === "physical_presence_location_mismatch"));
+});
+
+test("visible cast is tied to one exact scene phase", () => {
+  const example = fixture();
+  const crossingScene = example.scenes.find((scene) => scene.id === "scene-2");
+  crossingScene.timeline.visiblePhase = "start";
+
+  const result = validateNarrativeBookSpec(example, { verifyDigest: false });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.code === "visible_cast_mismatch"));
+});
+
 test("every absent canonical character is explicitly forbidden from the visible moment", () => {
   const example = fixture();
   const returnScene = example.scenes.find((scene) => scene.id === "scene-3");
@@ -135,6 +184,47 @@ test("an absent or transformed object cannot silently reappear without a causal 
   assert.ok(result.issues.some((issue) => issue.code === "object_changed_without_event"));
 });
 
+test("object ownership cannot change silently while its state remains unchanged", () => {
+  const example = fixture();
+  const priorScene = example.scenes.find((scene) => scene.id === "scene-3");
+  const extraScene = structuredClone(priorScene);
+  extraScene.id = "scene-4";
+  extraScene.sceneNumber = 4;
+  extraScene.pageBinding = { textPageNumber: 8, imagePageNumber: 9 };
+  extraScene.timeline.prerequisiteSceneIds = ["scene-3"];
+  extraScene.presences = extraScene.presences.map((presence) => ({
+    ...presence,
+    phase: "throughout",
+  }));
+  extraScene.movements = [];
+  extraScene.transition = {
+    kind: "none",
+    fromLocationId: "garden",
+    toLocationId: "garden",
+    travelerCharacterIds: [],
+    passageId: null,
+  };
+  extraScene.objectStates[0].ownerCharacterId = "maman";
+  extraScene.objectStates[0].eventId = null;
+  example.scenes.push(extraScene);
+
+  const result = validateNarrativeBookSpec(example, { verifyDigest: false });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.code === "object_changed_without_event"));
+});
+
+test("object causal events must account for owner and quantity changes", () => {
+  const example = fixture();
+  const acquisition = example.registries.causalEvents.find((event) => event.id === "flower_acquired");
+  acquisition.toOwnerCharacterId = "maman";
+
+  const result = validateNarrativeBookSpec(example, { verifyDigest: false });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.code === "object_event_state_mismatch"));
+});
+
 test("restricted safety input cannot produce a canonical narrative contract", () => {
   const example = fixture();
   example.safety.childSafety = {
@@ -148,4 +238,31 @@ test("restricted safety input cannot produce a canonical narrative contract", ()
 
   assert.equal(result.valid, false);
   assert.ok(result.issues.some((issue) => issue.code === "unsafe_contract_compilation"));
+});
+
+test("protective education requires the immutable body safety contract", () => {
+  const example = fixture();
+  example.safety.childSafety.category = "protective_education";
+
+  const result = validateNarrativeBookSpec(example, { verifyDigest: false });
+
+  assert.equal(result.valid, false);
+  assert.ok(result.issues.some((issue) => issue.code === "protective_safety_contract_required"));
+  assert.equal(validateSchema(example), false);
+});
+
+test("protective education accepts a complete body safety contract reference", () => {
+  const example = fixture();
+  example.safety.childSafety = {
+    ...example.safety.childSafety,
+    category: "protective_education",
+    contractId: "body_safety_v1",
+    contractVersion: 1,
+    contractDigest: "c".repeat(64),
+  };
+
+  const result = validateNarrativeBookSpec(example, { verifyDigest: false });
+
+  assert.equal(result.valid, true, JSON.stringify(result.issues, null, 2));
+  assert.equal(validateSchema(example), true, JSON.stringify(validateSchema.errors, null, 2));
 });

@@ -21,10 +21,7 @@
       "profileVersion": 2,
       "category": "general",
       "action": "allow",
-      "restricted": false,
-      "contractId": "",
-      "contractVersion": 1,
-      "contractDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      "restricted": false
     },
     "sensitivity": {
       "profileVersion": 2,
@@ -108,6 +105,10 @@
         "objectId": "bond_flower",
         "fromState": "absent",
         "toState": "visible",
+        "fromOwnerCharacterId": null,
+        "toOwnerCharacterId": null,
+        "fromQuantity": 0,
+        "toQuantity": 1,
         "resultObjectId": null
       },
       {
@@ -117,6 +118,10 @@
         "objectId": "bond_flower",
         "fromState": "visible",
         "toState": "carried",
+        "fromOwnerCharacterId": null,
+        "toOwnerCharacterId": "bastien",
+        "fromQuantity": 1,
+        "toQuantity": 1,
         "resultObjectId": null
       }
     ]
@@ -144,6 +149,7 @@
         "locationBeforeId": "garden",
         "locationAfterId": "garden",
         "prerequisiteSceneIds": [],
+        "visiblePhase": "end",
         "visibleMoment": "Bastien et Maman observent l'arche découverte, sans encore la traverser."
       },
       "presences": [
@@ -224,6 +230,7 @@
         "locationBeforeId": "garden",
         "locationAfterId": "dinosaur_valley",
         "prerequisiteSceneIds": ["scene-1"],
+        "visiblePhase": "end",
         "visibleMoment": "Tous trois regardent la fleur juste après l'arrivée dans la vallée."
       },
       "presences": [
@@ -311,6 +318,7 @@
         "locationBeforeId": "dinosaur_valley",
         "locationAfterId": "garden",
         "prerequisiteSceneIds": ["scene-2"],
+        "visiblePhase": "end",
         "visibleMoment": "Bastien et Maman sont revenus dans le jardin; la Fée est restée dans la vallée."
       },
       "presences": [
@@ -373,11 +381,11 @@
   "validation": {
     "compilerVersion": 1,
     "mechanicalValidatorVersion": 1,
-    "artifactDigest": "74e840f2c2e41e820df44152fea733070020131fc0fb89f55fab9e7fbc0a7dd9",
+    "artifactDigest": "29cb7d22626ed5d056575c96e3281e3f131756962de125e0da2ae65364029a09",
     "semanticAudit": {
       "validatorVersion": 1,
       "policyVersion": 1,
-      "artifactDigest": "74e840f2c2e41e820df44152fea733070020131fc0fb89f55fab9e7fbc0a7dd9",
+      "artifactDigest": "29cb7d22626ed5d056575c96e3281e3f131756962de125e0da2ae65364029a09",
       "status": "approved",
       "auditedAt": "2026-07-30T12:05:00.000Z"
     }

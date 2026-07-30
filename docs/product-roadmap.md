@@ -143,6 +143,16 @@ but may not restate or change its mechanical fields. The illustration contract
 is compiled by code from physical presences and object snapshots rather than
 authored by the planner.
 
+Each canonical illustration now targets one explicit scene phase (`start`,
+`during` or `end`). Its visible cast is derived only from physical presences at
+that phase, while ordered movements independently prove every declared physical
+location. Object causal events carry complete before/after state, owner and
+quantity values; a silent ownership or quantity change is rejected even when
+the coarse object state is unchanged. The JSON Schema is executed in automated
+tests rather than treated only as documentation. Protective-education specs
+must reference the immutable `body_safety_v1` contract, while ordinary stories
+must not carry a stray body-safety reference.
+
 Child Safety remains an independent repeated gate at intention, suggestions,
 scenario creation and approval, preview authorization, generated manuscript and
 paid modification boundaries. An enforced support/refusal decision stops before

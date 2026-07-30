@@ -126,6 +126,41 @@
           "type": "object",
           "additionalProperties": false,
           "required": ["profileVersion", "category", "action", "restricted"],
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "category": {
+                    "const": "protective_education"
+                  }
+                },
+                "required": ["category"]
+              },
+              "then": {
+                "required": ["contractId", "contractVersion", "contractDigest"],
+                "properties": {
+                  "contractId": {
+                    "const": "body_safety_v1"
+                  }
+                }
+              },
+              "else": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": ["contractId"]
+                    },
+                    {
+                      "required": ["contractVersion"]
+                    },
+                    {
+                      "required": ["contractDigest"]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
           "properties": {
             "profileVersion": {
               "type": "integer",
@@ -157,7 +192,15 @@
         "sensitivity": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["profileVersion", "level", "category", "restricted", "approach"],
+          "required": [
+            "profileVersion",
+            "level",
+            "category",
+            "restricted",
+            "approach",
+            "contractVersion",
+            "contractDigest"
+          ],
           "properties": {
             "profileVersion": {
               "type": "integer",
@@ -337,7 +380,18 @@
     "causalEvent": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "sceneId", "type", "objectId", "fromState", "toState"],
+      "required": [
+        "id",
+        "sceneId",
+        "type",
+        "objectId",
+        "fromState",
+        "toState",
+        "fromOwnerCharacterId",
+        "toOwnerCharacterId",
+        "fromQuantity",
+        "toQuantity"
+      ],
       "properties": {
         "id": {
           "$ref": "#/$defs/identifier"
@@ -357,6 +411,24 @@
         },
         "toState": {
           "$ref": "#/$defs/objectStateName"
+        },
+        "fromOwnerCharacterId": {
+          "type": ["string", "null"],
+          "maxLength": 120
+        },
+        "toOwnerCharacterId": {
+          "type": ["string", "null"],
+          "maxLength": 120
+        },
+        "fromQuantity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99
+        },
+        "toQuantity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99
         },
         "resultObjectId": {
           "type": ["string", "null"],
@@ -488,7 +560,13 @@
     "timeline": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["locationBeforeId", "locationAfterId", "prerequisiteSceneIds", "visibleMoment"],
+      "required": [
+        "locationBeforeId",
+        "locationAfterId",
+        "prerequisiteSceneIds",
+        "visiblePhase",
+        "visibleMoment"
+      ],
       "properties": {
         "locationBeforeId": {
           "$ref": "#/$defs/identifier"
@@ -503,6 +581,10 @@
           "items": {
             "$ref": "#/$defs/identifier"
           }
+        },
+        "visiblePhase": {
+          "type": "string",
+          "enum": ["start", "during", "end"]
         },
         "visibleMoment": {
           "$ref": "#/$defs/nonEmptyString"
