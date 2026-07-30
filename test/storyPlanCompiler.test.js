@@ -5,6 +5,7 @@ import {
   authoritativeSceneContractForAudit,
   deterministicStoryPlanIssues,
   STORY_PLAN_AUDIT_CONTRACT_VERSION,
+  versionedStoryPlanAuditStep,
 } from "../src/agents/storyScenePlanAudit.js";
 import {
   classifyStoryPlanIssues,
@@ -58,6 +59,21 @@ test("the plan audit sees only the contract that image generation can render", (
   assert.equal(contract.continuity_to_next, undefined);
   assert.equal(contract.object_states[0].instruction, "secured in Noa's closed band, not in her arms");
   assert.equal(JSON.stringify(contract).includes("holds the doll in her arms at the dock"), false);
+});
+
+test("a new audit contract never resumes an unversioned provider response", () => {
+  const legacyProviderResponses = {
+    "audit:targeted:primary": {
+      responseId: "resp_legacy_targeted_audit",
+      status: "completed",
+    },
+  };
+  const versionedStep = versionedStoryPlanAuditStep("audit:targeted");
+  const versionedProviderKey = `${versionedStep}:primary`;
+
+  assert.equal(versionedStep, `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:audit:targeted`);
+  assert.equal(legacyProviderResponses[versionedProviderKey], undefined);
+  assert.equal(versionedStoryPlanAuditStep(versionedStep), versionedStep);
 });
 
 test("structured speech uses the family address only for the child speaker", () => {

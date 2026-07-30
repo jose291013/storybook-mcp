@@ -227,6 +227,28 @@ test("a preview exhausted under policy eleven receives the authoritative audit r
   assert.equal(technicalPreviewRetryExhausted(exhaustedStaleAuditCandidate), false);
 });
 
-test("the rendered-contract audit recovery policy is version twelve", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 12);
+test("a preview exhausted under policy twelve receives the versioned audit-checkpoint recovery", () => {
+  const exhaustedCachedAudit = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "cached-targeted-audit-response",
+      retryPolicyVersion: 12,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-07-30T11:00:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "story-plan:targeted-candidate",
+      storyPlanProviderResponses: {
+        "audit:targeted:primary": {
+          responseId: "resp_legacy_targeted_audit",
+          status: "completed",
+        },
+      },
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedCachedAudit), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedCachedAudit), false);
+});
+
+test("the versioned audit-checkpoint recovery policy is version thirteen", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 13);
 });
