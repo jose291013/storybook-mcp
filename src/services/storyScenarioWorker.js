@@ -196,7 +196,7 @@ async function completeScenario({
   }
   const createdAt = now();
   const validationSummary = validation.valid
-    ? validation
+    ? { ...validation, version: 2, diagnostics: [] }
     : summarizeStoryScenarioValidation(validation);
   const storedScenario = {
     ...scenario,

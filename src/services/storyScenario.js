@@ -13,6 +13,7 @@ import {
 } from "./storyCausalGraph.js";
 
 export const STORY_SCENARIO_VERSION = 2;
+export const STORY_SCENARIO_VALIDATION_VERSION = 2;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
 const PRESENCE_PHASES = new Set(["start", "throughout", "end"]);
 const TRANSITION_KINDS = new Set(["none", "discover_passage", "cross_passage", "ordinary_travel", "return_travel", "join_travel"]);
@@ -761,13 +762,12 @@ function stabilizeNarrativeObjectLifecycles(scenario = {}) {
     for (const scene of scenes) {
       const events = lifecycle.events.filter((event) => event.sceneNumber === Number(scene.sceneNumber));
       for (const event of events) currentState = event.state;
-      const activeEvent = events.at(-1) || lifecycle.events.filter((event) => event.sceneNumber < Number(scene.sceneNumber)).at(-1);
       upsertObjectState(
         scene,
         object,
         objects,
         currentState,
-        lifecycleInstruction({ object, event: activeEvent, state: currentState, language }),
+        lifecycleInstruction({ object, event: events.at(-1), state: currentState, language }),
       );
     }
   }
@@ -795,13 +795,12 @@ function stabilizeNarrativeObjectLifecycles(scenario = {}) {
       for (const scene of scenes) {
         const events = existing.events.filter((candidate) => candidate.sceneNumber === Number(scene.sceneNumber));
         for (const targetEvent of events) targetState = targetEvent.state;
-        const activeEvent = events.at(-1) || existing.events.filter((candidate) => candidate.sceneNumber < Number(scene.sceneNumber)).at(-1);
         upsertObjectState(
           scene,
           target,
           objects,
           targetState,
-          lifecycleInstruction({ object: target, event: activeEvent, state: targetState, language }),
+          lifecycleInstruction({ object: target, event: events.at(-1), state: targetState, language }),
         );
       }
     }
@@ -1143,12 +1142,66 @@ export function summarizeStoryScenarioValidation(validation = {}) {
       categoryScenes.set(category, numbers);
     }
   }
+  const diagnostics = list(validation.diagnostics, 12).map((diagnostic) => ({
+    code: text(diagnostic?.code).replace(/[^a-z0-9_-]+/gi, "_").slice(0, 80) || "semantic_contradiction",
+    sceneNumber: Math.max(0, Number(diagnostic?.sceneNumber || 0)),
+    explanation: text(diagnostic?.explanation).slice(0, 600),
+  })).filter((diagnostic) => diagnostic.explanation);
   return {
+    version: STORY_SCENARIO_VALIDATION_VERSION,
     valid: validation.valid === true,
     issueCount: Number(validation.issues?.length || 0),
     categories: [...categories],
     sceneNumbers: [...sceneNumbers].sort((left, right) => left - right),
     categoryScenes: Object.fromEntries([...categoryScenes].map(([category, numbers]) => [category, [...numbers].sort((left, right) => left - right)])),
+    diagnostics,
+  };
+}
+
+function hasLegacyRepeatedIntroduction(scene, objects = []) {
+  return list(scene?.objectStates, 40).some((objectState) => {
+    if (!/first physical appearance in this scene/i.test(text(objectState?.instruction))) return false;
+    const object = list(objects, 30).find((candidate) => (
+      objectInstanceKey(candidate, objects) === objectInstanceKey(objectState, objects)
+    ));
+    const introduction = list(object?.lifecycle?.events, 20)
+      .find((event) => ["introduce", "acquire"].includes(event?.type));
+    return Number.isInteger(Number(introduction?.sceneNumber))
+      && Number(introduction.sceneNumber) < Number(scene?.sceneNumber);
+  });
+}
+
+export function recoverLegacyLifecycleValidation(input = {}, { now = new Date().toISOString() } = {}) {
+  const scenario = structuredClone(input);
+  const validation = scenario?.validation || {};
+  const invalidSceneNumbers = list(validation.sceneNumbers, 30).map(Number).filter(Number.isInteger);
+  const legacyGenericFailure = scenario?.status === "needs_revision"
+    && validation.valid === false
+    && Number(validation.version || 0) < STORY_SCENARIO_VALIDATION_VERSION
+    && invalidSceneNumbers.length > 0
+    && list(validation.categories, 20).every((category) => category === "incomplete");
+  if (!legacyGenericFailure) return null;
+  const scenesByNumber = new Map(list(scenario.scenes, 30).map((scene) => [Number(scene.sceneNumber), scene]));
+  if (!invalidSceneNumbers.every((sceneNumber) => (
+    hasLegacyRepeatedIntroduction(scenesByNumber.get(sceneNumber), scenario.objects)
+  ))) return null;
+  const repaired = stabilizeStoryScenario(scenario);
+  const deterministicValidation = validateStoryScenario(repaired);
+  if (!deterministicValidation.valid) return null;
+  return {
+    ...repaired,
+    status: list(repaired.clarifications, 20).length ? "needs_clarification" : "proposed",
+    validation: {
+      version: STORY_SCENARIO_VALIDATION_VERSION,
+      valid: true,
+      issueCount: 0,
+      categories: [],
+      sceneNumbers: [],
+      categoryScenes: {},
+      diagnostics: [],
+      repairedAt: now,
+      repairedFrom: "object_lifecycle_first_appearance_v1",
+    },
   };
 }
 

@@ -104,6 +104,7 @@ const state = {
   storyScenarioDirty: false,
   storyScenarioAddedCharacters: [],
   storyScenarioRetryAvailable: false,
+  storyScenarioRevalidationAttempted: false,
   generationStage: "cover",
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
@@ -1008,6 +1009,11 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
     const numbers = validation.categoryScenes?.[safeCategory] || validation.sceneNumbers || [];
     const scenes = numbers.length ? numbers.join(", ") : tr("scenarioDiagnosticSeveral");
     return `<li>${escapeHtml(tr(`scenarioDiagnostic_${safeCategory}`, { scenes }))}</li>`;
+  }).join("") + (validation.diagnostics || []).map((diagnostic) => {
+    const sceneLabel = Number(diagnostic.sceneNumber) > 0
+      ? `${tr("scenarioDiagnosticScene")} ${Number(diagnostic.sceneNumber)} — `
+      : "";
+    return `<li class="scenario-diagnostic-detail"><strong>${escapeHtml(sceneLabel)}</strong>${escapeHtml(diagnostic.explanation)}</li>`;
   }).join("") : "";
   elements.scenarioClarifications.hidden = !clarifications.length;
   elements.scenarioQuestionList.innerHTML = clarifications.map((item) => `<label class="scenario-question"><strong>${escapeHtml(item.question)}</strong>${item.reason ? `<small>${escapeHtml(item.reason)}</small>` : ""}<input type="text" data-scenario-question="${escapeHtml(item.id)}" value="${escapeHtml(scenario.creatorClarifications?.[item.id] || item.suggestedAnswer || "")}" /></label>`).join("");
@@ -1112,7 +1118,10 @@ async function approveStoryScenario() {
   try {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/story-scenario/approve`, { method: "POST" });
     const payload = await response.json();
-    if (!response.ok) throw new Error(scenarioApiMessage(payload, "scenarioApprovalError"));
+    if (!response.ok) {
+      if (payload.scenario) renderStoryScenario(payload.scenario);
+      throw new Error(scenarioApiMessage(payload, "scenarioApprovalError"));
+    }
     state.storyScenario = payload.scenario;
     elements.storyScenarioPanel.hidden = true;
     await generatePreviewForProject(state.projectId);
@@ -2981,7 +2990,33 @@ async function restoreCompletedPreview() {
   const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
   if (!response.ok) return false;
   const payload = await response.json();
-  const project = payload.project;
+  let project = payload.project;
+  const legacyValidation = project?.continuitySnapshot?.storyScenario?.validation;
+  if (!state.storyScenarioRevalidationAttempted
+    && ["scenario_review", "scenario_needs_clarification"].includes(project?.status)
+    && legacyValidation?.valid === false
+    && Number(legacyValidation?.version || 0) < 2) {
+    state.storyScenarioRevalidationAttempted = true;
+    try {
+      const revalidationResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/story-scenario/revalidate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const revalidation = await revalidationResponse.json();
+      if (revalidationResponse.ok && revalidation.repaired && revalidation.scenario) {
+        project = {
+          ...project,
+          status: revalidation.status,
+          continuitySnapshot: {
+            ...project.continuitySnapshot,
+            storyScenario: revalidation.scenario,
+          },
+        };
+      }
+    } catch {
+      // A compatibility revalidation must never block access to the saved scenario.
+    }
+  }
   const restoredPageCount = Number(
     project?.finalBlueprint?.format?.interior_pages
     || project?.questionnaire?.page_count

@@ -7,7 +7,9 @@ import { previewRequestFingerprint } from "../services/previewGenerationCheckpoi
 import { projectStore } from "../services/projectStore.js";
 import {
   clarificationAnswersForApproval,
+  recoverLegacyLifecycleValidation,
   storyScenarioSnapshot,
+  summarizeStoryScenarioValidation,
   validateStoryScenario,
 } from "../services/storyScenario.js";
 import {
@@ -253,6 +255,41 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
   }
 });
 
+router.post("/projects/:id/story-scenario/revalidate", async (req, res) => {
+  const identity = requireIdentity(req, res); if (!identity) return;
+  try {
+    const project = await projectStore.getForCustomer(req.params.id, identity);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    if (!["scenario_review", "scenario_needs_clarification"].includes(project.status)) {
+      return res.status(409).json({ error: "This scenario cannot be revalidated", code: "scenario_locked" });
+    }
+    const current = storyScenarioSnapshot(project);
+    const repaired = recoverLegacyLifecycleValidation(current);
+    if (!repaired) {
+      res.set("Cache-Control", "private, no-store");
+      return res.json({ repaired: false, scenario: current, status: project.status });
+    }
+    const status = repaired.status === "needs_clarification"
+      ? "scenario_needs_clarification"
+      : "scenario_review";
+    await projectStore.updateForCustomer(project.id, identity, {
+      status,
+      continuitySnapshot: {
+        ...project.continuitySnapshot,
+        storyScenario: repaired,
+      },
+    });
+    console.info("[story-scenario] legacy validation repaired", JSON.stringify({
+      projectId: project.id,
+      repair: repaired.validation.repairedFrom,
+    }));
+    res.set("Cache-Control", "private, no-store");
+    return res.json({ repaired: true, scenario: repaired, status });
+  } catch (error) {
+    res.status(500).json({ error: String(error?.message || error), code: "scenario_revalidation_failed" });
+  }
+});
+
 router.post("/projects/:id/story-scenario/approve", async (req, res) => {
   const identity = requireIdentity(req, res); if (!identity) return;
   try {
@@ -288,11 +325,26 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       validation = {
         valid: audit.status === "approved",
         issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
+        diagnostics: audit.issues,
       };
     }
     if (!validation.valid) {
       console.warn("[story-scenario] approval validation failed", { projectId: project.id, issueCount: validation.issues.length });
-      return res.status(422).json({ error: "The scenario needs another update before approval", code: "scenario_invalid", retryable: true });
+      const rejected = {
+        ...scenario,
+        status: "needs_revision",
+        validation: summarizeStoryScenarioValidation(validation),
+      };
+      await projectStore.updateForCustomer(project.id, identity, {
+        status: "scenario_review",
+        continuitySnapshot: { ...project.continuitySnapshot, storyScenario: rejected },
+      });
+      return res.status(422).json({
+        error: "The scenario needs another update before approval",
+        code: "scenario_invalid",
+        retryable: true,
+        scenario: rejected,
+      });
     }
     const clarificationAnswers = clarificationAnswersForApproval(scenario);
     if (clarificationAnswers === null) {
