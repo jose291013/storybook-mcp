@@ -68,6 +68,7 @@ import { generationCostPolicy } from "../services/generationCostPolicy.js";
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
 const STORY_PLAN_FIDELITY_VERSION = 4;
+const STORY_PLAN_TARGETED_REPAIR_VERSION = 2;
 const MANUSCRIPT_REVIEW_VERSION = 1;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
 
@@ -848,6 +849,9 @@ router.post("/preview", async (req, res) => {
         let candidateStage = savedCandidateIsCurrent
           ? String(checkpoint.storyScenePlanCandidateStage || "planner")
           : "";
+        let candidateRepairVersion = savedCandidateIsCurrent
+          ? Math.max(0, Number(checkpoint.storyScenePlanCandidateRepairVersion || 0))
+          : 0;
         let planAudit = { status: "rejected", issues: [] };
         let semanticAuditRejected = false;
         const persistCompiledCandidate = async ({ reason, issues = [] } = {}) => {
@@ -938,7 +942,7 @@ router.post("/preview", async (req, res) => {
             backgroundStep: candidateStage === "targeted"
               ? "targeted-recheck"
               : candidateStage === "targeted-plan"
-                ? "audit:targeted"
+                ? `audit:targeted:v${candidateRepairVersion || 1}`
               : `audit:${candidateAttempt}`,
             modelRole: ["targeted", "targeted-plan"].includes(candidateStage)
               ? "story_repair"
@@ -969,11 +973,13 @@ router.post("/preview", async (req, res) => {
             });
             candidateAttempt = attempt;
             candidateStage = "planner";
+            candidateRepairVersion = 0;
             await persistCheckpoint({
               storyScenePlanCandidate: storyScenePlan,
               storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
               storyScenePlanCandidateAttempt: candidateAttempt,
               storyScenePlanCandidateStage: candidateStage,
+              storyScenePlanCandidateRepairVersion: candidateRepairVersion,
               storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
               phase: `story-plan:candidate:${attempt}`,
             });
@@ -996,8 +1002,10 @@ router.post("/preview", async (req, res) => {
             if (attempt === 1) updateJob(job.id, { step: "story:scenario-fidelity-repair" });
           }
         }
+        const targetedRepairRequiresUpgrade = candidateStage === "targeted-plan"
+          && candidateRepairVersion < STORY_PLAN_TARGETED_REPAIR_VERSION;
         if (planAudit.status !== "approved"
-          && candidateStage !== "targeted-plan"
+          && (candidateStage !== "targeted-plan" || targetedRepairRequiresUpgrade)
           && generationCostPolicy().storyPlan.repairCalls > 0) {
           updateJob(job.id, { step: "story:scenario-fidelity-targeted-repair" });
           storyScenePlan = await storyScenePlannerAgent({
@@ -1006,22 +1014,24 @@ router.post("/preview", async (req, res) => {
             validationIssues: planAudit.issues,
           }, {
             backgroundExecution: storyPlanBackgroundExecution,
-            backgroundStep: "planner:targeted",
+            backgroundStep: `planner:targeted:v${STORY_PLAN_TARGETED_REPAIR_VERSION}`,
             modelRole: "story_repair",
           });
           candidateAttempt = 3;
           candidateStage = "targeted-plan";
+          candidateRepairVersion = STORY_PLAN_TARGETED_REPAIR_VERSION;
           await persistCheckpoint({
             storyScenePlanCandidate: storyScenePlan,
             storyScenePlanCandidateVersion: STORY_PLAN_FIDELITY_VERSION,
             storyScenePlanCandidateAttempt: candidateAttempt,
             storyScenePlanCandidateStage: candidateStage,
+            storyScenePlanCandidateRepairVersion: candidateRepairVersion,
             storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
             phase: "story-plan:targeted-candidate",
           });
           planAudit = await auditCurrentStoryPlan({
             jobStep: "story:scenario-fidelity-targeted-recheck",
-            backgroundStep: "audit:targeted",
+            backgroundStep: `audit:targeted:v${STORY_PLAN_TARGETED_REPAIR_VERSION}`,
             modelRole: "story_repair",
           });
           planAudit = await applyLocalCompilerIssues(planAudit, "targeted-audit");
