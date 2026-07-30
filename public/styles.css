@@ -438,7 +438,7 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .scenario-status.is-loading .scenario-status-spinner { display: block; }
 .scenario-status.is-error { border-color: #e6aaa3; background: #fff3f1; color: #8c3732; }
 .story-scenario-panel[aria-busy="true"] .scenario-acts, .story-scenario-panel[aria-busy="true"] .scenario-clarifications, .story-scenario-panel[aria-busy="true"] .scenario-feedback { opacity: .58; }
-.story-scenario-panel[aria-busy="true"] input, .story-scenario-panel[aria-busy="true"] textarea, .story-scenario-panel[aria-busy="true"] select { cursor: wait; }
+.story-scenario-panel[aria-busy="true"] input:not([data-allow-during-busy]), .story-scenario-panel[aria-busy="true"] textarea, .story-scenario-panel[aria-busy="true"] select { cursor: wait; }
 .generation-panel p:not(.section-kicker), .result-section > p:not(.section-kicker) { color: var(--muted); }
 .book-preview { margin-top: 40px; }
 .result-actions { display: flex; justify-content: center; margin: 22px 0 28px; }

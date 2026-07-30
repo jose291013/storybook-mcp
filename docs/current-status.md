@@ -8,39 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/internal-book-cost-ledger`
-- Main checkpoint: PR #100 — objective visual guard for impossible anatomy and duplicated recurring identities
-- Last production deployment explicitly reverified in this document: PR #99; verify Render before treating PR #100 as deployed
-- Current focused checkpoint: private per-book OpenAI production-cost ledger and WooCommerce economic dashboard
-- Pull request: draft PR #101
-- WordPress Bridge source candidate: `0.7.5`; installed production package last recorded as `0.7.3`
+- Current branch: `codex/scenario-email-toggle-busy`
+- Main checkpoint: PR #101 — private per-book OpenAI production-cost ledger and WooCommerce economic dashboard
+- Last production deployment reported by the creator: PR #101 with Calitiki Bridge `0.7.5`
+- Current focused checkpoint: keep the scenario-ready e-mail preference interactive while durable scenario generation is busy
+- Pull request: not created yet
+- WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #99 are merged and deployed; PR #100 is present on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #101 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: internal production-cost ledger
+## Current product brick: scenario e-mail control during generation
 
-1. OpenAI calls made inside scenario, preview, quality repair, targeted modification and finalization workflows are attributed through an asynchronous project/run/stage context.
-2. The durable PostgreSQL ledger stores only numeric usage, model, endpoint, stage and cost metadata; no family wording, prompt, manuscript, photo or generated asset is copied into it.
-3. Versioned standard OpenAI prices calculate exact usage-based USD micros when the response exposes sufficient usage. Unknown models, service tiers or incomplete image usage stay visibly unpriced instead of being guessed.
-4. A short-lived HMAC-signed internal API exposes summary and phase detail only to the WooCommerce bridge. The new **Pilotage Calitiki** screen requires `manage_woocommerce`; no customer API, creator screen or **Mes créations** response contains production costs.
-5. Normal manufacture is separated from technical retries, quality repairs and paid customer changes so the economic model can distinguish baseline production from avoidable rework.
-6. The candidate bridge is `0.7.5`; no new Render environment variable is introduced.
+1. Scenario generation still locks all editable story fields and actions.
+2. The dedicated e-mail preference is explicitly exempt from that busy lock because it is meant to be selected while the creator waits.
+3. Its cursor remains interactive instead of inheriting the panel-wide wait cursor.
+4. The existing authenticated persistence and scenario-ready/scenario-failed notification delivery remain unchanged.
 
 ## Verification completed locally
 
-- Focused cost-ledger tests: 7/7 passing.
+- Focused scenario tests: 36/36 passing.
 - Complete `npm test` suite: 260/260 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #101 without merging it.
-2. Before merge, confirm that no scenario or preview is generating because Render will restart.
-3. After deployment and Bridge `0.7.5` installation, create one new test book and compare **WooCommerce > Pilotage Calitiki** with the OpenAI usage export.
-4. Verify that a customer account and **Mes créations Calitiki** expose no production-cost field, amount or navigation entry.
+1. Run the complete test suite and create the pull request.
+2. Do not merge while the creator's current test scenario is generating; Render would restart it.
+3. After deployment, start a scenario and activate/deactivate the e-mail preference while the three-step preparation remains busy.
+4. Verify that refreshing or reopening the project preserves the chosen preference and that the ready or interrupted milestone sends one e-mail.
 
 ## Protected local state
 

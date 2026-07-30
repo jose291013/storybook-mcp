@@ -1018,6 +1018,8 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(html, /id="scenarioCreationJourney"/);
   assert.match(html, /id="scenarioPreparingSteps"/);
   assert.match(html, /id="notifyScenarioEmail"/);
+  assert.match(html, /id="notifyScenarioEmail" data-allow-during-busy/);
+  assert.match(app, /input:not\(\[data-allow-during-busy\]\)/);
   assert.match(html, /id="retryInitialScenarioButton"/);
   assert.match(html, /id="scenarioReviewContent"/);
   assert.match(html, /id="scenarioStatus"/);
