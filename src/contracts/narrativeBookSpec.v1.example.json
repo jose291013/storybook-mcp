@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "contractId": "calitiki.narrative-book-spec.v1",
+  "revision": 1,
+  "sourceScenario": {
+    "projectId": "reference-project",
+    "scenarioVersion": 2,
+    "revision": 1,
+    "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "auditEvidenceDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "approvedAt": "2026-07-30T12:00:00.000Z"
+  },
+  "book": {
+    "language": "FR",
+    "audienceAge": 8,
+    "pageCount": 24,
+    "universeId": "dinosaur_valley"
+  },
+  "safety": {
+    "childSafety": {
+      "profileVersion": 2,
+      "category": "general",
+      "action": "allow",
+      "restricted": false,
+      "contractId": "",
+      "contractVersion": 1,
+      "contractDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "sensitivity": {
+      "profileVersion": 2,
+      "level": 1,
+      "category": "everyday_challenge",
+      "restricted": false,
+      "approach": "light_action_led",
+      "contractVersion": 1,
+      "contractDigest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    }
+  },
+  "registries": {
+    "characters": [
+      {
+        "id": "bastien",
+        "canonicalName": "Bastien",
+        "relationship": "hero",
+        "storyRole": "hero",
+        "initialLocationId": "garden",
+        "familyAddress": "",
+        "visualIdentityId": "portrait-hero",
+        "outfitContractId": "explorer-outfit"
+      },
+      {
+        "id": "maman",
+        "canonicalName": "Marie",
+        "relationship": "mother",
+        "storyRole": "guide",
+        "initialLocationId": "garden",
+        "familyAddress": "Maman",
+        "visualIdentityId": "portrait-mother",
+        "outfitContractId": "explorer-outfit"
+      },
+      {
+        "id": "forest_fairy",
+        "canonicalName": "Fée de la Forêt",
+        "relationship": "story_character",
+        "storyRole": "guide",
+        "initialLocationId": "dinosaur_valley",
+        "familyAddress": "",
+        "visualIdentityId": "",
+        "outfitContractId": ""
+      }
+    ],
+    "locations": [
+      {
+        "id": "garden",
+        "name": "le jardin",
+        "zoneId": "ordinary_world"
+      },
+      {
+        "id": "dinosaur_valley",
+        "name": "la vallée des dinosaures",
+        "zoneId": "adventure_world"
+      }
+    ],
+    "objects": [
+      {
+        "id": "bond_flower",
+        "name": "la Fleur du lien",
+        "initialState": "absent",
+        "initialQuantity": 0,
+        "initialOwnerCharacterId": null,
+        "lifecycleKind": "discoverable"
+      }
+    ],
+    "passages": [
+      {
+        "id": "garden_arch",
+        "name": "l'arche lumineuse",
+        "sideALocationId": "garden",
+        "sideBLocationId": "dinosaur_valley",
+        "bidirectional": true
+      }
+    ],
+    "causalEvents": [
+      {
+        "id": "flower_appears",
+        "sceneId": "scene-2",
+        "type": "introduce",
+        "objectId": "bond_flower",
+        "fromState": "absent",
+        "toState": "visible",
+        "resultObjectId": null
+      },
+      {
+        "id": "flower_acquired",
+        "sceneId": "scene-3",
+        "type": "acquire",
+        "objectId": "bond_flower",
+        "fromState": "visible",
+        "toState": "carried",
+        "resultObjectId": null
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene-1",
+      "sceneNumber": 1,
+      "act": 1,
+      "pageBinding": {
+        "textPageNumber": 2,
+        "imagePageNumber": 3
+      },
+      "narrative": {
+        "title": "La découverte de l'arche",
+        "function": "ouvrir la quête",
+        "purpose": "Bastien découvre le passage avant de le traverser",
+        "approvedAction": "Bastien et Maman découvrent ensemble l'arche lumineuse dans le jardin.",
+        "dominantEmotion": "curiosité",
+        "emotionalShift": "de l'hésitation à l'envie d'explorer",
+        "storyChange": "le passage est désormais connu",
+        "symbolIds": []
+      },
+      "timeline": {
+        "locationBeforeId": "garden",
+        "locationAfterId": "garden",
+        "prerequisiteSceneIds": [],
+        "visibleMoment": "Bastien et Maman observent l'arche découverte, sans encore la traverser."
+      },
+      "presences": [
+        {
+          "characterId": "bastien",
+          "mode": "physical",
+          "phase": "throughout",
+          "locationId": "garden",
+          "action": "observe l'arche"
+        },
+        {
+          "characterId": "maman",
+          "mode": "physical",
+          "phase": "throughout",
+          "locationId": "garden",
+          "action": "reste près de Bastien"
+        }
+      ],
+      "movements": [
+        {
+          "id": "discover_arch",
+          "sequence": 1,
+          "kind": "discover_passage",
+          "fromLocationId": "garden",
+          "toLocationId": "garden",
+          "travelerCharacterIds": ["bastien", "maman"],
+          "passageId": "garden_arch"
+        }
+      ],
+      "objectStates": [
+        {
+          "objectId": "bond_flower",
+          "state": "absent",
+          "quantity": 0,
+          "ownerCharacterId": null,
+          "eventId": null
+        }
+      ],
+      "transition": {
+        "kind": "discover_passage",
+        "fromLocationId": "garden",
+        "toLocationId": "garden",
+        "travelerCharacterIds": ["bastien", "maman"],
+        "passageId": "garden_arch"
+      },
+      "illustration": {
+        "visibleCharacterIds": ["bastien", "maman"],
+        "evokedCharacterIds": [],
+        "mainAction": {
+          "subjectCharacterId": "bastien",
+          "verb": "observe",
+          "targetId": "garden_arch"
+        },
+        "requiredElements": ["l'arche lumineuse fermée devant eux"],
+        "forbiddenElements": ["la vraie Fleur du lien", "une traversée déjà commencée"],
+        "forbiddenCharacterIds": ["forest_fairy"]
+      }
+    },
+    {
+      "id": "scene-2",
+      "sceneNumber": 2,
+      "act": 2,
+      "pageBinding": {
+        "textPageNumber": 4,
+        "imagePageNumber": 5
+      },
+      "narrative": {
+        "title": "La Fleur du lien",
+        "function": "faire vivre la découverte",
+        "purpose": "Bastien trouve le symbole qui l'aidera à comprendre",
+        "approvedAction": "Après la traversée, la Fée montre à Bastien et Maman la Fleur du lien.",
+        "dominantEmotion": "émerveillement",
+        "emotionalShift": "de la curiosité à la confiance",
+        "storyChange": "la fleur apparaît et peut être découverte",
+        "symbolIds": ["bond_flower"]
+      },
+      "timeline": {
+        "locationBeforeId": "garden",
+        "locationAfterId": "dinosaur_valley",
+        "prerequisiteSceneIds": ["scene-1"],
+        "visibleMoment": "Tous trois regardent la fleur juste après l'arrivée dans la vallée."
+      },
+      "presences": [
+        {
+          "characterId": "bastien",
+          "mode": "physical",
+          "phase": "end",
+          "locationId": "dinosaur_valley",
+          "action": "regarde la fleur"
+        },
+        {
+          "characterId": "maman",
+          "mode": "physical",
+          "phase": "end",
+          "locationId": "dinosaur_valley",
+          "action": "observe avec Bastien"
+        },
+        {
+          "characterId": "forest_fairy",
+          "mode": "physical",
+          "phase": "throughout",
+          "locationId": "dinosaur_valley",
+          "action": "montre la fleur"
+        }
+      ],
+      "movements": [
+        {
+          "id": "cross_to_valley",
+          "sequence": 1,
+          "kind": "cross_passage",
+          "fromLocationId": "garden",
+          "toLocationId": "dinosaur_valley",
+          "travelerCharacterIds": ["bastien", "maman"],
+          "passageId": "garden_arch"
+        }
+      ],
+      "objectStates": [
+        {
+          "objectId": "bond_flower",
+          "state": "visible",
+          "quantity": 1,
+          "ownerCharacterId": null,
+          "eventId": "flower_appears"
+        }
+      ],
+      "transition": {
+        "kind": "cross_passage",
+        "fromLocationId": "garden",
+        "toLocationId": "dinosaur_valley",
+        "travelerCharacterIds": ["bastien", "maman"],
+        "passageId": "garden_arch"
+      },
+      "illustration": {
+        "visibleCharacterIds": ["bastien", "maman", "forest_fairy"],
+        "evokedCharacterIds": [],
+        "mainAction": {
+          "subjectCharacterId": "forest_fairy",
+          "verb": "montre",
+          "targetId": "bond_flower"
+        },
+        "requiredElements": ["une seule Fleur du lien visible"],
+        "forbiddenElements": ["une deuxième copie de la fleur"],
+        "forbiddenCharacterIds": []
+      }
+    },
+    {
+      "id": "scene-3",
+      "sceneNumber": 3,
+      "act": 3,
+      "pageBinding": {
+        "textPageNumber": 6,
+        "imagePageNumber": 7
+      },
+      "narrative": {
+        "title": "Le retour au jardin",
+        "function": "montrer la transformation",
+        "purpose": "Bastien revient avec une confiance nouvelle",
+        "approvedAction": "Bastien et Maman retraversent l'arche et arrivent seuls dans le jardin.",
+        "dominantEmotion": "sérénité",
+        "emotionalShift": "de l'émerveillement à l'apaisement",
+        "storyChange": "Bastien rapporte la fleur et comprend ce qu'elle représente",
+        "symbolIds": ["bond_flower"]
+      },
+      "timeline": {
+        "locationBeforeId": "dinosaur_valley",
+        "locationAfterId": "garden",
+        "prerequisiteSceneIds": ["scene-2"],
+        "visibleMoment": "Bastien et Maman sont revenus dans le jardin; la Fée est restée dans la vallée."
+      },
+      "presences": [
+        {
+          "characterId": "bastien",
+          "mode": "physical",
+          "phase": "end",
+          "locationId": "garden",
+          "action": "porte la fleur"
+        },
+        {
+          "characterId": "maman",
+          "mode": "physical",
+          "phase": "end",
+          "locationId": "garden",
+          "action": "marche près de Bastien"
+        }
+      ],
+      "movements": [
+        {
+          "id": "return_to_garden",
+          "sequence": 1,
+          "kind": "return_travel",
+          "fromLocationId": "dinosaur_valley",
+          "toLocationId": "garden",
+          "travelerCharacterIds": ["bastien", "maman"],
+          "passageId": "garden_arch"
+        }
+      ],
+      "objectStates": [
+        {
+          "objectId": "bond_flower",
+          "state": "carried",
+          "quantity": 1,
+          "ownerCharacterId": "bastien",
+          "eventId": "flower_acquired"
+        }
+      ],
+      "transition": {
+        "kind": "return_travel",
+        "fromLocationId": "dinosaur_valley",
+        "toLocationId": "garden",
+        "travelerCharacterIds": ["bastien", "maman"],
+        "passageId": "garden_arch"
+      },
+      "illustration": {
+        "visibleCharacterIds": ["bastien", "maman"],
+        "evokedCharacterIds": [],
+        "mainAction": {
+          "subjectCharacterId": "bastien",
+          "verb": "porte",
+          "targetId": "bond_flower"
+        },
+        "requiredElements": ["Bastien tient l'unique Fleur du lien", "le jardin après le retour"],
+        "forbiddenElements": ["la vallée des dinosaures", "une seconde copie de Bastien"],
+        "forbiddenCharacterIds": ["forest_fairy"]
+      }
+    }
+  ],
+  "validation": {
+    "compilerVersion": 1,
+    "mechanicalValidatorVersion": 1,
+    "artifactDigest": "74e840f2c2e41e820df44152fea733070020131fc0fb89f55fab9e7fbc0a7dd9",
+    "semanticAudit": {
+      "validatorVersion": 1,
+      "policyVersion": 1,
+      "artifactDigest": "74e840f2c2e41e820df44152fea733070020131fc0fb89f55fab9e7fbc0a7dd9",
+      "status": "approved",
+      "auditedAt": "2026-07-30T12:05:00.000Z"
+    }
+  }
+}

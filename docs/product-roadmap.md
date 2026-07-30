@@ -125,6 +125,46 @@ Last updated: 2026-07-30
 6. Series experience: **foundation implemented** with purchased-book canon, child profiles, approved memory, private character reuse and an idempotent editable next-episode draft. A richer episode planner and series library remain.
 7. Subscription: recurring credits and family plans after the series value is visible.
 
+## Narrative Pipeline V2 direction
+
+The legacy pre-cover chain has reached its architectural limit: the approved
+scenario, blueprint, manuscript, speech metadata and illustration contracts
+repeat mechanical facts, while successive probabilistic audits may disagree
+about an unchanged scene. New local repair variants are frozen as a product
+direction. Existing books remain readable and are not migrated silently.
+
+V2 introduces one immutable, versioned `NarrativeBookSpec` compiled
+deterministically from the exact approved scenario. It is the sole downstream
+authority for canonical characters and family addresses, locations, ordered
+movement, physical versus nonphysical presence, passage discovery and crossing,
+object identity/state/quantity/ownership, page binding and the exact visible
+illustration moment. Prose and image models may realize that contract creatively
+but may not restate or change its mechanical fields. The illustration contract
+is compiled by code from physical presences and object snapshots rather than
+authored by the planner.
+
+Child Safety remains an independent repeated gate at intention, suggestions,
+scenario creation and approval, preview authorization, generated manuscript and
+paid modification boundaries. An enforced support/refusal decision stops before
+canonical compilation. Allowed protective-education and sensitivity contracts
+are referenced immutably by sanitized id, version and digest; submitted family
+wording and classifier rationale are never copied into the canonical artifact.
+
+Deterministic validation owns cast, presence, movement, passage and object
+continuity. Semantic AI review is bounded to literary meaning, age fit, subtlety
+and sensitive treatment; it cannot override mechanical truth. Audit evidence is
+cached by artifact digest, validator version and policy version. An unchanged
+artifact is never re-audited, and a local repair invalidates only the affected
+scene artifacts rather than restarting whole-book review.
+
+Delivery is side by side: contract and invariant tests first, then a pure
+approved-scenario compiler, shadow comparison on new scenarios, V2 prose and
+image compilers, a tester-only rollout, and finally production activation after
+the documented reliability and cost gates pass. No production feature flag is
+introduced by the contract-foundation brick. The normative design is
+`docs/narrative-pipeline-v2.md`; the machine-readable contract is
+`src/contracts/narrativeBookSpec.v1.schema.json`.
+
 ## Current implementation checkpoint
 
 - Calitiki Bridge 0.6.0 adds **Create a new adventure** to every paid eBook in **My creations**. The Storybook service creates or reuses the series and child profile, marks the purchased source as episode 1, freezes its continuity memory, and opens episode 2 with the original ten answers, book choices and authenticated private reference photos. No generation begins until the customer edits the draft, reviews it and explicitly confirms a new preview debit.

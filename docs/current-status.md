@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after PR #110 merge
-- Main checkpoint and current deployment candidate: PR #110 — targeted story-text repair version 3
-- Current focused checkpoint: verify the version-3 text repair on the preserved failed preview
-- Pull request: #110 merge confirmed on 2026-07-30
+- Current branch: `codex/narrative-pipeline-v2-contract`
+- Production/main checkpoint: PR #110 merged; targeted story-text repair version 3
+- Current focused checkpoint: Narrative Pipeline V2 contract foundation
+- Pull request: not yet created
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,26 +19,25 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #110 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: targeted story-text repair version 3
+## Current product brick: Narrative Pipeline V2 contract foundation
 
-1. A version-2 full-plan repair remains bounded to one call and preserves unaffected pages and contracts.
-2. When its final audit still finds a reader-prose contradiction, the existing targeted text editor now receives only the affected paired pages, approved scenes and remaining issue directives.
-3. The text editor returns the complete corrected prose and exact structured dialogue/thought segments together, so changing a speaker cannot leave stale speaker metadata behind.
-4. Every unrelated page and scene contract remains byte-for-byte reusable; the scenario, blueprint and complete manuscript are not regenerated.
-5. The result is checkpointed as repair version 3 and receives one newly namespaced final audit. It cannot enter another automatic repair loop.
-6. Preview retry policy version 16 grants the preserved version-2 project one explicit free recovery.
+1. `docs/narrative-pipeline-v2.md` defines one immutable canonical artifact and the side-by-side migration away from repeated probabilistic mechanical audits.
+2. `src/contracts/narrativeBookSpec.v1.schema.json` declares canonical registries, scenes, safety references, exact visible moments and versioned validation evidence.
+3. `src/contracts/narrativeBookSpec.js` supplies a pure digest and deterministic invariant validator without an AI call or production integration.
+4. The reference fixture explicitly keeps a guide in the adventure world after the hero and parent return; reintroducing that guide in the return illustration is rejected deterministically.
+5. Child Safety remains a separate repeated gate. A support/refusal or restricted profile cannot produce a canonical book contract, while sanitized allowed contract references remain immutable.
+6. This brick changes no production route, model call, customer project, credit behavior, Render variable or WordPress package.
 
 ## Verification
 
-- Focused targeted-text, workflow and retry-policy regressions: 130/130 passing.
-- Complete `npm test` suite: 278/278 passing.
+- Focused Narrative Book Spec tests: 9/9 passing.
+- Complete `npm test`: 287/287 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Wait for Render to deploy merged PR #110.
-2. Use the explicit free retry on project `4bd27e64-2a32-456f-b931-c061cfa39e65`.
-3. Confirm that the log records `writer:targeted:v3`, that scenes 8 and 10 pass `story:scenario-fidelity-targeted-text-recheck`, and that cover preparation begins without another scenario, blueprint or full-plan call.
+1. Review the canonical schema and V2 ownership boundaries before opening a pull request.
+2. After contract approval, implement the pure approved-scenario compiler as a separate brick without connecting it to production.
 
 ## Protected local state
 
