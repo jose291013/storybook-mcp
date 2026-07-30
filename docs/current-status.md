@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-pipeline-v2-compiler`
 - Production/main checkpoint: PR #111 merged; Narrative Pipeline V2 contract foundation
 - Current focused checkpoint: pure approved-scenario → NarrativeBookSpec compiler
-- Pull request: not opened yet
+- Pull request: draft PR #112
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
