@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
+import {
+  authoritativeSceneContractForAudit,
+  deterministicStoryPlanIssues,
+  STORY_PLAN_AUDIT_CONTRACT_VERSION,
+} from "../src/agents/storyScenePlanAudit.js";
 import {
   classifyStoryPlanIssues,
   compileStoryPlan,
@@ -13,6 +17,48 @@ const canonicalCharacters = [
   { name: "Marie", role: "guide", relationship: "mère", preferredAddress: "Maman" },
   { name: "Paul", role: "adult", relationship: "friend" },
 ];
+
+test("the plan audit sees only the contract that image generation can render", () => {
+  const contract = authoritativeSceneContractForAudit({
+    spread_number: 2,
+    scene_number: 3,
+    text_page_number: 6,
+    image_page_number: 7,
+    story_beat: "Noa holds the doll in her arms.",
+    source_prose: "An earlier manuscript version.",
+    planned_image_context: "Noa holds the doll in her arms at the dock.",
+    main_action: {
+      subject: "Noa",
+      verb: "walks",
+      target: "toward the protected dock",
+    },
+    named_characters: [{
+      name: "Noa",
+      entity_type: "human child",
+      visual_role: "hero",
+      action: "walks toward the dock",
+    }],
+    object_states: [{
+      name: "single doll",
+      owner: "Noa",
+      state: "secured",
+      quantity: 1,
+      instruction: "secured in Noa's closed band, not in her arms",
+    }],
+    forbidden_elements: ["the doll in Noa's arms"],
+    continuity_from_previous: "An earlier non-rendered planning note.",
+    continuity_to_next: "Another non-rendered planning note.",
+  });
+
+  assert.equal(contract.audit_contract_version, STORY_PLAN_AUDIT_CONTRACT_VERSION);
+  assert.equal(contract.story_beat, undefined);
+  assert.equal(contract.source_prose, undefined);
+  assert.equal(contract.planned_image_context, undefined);
+  assert.equal(contract.continuity_from_previous, undefined);
+  assert.equal(contract.continuity_to_next, undefined);
+  assert.equal(contract.object_states[0].instruction, "secured in Noa's closed band, not in her arms");
+  assert.equal(JSON.stringify(contract).includes("holds the doll in her arms at the dock"), false);
+});
 
 test("structured speech uses the family address only for the child speaker", () => {
   const compiled = compileStoryPlan({

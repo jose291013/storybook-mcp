@@ -6,6 +6,54 @@ function clean(value, maximum = 700) {
   return String(value || "").trim().slice(0, maximum);
 }
 
+function list(value, maximum = 20) {
+  return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
+}
+
+export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 1;
+
+export function authoritativeSceneContractForAudit(contract = {}) {
+  return {
+    audit_contract_version: STORY_PLAN_AUDIT_CONTRACT_VERSION,
+    spread_number: Math.max(0, Number(contract?.spread_number || 0)),
+    scene_number: Math.max(0, Number(contract?.scene_number || 0)),
+    text_page_number: Math.max(0, Number(contract?.text_page_number || 0)),
+    image_page_number: Math.max(0, Number(contract?.image_page_number || 0)),
+    main_action: {
+      subject: clean(contract?.main_action?.subject),
+      verb: clean(contract?.main_action?.verb),
+      target: clean(contract?.main_action?.target),
+    },
+    named_characters: list(contract?.named_characters, 10).map((character) => ({
+      name: clean(character?.name),
+      entity_type: clean(character?.entity_type),
+      species: clean(character?.species),
+      visual_role: clean(character?.visual_role),
+      action: clean(character?.action),
+    })),
+    generic_characters: list(contract?.generic_characters, 12).map((character) => ({
+      id: clean(character?.id),
+      description: clean(character?.description),
+      action: clean(character?.action),
+      must_not_resemble: list(character?.must_not_resemble, 10).map((name) => clean(name)),
+    })),
+    required_elements: list(contract?.required_elements, 15).map((element) => ({
+      description: clean(element?.description),
+      quantity: clean(element?.quantity),
+      scale: clean(element?.scale),
+    })),
+    object_states: list(contract?.object_states, 20).map((objectState) => ({
+      name: clean(objectState?.name),
+      owner: clean(objectState?.owner),
+      state: clean(objectState?.state),
+      quantity: Math.max(1, Number(objectState?.quantity || 1)),
+      instruction: clean(objectState?.instruction),
+    })),
+    spatial_relationships: list(contract?.spatial_relationships, 12).map((relationship) => clean(relationship)),
+    forbidden_elements: list(contract?.forbidden_elements, 12).map((element) => clean(element)),
+  };
+}
+
 function key(value) {
   return String(value || "")
     .normalize("NFD")
@@ -68,6 +116,8 @@ export function deterministicStoryPlanIssues({
   language = "FR",
 }) {
   if (!approvedScenario) return [];
+  const authoritativeSceneContracts = (Array.isArray(sceneContracts) ? sceneContracts : [])
+    .map((contract) => authoritativeSceneContractForAudit(contract));
   const characters = [
     ...(Array.isArray(canonicalCharacters) ? canonicalCharacters : []),
     ...(Array.isArray(approvedScenario.characters) ? approvedScenario.characters : []),
@@ -82,7 +132,7 @@ export function deterministicStoryPlanIssues({
       || key(character?.relationship) === "hero"
     ))
     .map((character) => key(character.name)));
-  for (const contract of Array.isArray(sceneContracts) ? sceneContracts : []) {
+  for (const contract of authoritativeSceneContracts) {
     const sceneNumber = Number(contract?.scene_number || 0);
     const approvedScene = approvedScenario.scenes?.find((scene) => Number(scene?.sceneNumber) === sceneNumber);
     if (!approvedScene) continue;
@@ -167,11 +217,13 @@ export async function storyScenePlanAuditAgent({
   backgroundStep = "story-plan-audit",
 } = {}) {
   if (!approvedScenario) return { status: "approved", issues: [] };
+  const authoritativeSceneContracts = (Array.isArray(sceneContracts) ? sceneContracts : [])
+    .map((contract) => authoritativeSceneContractForAudit(contract));
   const deterministicIssues = deterministicStoryPlanIssues({
     approvedScenario,
     pageTexts,
     speechSegmentsByPage,
-    sceneContracts,
+    sceneContracts: authoritativeSceneContracts,
     canonicalCharacters,
     language,
   });
@@ -195,7 +247,7 @@ export async function storyScenePlanAuditAgent({
       canonical_characters: canonicalCharacters.map((character) => enrichFamilyAddress(character, language)),
       page_texts: pageTexts,
       speech_segments_by_page: speechSegmentsByPage,
-      scene_contracts: sceneContracts,
+      scene_contracts: authoritativeSceneContracts,
     },
   });
   const audit = result?.audit || {};
