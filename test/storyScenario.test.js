@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
 import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
-import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
+import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
 import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
 
 function coherentPortalScenario() {
@@ -404,6 +404,8 @@ test("explicit lifecycle events survive normalization and drive deterministic sc
     "absent", "held", "held", "used_up", "used_up", "used_up",
   ]);
   assert.equal(stabilized.objects[0].initialState, "absent");
+  assert.match(stabilized.scenes[1].objectStates[0].instruction, /first physical appearance/i);
+  assert.doesNotMatch(stabilized.scenes[2].objectStates[0].instruction, /first physical appearance/i);
   assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
 });
 
@@ -705,6 +707,91 @@ test("invalid scenario diagnostics identify editable scenes without exposing cha
   assert.deepEqual(summary.categoryScenes, { travel: [9], passage: [4], object: [12] });
   assert.equal(summary.issueCount, 3);
   assert.doesNotMatch(JSON.stringify(summary), /Nolan|casquette/);
+});
+
+test("semantic audit diagnostics retain a bounded creator-safe explanation", () => {
+  const summary = summarizeStoryScenarioValidation({
+    valid: false,
+    issues: ["scene-5: repeated_object_introduction: La route est présentée comme nouvelle une seconde fois."],
+    diagnostics: [{
+      code: "repeated object introduction",
+      sceneNumber: 5,
+      explanation: "La route est présentée comme nouvelle une seconde fois.",
+    }],
+  });
+  assert.equal(summary.version, 2);
+  assert.deepEqual(summary.diagnostics, [{
+    code: "repeated_object_introduction",
+    sceneNumber: 5,
+    explanation: "La route est présentée comme nouvelle une seconde fois.",
+  }]);
+});
+
+test("legacy repeated-introduction false positives are recovered without changing visible story text", () => {
+  const scenario = normalizeStoryScenario({ scenario: {
+    title: "La route des nuages",
+    summary: "Noa suit une route céleste.",
+    characters: [{ name: "Noa", initial_location: "le jardin" }],
+    objects: [{
+      name: "Route Celeste",
+      owner: "Noa",
+      initial_state: "absent",
+      track_every_scene: true,
+      lifecycle: {
+        version: 1,
+        kind: "discoverable",
+        events: [{ scene_number: 2, type: "introduce", state: "visible" }],
+      },
+    }],
+    scenes: Array.from({ length: 3 }, (_, index) => ({
+      scene_number: index + 1,
+      title: `Étape ${index + 1}`,
+      action: index === 1 ? "Noa découvre la Route Celeste." : "Noa avance avec confiance.",
+      location_before: "le jardin",
+      location_after: "le jardin",
+      character_presences: [{ name: "Noa", mode: "physical", location: "le jardin" }],
+      transition: { kind: "none", from: "le jardin", to: "le jardin", characters: [] },
+      object_states: [{ name: "Route Celeste", owner: "Noa", state: "visible", quantity: 1 }],
+    })),
+  } }, {
+    pagePlan: Array.from({ length: 3 }, (_, index) => ({
+      page_type: "image",
+      scene_number: index + 1,
+      story_role: `role-${index + 1}`,
+    })),
+    canonicalCharacters: [{ name: "Noa", role: "child", storyRole: "hero" }],
+  });
+  const legacy = stabilizeStoryScenario(scenario);
+  const visibleStory = legacy.scenes.map(({ title, action }) => ({ title, action }));
+  legacy.scenes[2].objectStates[0].instruction = "Route Celeste: first physical appearance in this scene; exactly one copy.";
+  legacy.status = "needs_revision";
+  legacy.validation = {
+    valid: false,
+    categories: ["incomplete"],
+    issueCount: 1,
+    sceneNumbers: [3],
+    categoryScenes: { incomplete: [3] },
+  };
+  const repaired = recoverLegacyLifecycleValidation(legacy, { now: "2026-07-30T00:00:00.000Z" });
+  assert.ok(repaired);
+  assert.equal(repaired.status, "proposed");
+  assert.equal(repaired.validation.valid, true);
+  assert.equal(repaired.validation.repairedFrom, "object_lifecycle_first_appearance_v1");
+  assert.deepEqual(repaired.scenes.map(({ title, action }) => ({ title, action })), visibleStory);
+  assert.doesNotMatch(repaired.scenes[2].objectStates[0].instruction, /first physical appearance/i);
+});
+
+test("legacy validation recovery refuses unrelated generic rejections", () => {
+  const scenario = coherentPortalScenario();
+  scenario.status = "needs_revision";
+  scenario.validation = {
+    valid: false,
+    categories: ["incomplete"],
+    issueCount: 1,
+    sceneNumbers: [2],
+    categoryScenes: { incomplete: [2] },
+  };
+  assert.equal(recoverLegacyLifecycleValidation(scenario), null);
 });
 
 test("scenario stabilization repairs invisible metadata without changing story events", () => {

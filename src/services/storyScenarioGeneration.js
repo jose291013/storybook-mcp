@@ -106,6 +106,7 @@ export async function generateValidatedScenario({
         issues: audit.issues.map((issue) => (
           `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`
         )),
+        diagnostics: audit.issues,
       };
       if (!validation.valid) repairDirectives = audit.repairDirectives;
     }
