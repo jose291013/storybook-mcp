@@ -9,6 +9,7 @@ import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { createEbookPdf } from "../services/createEbookPdf.js";
 import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
+import { withOpenAICostContext } from "../services/openaiCostContext.js";
 
 const router = express.Router();
 
@@ -24,7 +25,12 @@ router.post("/finalize", async (req, res) => {
 
   res.json({ ok: true, jobId });
 
-  (async () => {
+  withOpenAICostContext({
+    projectId: job.projectId || "",
+    runId: jobId,
+    workflow: "finalization",
+    getStage: () => getJob(jobId)?.step || "finalization",
+  }, async () => {
     try {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const blueprint = job.final_blueprint;
@@ -181,7 +187,7 @@ router.post("/finalize", async (req, res) => {
     } catch (error) {
       updateJob(jobId, { status: "failed", step: "final", error: String(error?.message || error) });
     }
-  })();
+  });
 });
 
 export default router;

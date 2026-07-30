@@ -10,6 +10,7 @@ import {
   storyScenarioSnapshot,
 } from "./storyScenario.js";
 import { storySensitivityContract } from "./storySensitivity.js";
+import { withOpenAICostContext } from "./openaiCostContext.js";
 
 const WORKER_KIND = "story_scenario";
 const DEFAULT_LEASE_MS = 120000;
@@ -369,15 +370,27 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
     const previous = storyScenarioSnapshot(project);
     const request = generation.request;
     const backgroundExecution = createBackgroundExecution({ runs, run });
-    const onStep = ({ phase, attempt }) => persistGenerationProgress({
-      projects,
-      runs,
-      project,
-      run,
-      phase,
-      attempt,
-    });
-    const { scenario, validation } = await generate({
+    let costStage = "scenario:architect";
+    const onStep = ({ phase, attempt }) => {
+      costStage = `scenario:${phase || "generation"}`;
+      return persistGenerationProgress({
+        projects,
+        runs,
+        project,
+        run,
+        phase,
+        attempt,
+      });
+    };
+    const { scenario, validation } = await withOpenAICostContext({
+      projectId: run.projectId,
+      runId: run.id,
+      workflow: "scenario",
+      getStage: () => costStage,
+      attemptKind: Number(generation.technicalAttempt || 1) > 1
+        ? "technical_retry"
+        : "normal",
+    }, () => generate({
       normalized,
       previousScenario: previous?.fingerprint === generation.fingerprint ? previous : null,
       creatorClarifications: request.creatorClarifications || {},
@@ -390,7 +403,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       ),
       onStep,
       backgroundExecution,
-    });
+    }));
     return await completeScenario({
       projects,
       runs,

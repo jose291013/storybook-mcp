@@ -1,6 +1,32 @@
 import OpenAI from "openai";
+import { safelyRecordOpenAIResponse } from "./openaiCostLedger.js";
 
 const clients = new Map();
+
+function instrumentNamespace(target, path = []) {
+  return new Proxy(target, {
+    get(object, property) {
+      const value = Reflect.get(object, property);
+      if (typeof value === "function") {
+        return async (...args) => {
+          const response = await value.apply(object, args);
+          // Economic telemetry is deliberately non-blocking: a slow or
+          // unavailable ledger must never delay a customer generation.
+          void safelyRecordOpenAIResponse({
+            endpoint: [...path, String(property)].join("."),
+            request: args[0] || {},
+            response,
+          });
+          return response;
+        };
+      }
+      if (value && typeof value === "object") {
+        return instrumentNamespace(value, [...path, String(property)]);
+      }
+      return value;
+    },
+  });
+}
 
 function integerSetting(value, fallback, { minimum = 0, maximum = Number.MAX_SAFE_INTEGER } = {}) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
@@ -33,7 +59,8 @@ export function createOpenAIClient({ kind = "request" } = {}) {
   });
   const cacheKey = `${kind}:${timeout}:${maxRetries}:${process.env.OPENAI_API_KEY}`;
   if (!clients.has(cacheKey)) {
-    clients.set(cacheKey, new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout, maxRetries }));
+    const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout, maxRetries });
+    clients.set(cacheKey, instrumentNamespace(client));
   }
   return clients.get(cacheKey);
 }

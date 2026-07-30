@@ -15,6 +15,7 @@ import { previewModificationPriceCents } from "../config/previewModificationPric
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 import { inspectPreviewModificationRequest } from "../services/previewModificationPolicy.js";
 import { childSafetyResponse, guardChildSafety } from "../services/childSafety.js";
+import { withOpenAICostContext } from "../services/openaiCostContext.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -280,7 +281,13 @@ function startGeneration(modification, reservation) {
     step: `modification:spread:${modification.spreadNumber}:preparing`,
   });
   runningModifications.add(modification.id);
-  (async () => {
+  withOpenAICostContext({
+    projectId: modification.projectId,
+    runId: job.id,
+    workflow: "preview_modification",
+    attemptKind: "customer_change",
+    stage: `modification:spread:${modification.spreadNumber}:generating`,
+  }, async () => {
     try {
       await previewRevisionStore.update(modification.id, {
         status: "generating",
@@ -331,7 +338,7 @@ function startGeneration(modification, reservation) {
     } finally {
       runningModifications.delete(modification.id);
     }
-  })();
+  });
   return job;
 }
 

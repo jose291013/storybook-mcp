@@ -54,6 +54,15 @@ Last updated: 2026-07-30
 - Storybook service: draft, project, photos, blueprint, previews, print assets, ebook, credit ledger, access-code redemption, child profile, series memory.
 - The WooCommerce bridge will issue a short-lived HMAC-signed customer token. The Storybook service never stores WooCommerce passwords.
 
+## Internal production-cost control
+
+- Every OpenAI response that exposes billable usage inside a persisted book workflow is attributed to the private project, generation run, stage, model and attempt category. Amounts are stored as integer millionths of a US dollar and rounded only for the internal display.
+- Normal manufacture, technical retries, quality repairs and customer-requested changes remain distinguishable. A missing or unknown price never becomes a silent estimate: the recorded event is marked incomplete and the internal total is labelled partial.
+- The versioned application pricing table is an operational calculation layer, not accounting authority. It must be updated when OpenAI pricing or model routing changes and may later be reconciled against the provider usage/cost export.
+- The durable ledger stores numeric usage metadata only. It never stores questionnaire answers, prompts, manuscript text, photos, illustrations or generated output. Its rows intentionally survive customer project deletion so aggregate economics remain measurable without retaining the deleted creative content.
+- Cost data is strictly confidential to Calitiki. It is never returned by customer creation, preview, credit, checkout or reader APIs and never appears in **My creations Calitiki**. The only product UI is a WooCommerce administration screen protected by `manage_woocommerce`; WordPress obtains its data server-to-server through a short-lived HMAC-signed internal endpoint with private no-store headers.
+- The first pricing snapshot is `openai-standard-2026-07-30`. Deploying this brick requires database migration `013_openai_cost_ledger.sql` and Calitiki Bridge `0.7.5`; it introduces no new Render variable because the existing WooCommerce bridge secret signs the private report.
+
 ## Public positioning and trust
 
 - Calitiki is presented first as a way for an adult to turn something they would like to transmit to a child into an adventure in which the child is the hero. Personalization technology, universes and formats support that promise; they are not the homepage's primary message.

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.4
+ * Version: 0.7.5
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.4') {
-            update_option(self::VERSION_OPTION, '0.7.4');
+        if (get_option(self::VERSION_OPTION) !== '0.7.5') {
+            update_option(self::VERSION_OPTION, '0.7.5');
             flush_rewrite_rules(false);
         }
     }
@@ -705,6 +705,128 @@ final class Calitiki_Woo_Bridge {
             'calitiki-bridge',
             array(__CLASS__, 'settings_page')
         );
+        add_submenu_page(
+            'woocommerce',
+            'Pilotage economique Calitiki',
+            'Pilotage Calitiki',
+            'manage_woocommerce',
+            'calitiki-costs',
+            array(__CLASS__, 'costs_page')
+        );
+    }
+
+    private static function internal_cost_report($project_id = '') {
+        $generator_url = untrailingslashit((string) get_option(self::GENERATOR_URL_OPTION, ''));
+        $secret = (string) get_option(self::SHARED_SECRET_OPTION, '');
+        if (!$generator_url || strlen($secret) < 32) {
+            return new WP_Error('calitiki_cost_configuration', 'Le pilotage economique n\'est pas configure.');
+        }
+        $timestamp = time();
+        $project_id = sanitize_text_field((string) $project_id);
+        $signature = hash_hmac('sha256', 'internal-costs|' . $timestamp . '|' . $project_id, $secret);
+        $url = add_query_arg(
+            array_filter(array(
+                'timestamp' => $timestamp,
+                'projectId' => $project_id,
+                'limit' => 200,
+            ), static function ($value) {
+                return $value !== '';
+            }),
+            $generator_url . '/api/internal/book-costs'
+        );
+        $response = wp_remote_get($url, array(
+            'timeout' => 25,
+            'headers' => array('X-Calitiki-Signature' => $signature),
+        ));
+        if (is_wp_error($response)) {
+            return $response;
+        }
+        if (wp_remote_retrieve_response_code($response) !== 200) {
+            return new WP_Error('calitiki_cost_report', 'Le registre de couts est momentanement indisponible.');
+        }
+        $payload = json_decode(wp_remote_retrieve_body($response), true);
+        if (!is_array($payload)) {
+            return new WP_Error('calitiki_cost_payload', 'La reponse du registre de couts est invalide.');
+        }
+        return $payload;
+    }
+
+    private static function format_usd_micros($micros) {
+        return '$' . number_format_i18n(((float) $micros) / 1000000, 2);
+    }
+
+    public static function costs_page() {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('Vous ne pouvez pas acceder a cette page.', 'calitiki-bridge'));
+        }
+        $project_id = isset($_GET['project']) ? sanitize_text_field(wp_unslash($_GET['project'])) : '';
+        $report = self::internal_cost_report($project_id);
+        ?>
+        <div class="wrap">
+            <h1>Pilotage economique Calitiki</h1>
+            <p>Donnees internes reservees aux administrateurs WooCommerce. Aucun cout de production n'est transmis aux clients ni affiche dans Mes creations Calitiki.</p>
+            <?php if (is_wp_error($report)) : ?>
+                <div class="notice notice-error"><p><?php echo esc_html($report->get_error_message()); ?></p></div>
+            <?php elseif ($project_id) :
+                $summary = isset($report['summary']) && is_array($report['summary']) ? $report['summary'] : array();
+                $breakdown = isset($report['breakdown']) && is_array($report['breakdown']) ? $report['breakdown'] : array();
+                ?>
+                <p><a class="button" href="<?php echo esc_url(admin_url('admin.php?page=calitiki-costs')); ?>">&larr; Tous les livres</a></p>
+                <h2><?php echo esc_html(!empty($summary['title']) ? $summary['title'] : 'Projet ' . $project_id); ?></h2>
+                <?php if (empty($summary)) : ?>
+                    <p>Aucun appel IA mesure pour ce livre.</p>
+                <?php else : ?>
+                    <div style="display:flex;gap:16px;flex-wrap:wrap;margin:16px 0;">
+                        <div class="card"><h3>Cout IA total</h3><p style="font-size:24px;font-weight:700;"><?php echo esc_html(self::format_usd_micros($summary['totalCostUsdMicros'])); ?></p></div>
+                        <div class="card"><h3>Fabrication normale</h3><p style="font-size:24px;font-weight:700;"><?php echo esc_html(self::format_usd_micros($summary['normalCostUsdMicros'])); ?></p></div>
+                        <div class="card"><h3>Reprises et corrections</h3><p style="font-size:24px;font-weight:700;"><?php echo esc_html(self::format_usd_micros($summary['reworkCostUsdMicros'])); ?></p></div>
+                    </div>
+                    <?php if (empty($summary['pricingComplete'])) : ?>
+                        <div class="notice notice-warning inline"><p>Au moins un appel utilise un modele ou un mode tarifaire non encore chiffre. Le total est donc partiel.</p></div>
+                    <?php endif; ?>
+                    <table class="widefat striped">
+                        <thead><tr><th>Etape</th><th>Modele</th><th>Nature</th><th>Appels</th><th>Cout IA (USD)</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($breakdown as $row) : ?>
+                            <tr>
+                                <td><?php echo esc_html(($row['workflow'] ?? '') . ' / ' . ($row['stage'] ?? '')); ?></td>
+                                <td><code><?php echo esc_html($row['model'] ?? ''); ?></code></td>
+                                <td><?php echo esc_html(($row['attemptKind'] ?? '') === 'normal' ? 'Fabrication normale' : 'Reprise ou correction'); ?></td>
+                                <td><?php echo esc_html((string) ($row['requestCount'] ?? 0)); ?></td>
+                                <td><?php echo esc_html(self::format_usd_micros($row['costUsdMicros'] ?? 0)); ?><?php echo empty($row['pricingComplete']) ? ' *' : ''; ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            <?php else :
+                $summaries = isset($report['summaries']) && is_array($report['summaries']) ? $report['summaries'] : array();
+                ?>
+                <table class="widefat striped">
+                    <thead><tr><th>Livre</th><th>Pages</th><th>Statut</th><th>Appels</th><th>Fabrication</th><th>Reprises</th><th>Cout IA total (USD)</th></tr></thead>
+                    <tbody>
+                    <?php if (empty($summaries)) : ?>
+                        <tr><td colspan="7">Les prochains appels OpenAI attribues a un livre apparaitront ici.</td></tr>
+                    <?php endif; ?>
+                    <?php foreach ($summaries as $row) :
+                        $details_url = add_query_arg(array('page' => 'calitiki-costs', 'project' => $row['projectId'] ?? ''), admin_url('admin.php'));
+                        ?>
+                        <tr>
+                            <td><a href="<?php echo esc_url($details_url); ?>"><strong><?php echo esc_html(!empty($row['title']) ? $row['title'] : 'Projet supprime ' . ($row['projectId'] ?? '')); ?></strong></a></td>
+                            <td><?php echo esc_html((string) ($row['pageCount'] ?? 0)); ?></td>
+                            <td><?php echo esc_html($row['status'] ?? 'supprime'); ?></td>
+                            <td><?php echo esc_html((string) ($row['requestCount'] ?? 0)); ?></td>
+                            <td><?php echo esc_html(self::format_usd_micros($row['normalCostUsdMicros'] ?? 0)); ?></td>
+                            <td><?php echo esc_html(self::format_usd_micros($row['reworkCostUsdMicros'] ?? 0)); ?></td>
+                            <td><strong><?php echo esc_html(self::format_usd_micros($row['totalCostUsdMicros'] ?? 0)); ?></strong><?php echo empty($row['pricingComplete']) ? ' *' : ''; ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <p class="description">* Total partiel : une grille tarifaire manque pour au moins un appel. Les montants sont conserves en millioniemes de dollar et arrondis seulement a l'affichage.</p>
+            <?php endif; ?>
+        </div>
+        <?php
     }
 
     public static function settings_page() {

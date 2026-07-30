@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.7.4
+Stable tag: 0.7.5
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -17,6 +17,12 @@ Connecte de manière signée les comptes WooCommerce au générateur Calitiki h�
 6. Copier le secret et l’URL du pont dans les variables Render indiquées.
 
 Le plugin ne reçoit ni ne stocke les photos des enfants. Il émet uniquement une identité client signée et valable cinq minutes.
+
+== Pilotage économique interne ==
+
+Le sous-menu WooCommerce > Pilotage Calitiki est réservé aux administrateurs disposant de la capacité `manage_woocommerce`.
+Il affiche le coût IA mesuré de chaque livre, avec la séparation entre fabrication normale, reprises techniques et corrections. Les montants restent internes : ils ne sont jamais ajoutés à « Mes créations Calitiki », aux réponses destinées au créateur ni aux pages publiques.
+WordPress interroge le registre privé du générateur côté serveur avec une signature HMAC de courte durée. Le registre conserve uniquement des compteurs d’usage, modèles, étapes et montants numériques, jamais les réponses du questionnaire, les textes, les photos ou les illustrations.
 
 == Suppression des créations non achetées ==
 

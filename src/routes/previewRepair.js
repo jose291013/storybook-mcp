@@ -12,6 +12,7 @@ import { generateQualityCheckedImage, inspectGeneratedIllustration, inspectStyle
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
+import { withOpenAICostContext } from "../services/openaiCostContext.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -131,7 +132,13 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
   await projectStore.updateForCustomer(project.id, identity, { status: "preview_repairing", generationJobId: job.id });
   res.json({ jobId: job.id, pageNumber });
 
-  (async () => {
+  withOpenAICostContext({
+    projectId: project.id,
+    runId: job.id,
+    workflow: "preview_repair",
+    attemptKind: "quality_repair",
+    getStage: () => getJob(job.id)?.step || `repair:page:${pageNumber}`,
+  }, async () => {
     let temporaryDirectory = "";
     try {
       logRepair("started", { jobId: job.id, projectId: project.id, pageNumber });
@@ -312,7 +319,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
       repairingProjects.delete(project.id);
       if (temporaryDirectory) await fs.rm(temporaryDirectory, { recursive: true, force: true }).catch(() => null);
     }
-  })();
+  });
 });
 
 export default router;
