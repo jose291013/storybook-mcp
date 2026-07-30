@@ -1581,8 +1581,9 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /story:scenario-fidelity-repair/);
   assert.match(source, /story:scenario-fidelity-targeted-repair/);
   assert.match(source, /story:scenario-fidelity-targeted-recheck/);
-  assert.match(source, /backgroundStep:\s*"planner:targeted"/);
+  assert.match(source, /backgroundStep:\s*`planner:targeted:v\$\{STORY_PLAN_TARGETED_REPAIR_VERSION\}`/);
   assert.match(source, /candidateStage = "targeted-plan"/);
+  assert.match(source, /storyScenePlanCandidateRepairVersion/);
   assert.match(source, /storyScenePlanCandidate/);
   assert.match(source, /compileStoryPlan/);
   assert.match(source, /applyLocalCompilerIssues/);

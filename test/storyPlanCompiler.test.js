@@ -8,6 +8,10 @@ import {
   versionedStoryPlanAuditStep,
 } from "../src/agents/storyScenePlanAudit.js";
 import {
+  normalizeSceneContract,
+  storyPlanRepairEnvelope,
+} from "../src/agents/storyScenePlanner.js";
+import {
   classifyStoryPlanIssues,
   compileStoryPlan,
   STORY_PLAN_COMPILER_VERSION,
@@ -18,6 +22,110 @@ const canonicalCharacters = [
   { name: "Marie", role: "guide", relationship: "mère", preferredAddress: "Maman" },
   { name: "Paul", role: "adult", relationship: "friend" },
 ];
+
+test("targeted repair receives one normalized previous plan and authoritative scene targets", () => {
+  const envelope = storyPlanRepairEnvelope({
+    previousPlan: {
+      pageTexts: { 16: "Eva demande une pause." },
+      speechSegmentsByPage: {
+        16: [{ speaker: "Eva", mode: "dialogue", text: "J'ai besoin d'une pause." }],
+      },
+      sceneContracts: [{ scene_number: 8, text_page_number: 16, image_page_number: 17 }],
+    },
+    validationIssues: [{
+      sceneNumber: 8,
+      code: "pause_requested_by_wrong_character",
+      explanation: "Noa, rather than Eva, asks for the pause.",
+    }],
+    spreads: [{
+      scene_number: 8,
+      text_page_number: 16,
+      image_page_number: 17,
+    }],
+    approvedScenario: {
+      scenes: [{
+        sceneNumber: 8,
+        action: "Noa demande un moment avant de réessayer.",
+        characterPresences: [
+          { name: "Noa", mode: "physical", action: "demande un moment" },
+          { name: "Eva", mode: "physical", action: "écoute Noa" },
+        ],
+        objectStates: [],
+      }],
+    },
+  });
+
+  assert.deepEqual(envelope.previous_plan.page_texts, [{
+    page_number: 16,
+    text: "Eva demande une pause.",
+    speech_segments: [{
+      speaker: "Eva",
+      mode: "dialogue",
+      text: "J'ai besoin d'une pause.",
+    }],
+  }]);
+  assert.deepEqual(envelope.validation_issues, [{
+    scene_number: 8,
+    code: "pause_requested_by_wrong_character",
+    repair_instruction: "Noa, rather than Eva, asks for the pause.",
+  }]);
+  assert.equal(envelope.repair_targets[0].approved_action, "Noa demande un moment avant de réessayer.");
+  assert.deepEqual(
+    envelope.repair_targets[0].approved_physical_characters.map((character) => character.name),
+    ["Noa", "Eva"],
+  );
+});
+
+test("scene normalization removes absent canonical characters from every visual field", () => {
+  const contract = normalizeSceneContract({
+    main_action: { subject: "Hada del Bosque", verb: "waves", target: "Noa" },
+    named_characters: [
+      { name: "Noa", action: "watches Eva hold the doll" },
+      { name: "Eva", action: "holds Noa's doll" },
+      { name: "Hada del Bosque", action: "waves from the porch" },
+    ],
+    generic_characters: [{
+      id: "fairy_1",
+      description: "a substitute for Hada del Bosque",
+      action: "waves",
+    }],
+    required_elements: [{ description: "Hada del Bosque on the porch" }],
+    spatial_relationships: ["Hada del Bosque stands behind Noa"],
+    object_states: [{ name: "muñeco bebé", owner: "Eva", state: "held" }],
+  }, {
+    spread_number: 10,
+    scene_number: 11,
+    text_page_number: 22,
+    image_page_number: 23,
+    approved_scene: {
+      characterPresences: [
+        { name: "Noa", mode: "physical", action: "holds her muñeco bebé" },
+        { name: "Eva", mode: "physical", action: "stands beside Noa" },
+        { name: "Hada del Bosque", mode: "absent", action: "" },
+      ],
+      objectStates: [{
+        name: "muñeco bebé",
+        owner: "Noa",
+        state: "held",
+        quantity: 1,
+      }],
+    },
+  }, [
+    { name: "Noa" },
+    { name: "Eva" },
+    { name: "Hada del Bosque" },
+  ]);
+
+  assert.deepEqual(contract.named_characters.map((character) => character.name), ["Noa", "Eva"]);
+  assert.equal(contract.named_characters[0].action, "holds her muñeco bebé");
+  assert.equal(contract.named_characters[1].action, "stands beside Noa");
+  assert.deepEqual(contract.generic_characters, []);
+  assert.deepEqual(contract.required_elements, []);
+  assert.deepEqual(contract.spatial_relationships, []);
+  assert.equal(contract.main_action.subject, "Noa");
+  assert.equal(contract.main_action.verb, "holds her muñeco bebé");
+  assert.equal(contract.object_states[0].owner, "Noa");
+});
 
 test("the plan audit sees only the contract that image generation can render", () => {
   const contract = authoritativeSceneContractForAudit({
