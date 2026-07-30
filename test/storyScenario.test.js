@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import { normalizeSceneContract, sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.js";
 import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
-import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario } from "../src/services/storyScenario.js";
+import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, hasCurrentStoryScenarioAuditEvidence, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario, withStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
 import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
 
 function coherentPortalScenario() {
@@ -56,6 +56,26 @@ function coherentPortalScenario() {
 test("a portal scenario requires discovery before crossing and permits a nonphysical guide", () => {
   const result = validateStoryScenario(coherentPortalScenario());
   assert.deepEqual(result, { valid: true, issues: [] });
+});
+
+test("a final semantic audit remains valid across workflow metadata but not story changes", () => {
+  const audited = withStoryScenarioAuditEvidence(coherentPortalScenario(), {
+    auditedAt: "2026-07-30T10:00:00.000Z",
+  });
+  assert.equal(hasCurrentStoryScenarioAuditEvidence(audited), true);
+
+  const stored = {
+    ...audited,
+    status: "proposed",
+    revision: 7,
+    fingerprint: "questionnaire-fingerprint",
+    validation: { valid: true, issueCount: 0 },
+    createdAt: "2026-07-30T10:01:00.000Z",
+  };
+  assert.equal(hasCurrentStoryScenarioAuditEvidence(stored), true);
+
+  stored.scenes[0].action = "Nolan traverse le portail avant de le découvrir.";
+  assert.equal(hasCurrentStoryScenarioAuditEvidence(stored), false);
 });
 
 test("the narrative controller turns an undiscovered crossing into a targeted scenarist repair", () => {

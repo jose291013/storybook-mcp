@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { enrichFamilyAddress } from "./characterRelationships.js";
 import {
   CHARACTER_MOVEMENT_LEDGER_VERSION,
@@ -14,6 +15,7 @@ import {
 
 export const STORY_SCENARIO_VERSION = 2;
 export const STORY_SCENARIO_VALIDATION_VERSION = 2;
+export const STORY_SCENARIO_AUDIT_EVIDENCE_VERSION = 1;
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
 const PRESENCE_PHASES = new Set(["start", "throughout", "end"]);
 const TRANSITION_KINDS = new Set(["none", "discover_passage", "cross_passage", "ordinary_travel", "return_travel", "join_travel"]);
@@ -26,6 +28,58 @@ const OBJECT_EVENT_TYPES = new Set([
   "introduce", "acquire", "plant", "install", "consume", "transform", "destroy",
   "retrieve", "store", "transfer", "use",
 ]);
+
+function stableJsonValue(value) {
+  if (Array.isArray(value)) return value.map(stableJsonValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => [key, stableJsonValue(entry)]),
+  );
+}
+
+function auditableStoryScenario(input = {}) {
+  const scenario = structuredClone(input);
+  for (const key of [
+    "auditEvidence",
+    "approvedAt",
+    "createdAt",
+    "fingerprint",
+    "revision",
+    "status",
+    "validation",
+  ]) delete scenario[key];
+  return scenario;
+}
+
+export function storyScenarioAuditDigest(input = {}) {
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(stableJsonValue(auditableStoryScenario(input))))
+    .digest("hex");
+}
+
+export function withStoryScenarioAuditEvidence(input = {}, {
+  auditedAt = new Date().toISOString(),
+} = {}) {
+  const scenario = structuredClone(input);
+  scenario.auditEvidence = {
+    version: STORY_SCENARIO_AUDIT_EVIDENCE_VERSION,
+    status: "approved",
+    digest: storyScenarioAuditDigest(scenario),
+    auditedAt,
+  };
+  return scenario;
+}
+
+export function hasCurrentStoryScenarioAuditEvidence(input = {}) {
+  const evidence = input?.auditEvidence;
+  return Number(evidence?.version) === STORY_SCENARIO_AUDIT_EVIDENCE_VERSION
+    && evidence?.status === "approved"
+    && typeof evidence?.digest === "string"
+    && evidence.digest === storyScenarioAuditDigest(input);
+}
 const OBJECT_TERMINAL_STATES = new Set(["consumed", "transformed", "destroyed", "used_up"]);
 const OBJECT_POSSESSION_STATES = new Set(["worn", "held", "carried"]);
 const DISCOVERY_EVENT_PATTERN = /\b(?:trouve|trouvent|trouver|decouvre|decouvrent|decouvrir|recoit|recoivent|ramasse|obtient|finds?|found|discover(?:s|ed)?|receives?|picks? up|encuentra|encuentran|descubre|descubren|recibe|recogen?)\b/iu;

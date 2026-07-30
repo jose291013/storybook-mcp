@@ -11,6 +11,7 @@ export function generationCostPolicy() {
       architectCalls: 1,
       editorCalls: 1,
       repairCalls: 1,
+      finalAuditCalls: 1,
     },
     manuscript: {
       maximumBatches: 3,
