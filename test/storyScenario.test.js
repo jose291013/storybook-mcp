@@ -6,6 +6,7 @@ import { deterministicStoryPlanIssues } from "../src/agents/storyScenePlanAudit.
 import { buildStorySceneTextRepairTargets, sanitizeStoryRepairText } from "../src/agents/storySceneTextRepair.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, hasCurrentStoryScenarioAuditEvidence, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario, withStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
 import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
+import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
 
 function coherentPortalScenario() {
   return {
@@ -76,6 +77,17 @@ test("a final semantic audit remains valid across workflow metadata but not stor
 
   stored.scenes[0].action = "Nolan traverse le portail avant de le découvrir.";
   assert.equal(hasCurrentStoryScenarioAuditEvidence(stored), false);
+});
+
+test("only a first proposal uses the premium architect while revisions use targeted repair", () => {
+  assert.deepEqual(scenarioGenerationRoute(null), {
+    phase: "architect",
+    modelRole: "story_architect",
+  });
+  assert.deepEqual(scenarioGenerationRoute({ revision: 1 }), {
+    phase: "revision",
+    modelRole: "story_repair",
+  });
 });
 
 test("the narrative controller turns an undiscovered crossing into a targeted scenarist repair", () => {

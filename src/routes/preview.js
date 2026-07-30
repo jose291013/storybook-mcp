@@ -66,6 +66,7 @@ import {
 import { generationCostPolicy } from "../services/generationCostPolicy.js";
 
 const router = express.Router();
+const BLUEPRINT_CONTRACT_VERSION = 1;
 const STORY_PLAN_FIDELITY_VERSION = 4;
 const MANUSCRIPT_REVIEW_VERSION = 1;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
@@ -619,6 +620,18 @@ router.post("/preview", async (req, res) => {
         });
         return persisted;
       };
+      const providerBackgroundExecution = {
+        async getCheckpoint(stepKey) {
+          return checkpoint.storyPlanProviderResponses?.[stepKey] || null;
+        },
+        async saveCheckpoint(stepKey, providerCheckpoint) {
+          const storyPlanProviderResponses = {
+            ...(checkpoint.storyPlanProviderResponses || {}),
+            [stepKey]: safeProviderResponseCheckpoint(providerCheckpoint),
+          };
+          await persistCheckpoint({ storyPlanProviderResponses });
+        },
+      };
 
       updateJob(job.id, { step: "intake" });
       const intake = checkpoint.intake || await intakeAgent(answers);
@@ -661,6 +674,9 @@ router.post("/preview", async (req, res) => {
         approvedScenario,
         childSafetyContract: safety.contract,
         sensitivityContract,
+      }, {
+        backgroundExecution: providerBackgroundExecution,
+        backgroundStep: `blueprint:v${BLUEPRINT_CONTRACT_VERSION}`,
       });
       if (approvedScenario) final_blueprint.approved_scenario = approvedScenario;
 
@@ -711,18 +727,6 @@ router.post("/preview", async (req, res) => {
         sensitivityContract,
       });
       const draftTextByPage = new Map(Object.entries(checkpoint.draftTexts || {}).map(([page, text]) => [Number(page), text]));
-      const providerBackgroundExecution = {
-        async getCheckpoint(stepKey) {
-          return checkpoint.storyPlanProviderResponses?.[stepKey] || null;
-        },
-        async saveCheckpoint(stepKey, providerCheckpoint) {
-          const storyPlanProviderResponses = {
-            ...(checkpoint.storyPlanProviderResponses || {}),
-            [stepKey]: safeProviderResponseCheckpoint(providerCheckpoint),
-          };
-          await persistCheckpoint({ storyPlanProviderResponses });
-        },
-      };
       const batches = manuscriptBatches({
         pages: final_blueprint.pages,
         approvedScenario,

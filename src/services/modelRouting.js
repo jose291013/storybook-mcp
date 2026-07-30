@@ -3,6 +3,12 @@ const REASONING_EFFORTS = new Set([
 ]);
 
 const ROUTES = {
+  blueprint: {
+    modelEnv: "BLUEPRINT_MODEL",
+    effortEnv: "BLUEPRINT_REASONING_EFFORT",
+    defaultModel: "gpt-4.1-mini",
+    defaultEffort: "",
+  },
   story_architect: {
     modelEnv: "STORY_ARCHITECT_MODEL",
     effortEnv: "STORY_ARCHITECT_REASONING_EFFORT",

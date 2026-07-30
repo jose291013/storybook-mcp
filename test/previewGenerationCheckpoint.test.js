@@ -249,6 +249,6 @@ test("a preview exhausted under policy twelve receives the versioned audit-check
   assert.equal(technicalPreviewRetryExhausted(exhaustedCachedAudit), false);
 });
 
-test("the versioned audit-checkpoint recovery policy is version thirteen", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 13);
+test("the durable blueprint recovery policy is version fourteen", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 14);
 });

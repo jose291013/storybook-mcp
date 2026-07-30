@@ -15,6 +15,12 @@ import {
 } from "./storyScenarioRepairs.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
 
+export function scenarioGenerationRoute(previousScenario = null) {
+  return previousScenario
+    ? { phase: "revision", modelRole: "story_repair" }
+    : { phase: "architect", modelRole: "story_architect" };
+}
+
 export async function generateValidatedScenario({
   normalized,
   previousScenario,
@@ -77,7 +83,8 @@ export async function generateValidatedScenario({
     ), directives, { language: normalized.answers.language })
   );
 
-  await onStep({ phase: "architect", attempt: 1 });
+  const generationRoute = scenarioGenerationRoute(previousScenario);
+  await onStep({ phase: generationRoute.phase, attempt: 1 });
   const candidate = await storyScenarioAgent(
     {
       ...input,
@@ -85,7 +92,8 @@ export async function generateValidatedScenario({
     },
     {
       backgroundExecution,
-      backgroundStep: "architect:1",
+      backgroundStep: `${generationRoute.phase}:1`,
+      modelRole: generationRoute.modelRole,
     },
   );
   normalizeCandidate(candidate);

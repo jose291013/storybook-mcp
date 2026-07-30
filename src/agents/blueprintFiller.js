@@ -397,7 +397,10 @@ export async function blueprintFillerAgent({
   approvedScenario = null,
   childSafetyContract = null,
   sensitivityContract = null,
-}) {
+}, {
+  backgroundExecution = null,
+  backgroundStep = "",
+} = {}) {
   const system = loadPrompt("blueprint_filler.txt");
   const intakeData = intake?.intake || intake || {};
   const pageCount = normalizePageCount(intakeData.page_count);
@@ -405,6 +408,9 @@ export async function blueprintFillerAgent({
 
   const out = await runAgent({
     name: "blueprintFiller",
+    clientKind: "story",
+    modelRole: "blueprint",
+    jsonRepairModelRole: "blueprint",
     system,
     user: (input) =>
       `MERGE_INPUT_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY JSON as specified.`,
@@ -425,6 +431,8 @@ export async function blueprintFillerAgent({
         canon_json: portraitCanonJson,
       },
     },
+    backgroundExecution,
+    backgroundStep,
   });
 
   // ---- Normalize and parse to plain JSON ----

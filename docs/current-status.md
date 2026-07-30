@@ -8,36 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-final-audit-contract`
-- Main checkpoint and last production deployment: PR #106 — private quality-cost governor
-- Current focused checkpoint: final scenario-audit evidence and consistent pre-approval validation
-- Pull request: #107 — open, verified locally, not merged
+- Current branch: `codex/durable-blueprint-cost-control`
+- Main checkpoint and last production deployment: PR #107 — final scenario-audit evidence
+- Current focused checkpoint: durable economical blueprint generation and single-premium-pass scenario routing
+- Pull request: pending creation; merge explicitly authorized once verification passes
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #106 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #107 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: final scenario-audit contract
+## Current product brick: durable blueprint and bounded scenario cost
 
-1. A scenario repaired after semantic review receives one final editor audit before it can be shown as valid.
-2. The approved result carries a server-side digest bound to the exact audited narrative content.
-3. Creator approval reuses a current audit digest instead of launching a late, potentially different semantic review.
-4. Any narrative edit invalidates the digest and requires a fresh audited revision.
-5. Partial or explicitly unfinished object changes remain partial and cannot be promoted to a completed lifecycle event by the auditor.
+1. Blueprint generation uses the Responses API on the economical `gpt-4.1-mini` route and persists its provider response id in the existing private preview checkpoint.
+2. A Render restart or explicit technical retry retrieves the same background response instead of repeating the paid blueprint request.
+3. The high-reasoning architect is reserved for the first scenario proposal. A persisted creator revision starts directly on the balanced repair route while keeping deterministic validation and final editor audit.
+4. Preview retry policy version 14 grants the preserved failed project one new free recovery and reuses its completed intake, portraits, story brand, world and style.
+5. The model route remains configurable through optional `BLUEPRINT_MODEL` and `BLUEPRINT_REASONING_EFFORT`; no Render change is required for the defaults.
 
 ## Verification
 
-- Final audit-evidence regression: passing.
-- Complete `npm test` suite: 272/272 passing.
+- Focused durability, routing and retry-policy regressions: passing.
+- Complete `npm test` suite: 273/273 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Wait for explicit creator confirmation before merging PR #107; warn that Render may restart and interrupt an active generation.
-2. After deployment, update the preserved Spanish scenario once and verify that any remaining semantic issue appears before approval.
-3. Confirm that approving an unchanged audited scenario does not launch another editor call.
+1. After deployment, use the explicit free retry on project `4bd27e64-2a32-456f-b931-c061cfa39e65`.
+2. Confirm that the saved style is reused, the blueprint reaches completion without the former 180-second request timeout, and the cover stage begins.
+3. On the next new book, verify that one initial scenario proposal records one `scenario:architect` call and that a creator-requested revision records `scenario:revision` on the repair model rather than another architect call.
 
 ## Protected local state
 
