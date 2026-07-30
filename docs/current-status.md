@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-final-audit-contract`
 - Main checkpoint and last production deployment: PR #106 — private quality-cost governor
 - Current focused checkpoint: final scenario-audit evidence and consistent pre-approval validation
-- Pull request: pending
+- Pull request: #107 — open, verified locally, not merged
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,10 +35,9 @@ PR #55 through PR #106 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the final scenario-audit PR after review.
-2. Wait for explicit creator confirmation before merging; warn that Render may restart and interrupt an active generation.
-3. After deployment, update the preserved Spanish scenario once and verify that any remaining semantic issue appears before approval.
-4. Confirm that approving an unchanged audited scenario does not launch another editor call.
+1. Wait for explicit creator confirmation before merging PR #107; warn that Render may restart and interrupt an active generation.
+2. After deployment, update the preserved Spanish scenario once and verify that any remaining semantic issue appears before approval.
+3. Confirm that approving an unchanged audited scenario does not launch another editor call.
 
 ## Protected local state
 
