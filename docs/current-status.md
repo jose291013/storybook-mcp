@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-v2-shadow-benchmark`
 - Production/main checkpoint: PR #111 merged; Narrative Pipeline V2 contract foundation
 - Current focused checkpoint: allowlisted Narrative V2 shadow compilation and synthetic Luna/Sol benchmark
-- Pull request: not yet published; stacked on draft PR #112
+- Pull request: draft PR #113, stacked on draft PR #112
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -39,9 +39,9 @@ PR #55 through PR #111 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish this brick as a stacked draft PR targeting the compiler branch.
+1. Review draft PR #113 while it remains stacked on the compiler branch.
 2. Merge PR #112 first after explicit user approval and a no-generation window.
-3. Rebase or retarget the shadow PR to `main`, then request separate merge approval.
+3. Rebase or retarget PR #113 to `main`, then request separate merge approval.
 
 ## Protected local state
 
