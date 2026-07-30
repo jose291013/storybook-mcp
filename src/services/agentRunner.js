@@ -8,6 +8,7 @@ export async function runAgent({
   input,
   clientKind = "request",
   modelRole = "",
+  jsonRepairModelRole = "",
   backgroundExecution = null,
   backgroundStep = "",
 }) {
@@ -39,7 +40,7 @@ export async function runAgent({
     user: `${originalUser}\n\nINVALID_PREVIOUS_OUTPUT:\n${String(out1.raw || "").slice(0, 12000)}\n\nReturn the complete corrected JSON object.`,
     temperature: 0,
     clientKind,
-    modelRole,
+    modelRole: jsonRepairModelRole || modelRole,
     backgroundExecution: executionFor("json-repair"),
   });
 

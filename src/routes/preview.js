@@ -20,7 +20,8 @@ import { blueprintFillerAgent, lockBlueprintContinuity } from "../agents/bluepri
 import { blueprintRepairAgent } from "../agents/blueprintRepair.js";
 import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
-import { textWriterAgent } from "../agents/textWriter.js";
+import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
+import { manuscriptEditorAgent } from "../agents/manuscriptEditor.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { createPagePlan } from "../config/bookStructure.js";
@@ -57,9 +58,16 @@ import {
   STORY_PLAN_COMPILER_VERSION,
 } from "../services/storyPlanCompiler.js";
 import { inferAttemptKind, withOpenAICostContext } from "../services/openaiCostContext.js";
+import {
+  applyManuscriptCorrections,
+  manuscriptBatches,
+  mergeManuscriptBatch,
+} from "../services/manuscriptBatches.js";
+import { generationCostPolicy } from "../services/generationCostPolicy.js";
 
 const router = express.Router();
 const STORY_PLAN_FIDELITY_VERSION = 4;
+const MANUSCRIPT_REVIEW_VERSION = 1;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
 
 function safeProviderResponseCheckpoint(value) {
@@ -703,29 +711,81 @@ router.post("/preview", async (req, res) => {
         sensitivityContract,
       });
       const draftTextByPage = new Map(Object.entries(checkpoint.draftTexts || {}).map(([page, text]) => [Number(page), text]));
+      const providerBackgroundExecution = {
+        async getCheckpoint(stepKey) {
+          return checkpoint.storyPlanProviderResponses?.[stepKey] || null;
+        },
+        async saveCheckpoint(stepKey, providerCheckpoint) {
+          const storyPlanProviderResponses = {
+            ...(checkpoint.storyPlanProviderResponses || {}),
+            [stepKey]: safeProviderResponseCheckpoint(providerCheckpoint),
+          };
+          await persistCheckpoint({ storyPlanProviderResponses });
+        },
+      };
+      const batches = manuscriptBatches({
+        pages: final_blueprint.pages,
+        approvedScenario,
+        heroAge: final_blueprint.hero?.age,
+      }).slice(0, generationCostPolicy().manuscript.maximumBatches);
       let previousText = "";
-      for (const textPage of final_blueprint.pages.filter((page) => (
-        ["text", "opening_text", "closing_text"].includes(page.page_type)
-      ))) {
-        if (draftTextByPage.has(textPage.page_number)) {
-          previousText = draftTextByPage.get(textPage.page_number);
-          continue;
+      for (const batch of batches) {
+        const missingPages = batch.pages.filter((page) => !draftTextByPage.has(page.page_number));
+        if (missingPages.length) {
+          updateJob(job.id, { step: `draft:manuscript:act:${batch.act}` });
+          const written = await manuscriptWriterAgent({
+            language: final_blueprint.language,
+            hero: final_blueprint.hero,
+            act: batch.act,
+            pages: missingPages,
+            storyContext,
+            previousText,
+          }, {
+            backgroundExecution: providerBackgroundExecution,
+            backgroundStep: `manuscript:act:${batch.act}`,
+          });
+          mergeManuscriptBatch(draftTextByPage, written, missingPages);
+          await persistCheckpoint({
+            draftTexts: Object.fromEntries(draftTextByPage),
+            phase: `manuscript:act:${batch.act}`,
+          });
         }
-        updateJob(job.id, { step: `draft:text:page:${textPage.page_number}` });
-        const written = await textWriterAgent({
+        const lastPage = batch.pages.at(-1)?.page_number;
+        if (lastPage && draftTextByPage.has(lastPage)) previousText = draftTextByPage.get(lastPage);
+      }
+
+      if (Number(checkpoint.manuscriptReviewVersion || 0) < MANUSCRIPT_REVIEW_VERSION) {
+        updateJob(job.id, { step: "draft:manuscript:language-review" });
+        const manuscriptReview = await manuscriptEditorAgent({
           language: final_blueprint.language,
-          hero: final_blueprint.hero,
-          page_number: textPage.page_number,
-          page_type: textPage.page_type,
-          story_role: textPage.story_role,
-          text_prompt: textPage.text_prompt,
-          story_context: storyContext,
-          previous_text: previousText,
+          pages: [...draftTextByPage].map(([page_number, text]) => ({ page_number, text })),
+          canonicalCharacters: [
+            ...characterCanons,
+            { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
+            ...(final_blueprint.cast || []),
+          ],
+          approvedScenario,
+        }, {
+          backgroundExecution: providerBackgroundExecution,
+          backgroundStep: "manuscript:language-review",
         });
-        const text = written.page_text.text;
-        draftTextByPage.set(textPage.page_number, text);
-        previousText = text;
-        await persistCheckpoint({ draftTexts: Object.fromEntries(draftTextByPage), phase: `text:${textPage.page_number}` });
+        const manuscriptCanonicalCharacters = [
+          ...characterCanons,
+          { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
+          ...(final_blueprint.cast || []),
+        ];
+        applyManuscriptCorrections(
+          draftTextByPage,
+          manuscriptReview,
+          [...draftTextByPage.keys()],
+          manuscriptCanonicalCharacters,
+        );
+        await persistCheckpoint({
+          draftTexts: Object.fromEntries(draftTextByPage),
+          manuscriptReview,
+          manuscriptReviewVersion: MANUSCRIPT_REVIEW_VERSION,
+          phase: "manuscript:reviewed",
+        });
       }
 
       updateJob(job.id, { step: "story:coherence-and-scene-contracts" });
@@ -755,19 +815,12 @@ router.post("/preview", async (req, res) => {
           { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
           ...(final_blueprint.cast || []),
         ];
-        const storyPlanBackgroundExecution = {
-          async getCheckpoint(stepKey) {
-            return checkpoint.storyPlanProviderResponses?.[stepKey] || null;
-          },
-          async saveCheckpoint(stepKey, providerCheckpoint) {
-            const storyPlanProviderResponses = {
-              ...(checkpoint.storyPlanProviderResponses || {}),
-              [stepKey]: safeProviderResponseCheckpoint(providerCheckpoint),
-            };
-            await persistCheckpoint({ storyPlanProviderResponses });
-          },
-        };
-        const auditCurrentStoryPlan = async ({ jobStep, backgroundStep }) => {
+        const storyPlanBackgroundExecution = providerBackgroundExecution;
+        const auditCurrentStoryPlan = async ({
+          jobStep,
+          backgroundStep,
+          modelRole = "story_auditor",
+        }) => {
           updateJob(job.id, { step: jobStep });
           return storyScenePlanAuditAgent({
             approvedScenario,
@@ -779,6 +832,7 @@ router.post("/preview", async (req, res) => {
           }, {
             backgroundExecution: storyPlanBackgroundExecution,
             backgroundStep,
+            modelRole,
           });
         };
         const savedCandidateIsCurrent = Boolean(checkpoint.storyScenePlanCandidate)
@@ -882,6 +936,9 @@ router.post("/preview", async (req, res) => {
               : candidateStage === "targeted-plan"
                 ? "audit:targeted"
               : `audit:${candidateAttempt}`,
+            modelRole: ["targeted", "targeted-plan"].includes(candidateStage)
+              ? "story_repair"
+              : "story_auditor",
           });
           planAudit = await applyLocalCompilerIssues(planAudit, "resume-audit");
           semanticAuditRejected = planAudit.status !== "approved"
@@ -893,7 +950,7 @@ router.post("/preview", async (req, res) => {
             let attempt = storyScenePlan ? candidateAttempt + 1 : 1;
             (!storyScenePlan || planAudit.status !== "approved")
               && !semanticAuditRejected
-              && attempt <= 2;
+              && attempt <= generationCostPolicy().storyPlan.plannerCalls;
             attempt += 1
           ) {
             storyScenePlan = await storyScenePlannerAgent({
@@ -935,7 +992,9 @@ router.post("/preview", async (req, res) => {
             if (attempt === 1) updateJob(job.id, { step: "story:scenario-fidelity-repair" });
           }
         }
-        if (planAudit.status !== "approved" && candidateStage !== "targeted-plan") {
+        if (planAudit.status !== "approved"
+          && candidateStage !== "targeted-plan"
+          && generationCostPolicy().storyPlan.repairCalls > 0) {
           updateJob(job.id, { step: "story:scenario-fidelity-targeted-repair" });
           storyScenePlan = await storyScenePlannerAgent({
             ...planningInput,
@@ -944,6 +1003,7 @@ router.post("/preview", async (req, res) => {
           }, {
             backgroundExecution: storyPlanBackgroundExecution,
             backgroundStep: "planner:targeted",
+            modelRole: "story_repair",
           });
           candidateAttempt = 3;
           candidateStage = "targeted-plan";
@@ -958,6 +1018,7 @@ router.post("/preview", async (req, res) => {
           planAudit = await auditCurrentStoryPlan({
             jobStep: "story:scenario-fidelity-targeted-recheck",
             backgroundStep: "audit:targeted",
+            modelRole: "story_repair",
           });
           planAudit = await applyLocalCompilerIssues(planAudit, "targeted-audit");
         }

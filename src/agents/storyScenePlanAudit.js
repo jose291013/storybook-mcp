@@ -221,6 +221,7 @@ export async function storyScenePlanAuditAgent({
 }, {
   backgroundExecution = null,
   backgroundStep = "story-plan-audit",
+  modelRole = "story_auditor",
 } = {}) {
   if (!approvedScenario) return { status: "approved", issues: [] };
   const authoritativeSceneContracts = (Array.isArray(sceneContracts) ? sceneContracts : [])
@@ -243,7 +244,8 @@ export async function storyScenePlanAuditAgent({
   const result = await runAgent({
     name: "storyScenePlanAudit",
     clientKind: "story",
-    modelRole: "story_auditor",
+    modelRole,
+    jsonRepairModelRole: "story_repair",
     system: loadPrompt("story_scene_plan_audit.txt"),
     user: (input) => `FINAL_STORY_PLAN_JSON:\n${JSON.stringify(input, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     backgroundExecution,

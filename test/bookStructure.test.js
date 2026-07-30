@@ -1565,9 +1565,11 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /blueprintRepairAgent/);
   assert.match(source, /qa:verify_repair/);
   assert.match(source, /maximumRepairAttempts = 3/);
-  const textStep = source.indexOf("draft:text:page:");
+  const textStep = source.indexOf("draft:manuscript:act:");
   assert.ok(textStep >= 0);
   assert.ok(textStep < coverStep);
+  assert.match(source, /manuscriptWriterAgent/);
+  assert.match(source, /manuscriptEditorAgent/);
   assert.match(source, /pairedText,/);
   const proofStep = source.indexOf('status: "awaiting_visual_approval"');
   const interiorLoop = source.indexOf("for (const page of final_blueprint.pages)");
@@ -1615,7 +1617,8 @@ test("whole-book planner and audit use bounded resumable story execution", async
   }
   assert.doesNotMatch(audit, /clientKind:\s*"qa"/);
   assert.match(audit, /source:\s*"deterministic"/);
-  assert.match(audit, /modelRole:\s*"story_auditor"/);
+  assert.match(audit, /modelRole = "story_auditor"/);
+  assert.match(audit, /modelRole,/);
   assert.ok(audit.indexOf("const deterministicIssues") < audit.indexOf("const result = await runAgent"));
   assert.match(prompt, /changing prose alone is not a repair/i);
   assert.match(prompt, /approved symbolic representation/i);

@@ -8,8 +8,12 @@ const VARIABLES = [
   "STORY_ARCHITECT_REASONING_EFFORT",
   "STORY_EDITOR_MODEL",
   "STORY_EDITOR_REASONING_EFFORT",
+  "STORY_REPAIR_MODEL",
+  "STORY_REPAIR_REASONING_EFFORT",
   "STORY_AUDITOR_MODEL",
   "STORY_AUDITOR_REASONING_EFFORT",
+  "MANUSCRIPT_EDITOR_MODEL",
+  "MANUSCRIPT_EDITOR_REASONING_EFFORT",
 ];
 
 function withCleanEnvironment(callback) {
@@ -34,6 +38,12 @@ test("quality-first defaults separate architect and editor from legacy text call
       api: "responses",
     });
     assert.equal(modelRoute("story_editor").model, "gpt-5.6-sol");
+    assert.deepEqual(modelRoute("story_repair"), {
+      role: "story_repair",
+      model: "gpt-5.6-terra",
+      reasoningEffort: "medium",
+      api: "responses",
+    });
     assert.deepEqual(modelRoute("story_auditor"), {
       role: "story_auditor",
       model: "gpt-5.6-terra",
@@ -57,5 +67,7 @@ test("Render can override a narrative role without changing source code", () => 
     process.env.STORY_AUDITOR_REASONING_EFFORT = "medium";
     assert.equal(modelRoute("story_auditor").model, "custom-auditor");
     assert.equal(modelRoute("story_auditor").reasoningEffort, "medium");
+    process.env.MANUSCRIPT_EDITOR_MODEL = "custom-language-editor";
+    assert.equal(modelRoute("manuscript_editor").model, "custom-language-editor");
   });
 });
