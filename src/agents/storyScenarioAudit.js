@@ -8,13 +8,18 @@ function clean(value, maximum = 600) {
 
 export async function storyScenarioAuditAgent(
   { intake = {}, scenario = {} } = {},
-  { backgroundExecution = null, backgroundStep = "" } = {},
+  {
+    backgroundExecution = null,
+    backgroundStep = "",
+    modelRole = "story_editor",
+  } = {},
 ) {
   const language = normalizeBookLanguage(intake.language);
   const result = await runAgent({
     name: "storyScenarioAudit",
     clientKind: "scenario",
-    modelRole: "story_editor",
+    modelRole,
+    jsonRepairModelRole: "story_repair",
     system: `${bookLanguageInstruction(language)}\n\n${loadPrompt("story_scenario_audit.txt")}`,
     user: (payload) => `SCENARIO_AUDIT_INPUT_JSON:\n${JSON.stringify(payload, null, 2)}\n\nReturn ONLY the requested JSON object.`,
     input: { intake, scenario },

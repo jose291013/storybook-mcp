@@ -12,6 +12,7 @@ import {
   applyStoryScenarioRepairDirectives,
   buildStoryScenarioRepairDirectives,
 } from "./storyScenarioRepairs.js";
+import { generationCostPolicy } from "./generationCostPolicy.js";
 
 export async function generateValidatedScenario({
   normalized,
@@ -54,26 +55,11 @@ export async function generateValidatedScenario({
     sensitivity_contract: sensitivityContract,
     previous_scenario: previousScenario || null,
   };
+  const policy = generationCostPolicy().scenario;
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
   let repairDirectives = [];
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    await onStep({ phase: "architect", attempt });
-    const candidate = await storyScenarioAgent(
-      {
-        ...input,
-        ...(scenario ? {
-          previous_scenario: scenario,
-          validation_issues: validation.issues,
-          repair_directives: repairDirectives,
-        } : {}),
-        structural_repair_attempt: attempt,
-      },
-      {
-        backgroundExecution,
-        backgroundStep: `architect:${attempt}`,
-      },
-    );
+  const normalizeCandidate = (candidate, directives = []) => (
     scenario = applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
       applyCreatorStoryScenarioEdits(
         normalizeStoryScenario(candidate, {
@@ -86,35 +72,78 @@ export async function generateValidatedScenario({
         }),
         { sceneEdits, addedCharacters },
       ),
-    ), repairDirectives, { language: normalized.answers.language });
-    await onStep({ phase: "validation", attempt });
-    validation = validateStoryScenario(scenario);
-    if (validation.valid) {
-      await onStep({ phase: "editor", attempt });
-      const audit = await storyScenarioAuditAgent(
-        {
-          intake: normalized.answers,
-          scenario,
-        },
-        {
-          backgroundExecution,
-          backgroundStep: `editor:${attempt}`,
-        },
-      );
-      validation = {
-        valid: audit.status === "approved",
-        issues: audit.issues.map((issue) => (
-          `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`
-        )),
-        diagnostics: audit.issues,
-      };
-      if (!validation.valid) repairDirectives = audit.repairDirectives;
-    }
-    if (validation.valid) break;
+    ), directives, { language: normalized.answers.language })
+  );
+
+  await onStep({ phase: "architect", attempt: 1 });
+  const candidate = await storyScenarioAgent(
+    {
+      ...input,
+      structural_repair_attempt: 1,
+    },
+    {
+      backgroundExecution,
+      backgroundStep: "architect:1",
+    },
+  );
+  normalizeCandidate(candidate);
+  await onStep({ phase: "validation", attempt: 1 });
+  validation = validateStoryScenario(scenario);
+
+  let repairCalls = 0;
+  const repairScenario = async () => {
+    if (repairCalls >= policy.repairCalls) return false;
+    repairCalls += 1;
     repairDirectives = [
       ...repairDirectives,
       ...buildStoryScenarioRepairDirectives(scenario, validation),
     ].slice(0, 12);
+    await onStep({ phase: "repair", attempt: repairCalls });
+    const repaired = await storyScenarioAgent(
+      {
+        ...input,
+        previous_scenario: scenario,
+        validation_issues: validation.issues,
+        repair_directives: repairDirectives,
+        structural_repair_attempt: repairCalls,
+      },
+      {
+        backgroundExecution,
+        backgroundStep: `repair:${repairCalls}`,
+        modelRole: "story_repair",
+      },
+    );
+    normalizeCandidate(repaired, repairDirectives);
+    await onStep({ phase: "validation", attempt: repairCalls + 1 });
+    validation = validateStoryScenario(scenario);
+    return true;
+  };
+
+  if (!validation.valid) await repairScenario();
+
+  if (validation.valid && policy.editorCalls > 0) {
+    await onStep({ phase: "editor", attempt: 1 });
+    const audit = await storyScenarioAuditAgent(
+      {
+        intake: normalized.answers,
+        scenario,
+      },
+      {
+        backgroundExecution,
+        backgroundStep: "editor:1",
+      },
+    );
+    validation = {
+      valid: audit.status === "approved",
+      issues: audit.issues.map((issue) => (
+        `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`
+      )),
+      diagnostics: audit.issues,
+    };
+    repairDirectives = audit.repairDirectives;
+    if (!validation.valid && repairCalls < policy.repairCalls) {
+      await repairScenario();
+    }
   }
   await onStep({ phase: "finalizing", attempt: 0 });
   return { scenario, validation };

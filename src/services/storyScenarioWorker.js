@@ -370,9 +370,17 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
     const previous = storyScenarioSnapshot(project);
     const request = generation.request;
     const backgroundExecution = createBackgroundExecution({ runs, run });
-    let costStage = "scenario:architect";
+    let costStage = "scenario:architect:attempt:1";
+    let costAttemptKind = Number(generation.technicalAttempt || 1) > 1
+      ? "technical_retry"
+      : "normal";
     const onStep = ({ phase, attempt }) => {
-      costStage = `scenario:${phase || "generation"}`;
+      costStage = `scenario:${phase || "generation"}:attempt:${Number(attempt || 0)}`;
+      costAttemptKind = Number(generation.technicalAttempt || 1) > 1
+        ? "technical_retry"
+        : phase === "repair"
+          ? "quality_repair"
+          : "normal";
       return persistGenerationProgress({
         projects,
         runs,
@@ -387,9 +395,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       runId: run.id,
       workflow: "scenario",
       getStage: () => costStage,
-      attemptKind: Number(generation.technicalAttempt || 1) > 1
-        ? "technical_retry"
-        : "normal",
+      getAttemptKind: () => costAttemptKind,
     }, () => generate({
       normalized,
       previousScenario: previous?.fingerprint === generation.fingerprint ? previous : null,

@@ -42,7 +42,7 @@ export function currentOpenAICostContext() {
 export function inferAttemptKind(stage, fallback = "normal") {
   const value = String(stage || "").toLowerCase();
   if (/modification|customer.change/.test(value)) return "customer_change";
-  if (/quality|repair/.test(value)) return "quality_repair";
+  if (/quality|repair|recheck|targeted/.test(value)) return "quality_repair";
   if (/retry|attempt:[2-9]|attempt:[1-9][0-9]/.test(value)) return "technical_retry";
   return fallback;
 }

@@ -15,6 +15,12 @@ const ROUTES = {
     defaultModel: "gpt-5.6-sol",
     defaultEffort: "high",
   },
+  story_repair: {
+    modelEnv: "STORY_REPAIR_MODEL",
+    effortEnv: "STORY_REPAIR_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-terra",
+    defaultEffort: "medium",
+  },
   story_planner: {
     modelEnv: "STORY_PLANNER_MODEL",
     effortEnv: "STORY_PLANNER_REASONING_EFFORT",
@@ -31,6 +37,12 @@ const ROUTES = {
     modelEnv: "STORY_WRITER_MODEL",
     effortEnv: "STORY_WRITER_REASONING_EFFORT",
     defaultModel: "gpt-5.6-terra",
+    defaultEffort: "medium",
+  },
+  manuscript_editor: {
+    modelEnv: "MANUSCRIPT_EDITOR_MODEL",
+    effortEnv: "MANUSCRIPT_EDITOR_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-luna",
     defaultEffort: "medium",
   },
   utility: {
