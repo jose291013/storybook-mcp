@@ -16,6 +16,7 @@ test("the internal cost governor defaults to one premium narrative pass and thre
     architectCalls: 1,
     editorCalls: 1,
     repairCalls: 1,
+    finalAuditCalls: 1,
   });
   assert.equal(policy.manuscript.maximumBatches, 3);
   assert.equal(policy.storyPlan.plannerCalls, 1);

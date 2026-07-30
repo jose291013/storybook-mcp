@@ -7,10 +7,12 @@ import { previewRequestFingerprint } from "../services/previewGenerationCheckpoi
 import { projectStore } from "../services/projectStore.js";
 import {
   clarificationAnswersForApproval,
+  hasCurrentStoryScenarioAuditEvidence,
   recoverLegacyLifecycleValidation,
   storyScenarioSnapshot,
   summarizeStoryScenarioValidation,
   validateStoryScenario,
+  withStoryScenarioAuditEvidence,
 } from "../services/storyScenario.js";
 import {
   childSafetyTextFromQuestionnaire,
@@ -315,18 +317,21 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
     }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);
-    const scenario = storyScenarioSnapshot(project);
+    let scenario = storyScenarioSnapshot(project);
     if (!scenario || scenario.fingerprint !== fingerprint) {
       return res.status(409).json({ error: "The scenario no longer matches this project", code: "scenario_stale" });
     }
     let validation = validateStoryScenario(scenario);
-    if (validation.valid) {
+    if (validation.valid && hasCurrentStoryScenarioAuditEvidence(scenario)) {
+      console.info("[story-scenario] approval reused final audit", { projectId: project.id });
+    } else if (validation.valid) {
       const audit = await storyScenarioAuditAgent({ intake: normalized.answers, scenario });
       validation = {
         valid: audit.status === "approved",
         issues: audit.issues.map((issue) => `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`),
         diagnostics: audit.issues,
       };
+      if (validation.valid) scenario = withStoryScenarioAuditEvidence(scenario);
     }
     if (!validation.valid) {
       console.warn("[story-scenario] approval validation failed", { projectId: project.id, issueCount: validation.issues.length });

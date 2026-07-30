@@ -7,6 +7,7 @@ import {
   scenarioCharacterRegistry,
   stabilizeStoryScenario,
   validateStoryScenario,
+  withStoryScenarioAuditEvidence,
 } from "./storyScenario.js";
 import {
   applyStoryScenarioRepairDirectives,
@@ -59,6 +60,7 @@ export async function generateValidatedScenario({
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
   let repairDirectives = [];
+  let editorCalls = 0;
   const normalizeCandidate = (candidate, directives = []) => (
     scenario = applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
       applyCreatorStoryScenarioEdits(
@@ -119,10 +121,9 @@ export async function generateValidatedScenario({
     return true;
   };
 
-  if (!validation.valid) await repairScenario();
-
-  if (validation.valid && policy.editorCalls > 0) {
-    await onStep({ phase: "editor", attempt: 1 });
+  const auditScenario = async () => {
+    editorCalls += 1;
+    await onStep({ phase: "editor", attempt: editorCalls });
     const audit = await storyScenarioAuditAgent(
       {
         intake: normalized.answers,
@@ -130,7 +131,7 @@ export async function generateValidatedScenario({
       },
       {
         backgroundExecution,
-        backgroundStep: "editor:1",
+        backgroundStep: `editor:${editorCalls}`,
       },
     );
     validation = {
@@ -141,8 +142,26 @@ export async function generateValidatedScenario({
       diagnostics: audit.issues,
     };
     repairDirectives = audit.repairDirectives;
+    if (validation.valid) scenario = withStoryScenarioAuditEvidence(scenario);
+    else if (scenario?.auditEvidence) delete scenario.auditEvidence;
+    return audit;
+  };
+
+  if (!validation.valid) await repairScenario();
+
+  if (validation.valid && policy.editorCalls > 0) {
+    await auditScenario();
     if (!validation.valid && repairCalls < policy.repairCalls) {
-      await repairScenario();
+      const repaired = await repairScenario();
+      if (repaired && validation.valid && policy.finalAuditCalls > 0) {
+        await auditScenario();
+      } else if (repaired && validation.valid) {
+        validation = {
+          valid: false,
+          issues: ["scenario final semantic audit is required after repair"],
+          diagnostics: [],
+        };
+      }
     }
   }
   await onStep({ phase: "finalizing", attempt: 0 });

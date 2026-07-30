@@ -28,6 +28,8 @@ Reject only clear contradictions that would make the story causally, physically 
 
 Do not reject a coherent gentle fantasy mechanism merely because it is magical. The mechanism only needs to be introduced before use, visible or narratively explicit, stable and shared by every affected physical character.
 
+Object lifecycles and the causal graph track identity, existence, possession and plot-critical irreversible changes. They do not need a new lifecycle event for every reversible visible property such as glowing, moving, loosening, opening or closing while the object remains the same entity. Treat explicit partial or non-terminal wording as authoritative: expressions such as "a little", "still closed", "not yet", "un poco", "sigue cerrada", "todavía no", "un peu", "reste fermé" or "pas encore" must never be escalated into a completed release, opening, transformation or resolution. Reject only when the reader-visible action itself unambiguously completes a plot-critical state change and the declared state or causal graph directly contradicts that completion.
+
 OUTPUT
 {
   "audit": {
