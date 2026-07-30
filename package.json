@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.10",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "php-parser": "^3.7.0"
   }
 }
