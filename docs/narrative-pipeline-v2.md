@@ -1,6 +1,6 @@
 # Calitiki Narrative Pipeline V2
 
-Status: architecture contract, not connected to production
+Status: contract foundation and pure compiler, not connected to production
 
 Contract version: `calitiki.narrative-book-spec.v1`
 
@@ -133,6 +133,27 @@ It must not call an AI model. It may reject an approved scenario only when an
 invariant cannot be compiled safely. That rejection is an internal product
 defect or a genuine unresolved creator choice, not an invitation for another
 model to guess.
+
+The first pure implementation is
+`src/contracts/compileNarrativeBookSpec.js`. It accepts only:
+
+- an explicitly approved scenario v2;
+- a current final-audit digest for that exact scenario;
+- character movement ledger v1;
+- causal graph v1 with every object tracked in every scene;
+- one supported book format and sanitized immutable safety references.
+
+It is deliberately not called by a route, worker or customer journey yet. It
+performs no storage, network or model operation. It derives stable registries,
+page bindings, the exact end-of-scene visible moment and complete object
+snapshots, then executes the mechanical NarrativeBookSpec validator before
+returning. Semantic evidence is initialized as `pending`, never invented by the
+compiler.
+
+A source-object transformation is projected without creative inference into
+two linked mechanical facts: the approved terminal event for the source and a
+deterministic introduction event for the declared result object. Missing result
+state, ambiguous same-scene events or an untracked object stop compilation.
 
 Each registered object is represented exactly once in every scene. `absent`
 means quantity `0`; every other state means a positive quantity. This prevents a
@@ -273,6 +294,10 @@ Initial operational targets:
 - median preview AI cost below `$2.00`, then below `$1.50`.
 
 ## Delivery sequence
+
+The contract foundation and pure compiler are implemented behind tests only.
+Shadow compilation is the next separate brick; no production route consumes a
+NarrativeBookSpec yet.
 
 1. **Contract foundation** — this document, JSON Schema, deterministic validator,
    reference fixture and tests.

@@ -8,41 +8,42 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-pipeline-v2-contract`
-- Production/main checkpoint: PR #110 merged; targeted story-text repair version 3
-- Current focused checkpoint: Narrative Pipeline V2 contract foundation
-- Pull request: draft PR #111
+- Current branch: `codex/narrative-pipeline-v2-compiler`
+- Production/main checkpoint: PR #111 merged; Narrative Pipeline V2 contract foundation
+- Current focused checkpoint: pure approved-scenario → NarrativeBookSpec compiler
+- Pull request: not opened yet
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #110 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #111 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Narrative Pipeline V2 contract foundation
+## Current product brick: Narrative Pipeline V2 pure compiler
 
-1. `docs/narrative-pipeline-v2.md` defines one immutable canonical artifact and the side-by-side migration away from repeated probabilistic mechanical audits.
-2. `src/contracts/narrativeBookSpec.v1.schema.json` declares canonical registries, scenes, safety references, exact visible moments and versioned validation evidence.
-3. `src/contracts/narrativeBookSpec.js` supplies a pure digest and deterministic invariant validator without an AI call or production integration.
-4. The reference fixture explicitly keeps a guide in the adventure world after the hero and parent return; reintroducing that guide in the return illustration is rejected deterministically.
-5. Physical locations are reconstructed from ordered movements independently from presence and cast declarations. Each illustration targets one explicit scene phase, preventing a matching presence/cast edit from disguising a teleportation or a mixed departure/arrival moment.
-6. Object events now prove complete before/after state, owner and quantity values. A silent owner or quantity change is rejected even if the coarse state is unchanged.
-7. Child Safety remains a separate repeated gate. A support/refusal or restricted profile cannot produce a canonical book contract. Protective education requires an immutable `body_safety_v1` reference; ordinary stories cannot carry a stray protective contract.
-8. The JSON Schema is compiled and executed in the focused test suite with AJV instead of being checked only as a static document.
-9. This brick changes no production route, model call, customer project, credit behavior, Render variable or WordPress package.
+1. `src/contracts/compileNarrativeBookSpec.js` compiles only an approved, currently audited scenario v2 with movement ledger v1 and causal graph v1.
+2. The compiler is a synchronous pure function: it performs no AI call, storage read/write, network request or production-route integration.
+3. Book page bindings come from the deterministic format plan. Character, location, object and passage registries are stable and every reference is resolved before the artifact is returned.
+4. Every illustration targets the end of one approved scene. Visible characters derive from physical end/throughout presences; thought, memory and voice characters are evoked; every other canonical character is forbidden.
+5. Passage discovery is projected into an explicit stationary canonical movement. Crossing and return reuse the same two-sided passage registry and cannot be compiled without a prior discovery.
+6. Every declared object must be tracked in every scene and have a matching causal graph entity. State, owner and quantity changes without one exact causal event stop compilation.
+7. A causal transformation becomes one source event plus one deterministic result-introduction event; the compiler does not ask a model to infer missing state.
+8. The returned artifact carries a stable digest and a `pending` semantic-audit slot. Mechanical validation runs before return; semantic approval is never fabricated.
+9. Structured `NarrativeBookSpecCompileError` issues are bounded and reject stale audits, legacy ledgers, ambiguous identifiers, unresolved passages and incomplete editorial fields.
+10. This brick changes no production route, model call, customer project, credit behavior, Render variable or WordPress package.
 
 ## Verification
 
-- Focused Narrative Book Spec tests: 16/16 passing.
-- Complete `npm test`: 294/294 passing.
-- Complete npm dependency audit: 0 known vulnerabilities.
+- Focused compiler tests: 8/8 passing.
+- Complete `npm test`: 302/302 passing.
+- Complete npm production dependency audit: 0 known vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #111 and the canonical schema/V2 ownership boundaries.
-2. After explicit merge approval, merge the contract foundation without connecting it to production.
-3. Implement the pure approved-scenario compiler as a separate brick after that foundation is accepted.
+1. Review the compiler PR and confirm that it remains disconnected from production.
+2. After explicit merge approval, merge this brick without deploying or activating V2.
+3. Implement shadow compilation as a separate brick after the pure compiler is accepted.
 
 ## Protected local state
 

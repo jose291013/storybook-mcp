@@ -175,6 +175,15 @@ introduced by the contract-foundation brick. The normative design is
 `docs/narrative-pipeline-v2.md`; the machine-readable contract is
 `src/contracts/narrativeBookSpec.v1.schema.json`.
 
+The pure compiler brick is implemented behind tests only. It requires the exact
+approved-scenario audit, movement ledger v1 and causal graph v1; derives stable
+registries, format page bindings, one end-of-scene visible moment and a complete
+per-scene object ledger; and returns only after deterministic NarrativeBookSpec
+validation. It performs no AI, network, persistence, route, credit or
+customer-flow operation. Transformations are projected into linked
+source/result causal events without asking a model to guess. Shadow compilation
+remains the next separate phase and must not affect legacy generation outcomes.
+
 ## Current implementation checkpoint
 
 - Calitiki Bridge 0.6.0 adds **Create a new adventure** to every paid eBook in **My creations**. The Storybook service creates or reuses the series and child profile, marks the purchased source as episode 1, freezes its continuity memory, and opens episode 2 with the original ten answers, book choices and authenticated private reference photos. No generation begins until the customer edits the draft, reviews it and explicitly confirms a new preview debit.
