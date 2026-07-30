@@ -808,7 +808,7 @@ function scenarioApiMessage(payload, fallbackKey) {
 function setStoryScenarioBusy(busy, action = "update") {
   state.storyScenarioBusy = busy;
   elements.storyScenarioPanel.setAttribute("aria-busy", String(busy));
-  elements.storyScenarioPanel.querySelectorAll("input, textarea, select, [data-toggle-presences]").forEach((control) => { control.disabled = busy; });
+  elements.storyScenarioPanel.querySelectorAll("input:not([data-allow-during-busy]), textarea, select, [data-toggle-presences]").forEach((control) => { control.disabled = busy; });
   elements.scenarioAddCharacterButton.disabled = busy;
   elements.retryInitialScenarioButton.disabled = busy;
   elements.reviseScenarioButton.disabled = busy;
