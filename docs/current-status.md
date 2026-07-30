@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-pipeline-v2-contract`
 - Production/main checkpoint: PR #110 merged; targeted story-text repair version 3
 - Current focused checkpoint: Narrative Pipeline V2 contract foundation
-- Pull request: not yet created
+- Pull request: draft PR #111
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,8 +36,9 @@ PR #55 through PR #110 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Review the canonical schema and V2 ownership boundaries before opening a pull request.
-2. After contract approval, implement the pure approved-scenario compiler as a separate brick without connecting it to production.
+1. Review draft PR #111 and the canonical schema/V2 ownership boundaries.
+2. After explicit merge approval, merge the contract foundation without connecting it to production.
+3. Implement the pure approved-scenario compiler as a separate brick after that foundation is accepted.
 
 ## Protected local state
 
