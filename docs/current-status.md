@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/structured-story-plan-repair`
 - Main checkpoint and last production deployment: PR #108 — durable economical blueprint and bounded scenario revisions
 - Current focused checkpoint: structured versioned repair for rejected whole-book plans
-- Pull request: pending creation; do not merge without fresh creator confirmation
+- Pull request: #109 open as draft; do not merge without fresh creator confirmation
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
