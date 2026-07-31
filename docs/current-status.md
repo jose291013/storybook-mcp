@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/legacy-book-language-evidence`
 - Production/main checkpoint: PR #121 merged at `897b1ba`; canonical book language and no-charge mismatch repair
 - Current focused checkpoint: recover the requested language of early previews whose interface fallback was persisted into every language field
-- Pull request: pending
+- Pull request: PR #122, draft and validated; awaiting explicit merge confirmation
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
