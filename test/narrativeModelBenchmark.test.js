@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import test from "node:test";
 
+import { parseNarrativeBenchmarkCli } from "../src/services/narrativeBenchmarkCli.js";
 import {
   benchmarkNarrativeModels,
   prepareSyntheticNarrativeBenchmarkFixture,
@@ -44,7 +45,7 @@ function fixture() {
   };
 }
 
-test("benchmark runs identical synthetic input through isolated Sol and Luna roles", async () => {
+test("benchmark runs identical synthetic input through isolated Sol, Terra and Luna roles", async () => {
   const roles = [];
   const progress = [];
   const report = await benchmarkNarrativeModels([fixture()], {
@@ -79,27 +80,33 @@ test("benchmark runs identical synthetic input through isolated Sol and Luna rol
   assert.equal(report.version, 2);
   assert.deepEqual(report.results[0].variants.map((variant) => variant.id), [
     "sol",
+    "terra",
     "luna",
   ]);
   assert.deepEqual(roles.map((role) => role.architect), [
     "narrative_benchmark_sol",
+    "narrative_benchmark_terra",
     "narrative_benchmark_luna",
   ]);
-  assert.equal(report.results[0].variants[1].canonicalCompiled, true);
-  assert.equal(report.results[0].variants[1].endToEndPassed, true);
-  assert.equal(report.results[0].variants[1].costUsdMicros, 1234);
-  assert.equal("scenario" in report.results[0].variants[1], false);
+  assert.equal(report.variantCount, 3);
+  assert.equal(report.results[0].variants[2].canonicalCompiled, true);
+  assert.equal(report.results[0].variants[2].endToEndPassed, true);
+  assert.equal(report.results[0].variants[2].costUsdMicros, 1234);
+  assert.equal("scenario" in report.results[0].variants[2], false);
   assert.deepEqual(report.summary.map((variant) => ({
     id: variant.id,
     passRate: variant.endToEndPassRatePercent,
     medianCost: variant.medianCostUsdMicros,
   })), [
     { id: "sol", passRate: 100, medianCost: 1234 },
+    { id: "terra", passRate: 100, medianCost: 1234 },
     { id: "luna", passRate: 100, medianCost: 1234 },
   ]);
   assert.deepEqual(progress.map((event) => `${event.event}:${event.variantId}`), [
     "variant_started:sol",
     "variant_completed:sol",
+    "variant_started:terra",
+    "variant_completed:terra",
     "variant_started:luna",
     "variant_completed:luna",
   ]);
@@ -148,8 +155,12 @@ test("benchmark exposes bounded mechanical diagnostics without generated prose",
     }),
   });
 
-  const [sol, luna] = report.results[0].variants;
+  const [sol, terra, luna] = report.results[0].variants;
   assert.deepEqual(sol.canonicalIssues, [{
+    code: "ambiguous_passage_endpoints",
+    path: "registries.passages",
+  }]);
+  assert.deepEqual(terra.canonicalIssues, [{
     code: "ambiguous_passage_endpoints",
     path: "registries.passages",
   }]);
@@ -160,7 +171,7 @@ test("benchmark exposes bounded mechanical diagnostics without generated prose",
   assert.equal(JSON.stringify(report).includes("private explanation"), false);
   assert.equal(JSON.stringify(report).includes("must not be returned"), false);
   assert.equal(report.summary[0].endToEndPassRatePercent, 0);
-  assert.equal(report.summary[1].scenarioValidCount, 0);
+  assert.equal(report.summary[2].scenarioValidCount, 0);
 });
 
 test("one model execution failure does not discard the other benchmark result", async () => {
@@ -192,8 +203,9 @@ test("one model execution failure does not discard the other benchmark result", 
     }),
   });
 
-  const [sol, luna] = report.results[0].variants;
+  const [sol, terra, luna] = report.results[0].variants;
   assert.equal(sol.endToEndPassed, true);
+  assert.equal(terra.endToEndPassed, true);
   assert.equal(luna.executionSucceeded, false);
   assert.equal(luna.executionErrorCode, "scenario_timeout");
   assert.equal(JSON.stringify(report).includes("private provider response"), false);
@@ -208,6 +220,56 @@ test("benchmark refuses non-synthetic fixtures before any model call", async () 
       },
     }),
     /synthetic fixtures only/,
+  );
+  assert.equal(calls, 0);
+});
+
+test("benchmark runs only the explicitly selected paid variant", async () => {
+  const roles = [];
+  const report = await benchmarkNarrativeModels([fixture()], {
+    variantIds: ["terra"],
+    generate: async (input) => {
+      roles.push(input.modelRoles.architect);
+      return {
+        scenario: {
+          revision: 1,
+          auditEvidence: { digest: "a".repeat(64) },
+        },
+        validation: { valid: true, issues: [] },
+      };
+    },
+    compile: () => ({
+      scenes: [{ id: "scene_1" }],
+      validation: { artifactDigest: "b".repeat(64) },
+    }),
+    costDetails: async () => ({
+      summary: {
+        totalCostUsdMicros: 100,
+        requestCount: 1,
+        pricingComplete: true,
+      },
+    }),
+  });
+
+  assert.deepEqual(roles, ["narrative_benchmark_terra"]);
+  assert.equal(report.variantCount, 1);
+  assert.deepEqual(report.summary.map((variant) => variant.id), ["terra"]);
+  assert.deepEqual(
+    report.results[0].variants.map((variant) => variant.id),
+    ["terra"],
+  );
+});
+
+test("benchmark rejects an unknown variant before any model call", async () => {
+  let calls = 0;
+  await assert.rejects(
+    () => benchmarkNarrativeModels([fixture()], {
+      variantIds: ["terar"],
+      generate: async () => {
+        calls += 1;
+      },
+    }),
+    /Unknown narrative benchmark variant: terar/,
   );
   assert.equal(calls, 0);
 });
@@ -248,8 +310,61 @@ test("documented synthetic questionnaire fixture is normalized without customer 
 
 test("CLI requires explicit paid fixture scope and emits bounded progress", async () => {
   const script = await fs.readFile("scripts/benchmarkNarrativeModels.js", "utf8");
-  assert.match(script, /--fixture <id>/);
-  assert.match(script, /--all/);
+  const parser = await fs.readFile("src/services/narrativeBenchmarkCli.js", "utf8");
+  assert.match(parser, /--fixture <id>/);
+  assert.match(parser, /--variant <sol\|terra\|luna\|all>/);
+  assert.match(parser, /Unknown benchmark option/);
+  assert.match(parser, /--all/);
   assert.match(script, /\[benchmark\]/);
+  assert.match(script, /paid model run/);
   assert.doesNotMatch(script, /questionnaire|creator_situation|generated\.scenario/);
+});
+
+test("CLI selects Terra alone and rejects unknown or ambiguous paid options", () => {
+  assert.deepEqual(
+    parseNarrativeBenchmarkCli([
+      "fixtures.json",
+      "--fixture",
+      "seed-lifecycle-fr-8",
+      "--variant",
+      "terra",
+    ]),
+    {
+      fixturePath: "fixtures.json",
+      allFixtures: false,
+      fixtureId: "seed-lifecycle-fr-8",
+      variantIds: ["terra"],
+    },
+  );
+  assert.throws(
+    () => parseNarrativeBenchmarkCli([
+      "fixtures.json",
+      "--fixture",
+      "seed-lifecycle-fr-8",
+      "--variant",
+      "terra",
+      "--varaint",
+      "luna",
+    ]),
+    /Unknown benchmark option: --varaint/,
+  );
+  assert.throws(
+    () => parseNarrativeBenchmarkCli([
+      "fixtures.json",
+      "--fixture",
+      "seed-lifecycle-fr-8",
+    ]),
+    /Choose exactly which model is billable/,
+  );
+  assert.throws(
+    () => parseNarrativeBenchmarkCli([
+      "fixtures.json",
+      "--fixture",
+      "seed-lifecycle-fr-8",
+      "--all",
+      "--variant",
+      "terra",
+    ]),
+    /either --fixture <id> or --all/,
+  );
 });

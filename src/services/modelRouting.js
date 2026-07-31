@@ -63,6 +63,12 @@ const ROUTES = {
     defaultModel: "gpt-5.6-sol",
     defaultEffort: "high",
   },
+  narrative_benchmark_terra: {
+    modelEnv: "NARRATIVE_BENCHMARK_TERRA_MODEL",
+    effortEnv: "NARRATIVE_BENCHMARK_TERRA_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-terra",
+    defaultEffort: "high",
+  },
   narrative_benchmark_luna: {
     modelEnv: "NARRATIVE_BENCHMARK_LUNA_MODEL",
     effortEnv: "NARRATIVE_BENCHMARK_LUNA_REASONING_EFFORT",

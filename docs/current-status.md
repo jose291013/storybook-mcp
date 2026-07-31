@@ -8,39 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-benchmark-diagnostics`
-- Production/main checkpoint: PR #113 merged; compiler, disabled shadow harness and synthetic Luna/Sol benchmark
-- Current focused checkpoint: bounded benchmark diagnostics and six-case synthetic corpus
-- Pull request: draft PR #114
+- Current branch: `codex/narrative-benchmark-terra`
+- Production/main checkpoint: PR #114 merged; V2 compiler, disabled shadow harness and bounded six-case Sol/Luna benchmark
+- Current focused checkpoint: explicit Terra benchmark route and fail-closed paid CLI selection
+- Pull request: not yet published
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #113 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #114 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Narrative benchmark diagnostics
+## Current product brick: Explicit Terra benchmark
 
-1. The first real synthetic run showed Sol at USD 0.576545 and Luna at USD 0.056499. Sol passed scenario validation but failed canonical compilation with `ambiguous_passage_endpoints`; Luna failed scenario validation. Neither model is eligible for a production route change.
-2. Report version 2 separates provider execution, scenario validation, canonical compilation and complete end-to-end acceptance.
-3. Scenario diagnostics expose only bounded category, scene number and structured code. Compiler diagnostics expose only code and schema path. Generated prose and explanations remain absent.
-4. One failed model variant no longer discards the other result. The aggregate report gives per-model pass counts, pass rate, median cost, median duration and total request count.
-5. The corpus contains six entirely synthetic FR/ES/EN fixtures covering a simple story, object lifecycle, portal return, late arrival plus memory-only presence, prudent loss treatment and protective education.
-6. The command requires either one explicit `--fixture <id>` or an explicit `--all` acknowledgement before paid calls. It emits content-free progress while each variant runs.
-7. This brick does not alter scenario generation, customer projects, Render model routes, credits or the disabled-by-default V2 shadow behavior.
+1. Four completed Sol/Luna comparisons show material stochastic variation: each model has passed one complete case out of four. Sol has cost USD 3.593703 across those runs; Luna USD 0.228819. The latest simple-story rerun passed scenario validation for both models but failed canonical compilation on passage discovery, plus two Luna object-event defects. Neither model is eligible for a production route change from this evidence.
+2. Terra is added as an isolated benchmark-only role at high reasoning. This does not change any production narrative route.
+3. The paid CLI now requires both a fixture scope and `--variant sol|terra|luna|all`. Unknown, misspelled, duplicated or contradictory options stop before any model call.
+4. The CLI announces the exact variants and paid-run count before execution. Selecting Terra on one fixture launches exactly one variant rather than silently rerunning Sol and Luna.
+5. Existing report-v2 privacy rules remain: only bounded codes, schema paths, counts, duration and attributable cost are emitted; generated prose and explanations remain absent.
 
 ## Verification
 
-- Focused benchmark, shadow and compiler tests: 19/19 passing.
-- Complete `npm test`: 314/314 passing.
+- Focused benchmark and model-routing tests: 11/11 passing.
+- Complete `npm test`: 317/317 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #114 without activating any production model route.
-2. After explicit merge approval, run one fixture at a time before explicitly authorizing the six-fixture paid corpus.
-3. Use the aggregate evidence to decide whether Luna is eligible for any narrative role.
+1. Publish and review the focused Terra/CLI-safety PR without activating any production model route.
+2. After explicit merge approval and deployment, run Terra alone on `seed-lifecycle-fr-8`, then `simple-teamwork-fr-7`.
+3. Compare Terra end-to-end acceptance and attributable cost before authorizing another model or corpus run.
 
 ## Protected local state
 

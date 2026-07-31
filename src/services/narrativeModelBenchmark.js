@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 
 import { compileNarrativeBookSpec } from "../contracts/compileNarrativeBookSpec.js";
 import { childSafetyContract } from "./childSafety.js";
+import { NARRATIVE_BENCHMARK_VARIANT_IDS } from "./narrativeBenchmarkCli.js";
 import { normalizeBookRequest } from "./normalizeBookRequest.js";
 import {
   canonicalNarrativeV2Safety,
@@ -17,6 +18,10 @@ const VARIANTS = [
   {
     id: "sol",
     modelRole: "narrative_benchmark_sol",
+  },
+  {
+    id: "terra",
+    modelRole: "narrative_benchmark_terra",
   },
   {
     id: "luna",
@@ -112,6 +117,21 @@ function approveForCompilation(scenario, now) {
     revision: Math.max(1, Number(scenario?.revision || 1)),
     approvedAt: scenario?.approvedAt || now,
   };
+}
+
+function selectedVariants(variantIds) {
+  const requested = Array.isArray(variantIds) && variantIds.length
+    ? [...new Set(variantIds.map((value) => clean(value).toLowerCase()))]
+    : [...NARRATIVE_BENCHMARK_VARIANT_IDS];
+  const unknown = requested.filter(
+    (variantId) => !NARRATIVE_BENCHMARK_VARIANT_IDS.includes(variantId),
+  );
+  if (unknown.length) {
+    throw new Error(`Unknown narrative benchmark variant: ${unknown.join(", ")}`);
+  }
+  return requested.map(
+    (variantId) => VARIANTS.find((variant) => variant.id === variantId),
+  );
 }
 
 export function prepareSyntheticNarrativeBenchmarkFixture(fixture = {}) {
@@ -235,6 +255,7 @@ export async function benchmarkNarrativeModels(
     costDetails = getBookCostDetails,
     now = () => new Date().toISOString(),
     onProgress = async () => {},
+    variantIds = NARRATIVE_BENCHMARK_VARIANT_IDS,
   } = {},
 ) {
   const source = Array.isArray(fixtures) ? fixtures : [];
@@ -242,11 +263,12 @@ export async function benchmarkNarrativeModels(
   if (source.some((fixture) => fixture?.synthetic !== true)) {
     throw new Error("Narrative model benchmarks accept synthetic fixtures only");
   }
+  const activeVariants = selectedVariants(variantIds);
   const results = [];
   for (const rawFixture of source) {
     const fixture = prepareSyntheticNarrativeBenchmarkFixture(rawFixture);
     const variants = [];
-    for (const variant of VARIANTS) {
+    for (const variant of activeVariants) {
       await onProgress({
         event: "variant_started",
         fixtureId: clean(fixture.id) || "synthetic-fixture",
@@ -277,7 +299,8 @@ export async function benchmarkNarrativeModels(
     version: 2,
     syntheticOnly: true,
     fixtureCount: results.length,
-    summary: VARIANTS.map((variant) => aggregateVariant(results, variant.id)),
+    variantCount: activeVariants.length,
+    summary: activeVariants.map((variant) => aggregateVariant(results, variant.id)),
     results,
   };
 }

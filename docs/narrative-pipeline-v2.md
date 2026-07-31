@@ -261,11 +261,12 @@ legacy preview path.
 
 Model quality is evaluated separately from customer traffic. The explicit
 `benchmark:narrative-models` command accepts synthetic fixtures only and runs the
-same normalized input through isolated Sol and Luna role routes. It reports only
-validation, canonical compilation, duration, request count and attributable
-cost. It never runs automatically on Render and never accepts a customer
-project, prompt or photo. Report version 2 distinguishes provider execution,
-scenario validation, canonical compilation and end-to-end acceptance. Its
+same normalized input through explicitly selected isolated Sol, Terra or Luna
+role routes. It reports only validation, canonical compilation, duration,
+request count and attributable cost. It never runs automatically on Render and
+never accepts a customer project, prompt or photo. Report version 2
+distinguishes provider execution, scenario validation, canonical compilation
+and end-to-end acceptance. Its
 bounded diagnostics contain only categories, scene numbers, codes and schema
 paths; generated prose and model explanations are never emitted.
 
@@ -277,14 +278,17 @@ the other model result. Aggregate metrics include pass counts, end-to-end pass
 rate, median duration, median cost and total requests per model.
 
 The command refuses to make paid calls unless one fixture or the complete corpus
-is explicitly selected. Content-free progress is written while each model runs:
+and the exact billable model variant are explicitly selected. Unknown,
+misspelled, duplicated or contradictory options fail before any provider call.
+Content-free progress states the paid run count and selected variants before a
+model starts:
 
 ```text
-npm run benchmark:narrative-models -- test/fixtures/narrative-benchmark.synthetic.example.json --fixture seed-lifecycle-fr-8
-npm run benchmark:narrative-models -- test/fixtures/narrative-benchmark.synthetic.example.json --all
+npm run benchmark:narrative-models -- test/fixtures/narrative-benchmark.synthetic.example.json --fixture seed-lifecycle-fr-8 --variant terra
+npm run benchmark:narrative-models -- test/fixtures/narrative-benchmark.synthetic.example.json --all --variant all
 ```
 
-The second command launches twelve model variants and must be used only after
+The second command launches eighteen paid model runs and must be used only after
 the operator deliberately accepts that cost. The safe corpus is provided at
 `test/fixtures/narrative-benchmark.synthetic.example.json` and can be run
 without supplying customer data.
