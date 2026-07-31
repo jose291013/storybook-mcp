@@ -1,4 +1,5 @@
-export const STORY_CAUSAL_GRAPH_VERSION = 1;
+export const STORY_CAUSAL_GRAPH_VERSION = 2;
+export const LEGACY_STORY_CAUSAL_GRAPH_VERSION = 1;
 
 const STATES = new Set([
   "worn", "held", "carried", "stored", "visible", "absent", "left_behind",
@@ -10,6 +11,7 @@ const EVENT_TYPES = new Set([
 ]);
 const TERMINAL_TYPES = new Set(["consume", "transform", "destroy"]);
 const TERMINAL_STATES = new Set(["consumed", "transformed", "destroyed", "used_up"]);
+const POSSESSION_STATES = new Set(["worn", "held", "carried"]);
 
 function clean(value) {
   return String(value || "").trim();
@@ -39,24 +41,74 @@ function objectId(object = {}, index = 0) {
   );
 }
 
-export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = []) {
-  if (Number(rawGraph?.version) !== STORY_CAUSAL_GRAPH_VERSION) return null;
+function canonicalCharacterName(value, characters = []) {
+  const requested = stableId(value);
+  if (!requested) return "";
+  return clean(values(characters, 30).find((character) => (
+    stableId(character?.name) === requested
+  ))?.name || value);
+}
+
+function stateQuantity(state, supplied, fallback = 1) {
+  if (state === "absent") return 0;
+  const parsed = Number(supplied);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function stateOwner(state, supplied, characters = []) {
+  if (!POSSESSION_STATES.has(state)) return "";
+  return canonicalCharacterName(supplied, characters);
+}
+
+function graphEntityOwner(graph = {}, entityIdValue = "", characters = []) {
+  const entity = values(graph.entities, 30).find((candidate) => candidate.id === entityIdValue);
+  const owners = [
+    entity?.initialOwnerCharacter,
+    ...values(graph.events, 80).filter((event) => (
+      event.entityId === entityIdValue || event.resultEntityId === entityIdValue
+    )).flatMap((event) => [
+      event.entityId === entityIdValue ? event.toOwnerCharacter : "",
+      event.resultEntityId === entityIdValue ? event.resultOwnerCharacter : "",
+    ]),
+  ].map((owner) => canonicalCharacterName(owner, characters)).filter(Boolean);
+  const uniqueOwners = [...new Set(owners)];
+  return uniqueOwners.length === 1 ? uniqueOwners[0] : "";
+}
+
+export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], characters = []) {
+  const version = Number(rawGraph?.version);
+  if (![LEGACY_STORY_CAUSAL_GRAPH_VERSION, STORY_CAUSAL_GRAPH_VERSION].includes(version)) return null;
   const sceneNumbers = new Set(scenes.map((scene) => Number(scene.sceneNumber)));
-  const declared = objects.map((object, index) => ({
-    id: objectId(object, index),
-    label: clean(object.name),
-    owner: clean(object.owner),
-    initialState: STATES.has(object.initialState) ? object.initialState : "visible",
-  }));
+  const declared = objects.map((object, index) => {
+    const initialState = STATES.has(object.initialState) ? object.initialState : "visible";
+    return {
+      id: objectId(object, index),
+      label: clean(object.name),
+      initialState,
+      initialOwnerCharacter: stateOwner(initialState, object.owner, characters),
+      initialQuantity: stateQuantity(initialState, object.initialQuantity),
+    };
+  });
   const suppliedEntities = values(rawGraph.entities, 30);
   const entities = declared.map((entity) => {
     const supplied = suppliedEntities.find((item) => stableId(item?.id || item?.entity_id) === entity.id) || {};
+    const initialState = STATES.has(supplied.initial_state || supplied.initialState)
+      ? clean(supplied.initial_state || supplied.initialState)
+      : entity.initialState;
     return {
       ...entity,
       label: clean(supplied.label || supplied.name) || entity.label,
-      initialState: STATES.has(supplied.initial_state || supplied.initialState)
-        ? clean(supplied.initial_state || supplied.initialState)
-        : entity.initialState,
+      initialState,
+      initialOwnerCharacter: stateOwner(
+        initialState,
+        supplied.initial_owner_character || supplied.initialOwnerCharacter || entity.initialOwnerCharacter,
+        characters,
+      ),
+      initialQuantity: stateQuantity(
+        initialState,
+        supplied.initial_quantity ?? supplied.initialQuantity,
+        entity.initialQuantity,
+      ),
     };
   });
   const entityIds = new Set(entities.map((entity) => entity.id));
@@ -67,6 +119,14 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = []) {
     const resultEntityId = stableId(item?.result_entity_id || item?.resultEntityId);
     const fromState = clean(item?.from_state || item?.fromState);
     const toState = clean(item?.to_state || item?.toState);
+    const toOwnerCharacter = stateOwner(
+      toState,
+      item?.to_owner_character || item?.toOwnerCharacter,
+      characters,
+    );
+    const resultState = STATES.has(item?.result_state || item?.resultState)
+      ? clean(item?.result_state || item?.resultState)
+      : "visible";
     return {
       id: stableId(item?.id || `event_${index + 1}`),
       sceneNumber,
@@ -75,9 +135,18 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = []) {
       resultEntityId,
       fromState: STATES.has(fromState) ? fromState : "",
       toState: STATES.has(toState) ? toState : "",
-      resultState: STATES.has(item?.result_state || item?.resultState)
-        ? clean(item?.result_state || item?.resultState)
-        : "visible",
+      toOwnerCharacter,
+      toQuantity: stateQuantity(toState, item?.to_quantity ?? item?.toQuantity),
+      resultState,
+      resultOwnerCharacter: stateOwner(
+        resultState,
+        item?.result_owner_character || item?.resultOwnerCharacter,
+        characters,
+      ),
+      resultQuantity: stateQuantity(
+        resultState,
+        item?.result_quantity ?? item?.resultQuantity,
+      ),
       sequence: index + 1,
       structurallyValid: Boolean(
         sceneNumbers.has(sceneNumber)
@@ -89,8 +158,8 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = []) {
     };
   });
   return {
-    version: STORY_CAUSAL_GRAPH_VERSION,
-    authority: "architect",
+    version,
+    authority: version === STORY_CAUSAL_GRAPH_VERSION ? "draft_v2" : "architect_legacy",
     entities,
     events,
   };
@@ -99,14 +168,18 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = []) {
 export function applyCausalGraph(input = {}) {
   const scenario = input;
   const graph = scenario?.causalGraph;
-  if (Number(graph?.version) !== STORY_CAUSAL_GRAPH_VERSION) return scenario;
+  if (![LEGACY_STORY_CAUSAL_GRAPH_VERSION, STORY_CAUSAL_GRAPH_VERSION].includes(Number(graph?.version))) return scenario;
   const objects = values(scenario.objects, 30);
   const byId = new Map();
   for (const [index, object] of objects.entries()) {
     object.objectId = objectId(object, index);
     byId.set(object.objectId, object);
     const entity = graph.entities.find((candidate) => candidate.id === object.objectId);
-    if (entity) object.initialState = entity.initialState;
+    if (entity) {
+      object.initialState = entity.initialState;
+      object.initialQuantity = entity.initialQuantity;
+      object.owner = graphEntityOwner(graph, object.objectId, scenario.characters);
+    }
   }
   for (const object of objects) {
     const events = graph.events
@@ -120,7 +193,7 @@ export function applyCausalGraph(input = {}) {
       }))
       .filter((event) => event.state)
       .sort((left, right) => left.sceneNumber - right.sceneNumber);
-    object.causalAuthority = "graph_v1";
+    object.causalAuthority = `graph_v${graph.version}`;
     object.lifecycle = {
       version: 1,
       kind: events.some((event) => ["plant", "transform"].includes(event.type))
@@ -136,18 +209,93 @@ export function applyCausalGraph(input = {}) {
   return scenario;
 }
 
+function ledgerInstruction({ label, state, owner }) {
+  if (state === "absent") return `${label} is absent from this scene.`;
+  if (owner) return `${owner} has the single ${label}; preserve this exact state (${state}).`;
+  return `${label} has one authoritative state in this scene: ${state}.`;
+}
+
+export function projectCausalGraphObjectLedger(input = {}) {
+  const scenario = input;
+  const graph = scenario?.causalGraph;
+  if (Number(graph?.version) !== STORY_CAUSAL_GRAPH_VERSION) return scenario;
+  const objects = values(scenario.objects, 30);
+  const trackedIds = new Set(objects.filter((object) => object.trackEveryScene).map((object, index) => objectId(object, index)));
+  const entities = values(graph.entities, 30).filter((entity) => trackedIds.has(entity.id));
+  const stateByEntity = new Map(entities.map((entity) => [entity.id, {
+    state: entity.initialState,
+    owner: entity.initialOwnerCharacter || "",
+    quantity: stateQuantity(entity.initialState, entity.initialQuantity),
+    eventId: "",
+  }]));
+  const events = values(graph.events, 80)
+    .filter((event) => event.structurallyValid)
+    .slice()
+    .sort((left, right) => left.sceneNumber - right.sceneNumber || left.sequence - right.sequence);
+  for (const scene of values(scenario.scenes, 30).slice().sort((left, right) => left.sceneNumber - right.sceneNumber)) {
+    for (const event of events.filter((candidate) => candidate.sceneNumber === Number(scene.sceneNumber))) {
+      stateByEntity.set(event.entityId, {
+        state: event.toState,
+        owner: event.toOwnerCharacter || "",
+        quantity: stateQuantity(event.toState, event.toQuantity),
+        eventId: event.id,
+      });
+      if (event.resultEntityId) {
+        stateByEntity.set(event.resultEntityId, {
+          state: event.resultState,
+          owner: event.resultOwnerCharacter || "",
+          quantity: stateQuantity(event.resultState, event.resultQuantity),
+          eventId: event.id,
+        });
+      }
+    }
+    scene.objectStates = entities.map((entity) => {
+      const current = stateByEntity.get(entity.id);
+      const object = objects.find((candidate, index) => objectId(candidate, index) === entity.id);
+      return {
+        objectId: entity.id,
+        name: clean(object?.name || entity.label),
+        owner: current.owner,
+        state: current.state,
+        quantity: current.quantity,
+        instruction: ledgerInstruction({
+          label: clean(object?.name || entity.label),
+          state: current.state,
+          owner: current.owner,
+        }),
+      };
+    });
+  }
+  return scenario;
+}
+
 export function validateCausalGraph(scenario = {}) {
   const graph = scenario?.causalGraph;
   if (!graph) return [];
-  if (Number(graph.version) !== STORY_CAUSAL_GRAPH_VERSION) {
+  if (![LEGACY_STORY_CAUSAL_GRAPH_VERSION, STORY_CAUSAL_GRAPH_VERSION].includes(Number(graph.version))) {
     return ["causal graph version is unsupported"];
   }
   const issues = [];
+  const characterNames = new Set(values(scenario.characters, 30).map((character) => clean(character?.name)));
   const entityIds = new Set();
   for (const entity of values(graph.entities, 30)) {
     if (!entity.id) issues.push("causal graph entity id is required");
     else if (entityIds.has(entity.id)) issues.push(`causal entity ${entity.id} is declared more than once`);
     entityIds.add(entity.id);
+    if (Number(graph.version) === STORY_CAUSAL_GRAPH_VERSION) {
+      if (POSSESSION_STATES.has(entity.initialState) && !entity.initialOwnerCharacter) {
+        issues.push(`causal entity ${entity.id} requires an initial character owner while ${entity.initialState}`);
+      }
+      if (entity.initialOwnerCharacter && !characterNames.has(entity.initialOwnerCharacter)) {
+        issues.push(`causal entity ${entity.id} has unknown initial character owner`);
+      }
+      if (entity.initialState === "absent" && entity.initialQuantity !== 0) {
+        issues.push(`causal entity ${entity.id} must have quantity 0 while absent`);
+      }
+      if (entity.initialState !== "absent" && !(Number.isInteger(entity.initialQuantity) && entity.initialQuantity > 0)) {
+        issues.push(`causal entity ${entity.id} requires a positive initial quantity while present`);
+      }
+    }
   }
   const objectIds = new Set(values(scenario.objects, 30).map((object, index) => objectId(object, index)));
   for (const entityId of entityIds) {
@@ -171,6 +319,32 @@ export function validateCausalGraph(scenario = {}) {
     if (!event.structurallyValid) {
       issues.push(`scene-${event.sceneNumber || 0}: causal event ${event.id || "unknown"} has invalid references`);
       continue;
+    }
+    if (Number(graph.version) === STORY_CAUSAL_GRAPH_VERSION) {
+      if (POSSESSION_STATES.has(event.toState) && !event.toOwnerCharacter) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a character owner while ${event.toState}`);
+      }
+      if (event.toOwnerCharacter && !characterNames.has(event.toOwnerCharacter)) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} has unknown character owner`);
+      }
+      if (event.resultOwnerCharacter && !characterNames.has(event.resultOwnerCharacter)) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} has unknown result character owner`);
+      }
+      if (event.toState === "absent" && event.toQuantity !== 0) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} must have quantity 0 while absent`);
+      }
+      if (event.toState !== "absent" && !(Number.isInteger(event.toQuantity) && event.toQuantity > 0)) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a positive quantity while present`);
+      }
+      if (event.resultEntityId && POSSESSION_STATES.has(event.resultState) && !event.resultOwnerCharacter) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a result character owner while ${event.resultState}`);
+      }
+      if (event.resultEntityId && event.resultState === "absent" && event.resultQuantity !== 0) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} result must have quantity 0 while absent`);
+      }
+      if (event.resultEntityId && event.resultState !== "absent" && !(Number.isInteger(event.resultQuantity) && event.resultQuantity > 0)) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a positive result quantity while present`);
+      }
     }
     const currentState = currentStates.get(event.entityId);
     if (event.fromState && currentState && event.fromState !== currentState) {

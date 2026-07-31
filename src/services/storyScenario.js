@@ -10,6 +10,7 @@ import { findUniverse } from "../config/bookOptions.js";
 import {
   applyCausalGraph,
   normalizeCausalGraph,
+  projectCausalGraphObjectLedger,
   validateCausalGraph,
 } from "./storyCausalGraph.js";
 
@@ -99,6 +100,11 @@ function key(value) {
 
 function objectDefinitionKey(value = {}) {
   return `${key(value?.name)}::${key(value?.owner)}`;
+}
+
+function objectRegistryKey(value = {}) {
+  const explicitId = text(value?.objectId || value?.object_id || value?.entityId || value?.entity_id);
+  return explicitId ? `id:${key(explicitId)}` : `definition:${objectDefinitionKey(value)}`;
 }
 
 function objectInstanceKey(value = {}, declaredObjects = []) {
@@ -239,7 +245,7 @@ export function normalizeStoryScenario(candidate = {}, {
     };
   }).filter((item, index, all) => (
     item.name
-    && all.findIndex((candidate) => objectDefinitionKey(candidate) === objectDefinitionKey(item)) === index
+    && all.findIndex((candidate) => objectRegistryKey(candidate) === objectRegistryKey(item)) === index
   ));
   const rawNarrativeContract = raw?.narrative_contract || raw?.narrativeContract || {};
   const narrativeContract = Number(rawNarrativeContract?.version) === 1 ? {
@@ -358,6 +364,7 @@ export function normalizeStoryScenario(candidate = {}, {
     raw?.causal_graph || raw?.causalGraph,
     objects,
     scenes,
+    characters,
   );
   return {
     version: STORY_SCENARIO_VERSION,
@@ -744,7 +751,7 @@ function inferredObjectLifecycle(object, scenes, objects) {
 
 function mergedObjectLifecycle(object, scenes, objects) {
   const explicit = object?.lifecycle?.version === 1 ? object.lifecycle : null;
-  if (object?.causalAuthority === "graph_v1" && explicit) return explicit;
+  if (/^graph_v\d+$/.test(object?.causalAuthority) && explicit) return explicit;
   const inferred = inferredObjectLifecycle(object, scenes, objects);
   if (!explicit) return inferred;
   const events = [...list(inferred?.events, 20), ...list(explicit.events, 20)]
@@ -987,6 +994,7 @@ export function stabilizeStoryScenario(input = {}) {
   }
   stabilizeRequiredMechanismLifecycles(scenario);
   stabilizeNarrativeObjectLifecycles(scenario);
+  projectCausalGraphObjectLedger(scenario);
   return scenario;
 }
 

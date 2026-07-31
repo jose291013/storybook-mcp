@@ -252,6 +252,55 @@ test("owner-specific copies of the same recurring object remain distinct", () =>
   assert.deepEqual(validateStoryScenario(scenario), { valid: true, issues: [] });
 });
 
+test("version-2 object entity ids preserve same-name personal copies without model owners", () => {
+  const normalized = normalizeStoryScenario({ scenario: {
+    title: "Les bulles",
+    summary: "Lina et Eva utilisent chacune leur bulle.",
+    characters: [
+      { name: "Lina", initial_location: "le récif" },
+      { name: "Eva", initial_location: "le récif" },
+    ],
+    objects: [
+      { entity_id: "lina_bubble", name: "bulle respiratoire", track_every_scene: true },
+      { entity_id: "eva_bubble", name: "bulle respiratoire", track_every_scene: true },
+    ],
+    causal_graph: {
+      version: 2,
+      entities: [
+        { id: "lina_bubble", label: "bulle respiratoire", initial_state: "worn", initial_owner_character: "Lina", initial_quantity: 1 },
+        { id: "eva_bubble", label: "bulle respiratoire", initial_state: "worn", initial_owner_character: "Eva", initial_quantity: 1 },
+      ],
+      events: [],
+    },
+    scenes: [{
+      scene_number: 1,
+      title: "Sous l'eau",
+      action: "Lina et Eva observent le récif avec leurs bulles distinctes.",
+      location_before: "le récif",
+      location_after: "le récif",
+      character_presences: [
+        { name: "Lina", mode: "physical", phase: "throughout", location: "le récif" },
+        { name: "Eva", mode: "physical", phase: "throughout", location: "le récif" },
+      ],
+      transition: { kind: "none", from: "le récif", to: "le récif", characters: [] },
+    }],
+  } }, {
+    pagePlan: [{ page_type: "image", scene_number: 1, story_role: "character_and_desire" }],
+    canonicalCharacters: [
+      { name: "Lina", role: "child", storyRole: "hero" },
+      { name: "Eva", role: "other", storyRole: "ally" },
+    ],
+    requireCausalGraph: true,
+  });
+  const stabilized = stabilizeStoryScenario(normalized);
+
+  assert.deepEqual(stabilized.objects.map(({ objectId }) => objectId), ["lina_bubble", "eva_bubble"]);
+  assert.deepEqual(
+    stabilized.scenes[0].objectStates.map(({ objectId, owner }) => [objectId, owner]),
+    [["lina_bubble", "Lina"], ["eva_bubble", "Eva"]],
+  );
+});
+
 test("one unique recurring object may change hands without becoming a second copy", () => {
   const scenario = coherentPortalScenario();
   scenario.scenes[1].objectStates = [{
@@ -1176,6 +1225,9 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioPrompt, /Write every creator-facing value exclusively in intake\.language/);
   assert.match(scenarioPrompt, /character_movements is the authoritative per-character travel ledger/);
   assert.match(scenarioPrompt, /phase start for a departure/);
+  assert.match(scenarioPrompt, /causal_graph\.version 2 is the only mechanical source of truth/);
+  assert.match(scenarioPrompt, /Do not return objects\[\]\.owner/);
+  assert.doesNotMatch(scenarioPrompt, /"object_states": \[/);
   assert.match(app, /requestStoryScenario/);
   assert.match(app, /approveStoryScenario/);
   assert.match(app, /storyScenarioBusy/);

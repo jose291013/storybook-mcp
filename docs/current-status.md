@@ -8,36 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/fix-noncharacter-object-owners`
-- Production/main checkpoint: PR #116 merged; canonical character aliases and ordinary-return normalization
-- Current focused checkpoint: canonical non-character object attribution
-- Pull request: draft PR #117
+- Current branch: `codex/narrative-draft-v2`
+- Production/main checkpoint: PR #117 merged at `af3c7a0`; canonical non-character object attribution
+- Current focused checkpoint: model-independent Narrative Draft V2 object ledger
+- Pull request: draft PR #118
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #116 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #117 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Canonical object ownership
+## Current product brick: Narrative Draft V2
 
-1. The post-PR #116 Terra rerun produced a valid scenario and no passage defect, but canonical compilation still failed on 20 repeated `unknown_character` object-owner paths. Cost was USD 0.436780 over three requests and 257876 ms.
-2. A free-form object attribution now becomes `ownerCharacterId` only when it resolves to a declared character. A location, group or contextual attribution on a non-possession state compiles to `null` instead of inventing a character.
-3. `held`, `carried` and `worn` remain strict: an unresolved owner still raises both `unknown_character` and `possessed_object_owner_required`.
-4. This brick changes no production model route, customer flow, persistence, safety gate or environment variable.
+1. The post-PR #117 Terra rerun removed all 20 false `unknown_character` findings but failed scenario validation on one generic `object_validation_failed` at scene 10. Cost was USD 0.357508 over two requests and 242199 ms.
+2. The root cause is redundant AI authorship: the prompt asked one model to keep the same object fact synchronized across a lifecycle, a causal graph and every scene snapshot.
+3. Narrative Draft V2 makes causal graph version 2 the only model-authored mechanical object truth. Code derives the legacy lifecycle and every scene state, owner and quantity from that graph before deterministic validation and canonical compilation.
+4. Persisted version-1 causal graphs remain supported. Child Safety, Story Sensitivity, model routes, credits and customer data boundaries are unchanged.
 
 ## Verification
 
-- Focused canonical compiler tests: 12/12 passing.
-- Complete `npm test`: 321/321 passing.
+- Focused scenario, causal graph, canonical compiler and benchmark tests: 73/73 passing.
+- Complete `npm test`: 326/326 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #117 without changing production model routing.
+1. Review draft PR #118; do not merge without explicit confirmation and a Render restart warning.
 2. After explicit merge approval and deployment, rerun only Terra on `simple-teamwork-fr-7`.
-3. Continue the bounded corpus only if canonical compilation passes; do not infer a production route from three attempts.
+3. Continue the bounded corpus only if both scenario validation and canonical compilation pass; do not choose a production model from isolated attempts.
 
 ## Protected local state
 

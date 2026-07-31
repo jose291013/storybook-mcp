@@ -9,6 +9,7 @@ import {
   compileNarrativeBookSpec,
 } from "../src/contracts/compileNarrativeBookSpec.js";
 import {
+  stabilizeStoryScenario,
   withStoryScenarioAuditEvidence,
 } from "../src/services/storyScenario.js";
 import { validateNarrativeBookSpec } from "../src/contracts/narrativeBookSpec.js";
@@ -530,6 +531,58 @@ test("compiler makes every tracked object state explicit on every scene", () => 
   assert.equal(states[1].eventId, "flower_appears");
   assert.equal(states[2].eventId, "flower_acquired");
   assert.equal(states[2].ownerCharacterId, "bastien");
+});
+
+test("compiler consumes the deterministic version-2 object ledger instead of model scene snapshots", () => {
+  const scenario = approvedScenario();
+  scenario.causalGraph.version = 2;
+  scenario.causalGraph.authority = "draft_v2";
+  scenario.causalGraph.entities[0] = {
+    id: "bond_flower",
+    label: "Fleur du lien",
+    initialState: "absent",
+    initialOwnerCharacter: "",
+    initialQuantity: 0,
+  };
+  scenario.causalGraph.events[0] = {
+    ...scenario.causalGraph.events[0],
+    fromState: "",
+    toOwnerCharacter: "",
+    toQuantity: 1,
+    resultOwnerCharacter: "",
+    resultQuantity: 1,
+  };
+  scenario.causalGraph.events[1] = {
+    ...scenario.causalGraph.events[1],
+    fromState: "",
+    toOwnerCharacter: "Bastien",
+    toQuantity: 1,
+    resultOwnerCharacter: "",
+    resultQuantity: 1,
+  };
+  for (const scene of scenario.scenes) {
+    scene.objectStates = [{
+      objectId: "bond_flower",
+      name: "Fleur du lien",
+      owner: "Marie",
+      state: "held",
+      quantity: 9,
+      instruction: "Contradictory model snapshot that must be ignored.",
+    }];
+  }
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  const contract = compile({ scenario: approveAgain(stabilized) });
+  const states = [
+    contract.scenes[0].objectStates[0],
+    contract.scenes[1].objectStates[0],
+    contract.scenes[10].objectStates[0],
+  ];
+
+  assert.deepEqual(states.map(({ state }) => state), ["absent", "visible", "carried"]);
+  assert.deepEqual(states.map(({ quantity }) => quantity), [0, 1, 1]);
+  assert.equal(states[2].ownerCharacterId, "bastien");
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
 });
 
 test("compiler does not turn a non-character object attribution into a character owner", () => {

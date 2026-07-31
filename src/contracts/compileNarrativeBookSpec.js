@@ -350,16 +350,19 @@ function compileObjectLedger({
     const initialState = clean(graphEntity.initialState || object.initialState || "visible");
     const ownerCharacterId = resolveObjectOwner(
       characterIds,
-      object.owner,
+      graphEntity.initialOwnerCharacter || object.owner,
       initialState,
       issues,
       `registries.objects[${index}].initialOwnerCharacterId`,
     );
+    const initialQuantity = initialState === "absent"
+      ? 0
+      : positiveInteger(graphEntity.initialQuantity, 1);
     return {
       id: objectIds.get(key(objectIdentity(object))),
       name: clean(object.name),
       initialState,
-      initialQuantity: initialState === "absent" ? 0 : 1,
+      initialQuantity,
       initialOwnerCharacterId: ownerCharacterId,
       lifecycleKind: clean(object?.lifecycle?.kind || "persistent"),
     };
@@ -540,8 +543,8 @@ export function compileNarrativeBookSpec({
   if (Number(scenario?.movementLedgerVersion) !== 1) {
     addIssue(issues, "movement_ledger_required", "scenario.movementLedgerVersion", "Character movement ledger version 1 is required.");
   }
-  if (!scenario?.causalGraphRequired || Number(scenario?.causalGraph?.version) !== 1) {
-    addIssue(issues, "causal_graph_required", "scenario.causalGraph", "Causal graph version 1 is required.");
+  if (!scenario?.causalGraphRequired || ![1, 2].includes(Number(scenario?.causalGraph?.version))) {
+    addIssue(issues, "causal_graph_required", "scenario.causalGraph", "A supported causal graph is required.");
   }
   if (!hasCurrentStoryScenarioAuditEvidence(scenario)) {
     addIssue(issues, "stale_scenario_audit", "scenario.auditEvidence", "The final scenario audit must belong to this exact approved scenario.");
