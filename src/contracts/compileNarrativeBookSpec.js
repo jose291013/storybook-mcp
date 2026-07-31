@@ -65,7 +65,9 @@ function addIssue(issues, code, path, message) {
   issues.push({ code, path, message });
 }
 
-function uniqueIds(entries, prefix, issues) {
+function uniqueIds(entries, prefix, issues, {
+  aliasesForEntry = () => [],
+} = {}) {
   const used = new Set();
   const ids = new Map();
   for (const [index, entry] of entries.entries()) {
@@ -81,7 +83,22 @@ function uniqueIds(entries, prefix, issues) {
       id = `${id}_${index + 1}`;
     }
     used.add(id);
-    ids.set(key(source), id);
+    const aliases = [source, ...list(aliasesForEntry(entry))];
+    for (const alias of aliases) {
+      const aliasKey = key(alias);
+      if (!aliasKey) continue;
+      const existingId = ids.get(aliasKey);
+      if (existingId && existingId !== id) {
+        addIssue(
+          issues,
+          "ambiguous_canonical_alias",
+          `${prefix}[${index}]`,
+          `${clean(alias)} refers to more than one canonical ${prefix}.`,
+        );
+        continue;
+      }
+      ids.set(aliasKey, id);
+    }
   }
   return ids;
 }
@@ -154,9 +171,57 @@ function pageBindings(pageCount, scenes, issues) {
   return bindings;
 }
 
-function passageRegistry(scenes, locationIds, issues) {
+function ordinaryReturnEvents(scenes) {
+  const ordinaryRoutes = [];
+  const ordinaryReturns = new WeakSet();
+  const eventsForScene = (scene) => [
+    scene.transition,
+    ...list(scene.characterMovements),
+  ].filter(Boolean);
+
+  for (const scene of scenes) {
+    for (const event of eventsForScene(scene)) {
+      const kind = clean(event.kind);
+      if (kind === "ordinary_travel") {
+        ordinaryRoutes.push({
+          from: key(event.from),
+          to: key(event.to),
+          mechanism: key(event.mechanismId || event.mechanism),
+        });
+        continue;
+      }
+      if (kind !== "return_travel") continue;
+      const from = key(event.from);
+      const to = key(event.to);
+      const mechanism = key(event.mechanismId || event.mechanism);
+      const reversesOrdinaryRoute = ordinaryRoutes.some((route) => (
+        route.from === to
+        && route.to === from
+        && route.mechanism === mechanism
+      ));
+      if (reversesOrdinaryRoute) ordinaryReturns.add(event);
+    }
+  }
+  return ordinaryReturns;
+}
+
+function canonicalMovementKind(event, ordinaryReturns) {
+  const kind = clean(event?.kind);
+  return kind === "return_travel" && ordinaryReturns.has(event)
+    ? "ordinary_travel"
+    : kind;
+}
+
+function passageRegistry(scenes, locationIds, issues, ordinaryReturns) {
   const definitions = new Map();
-  function observe({ kind, mechanism, mechanismId, from, to }, path) {
+  function observe(event, path) {
+    const {
+      mechanism,
+      mechanismId,
+      from,
+      to,
+    } = event;
+    const kind = canonicalMovementKind(event, ordinaryReturns);
     if (!PASSAGE_MOVEMENT_KINDS.has(kind)) return;
     const id = identifier(mechanismId || mechanism, "");
     if (!id) {
@@ -517,7 +582,9 @@ export function compileNarrativeBookSpec({
   }));
 
   const characterEntries = list(scenario?.characters);
-  const characterIds = uniqueIds(characterEntries, "character", issues);
+  const characterIds = uniqueIds(characterEntries, "character", issues, {
+    aliasesForEntry: (character) => [character?.id, character?.name],
+  });
   const wardrobeByCharacter = new Map(list(scenario?.wardrobePlan).map((item) => [key(item.characterName), item]));
   const characters = characterEntries.map((character, index) => {
     if (!clean(character.initialLocation)) {
@@ -547,7 +614,13 @@ export function compileNarrativeBookSpec({
     };
   });
 
-  const { passages, passageIds } = passageRegistry(scenes, locationIds, issues);
+  const ordinaryReturns = ordinaryReturnEvents(scenes);
+  const { passages, passageIds } = passageRegistry(
+    scenes,
+    locationIds,
+    issues,
+    ordinaryReturns,
+  );
   const declaredObjects = list(scenario?.objects);
   for (const [objectIndex, object] of declaredObjects.entries()) {
     if (!object.trackEveryScene) {
@@ -637,13 +710,14 @@ export function compileNarrativeBookSpec({
       .filter((id) => !visible.includes(id) && !evoked.includes(id));
 
     const movements = list(scene.characterMovements).map((movement, movementIndex) => {
-      const passageId = ["cross_passage", "return_travel"].includes(movement.kind)
+      const movementKind = canonicalMovementKind(movement, ordinaryReturns);
+      const passageId = ["cross_passage", "return_travel"].includes(movementKind)
         ? passageIds.get(key(movement.mechanismId || movement.mechanism)) || null
         : null;
       return {
         id: identifier(`${scene.id}_${movement.id || `movement_${movementIndex + 1}`}`),
         sequence: movementIndex + 1,
-        kind: clean(movement.kind),
+        kind: movementKind,
         fromLocationId: resolveByName(locationIds, movement.from, issues, `${scenePath}.movements[${movementIndex}].fromLocationId`, "location"),
         toLocationId: resolveByName(locationIds, movement.to, issues, `${scenePath}.movements[${movementIndex}].toLocationId`, "location"),
         travelerCharacterIds: list(movement.characters).map((name) => resolveByName(
@@ -680,7 +754,10 @@ export function compileNarrativeBookSpec({
       for (let index = 1; index < movements.length; index += 1) movements[index].sequence = index + 1;
     }
 
-    const transitionKind = clean(scene.transition?.kind || "none");
+    const transitionKind = canonicalMovementKind(
+      scene.transition || { kind: "none" },
+      ordinaryReturns,
+    );
     const transitionPassageId = PASSAGE_MOVEMENT_KINDS.has(transitionKind)
       ? passageIds.get(key(scene.transition?.mechanismId || scene.transition?.mechanism)) || null
       : null;
