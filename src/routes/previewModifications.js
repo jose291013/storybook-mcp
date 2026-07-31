@@ -16,6 +16,7 @@ import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText
 import { inspectPreviewModificationRequest } from "../services/previewModificationPolicy.js";
 import { childSafetyResponse, guardChildSafety } from "../services/childSafety.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
+import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -105,8 +106,7 @@ function continuityStorageKey(project, spread) {
     }))
     .filter((item) => item.key)
     .sort((left, right) => left.distance - right.distance);
-  return project.previewResult?.coverImageStorageKey
-    || project.previewResult?.coverStorageKey
+  return visualBibleCoverStorageKey(project)
     || candidates[0]?.key
     || "";
 }

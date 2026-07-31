@@ -65,6 +65,7 @@ import {
   mergeManuscriptBatch,
 } from "../services/manuscriptBatches.js";
 import { generationCostPolicy } from "../services/generationCostPolicy.js";
+import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../services/visualBible.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -400,13 +401,18 @@ router.post("/preview", async (req, res) => {
       const previewResult = visualProofAction === "regenerate"
         ? { ...(project.previewResult || {}), coverImageUrl: "", coverImageStorageKey: "", coverPreviewUrl: "", coverStorageKey: "" }
         : project.previewResult;
+      const nextContinuitySnapshot = mergeGenerationCheckpoint(project.continuitySnapshot, {
+        ...generationCheckpoint(project),
+        visualProof,
+      });
+      if (visualProofAction === "approve") {
+        const visualBible = createApprovedCoverVisualBible({ ...project, previewResult }, visualProof.approvedAt);
+        if (visualBible) nextContinuitySnapshot.visualBible = visualBible;
+      }
       project = await projectStore.updateForCustomer(projectId, identity, {
         generationJobId: null,
         previewResult,
-        continuitySnapshot: mergeGenerationCheckpoint(project.continuitySnapshot, {
-          ...generationCheckpoint(project),
-          visualProof,
-        }),
+        continuitySnapshot: nextContinuitySnapshot,
       }) || project;
     } else if (isActiveDurableRun(durableRun) || isActivePreviewJob(existingJob)) {
       return res.json({ jobId: durableRun?.id || existingJob.id, resumed: true });
@@ -1251,6 +1257,7 @@ router.post("/preview", async (req, res) => {
       const draftPages = (priorResult.draftPages || []).filter(isReusableDraftPage);
       const completedPageNumbers = new Set(draftPages.map((page) => Number(page.page_number)));
       const coverReferencePath = localCoverImageUrl ? outputImagePath(localCoverImageUrl) : "";
+      const lockedCoverStorageKey = visualBibleCoverStorageKey(project) || coverImageStorageKey;
       const buildPageVisualRequest = (page) => {
         const pairedTextPage = final_blueprint.pages.find((candidate) => (
           candidate.spread_number === page.spread_number
@@ -1264,7 +1271,7 @@ router.post("/preview", async (req, res) => {
           scenePrompt: page.image_prompt,
           visualState: page.visual_state || {},
           ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
-          ...(!coverReferencePath && coverImageStorageKey ? { continuityImageStorageKey: coverImageStorageKey } : {}),
+          ...(!coverReferencePath && lockedCoverStorageKey ? { continuityImageStorageKey: lockedCoverStorageKey } : {}),
           pairedText,
           structuredSceneContract: page.scene_contract || null,
           wardrobeLocks: page.wardrobe_locks || [],

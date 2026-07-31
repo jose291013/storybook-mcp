@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import {
   blockingSceneContractIssues,
+  blockingStyleContinuityIssues,
   IllustrationQualityError,
   isImageSafetyRejection,
   isTransientImageGenerationError,
@@ -112,6 +113,15 @@ test("missing required cast and fused identities remain blocking after the final
     "Bastien appears once beside his reflection, which is explicitly required by the scene contract.",
     "The group contains multiple background people.",
   ]), []);
+});
+
+test("a categorical style mismatch remains blocking after the final image attempt", () => {
+  assert.deepEqual(blockingStyleContinuityIssues([
+    "Image 1 is soft_painterly while Image 2 is realistic_dimensional.",
+  ]), [
+    "Image 1 is soft_painterly while Image 2 is realistic_dimensional.",
+  ]);
+  assert.deepEqual(blockingStyleContinuityIssues([]), []);
 });
 
 test("an unresolved page-quality decision carries its preserved candidate into targeted repair", () => {

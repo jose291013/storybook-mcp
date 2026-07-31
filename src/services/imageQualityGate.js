@@ -77,6 +77,10 @@ export function blockingSceneContractIssues(issues = []) {
   ));
 }
 
+export function blockingStyleContinuityIssues(issues = []) {
+  return (Array.isArray(issues) ? issues : []).map(String).filter(Boolean);
+}
+
 export function isImageSafetyRejection(error) {
   return /(rejected by the safety system|safety system|safety rejection)/iu.test(String(error?.message || error || ""));
 }
@@ -354,11 +358,17 @@ export async function generateQualityCheckedImage({
         onAttempt?.({ phase: "approved", attempt, maximumAttempts: attemptLimit, pageLabel });
         return imageUrl;
       }
-      // Style comparison is bounded and advisory. It may request one stronger
-      // regeneration, but a second coherent image must not abort an entire
-      // preview because a vision model distinguishes subtle realism or polish.
+      // Style comparison is bounded. It may request one stronger regeneration;
+      // a remaining categorical medium break is quarantined for quality review
+      // rather than shown silently or allowed to abort the complete preview.
       const blockingSceneIssues = blockingSceneContractIssues(sceneInspection.issues);
-      if (inspection.approved && attempt === attemptLimit && blockingSceneIssues.length === 0) {
+      const blockingStyleIssues = styleInspection.approved
+        ? []
+        : blockingStyleContinuityIssues(styleInspection.issues);
+      if (inspection.approved
+        && attempt === attemptLimit
+        && blockingSceneIssues.length === 0
+        && blockingStyleIssues.length === 0) {
         const warningIssues = [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues];
         await onCandidate?.({
           imageUrl,
@@ -419,7 +429,9 @@ export async function generateQualityCheckedImage({
       throw error;
     }
   }
-  const finalBlockingIssues = blockingSceneContractIssues(previousIssues);
+  const finalBlockingIssues = previousRejectionKind === "style"
+    ? blockingStyleContinuityIssues(previousIssues)
+    : blockingSceneContractIssues(previousIssues);
   const reportedFailureIssues = finalBlockingIssues.length ? finalBlockingIssues : previousIssues;
   throw new IllustrationQualityError({
     candidateImageUrl: lastCandidateImageUrl,
