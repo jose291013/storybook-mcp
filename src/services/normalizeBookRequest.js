@@ -124,7 +124,14 @@ export function normalizeBookRequest(body = {}) {
     style_instructions: customStyle || selectedStyle.prompt,
     rendering_mode: selectedStyle.renderingMode,
     likeness_goal: selectedStyle.likeness,
-    language: normalizeBookLanguage(source.language || body.language || "FR"),
+    language: normalizeBookLanguage(
+      source.book_language
+        || source.language
+        || body.book_language
+        || body.language
+        || body.productConfiguration?.book_language
+        || "FR",
+    ),
     page_count: normalizePageCount(source.page_count || body.page_count),
     product_type: normalizeProductType(source.product_type || body.product_type),
     font_style: normalizeTypography(source.font_style || body.font_style),

@@ -21,6 +21,7 @@ import storyScenarioRouter from "./routes/storyScenario.js";
 import storyIntentionsRouter from "./routes/storyIntentions.js";
 import storySuggestionsRouter from "./routes/storySuggestions.js";
 import internalCostsRouter from "./routes/internalCosts.js";
+import bookLanguageRouter from "./routes/bookLanguage.js";
 import { projectStore } from "./services/projectStore.js";
 import { familyShareStore } from "./services/familyShareStore.js";
 import { configureImageMemory, logMemory } from "./services/runtimeMemory.js";
@@ -74,6 +75,7 @@ app.use("/api", qualityReviewRouter);
 app.use("/api", previewModificationsRouter);
 app.use("/api", narrationRouter);
 app.use("/api", internalCostsRouter);
+app.use("/api", bookLanguageRouter);
 app.use(familySharesRouter);
 
 const port = process.env.PORT || 3000;
