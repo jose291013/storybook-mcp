@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/fix-noncharacter-object-owners`
 - Production/main checkpoint: PR #116 merged; canonical character aliases and ordinary-return normalization
 - Current focused checkpoint: canonical non-character object attribution
-- Pull request: not published yet
+- Pull request: draft PR #117
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #116 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish and review the focused object-owner compiler PR without changing production model routing.
+1. Review draft PR #117 without changing production model routing.
 2. After explicit merge approval and deployment, rerun only Terra on `simple-teamwork-fr-7`.
 3. Continue the bounded corpus only if canonical compilation passes; do not infer a production route from three attempts.
 
