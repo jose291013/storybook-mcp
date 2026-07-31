@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-draft-v2`
 - Production/main checkpoint: PR #117 merged at `af3c7a0`; canonical non-character object attribution
 - Current focused checkpoint: model-independent Narrative Draft V2 object ledger
-- Pull request: not published yet
+- Pull request: draft PR #118
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #117 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish and review a draft PR for Narrative Draft V2; do not merge without explicit confirmation and a Render restart warning.
+1. Review draft PR #118; do not merge without explicit confirmation and a Render restart warning.
 2. After explicit merge approval and deployment, rerun only Terra on `simple-teamwork-fr-7`.
 3. Continue the bounded corpus only if both scenario validation and canonical compilation pass; do not choose a production model from isolated attempts.
 
