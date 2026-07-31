@@ -14,6 +14,15 @@ function getClient() {
 
 export { sanitizeBrandSensitiveText } from "./imageVisualContract.js";
 
+export function prioritizeVisualReferences(referenceImages = []) {
+  return [...referenceImages]
+    .filter(Boolean)
+    .sort((left, right) => {
+      const rank = (item) => item?.kind === "continuity" ? 0 : item?.kind === "identity" ? 1 : 2;
+      return rank(left) - rank(right);
+    });
+}
+
 export function buildFinalPrompt({
   prompt,
   characterFingerprint = "",
@@ -46,10 +55,12 @@ export function buildFinalPrompt({
   const canon = combinedFingerprints?.trim()
     ? `\n\nLOCKED CHARACTER CANON (higher priority than any conflicting scene wording):\n${combinedFingerprints.trim()}`
     : "";
-  const referenceContract = referenceImages.length
-    ? `\n\nREFERENCE IMAGE CONTRACT:\n${referenceImages.map((item, index) => (
-        `- Reference ${index + 1}: ${item.label || "visual continuity reference"}`
-      )).join("\n")}\nEach numbered reference maps to its own separate complete subject; never combine two numbered references into one body or identity. Use these images to preserve visual identity and the established illustration style. Preserve reference wardrobe only when the current scene wardrobe directive requires it; otherwise follow the declared scene outfit. Create a genuinely new scene composition. Never copy printed clothing, a background, pose, prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
+  const orderedReferences = prioritizeVisualReferences(referenceImages);
+  const hasPrimaryStyleAnchor = orderedReferences.some((item) => item?.kind === "continuity");
+  const referenceContract = orderedReferences.length
+    ? `\n\nREFERENCE IMAGE CONTRACT:\n${orderedReferences.map((item, index) => (
+        `- Reference ${index + 1} [${item.kind === "continuity" ? "PRIMARY APPROVED STYLE ANCHOR" : item.kind === "identity" ? "IDENTITY ONLY" : "SUPPORTING REFERENCE"}]: ${item.label || "visual continuity reference"}`
+      )).join("\n")}\n${hasPrimaryStyleAnchor ? "The PRIMARY APPROVED STYLE ANCHOR alone controls the book's rendering family, artistic medium, surface treatment, character proportions and world palette." : "No approved-cover style anchor is present yet; follow the requested style prompt and never derive the rendering medium from an identity photo."} IDENTITY ONLY references preserve stable facial or animal traits only; never copy their photographic medium, lighting, background, pose, printed clothing or undeclared wardrobe. Each numbered identity maps to its own separate complete subject; never combine two numbered references into one body or identity. Preserve reference wardrobe only when the current scene wardrobe directive requires it; otherwise follow the declared scene outfit. Create a genuinely new scene composition. Never copy a prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
     : "";
   const safeSceneContract = sanitizeBrandSensitiveText(sceneContract).trim();
   const exactScene = safeSceneContract
@@ -126,7 +137,9 @@ export async function generateImage({
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
   if (!prompt || typeof prompt !== "string") throw new Error("Missing or invalid prompt");
 
-  const usableReferences = referenceImages.filter((item) => item?.path || item?.storageKey || Buffer.isBuffer(item?.buffer)).slice(0, 8);
+  const usableReferences = prioritizeVisualReferences(referenceImages)
+    .filter((item) => item?.path || item?.storageKey || Buffer.isBuffer(item?.buffer))
+    .slice(0, 8);
   const finalPrompt = buildFinalPrompt({
     prompt,
     characterFingerprint,

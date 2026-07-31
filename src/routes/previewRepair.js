@@ -13,6 +13,7 @@ import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
+import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -68,7 +69,7 @@ async function usableCharacterCanons(project) {
 
 async function downloadContinuityReference(project, blueprintPage, temporaryDirectory) {
   const candidate = chooseReferencePage(project, blueprintPage);
-  const storageKey = project.previewResult?.coverImageStorageKey || project.previewResult?.coverStorageKey || candidate?.imageStorageKey || candidate?.storageKey;
+  const storageKey = visualBibleCoverStorageKey(project) || candidate?.imageStorageKey || candidate?.storageKey;
   if (!storageKey) return "";
   const asset = await getDeliveryStorage().get(storageKey);
   const body = await storageBodyToBuffer(asset.body);

@@ -73,7 +73,7 @@ export function buildSceneContinuity({
   const identityFor = (name) => visualAliases.find((item) => sameCharacter(item.name, name));
   const aliasFor = (name) => identityFor(name)?.alias || safe(name);
   const characterFingerprints = [];
-  const referenceImages = [];
+  const identityReferenceImages = [];
 
   for (const character of selected) {
     const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
@@ -97,28 +97,31 @@ export function buildSceneContinuity({
     ].filter(Boolean);
     characterFingerprints.push(rules.join(" "));
 
-    if (photoCanon?.photoId) {
+    if (photoCanon?.photoId || photoCanon?.storageKey) {
       const privateAsset = referenceAssets.get(String(photoCanon.photoId));
-      referenceImages.push({
+      identityReferenceImages.push({
         ...(privateAsset?.buffer
           ? { buffer: privateAsset.buffer }
           : photoCanon.storageKey
             ? { storageKey: photoCanon.storageKey }
             : { path: uploadedPhotoPath(photoCanon.photoId) }),
-        label: `${visualAlias}, ${role}: private identity reference; preserve face or animal traits faithfully while ignoring all printed or branded clothing details`,
+        label: `${visualAlias}, ${role}: private identity-only reference; preserve stable face or animal traits faithfully, but never copy this photo's rendering medium, lighting, background or undeclared wardrobe`,
         kind: "identity",
         normalizationMode: continuityImagePath || continuityImageStorageKey ? "face_focus" : "full_and_face",
       });
     }
   }
 
-  if (continuityImagePath || continuityImageStorageKey) {
-    referenceImages.push({
+  const continuityReference = continuityImagePath || continuityImageStorageKey
+    ? {
       ...(continuityImagePath ? { path: continuityImagePath } : { storageKey: continuityImageStorageKey }),
-      label: "approved book continuity frame: preserve the established illustration style, character proportions and mascot design; wardrobe must follow the current scene wardrobe directive",
+      label: "approved-cover visual bible and primary style anchor: preserve this exact broad rendering family, artistic medium, character proportions, world treatment and palette; wardrobe must follow the current scene directive",
       kind: "continuity",
-    });
-  }
+    }
+    : null;
+  // The approved cover must be Reference 1. Raw photos are identity evidence
+  // only and must never outvote the book's already approved visual language.
+  const referenceImages = [continuityReference, ...identityReferenceImages].filter(Boolean);
 
   const castNames = selected.map((character) => aliasFor(character.name)).filter(Boolean);
   const sceneRules = [];

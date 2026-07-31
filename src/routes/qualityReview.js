@@ -21,6 +21,7 @@ import {
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
+import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
@@ -81,8 +82,7 @@ async function usableCharacterCanons(project) {
 }
 
 async function downloadContinuityReference(project, temporaryDirectory) {
-  const storageKey = project.previewResult?.coverImageStorageKey
-    || project.previewResult?.coverStorageKey
+  const storageKey = visualBibleCoverStorageKey(project)
     || project.previewResult?.draftPages?.find((page) => page.page_type === "image" && page.imageStorageKey)?.imageStorageKey;
   if (!storageKey) return "";
   const asset = await getDeliveryStorage().get(storageKey);

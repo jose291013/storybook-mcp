@@ -11,7 +11,7 @@ import { balanceCoverTitle, composeBookPagePNG, getBodyFontSize } from "../src/s
 import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../src/config/illustrationStyles.js";
 import { getWordsTargetByAge } from "../src/agents/textWriter.js";
 import { buildReadingGuidanceProfiles, readingGuidanceForAge } from "../src/config/readingGuidance.js";
-import { buildFinalPrompt } from "../src/services/imageRunner.js";
+import { buildFinalPrompt, prioritizeVisualReferences } from "../src/services/imageRunner.js";
 import { buildImageCharacterAliases } from "../src/services/imageVisualContract.js";
 import { buildSceneContinuity } from "../src/services/visualContinuity.js";
 import { canonicalizeWrittenNames, lockBlueprintContinuity } from "../src/agents/blueprintFiller.js";
@@ -47,6 +47,11 @@ import { outputImagePath } from "../src/services/imageQualityGate.js";
 import { loadReferencePhotoAssets, persistReferencePhoto } from "../src/services/referencePhotoStorage.js";
 import { referencePhotoRecoveryAvailable } from "../src/services/referencePhotoRecovery.js";
 import { parseJsonSafe } from "../src/services/parseJsonSafe.js";
+import {
+  APPROVED_COVER_REFERENCE_POLICY,
+  createApprovedCoverVisualBible,
+  visualBibleCoverStorageKey,
+} from "../src/services/visualBible.js";
 
 test("agent JSON parsing accepts fenced output and extracts one balanced object safely", () => {
   assert.deepEqual(parseJsonSafe('```json\n{"storybrand":{"hero":"Noa"}}\n```'), {
@@ -1180,7 +1185,7 @@ test("scene continuity locks child outfit and mascot species while attaching the
     sceneContract: continuity.sceneContract,
   });
   assert.match(prompt, /never change face, species.*outfit/i);
-  assert.match(prompt, /private identity reference/i);
+  assert.match(prompt, /private identity-only reference/i);
   assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): hero child, original unbranded non-human fox animal companion 2/);
   assert.match(prompt, /NON-HUMAN CAST LOCK \(1\).*fox/i);
   assert.match(prompt, /Never substitute a human child/i);
@@ -1214,9 +1219,51 @@ test("scene continuity locks child outfit and mascot species while attaching the
     scenePrompt: "Noa enters another room",
     continuityImageStorageKey: "previews/project/cover-image.png",
   });
-  assert.equal(interiorWithIdentity.referenceImages[0].kind, "identity");
-  assert.equal(interiorWithIdentity.referenceImages[0].normalizationMode, "face_focus");
-  assert.equal(interiorWithIdentity.referenceImages[1].kind, "continuity");
+  assert.equal(interiorWithIdentity.referenceImages[0].kind, "continuity");
+  assert.equal(interiorWithIdentity.referenceImages[1].kind, "identity");
+  assert.equal(interiorWithIdentity.referenceImages[1].normalizationMode, "face_focus");
+  const interiorPrompt = buildFinalPrompt({
+    prompt: "Noa enters another room",
+    referenceImages: interiorWithIdentity.referenceImages,
+  });
+  assert.match(interiorPrompt, /Reference 1 \[PRIMARY APPROVED STYLE ANCHOR\]/);
+  assert.match(interiorPrompt, /Reference 2 \[IDENTITY ONLY\]/);
+  assert.match(interiorPrompt, /IDENTITY ONLY references preserve stable facial or animal traits only/i);
+});
+
+test("approved cover visual bible locks one private style anchor without changing existing previews", () => {
+  const project = {
+    questionnaire: { style_id: "soft_watercolor" },
+    previewResult: {
+      coverImageStorageKey: "previews/project/approved-cover.png",
+    },
+  };
+  const lockedAt = "2026-07-31T14:00:00.000Z";
+  const bible = createApprovedCoverVisualBible(project, lockedAt);
+  assert.deepEqual(bible, {
+    version: 1,
+    status: "locked",
+    lockedAt,
+    coverImageStorageKey: "previews/project/approved-cover.png",
+    styleId: "soft_watercolor",
+    renderingMode: "illustrated_faithful",
+    likenessGoal: "strong",
+    referencePolicy: APPROVED_COVER_REFERENCE_POLICY,
+  });
+  assert.equal(visualBibleCoverStorageKey({
+    ...project,
+    continuitySnapshot: { visualBible: bible },
+  }), "previews/project/approved-cover.png");
+  assert.equal(createApprovedCoverVisualBible({ previewResult: {} }, lockedAt), null);
+
+  assert.deepEqual(
+    prioritizeVisualReferences([
+      { kind: "identity", label: "person 1" },
+      { kind: "continuity", label: "approved cover" },
+      { kind: "identity", label: "person 2" },
+    ]).map((reference) => reference.kind),
+    ["continuity", "identity", "identity"],
+  );
 });
 
 test("visual aliases preserve distinct non-human species for multiple animal companions", () => {
