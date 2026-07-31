@@ -8,36 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/fix-canonical-aliases-and-return-travel`
-- Production/main checkpoint: PR #115 merged; explicit Terra benchmark route and fail-closed paid CLI selection
-- Current focused checkpoint: canonical character aliases and ordinary-return normalization
-- Pull request: draft PR #116
+- Current branch: `codex/fix-noncharacter-object-owners`
+- Production/main checkpoint: PR #116 merged; canonical character aliases and ordinary-return normalization
+- Current focused checkpoint: canonical non-character object attribution
+- Pull request: not published yet
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #115 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #116 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Canonical compiler semantics
+## Current product brick: Canonical object ownership
 
-1. Terra produced two valid scenarios. `seed-lifecycle-fr-8` compiled end to end for USD 0.348706; `simple-teamwork-fr-7` failed canonical compilation for one repeated character-owner alias and an ordinary return misclassified as a passage, at USD 0.449864.
-2. The compiler now indexes a character's stable id and approved display name onto the same canonical id. One owner-name alias can no longer create repeated `unknown_character` defects across every scene.
-3. A `return_travel` that exactly reverses an earlier ordinary route with the same mechanism is normalized to canonical `ordinary_travel`. A true discovered/crossed portal remains a passage and retains strict discovery validation.
+1. The post-PR #116 Terra rerun produced a valid scenario and no passage defect, but canonical compilation still failed on 20 repeated `unknown_character` object-owner paths. Cost was USD 0.436780 over three requests and 257876 ms.
+2. A free-form object attribution now becomes `ownerCharacterId` only when it resolves to a declared character. A location, group or contextual attribution on a non-possession state compiles to `null` instead of inventing a character.
+3. `held`, `carried` and `worn` remain strict: an unresolved owner still raises both `unknown_character` and `possessed_object_owner_required`.
 4. This brick changes no production model route, customer flow, persistence, safety gate or environment variable.
 
 ## Verification
 
-- Focused canonical compiler tests: 10/10 passing.
-- Complete `npm test`: 319/319 passing.
+- Focused canonical compiler tests: 12/12 passing.
+- Complete `npm test`: 321/321 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #116 without changing production model routing.
+1. Publish and review the focused object-owner compiler PR without changing production model routing.
 2. After explicit merge approval and deployment, rerun only Terra on `simple-teamwork-fr-7`.
-3. Continue the bounded corpus only if canonical compilation passes; do not infer a production route from two fixtures.
+3. Continue the bounded corpus only if canonical compilation passes; do not infer a production route from three attempts.
 
 ## Protected local state
 
