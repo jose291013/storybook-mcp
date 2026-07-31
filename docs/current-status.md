@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-benchmark-diagnostics`
 - Production/main checkpoint: PR #113 merged; compiler, disabled shadow harness and synthetic Luna/Sol benchmark
 - Current focused checkpoint: bounded benchmark diagnostics and six-case synthetic corpus
-- Pull request: not yet published
+- Pull request: draft PR #114
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -38,8 +38,8 @@ PR #55 through PR #113 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish a focused draft PR without activating any production model route.
-2. Run one fixture at a time before explicitly authorizing the six-fixture paid corpus.
+1. Review draft PR #114 without activating any production model route.
+2. After explicit merge approval, run one fixture at a time before explicitly authorizing the six-fixture paid corpus.
 3. Use the aggregate evidence to decide whether Luna is eligible for any narrative role.
 
 ## Protected local state
