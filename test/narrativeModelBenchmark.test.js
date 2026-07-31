@@ -174,6 +174,36 @@ test("benchmark exposes bounded mechanical diagnostics without generated prose",
   assert.equal(report.summary[2].scenarioValidCount, 0);
 });
 
+test("benchmark classifies deterministic object-ledger failures without exposing prose", async () => {
+  const report = await benchmarkNarrativeModels([fixture()], {
+    variantIds: ["terra"],
+    generate: async () => ({
+      scenario: { privateProse: "must not be returned" },
+      validation: {
+        valid: false,
+        issues: [
+          "scene-10: Lina cannot held the lantern while not physically present",
+        ],
+      },
+    }),
+    costDetails: async () => ({
+      summary: {
+        totalCostUsdMicros: 500,
+        requestCount: 1,
+        pricingComplete: true,
+      },
+    }),
+  });
+
+  assert.deepEqual(report.results[0].variants[0].scenarioDiagnostics.issues, [{
+    code: "object_owner_not_physically_present",
+    sceneNumber: 10,
+  }]);
+  assert.equal(JSON.stringify(report).includes("Lina"), false);
+  assert.equal(JSON.stringify(report).includes("lantern"), false);
+  assert.equal(JSON.stringify(report).includes("must not be returned"), false);
+});
+
 test("one model execution failure does not discard the other benchmark result", async () => {
   const report = await benchmarkNarrativeModels([fixture()], {
     generate: async (input) => {

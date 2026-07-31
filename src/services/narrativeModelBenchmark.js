@@ -41,14 +41,41 @@ function diagnosticCode(value, fallback = "validation_failed") {
     || fallback;
 }
 
+function deterministicValidationDiagnostic(value) {
+  const issue = clean(value, 600);
+  const sceneMatch = issue.match(/scene[- ](\d+)/i);
+  const sceneNumber = sceneMatch ? Number(sceneMatch[1]) : 0;
+  const rules = [
+    [/cannot (?:worn|wear|held|hold|carried|carry).*while not physically present/i, "object_owner_not_physically_present"],
+    [/must be .* according to its lifecycle/i, "object_lifecycle_state_mismatch"],
+    [/two simultaneous states/i, "duplicate_object_state"],
+    [/tracked object .* needs one explicit state/i, "tracked_object_state_missing"],
+    [/needs an owner to distinguish its copies/i, "object_copy_owner_required"],
+    [/worn or held personal object must have quantity 1/i, "possessed_object_quantity_invalid"],
+    [/requires a character owner while/i, "possessed_object_owner_required"],
+    [/unknown (?:initial |result )?character owner/i, "unknown_object_owner"],
+    [/causal event .* expects .* but .* is/i, "causal_event_previous_state_mismatch"],
+    [/reappears after terminal event/i, "terminal_object_reappears"],
+    [/resulting entity .* must start absent/i, "result_object_initial_state_invalid"],
+    [/appears before event/i, "result_object_appears_early"],
+  ];
+  const match = rules.find(([pattern]) => pattern.test(issue));
+  return match ? { code: match[1], sceneNumber } : null;
+}
+
 function scenarioDiagnostics(validation = {}) {
   const summary = summarizeStoryScenarioValidation(validation);
   const structured = summary.diagnostics.map((diagnostic) => ({
     code: diagnosticCode(diagnostic.code, "semantic_contradiction"),
     sceneNumber: Math.max(0, Number(diagnostic.sceneNumber || 0)),
   }));
+  const deterministic = (Array.isArray(validation?.issues) ? validation.issues : [])
+    .map(deterministicValidationDiagnostic)
+    .filter(Boolean);
   const issues = structured.length
     ? structured
+    : deterministic.length
+      ? deterministic
     : summary.categories.map((category) => ({
       code: `${diagnosticCode(category, "incomplete")}_validation_failed`,
       sceneNumbers: summary.categoryScenes?.[category] || [],

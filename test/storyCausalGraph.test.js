@@ -142,3 +142,116 @@ test("transformation cycles are rejected independently of object labels", () => 
   assert.ok(issues.includes("causal graph contains a transformation cycle"));
   assert.equal(scenario.causalGraph.entities.length, 2);
 });
+
+test("version-2 graph deterministically projects every object snapshot from events", () => {
+  const narrativeScenes = scenes(4).map((scene) => ({
+    ...scene,
+    action: "Lina et Eva réparent la lanterne.",
+    objectStates: [{
+      objectId: "lantern",
+      name: "lanterne",
+      owner: "atelier collectif",
+      state: "visible",
+      quantity: 7,
+    }],
+    characterPresences: [
+      { name: "Lina", mode: "physical" },
+      { name: "Eva", mode: "physical" },
+    ],
+    characterMovements: [],
+    prerequisiteSceneIds: [],
+    locationBefore: "atelier",
+    locationAfter: "atelier",
+    transition: { kind: "none", mechanism: "", mechanismId: "", characters: [] },
+  }));
+  const trackedObjects = [{
+    objectId: "lantern",
+    name: "lanterne",
+    initialState: "visible",
+    trackEveryScene: true,
+  }];
+  const characters = [{ name: "Lina" }, { name: "Eva" }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "lantern",
+      label: "lanterne",
+      initial_state: "absent",
+      initial_owner_character: "",
+      initial_quantity: 0,
+    }],
+    events: [
+      {
+        id: "lina_finds_lantern",
+        scene_number: 2,
+        type: "acquire",
+        entity_id: "lantern",
+        to_state: "held",
+        to_owner_character: "Lina",
+        to_quantity: 1,
+      },
+      {
+        id: "lina_gives_lantern_to_eva",
+        scene_number: 4,
+        type: "transfer",
+        entity_id: "lantern",
+        to_state: "held",
+        to_owner_character: "Eva",
+        to_quantity: 1,
+      },
+    ],
+  }, trackedObjects, narrativeScenes, characters);
+  const scenario = stabilizeStoryScenario({
+    characters,
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    causalGraph,
+  });
+
+  assert.equal(causalGraph.authority, "draft_v2");
+  assert.deepEqual(validateCausalGraph(scenario), []);
+  assert.deepEqual(
+    scenario.scenes.map((scene) => {
+      const [snapshot] = scene.objectStates;
+      return [snapshot.state, snapshot.owner, snapshot.quantity];
+    }),
+    [
+      ["absent", "", 0],
+      ["held", "Lina", 1],
+      ["held", "Lina", 1],
+      ["held", "Eva", 1],
+    ],
+  );
+});
+
+test("version-2 graph fails closed when a possessed state has no canonical owner", () => {
+  const trackedObjects = [{
+    objectId: "lantern",
+    name: "lanterne",
+    initialState: "absent",
+    trackEveryScene: true,
+  }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{ id: "lantern", label: "lanterne", initial_state: "absent" }],
+    events: [{
+      id: "find_lantern",
+      scene_number: 2,
+      type: "acquire",
+      entity_id: "lantern",
+      to_state: "held",
+      to_owner_character: "",
+      to_quantity: 1,
+    }],
+  }, trackedObjects, scenes(3), [{ name: "Lina" }]);
+  const scenario = {
+    characters: [{ name: "Lina" }],
+    objects: trackedObjects,
+    scenes: scenes(3),
+    causalGraph,
+  };
+
+  assert.ok(validateCausalGraph(scenario).some((issue) => (
+    issue.includes("requires a character owner while held")
+  )));
+});

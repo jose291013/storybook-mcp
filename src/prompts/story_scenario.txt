@@ -36,13 +36,13 @@ CAUSAL RULES
 - A character may depart while the focal scene remains at the origin: use physical phase start plus an ordinary_travel or return_travel character_movements event toward the character's destination. Do not move the residents who remain.
 - A guide may instead be present as thought, memory or voice. Such a guide is not physically visible and must never be included among travelers.
 - The child remains the active hero. Guides advise but do not solve the climax.
-- Track every recurring wearable, carried or plot-critical object. Give it exactly one state per scene. A hat cannot be both worn and held; when held, explicitly say that it is not worn and that only one hat exists.
-- Build causal_graph before writing the visible scenes. Give every recurring or plot-critical object one stable entity_id, even when two objects have similar names. Every physical change is one ordered causal event with a stable id, source entity, previous state, resulting state and optional distinct result entity.
+- Track every recurring wearable, carried or plot-critical object, but declare its physical state only in causal_graph. Do not return a second lifecycle or per-scene object ledger. Calitiki deterministically expands the graph into exactly one state per object and scene.
+- Build causal_graph before writing the visible scenes. Give every recurring or plot-critical object one stable entity_id, even when two objects have similar names. Every physical change is one ordered causal event with a stable id, affected entity, resulting state, resulting character owner when possessed, quantity and optional distinct result entity. Do not repeat the previous state: Calitiki derives it from the ordered ledger.
 - causal_graph is the authority for discoverable, consumable and transformable objects. A result entity starts absent, cannot appear before its producing event and has exactly one producer. A source entity has at most one terminal outcome. Transformations form an acyclic chain: for example source -> intermediate result -> final result, never source -> two competing results or a result introduced before its source changes.
-- Copy causal_graph into each object's version-1 lifecycle for compatibility. Do not invent a second lifecycle from scene wording. An object is absent before introduce/acquire, planting changes the original object to planted, consumption or destruction is terminal, and transformation replaces the source with its declared resulting object. A planted, consumed, transformed, destroyed or used-up object never returns to a hand unless a later explicit retrieve event makes that physically possible.
+- causal_graph.version 2 is the only mechanical source of truth. Calitiki derives legacy lifecycle metadata and every per-scene object state from it. An object is absent before introduce/acquire, planting changes the original object to planted, consumption or destruction is terminal, and transformation replaces the source with its declared resulting object. A planted, consumed, transformed, destroyed or used-up object never returns to a hand unless a later explicit retrieve event makes that physically possible.
 - Discovery starts a useful sequence rather than completing it. For a transformable quest object, separate introduction, observation or imperfect attempts, decisive use, and visible result across the arc. Do not transform or consume it in the same or immediately following scene when the story is about learning, patience or perseverance.
 - canonical_characters may contain an outfitContract selected by the creator. Return one wardrobe_plan entry for every such human character. Preserve a reference-photo outfit when requested. Otherwise activate the adventure outfit in a scene before that character enters the adventure zone; make that clothing change explicit in the scene action and never activate it after entry. Do not alter a face, body identity, animal or plush character to satisfy a wardrobe request.
-- A personal mechanism or recurring object is identified by both its name and its owner. When several characters each need the same mechanism, declare one owner-specific copy per character and keep one state per copy in every scene. Never treat two people's breathing bubbles, helmets, bracelets or similar belongings as one shared physical object.
+- A personal mechanism or recurring object is identified by a stable entity id. When several characters each need the same mechanism, declare one entity per physical copy and put that copy's character owner only in the causal graph. Never treat two people's breathing bubbles, helmets, bracelets or similar belongings as one shared physical object.
 - Follow any required mechanism lifecycle supplied by the universe contract. Owner-specific safety equipment is stored before preparation, introduced and put on in a physical scene before zone entry, kept active only while needed, then stored after exit. Never mark equipment as worn before it has been introduced.
 - Use the creator's dream as ordered story facts, not merely inspiration. Preserve explicit sequences such as discover portal -> cross portal -> arrive in valley.
 - End with a coherent resolution and, when the adventure left home, an explained return or stable new ending location.
@@ -73,31 +73,29 @@ OUTPUT
     "objects": [{
       "entity_id":"stable_unique_snake_case_id",
       "name":"stable object name",
-      "owner":"canonical name",
-      "initial_state":"worn | held | carried | stored | visible | absent | left_behind | planted | installed | consumed | transformed | destroyed | used_up",
-      "track_every_scene":true,
-      "lifecycle":{
-        "version":1,
-        "kind":"persistent | discoverable | transformable | consumable",
-        "events":[{"scene_number":2,"type":"introduce | acquire | plant | install | consume | transform | destroy | retrieve | store | transfer | use","state":"one allowed object state","resulting_object":"declared tracked object created by this transformation or empty","resulting_state":"visible or another allowed object state"}]
-      }
+      "track_every_scene":true
     }],
     "causal_graph": {
-      "version": 1,
+      "version": 2,
       "entities": [{
         "id": "exact object entity_id",
         "label": "exact object name",
-        "initial_state": "one allowed object state"
+        "initial_state": "one allowed object state",
+        "initial_owner_character": "exact canonical character name only when initially worn, held or carried; otherwise empty",
+        "initial_quantity": 0
       }],
       "events": [{
         "id": "stable_unique_event_id",
         "scene_number": 2,
         "type": "introduce | acquire | plant | install | consume | transform | destroy | retrieve | store | transfer | use",
-        "entity_id": "source or affected entity id",
-        "from_state": "previous allowed state",
+        "entity_id": "affected entity id",
         "to_state": "new allowed state",
+        "to_owner_character": "exact canonical character name when to_state is worn, held or carried; otherwise empty",
+        "to_quantity": 1,
         "result_entity_id": "distinct entity created by a transformation or empty",
-        "result_state": "initial produced state or visible"
+        "result_state": "initial produced state or visible",
+        "result_owner_character": "exact canonical character name only when the result is possessed; otherwise empty",
+        "result_quantity": 1
       }]
     },
     "scenes": [{
@@ -118,7 +116,6 @@ OUTPUT
       "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","phase":"start | throughout | end, or empty for nonphysical presence","location":"exact focal location for the selected physical phase, or empty for nonphysical presence","action":"role in this exact scene"}],
       "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel | join_travel","mechanism_id":"stable_snake_case_id or empty","mechanism":"named portal, route or vehicle, or empty","from":"traveler origin","to":"destination","characters":["exact canonical names who travel"]},
       "character_movements": [{"id":"movement-1","kind":"ordinary_travel | return_travel | cross_passage | join_travel","from":"group's established origin","to":"group's destination","characters":["exact canonical physical travelers in this group"],"mechanism_id":"stable passage id or empty","mechanism":"named portal, route or vehicle, or empty"}],
-      "object_states": [{"name":"tracked object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind | planted | installed | consumed | transformed | destroyed | used_up","quantity":1,"instruction":"unambiguous visual rule"}],
       "continuity_to_next":"state that the next scene inherits"
     }]
   }
@@ -134,7 +131,7 @@ MANDATORY
 - Every physical movement appears exactly once in character_movements. A resident has no movement. Several movement events may coexist in one scene, but each event must begin at every named traveler's current ledger location.
 - Use phase start for a character shown before leaving, phase end for a character shown after arriving, and throughout only for a character who stays at the same focal location for the whole scene.
 - Nonphysical thoughts, memories and voices are narratively present but not physically visible.
-- Every tracked object must match the latest lifecycle event in every scene. If an object is first discovered after scene 1, its initial_state and every earlier scene state are absent. A resulting object remains absent until its source transformation event.
-- Return causal_graph.version 1. Every graph entity id must match exactly one objects[].entity_id. Every graph event id is unique, ordered by scene, and uses only declared entity ids. A result entity has one producer, begins absent and never appears earlier. A source entity has at most one terminal transformation, consumption or destruction, and no causal event may revive it later. The transformation graph must contain no cycle.
+- Do not return objects[].owner, objects[].initial_state, objects[].lifecycle or scenes[].object_states. Those duplicated ledgers are forbidden in a version-2 draft and are generated deterministically from causal_graph.
+- Return causal_graph.version 2. Every graph entity id must match exactly one objects[].entity_id. `initial_quantity` is 0 only for `absent`, otherwise positive. An initial or resulting `worn`, `held` or `carried` state names exactly one canonical character owner; every other state has an empty owner. Every graph event id is unique, ordered by scene, and uses only declared entity ids. A result entity has one producer, begins absent and never appears earlier. A source entity has at most one terminal transformation, consumption or destruction, and no causal event may revive it later. The transformation graph must contain no cycle.
 - Return narrative_contract.version 1. Use no more than one primary symbol and two secondary symbols. An empty primary_symbol is allowed when the story is stronger without a recurring symbol.
 - Every scene must contain a non-empty narrative_function, dominant_emotion, emotional_shift and story_change. Do not duplicate a narrative function and story change across scenes.
