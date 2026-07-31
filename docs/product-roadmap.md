@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 ## Product flow
 
@@ -189,7 +189,14 @@ is compiled privately and any failure stores only bounded issue codes and schema
 paths. A separate explicit local command compares Sol and Luna on synthetic
 fixtures only, so customer books never receive duplicate benchmark calls. Luna
 may replace a production role only after semantic quality, deterministic
-compilation and cost gates pass.
+compilation and cost gates pass. Benchmark report version 2 measures provider
+execution, scenario validity and canonical compilation separately, preserves
+the other model result after one variant fails and never emits generated prose
+or diagnostic explanations. Its six-case FR/ES/EN synthetic corpus covers
+simple narrative, object lifecycle, passage return, staggered physical and
+memory presence, prudent level-3 treatment and protective education. Paid runs
+require an explicit single-fixture choice or an explicit full-corpus
+acknowledgement.
 
 ## Current implementation checkpoint
 

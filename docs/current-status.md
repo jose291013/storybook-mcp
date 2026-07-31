@@ -8,40 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v2-shadow-benchmark`
-- Production/main checkpoint: PR #111 merged; Narrative Pipeline V2 contract foundation
-- Current focused checkpoint: allowlisted Narrative V2 shadow compilation and synthetic Luna/Sol benchmark
-- Pull request: draft PR #113, stacked on draft PR #112
+- Current branch: `codex/narrative-benchmark-diagnostics`
+- Production/main checkpoint: PR #113 merged; compiler, disabled shadow harness and synthetic Luna/Sol benchmark
+- Current focused checkpoint: bounded benchmark diagnostics and six-case synthetic corpus
+- Pull request: not yet published
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #111 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #113 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Narrative Pipeline V2 shadow benchmark
+## Current product brick: Narrative benchmark diagnostics
 
-1. The pure PR #112 compiler remains the immutable base and is still not consumed by prose, illustration, credits or delivery.
-2. `NARRATIVE_V2_SHADOW_MODE` defaults to `off`; `observe` also requires an exact project id in `NARRATIVE_V2_SHADOW_PROJECT_IDS`.
-3. An eligible scenario compiles only after current audit and explicit creator approval. The private spec and bounded comparison are stored beside the legacy project.
-4. Compiler rejection stores only issue codes and schema paths. It never stores explanations in diagnostics and never blocks the approved legacy flow.
-5. The explicit local `benchmark:narrative-models` command accepts synthetic fixtures only and compares isolated Sol/high and Luna/high routes.
-6. Benchmark output contains validation, canonical compilation, duration, request count and attributable cost, but no scenario prose or customer content.
-7. The price ledger uses the new non-retroactive `openai-standard-2026-07-30-luna-reduction` snapshot: Luna USD 0.20/1.20 and Terra USD 2/12 per million standard input/output tokens.
-8. No Render variable is activated and no customer receives a duplicate model call from this brick.
+1. The first real synthetic run showed Sol at USD 0.576545 and Luna at USD 0.056499. Sol passed scenario validation but failed canonical compilation with `ambiguous_passage_endpoints`; Luna failed scenario validation. Neither model is eligible for a production route change.
+2. Report version 2 separates provider execution, scenario validation, canonical compilation and complete end-to-end acceptance.
+3. Scenario diagnostics expose only bounded category, scene number and structured code. Compiler diagnostics expose only code and schema path. Generated prose and explanations remain absent.
+4. One failed model variant no longer discards the other result. The aggregate report gives per-model pass counts, pass rate, median cost, median duration and total request count.
+5. The corpus contains six entirely synthetic FR/ES/EN fixtures covering a simple story, object lifecycle, portal return, late arrival plus memory-only presence, prudent loss treatment and protective education.
+6. The command requires either one explicit `--fixture <id>` or an explicit `--all` acknowledgement before paid calls. It emits content-free progress while each variant runs.
+7. This brick does not alter scenario generation, customer projects, Render model routes, credits or the disabled-by-default V2 shadow behavior.
 
 ## Verification
 
-- Focused shadow, benchmark and pricing tests: 16/16 passing.
-- Complete `npm test`: 311/311 passing.
+- Focused benchmark, shadow and compiler tests: 19/19 passing.
+- Complete `npm test`: 314/314 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #113 while it remains stacked on the compiler branch.
-2. Merge PR #112 first after explicit user approval and a no-generation window.
-3. Rebase or retarget PR #113 to `main`, then request separate merge approval.
+1. Publish a focused draft PR without activating any production model route.
+2. Run one fixture at a time before explicitly authorizing the six-fixture paid corpus.
+3. Use the aggregate evidence to decide whether Luna is eligible for any narrative role.
 
 ## Protected local state
 

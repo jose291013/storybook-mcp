@@ -46,8 +46,10 @@ function fixture() {
 
 test("benchmark runs identical synthetic input through isolated Sol and Luna roles", async () => {
   const roles = [];
+  const progress = [];
   const report = await benchmarkNarrativeModels([fixture()], {
     now: () => "2026-07-31T12:00:00.000Z",
+    onProgress: async (event) => progress.push(event),
     generate: async (input) => {
       roles.push(input.modelRoles);
       await input.onStep({ phase: "editor", attempt: 1 });
@@ -74,6 +76,7 @@ test("benchmark runs identical synthetic input through isolated Sol and Luna rol
   });
 
   assert.equal(report.fixtureCount, 1);
+  assert.equal(report.version, 2);
   assert.deepEqual(report.results[0].variants.map((variant) => variant.id), [
     "sol",
     "luna",
@@ -83,8 +86,117 @@ test("benchmark runs identical synthetic input through isolated Sol and Luna rol
     "narrative_benchmark_luna",
   ]);
   assert.equal(report.results[0].variants[1].canonicalCompiled, true);
+  assert.equal(report.results[0].variants[1].endToEndPassed, true);
   assert.equal(report.results[0].variants[1].costUsdMicros, 1234);
   assert.equal("scenario" in report.results[0].variants[1], false);
+  assert.deepEqual(report.summary.map((variant) => ({
+    id: variant.id,
+    passRate: variant.endToEndPassRatePercent,
+    medianCost: variant.medianCostUsdMicros,
+  })), [
+    { id: "sol", passRate: 100, medianCost: 1234 },
+    { id: "luna", passRate: 100, medianCost: 1234 },
+  ]);
+  assert.deepEqual(progress.map((event) => `${event.event}:${event.variantId}`), [
+    "variant_started:sol",
+    "variant_completed:sol",
+    "variant_started:luna",
+    "variant_completed:luna",
+  ]);
+});
+
+test("benchmark exposes bounded mechanical diagnostics without generated prose", async () => {
+  const report = await benchmarkNarrativeModels([fixture()], {
+    generate: async (input) => {
+      if (input.modelRoles.architect === "narrative_benchmark_luna") {
+        return {
+          scenario: { privateProse: "must not be returned" },
+          validation: {
+            valid: false,
+            issues: ["scene-4: private explanation"],
+            diagnostics: [{
+              code: "passage_endpoints_missing",
+              sceneNumber: 4,
+              explanation: "private explanation",
+            }],
+          },
+        };
+      }
+      return {
+        scenario: {
+          revision: 1,
+          auditEvidence: { digest: "a".repeat(64) },
+        },
+        validation: { valid: true, issues: [] },
+      };
+    },
+    compile: () => {
+      const error = new Error("private compiler explanation");
+      error.issues = [{
+        code: "ambiguous_passage_endpoints",
+        path: "registries.passages",
+        message: "private compiler explanation",
+      }];
+      throw error;
+    },
+    costDetails: async () => ({
+      summary: {
+        totalCostUsdMicros: 500,
+        requestCount: 1,
+        pricingComplete: true,
+      },
+    }),
+  });
+
+  const [sol, luna] = report.results[0].variants;
+  assert.deepEqual(sol.canonicalIssues, [{
+    code: "ambiguous_passage_endpoints",
+    path: "registries.passages",
+  }]);
+  assert.deepEqual(luna.scenarioDiagnostics.issues, [{
+    code: "passage_endpoints_missing",
+    sceneNumber: 4,
+  }]);
+  assert.equal(JSON.stringify(report).includes("private explanation"), false);
+  assert.equal(JSON.stringify(report).includes("must not be returned"), false);
+  assert.equal(report.summary[0].endToEndPassRatePercent, 0);
+  assert.equal(report.summary[1].scenarioValidCount, 0);
+});
+
+test("one model execution failure does not discard the other benchmark result", async () => {
+  const report = await benchmarkNarrativeModels([fixture()], {
+    generate: async (input) => {
+      if (input.modelRoles.architect === "narrative_benchmark_luna") {
+        const error = new Error("private provider response");
+        error.code = "scenario_timeout";
+        throw error;
+      }
+      return {
+        scenario: {
+          revision: 1,
+          auditEvidence: { digest: "a".repeat(64) },
+        },
+        validation: { valid: true, issues: [] },
+      };
+    },
+    compile: () => ({
+      scenes: [{ id: "scene_1" }],
+      validation: { artifactDigest: "b".repeat(64) },
+    }),
+    costDetails: async () => ({
+      summary: {
+        totalCostUsdMicros: 250,
+        requestCount: 1,
+        pricingComplete: true,
+      },
+    }),
+  });
+
+  const [sol, luna] = report.results[0].variants;
+  assert.equal(sol.endToEndPassed, true);
+  assert.equal(luna.executionSucceeded, false);
+  assert.equal(luna.executionErrorCode, "scenario_timeout");
+  assert.equal(JSON.stringify(report).includes("private provider response"), false);
 });
 
 test("benchmark refuses non-synthetic fixtures before any model call", async () => {
@@ -110,4 +222,34 @@ test("documented synthetic questionnaire fixture is normalized without customer 
   assert.equal(prepared.book.pageCount, 24);
   assert.equal(prepared.canonicalSafety.childSafety.category, "general");
   assert.equal(prepared.canonicalSafety.sensitivity.level, 1);
+  assert.equal(fixtures.length, 6);
+  const preparedCorpus = fixtures.map(prepareSyntheticNarrativeBenchmarkFixture);
+  assert.deepEqual(
+    preparedCorpus.map((entry) => entry.book.language).sort(),
+    ["EN", "ES", "ES", "FR", "FR", "FR"],
+  );
+  const arrivals = prepareSyntheticNarrativeBenchmarkFixture(
+    fixtures.find((fixtureEntry) => fixtureEntry.id === "late-arrival-memory-en-9"),
+  );
+  assert.deepEqual(arrivals.normalized.photos.map((photo) => photo.name), [
+    "Maya",
+    "Uncle Theo",
+    "Grandma June",
+  ]);
+  const loss = preparedCorpus.find((entry) => entry.id === "gentle-loss-fr-10");
+  assert.equal(loss.sensitivityContract.level, 3);
+  assert.equal(loss.sensitivityContract.approach, "symbolic_open_ended");
+  const protective = preparedCorpus.find(
+    (entry) => entry.id === "protective-boundaries-es-8",
+  );
+  assert.equal(protective.safetyContract.id, "body_safety_v1");
+  assert.equal(protective.canonicalSafety.childSafety.category, "protective_education");
+});
+
+test("CLI requires explicit paid fixture scope and emits bounded progress", async () => {
+  const script = await fs.readFile("scripts/benchmarkNarrativeModels.js", "utf8");
+  assert.match(script, /--fixture <id>/);
+  assert.match(script, /--all/);
+  assert.match(script, /\[benchmark\]/);
+  assert.doesNotMatch(script, /questionnaire|creator_situation|generated\.scenario/);
 });
