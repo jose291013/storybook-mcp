@@ -21,6 +21,76 @@ export function scenarioGenerationRoute(previousScenario = null) {
     : { phase: "architect", modelRole: "story_architect" };
 }
 
+export async function runScenarioQualityDialogue({
+  initialScenario,
+  initialValidation,
+  policy,
+  repairStructural,
+  auditEditorial,
+  repairEditorial,
+}) {
+  let scenario = initialScenario;
+  let validation = initialValidation;
+  let repairDirectives = [];
+  let structuralRepairCalls = 0;
+  let editorialRepairCalls = 0;
+  let editorCalls = 0;
+  let finalAuditCalls = 0;
+
+  while (!validation.valid && structuralRepairCalls < policy.structuralRepairCalls) {
+    structuralRepairCalls += 1;
+    ({ scenario, validation, repairDirectives = [] } = await repairStructural({
+      scenario,
+      validation,
+      repairDirectives,
+      attempt: structuralRepairCalls,
+    }));
+  }
+
+  if (!validation.valid || policy.editorCalls < 1) {
+    return { scenario, validation };
+  }
+
+  editorCalls += 1;
+  ({ scenario, validation, repairDirectives = [] } = await auditEditorial({
+    scenario,
+    validation,
+    attempt: editorCalls,
+    final: false,
+  }));
+
+  while (!validation.valid && editorialRepairCalls < policy.editorialRepairCalls) {
+    editorialRepairCalls += 1;
+    ({ scenario, validation, repairDirectives = [] } = await repairEditorial({
+      scenario,
+      validation,
+      repairDirectives,
+      attempt: editorialRepairCalls,
+    }));
+
+    if (!validation.valid) continue;
+    if (finalAuditCalls >= policy.finalAuditCalls) {
+      validation = {
+        valid: false,
+        issues: ["scenario final semantic audit is required after editorial repair"],
+        diagnostics: [],
+      };
+      break;
+    }
+
+    finalAuditCalls += 1;
+    editorCalls += 1;
+    ({ scenario, validation, repairDirectives = [] } = await auditEditorial({
+      scenario,
+      validation,
+      attempt: editorCalls,
+      final: true,
+    }));
+  }
+
+  return { scenario, validation };
+}
+
 export async function generateValidatedScenario({
   normalized,
   previousScenario,
@@ -66,10 +136,8 @@ export async function generateValidatedScenario({
   const policy = generationCostPolicy().scenario;
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
-  let repairDirectives = [];
-  let editorCalls = 0;
   const normalizeCandidate = (candidate, directives = []) => (
-    scenario = applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
+    applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
       applyCreatorStoryScenarioEdits(
         normalizeStoryScenario(candidate, {
           pagePlan,
@@ -104,85 +172,93 @@ export async function generateValidatedScenario({
       jsonRepairModelRole,
     },
   );
-  normalizeCandidate(candidate);
+  scenario = normalizeCandidate(candidate);
   await onStep({ phase: "validation", attempt: 1 });
   validation = validateStoryScenario(scenario);
 
-  let repairCalls = 0;
-  const repairScenario = async () => {
-    if (repairCalls >= policy.repairCalls) return false;
-    repairCalls += 1;
-    repairDirectives = [
+  const repairScenario = async ({
+    scenario: currentScenario,
+    validation: currentValidation,
+    repairDirectives = [],
+    attempt,
+    kind,
+  }) => {
+    const directives = [
       ...repairDirectives,
-      ...buildStoryScenarioRepairDirectives(scenario, validation),
+      ...buildStoryScenarioRepairDirectives(currentScenario, currentValidation),
     ].slice(0, 12);
-    await onStep({ phase: "repair", attempt: repairCalls });
+    await onStep({ phase: `${kind}-repair`, attempt });
     const repaired = await storyScenarioAgent(
       {
         ...input,
-        previous_scenario: scenario,
-        validation_issues: validation.issues,
-        repair_directives: repairDirectives,
-        structural_repair_attempt: repairCalls,
+        previous_scenario: currentScenario,
+        validation_issues: currentValidation.issues,
+        repair_directives: directives,
+        repair_phase: kind,
+        structural_repair_attempt: attempt,
       },
       {
         backgroundExecution,
-        backgroundStep: `repair:${repairCalls}`,
+        backgroundStep: `repair:${kind}:${attempt}`,
         modelRole: repairModelRole,
         jsonRepairModelRole,
       },
     );
-    normalizeCandidate(repaired, repairDirectives);
-    await onStep({ phase: "validation", attempt: repairCalls + 1 });
-    validation = validateStoryScenario(scenario);
-    return true;
+    const repairedScenario = normalizeCandidate(repaired, directives);
+    await onStep({ phase: "validation", attempt });
+    return {
+      scenario: repairedScenario,
+      validation: validateStoryScenario(repairedScenario),
+      repairDirectives: directives,
+    };
   };
 
-  const auditScenario = async () => {
-    editorCalls += 1;
-    await onStep({ phase: "editor", attempt: editorCalls });
+  const auditScenario = async ({ scenario: currentScenario, attempt, final }) => {
+    await onStep({ phase: "editor", attempt });
     const audit = await storyScenarioAuditAgent(
       {
         intake: normalized.answers,
-        scenario,
+        scenario: currentScenario,
       },
       {
         backgroundExecution,
-        backgroundStep: `editor:${editorCalls}`,
+        backgroundStep: `editor:${attempt}`,
         modelRole: editorModelRole,
         jsonRepairModelRole,
       },
     );
-    validation = {
+    const auditedValidation = {
       valid: audit.status === "approved",
       issues: audit.issues.map((issue) => (
         `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`
       )),
       diagnostics: audit.issues,
     };
-    repairDirectives = audit.repairDirectives;
-    if (validation.valid) scenario = withStoryScenarioAuditEvidence(scenario);
-    else if (scenario?.auditEvidence) delete scenario.auditEvidence;
-    return audit;
+    const auditedScenario = structuredClone(currentScenario);
+    if (auditedValidation.valid) {
+      return {
+        scenario: withStoryScenarioAuditEvidence(auditedScenario),
+        validation: auditedValidation,
+        repairDirectives: [],
+      };
+    }
+    if (auditedScenario?.auditEvidence) delete auditedScenario.auditEvidence;
+    return {
+      scenario: auditedScenario,
+      validation: auditedValidation,
+      repairDirectives: audit.repairDirectives,
+      final,
+    };
   };
 
-  if (!validation.valid) await repairScenario();
-
-  if (validation.valid && policy.editorCalls > 0) {
-    await auditScenario();
-    if (!validation.valid && repairCalls < policy.repairCalls) {
-      const repaired = await repairScenario();
-      if (repaired && validation.valid && policy.finalAuditCalls > 0) {
-        await auditScenario();
-      } else if (repaired && validation.valid) {
-        validation = {
-          valid: false,
-          issues: ["scenario final semantic audit is required after repair"],
-          diagnostics: [],
-        };
-      }
-    }
-  }
+  ({ scenario, validation } = await runScenarioQualityDialogue({
+    initialScenario: scenario,
+    initialValidation: validation,
+    policy,
+    repairStructural: (state) => repairScenario({ ...state, kind: "structural" }),
+    auditEditorial: auditScenario,
+    repairEditorial: (state) => repairScenario({ ...state, kind: "editorial" }),
+  }));
   await onStep({ phase: "finalizing", attempt: 0 });
   return { scenario, validation };
 }

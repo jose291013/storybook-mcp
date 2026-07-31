@@ -832,7 +832,7 @@ function renderCreationJourney(container, roles, activeRole) {
 }
 
 function scenarioJourneyRole(step = "") {
-  if (/scenario:(validation|editor)/.test(step)) return "editor";
+  if (/scenario:(validation|editor|[^:]*repair)/.test(step)) return "editor";
   if (/scenario:(finalizing|completed|needs_revision)/.test(step)) return "publisher";
   return "architect";
 }
@@ -894,7 +894,7 @@ function showInitialScenarioPreparation() {
 function updateScenarioPreparationProgress(step = "") {
   const items = [...elements.scenarioPreparingSteps.querySelectorAll("li")];
   let activeIndex = 0;
-  if (/scenario:(validation|editor)/.test(step)) activeIndex = 1;
+  if (/scenario:(validation|editor|[^:]*repair)/.test(step)) activeIndex = 1;
   if (/scenario:(finalizing|completed|needs_revision)/.test(step)) activeIndex = 2;
   items.forEach((item, index) => {
     item.classList.toggle("is-active", index === activeIndex);

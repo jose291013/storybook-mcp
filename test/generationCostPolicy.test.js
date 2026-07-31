@@ -15,7 +15,8 @@ test("the internal cost governor defaults to one premium narrative pass and thre
   assert.deepEqual(policy.scenario, {
     architectCalls: 1,
     editorCalls: 1,
-    repairCalls: 1,
+    structuralRepairCalls: 1,
+    editorialRepairCalls: 1,
     finalAuditCalls: 1,
   });
   assert.equal(policy.manuscript.maximumBatches, 3);
@@ -79,5 +80,7 @@ test("language review can only replace known manuscript pages", () => {
 test("targeted rechecks and repairs are attributed as quality rework", () => {
   assert.equal(inferAttemptKind("story:scenario-fidelity-targeted-recheck"), "quality_repair");
   assert.equal(inferAttemptKind("scenario:repair:attempt:1"), "quality_repair");
+  assert.equal(inferAttemptKind("scenario:structural-repair:attempt:1"), "quality_repair");
+  assert.equal(inferAttemptKind("scenario:editorial-repair:attempt:1"), "quality_repair");
   assert.equal(inferAttemptKind("draft:page:7:attempt:2"), "technical_retry");
 });
