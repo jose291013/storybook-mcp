@@ -146,6 +146,7 @@ const elements = {
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
   notifyScenarioEmail: document.querySelector("#notifyScenarioEmail"), notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   qualityReviewNotice: document.querySelector("#qualityReviewNotice"), qualityReviewKicker: document.querySelector("#qualityReviewKicker"), qualityReviewTitle: document.querySelector("#qualityReviewTitle"), qualityReviewMessage: document.querySelector("#qualityReviewMessage"), qualityReviewPages: document.querySelector("#qualityReviewPages"), qualityReviewSupport: document.querySelector("#qualityReviewSupport"), previewAssetsUnavailable: document.querySelector("#previewAssetsUnavailable"),
+  bookLanguageRepair: document.querySelector("#bookLanguageRepair"), repairBookLanguage: document.querySelector("#repairBookLanguage"), bookLanguageRepairFeedback: document.querySelector("#bookLanguageRepairFeedback"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), headerCreationsLink: document.querySelector("#headerCreationsLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
@@ -3033,6 +3034,31 @@ async function restoreCompletedPreview() {
     final_blueprint: project.finalBlueprint,
     projectStatus: project.status,
   } : null;
+  const renderBookLanguageRepair = () => {
+    const status = project?.bookLanguageStatus;
+    elements.bookLanguageRepair.hidden = !status?.mismatch;
+    if (!status?.mismatch) return;
+    elements.repairBookLanguage.disabled = !status.repairAvailable;
+    elements.bookLanguageRepairFeedback.textContent = status.repairAvailable ? "" : tr("languageRepairUnavailable");
+    elements.repairBookLanguage.onclick = async () => {
+      if (elements.repairBookLanguage.disabled) return;
+      elements.repairBookLanguage.disabled = true;
+      elements.repairBookLanguage.textContent = tr("languageRepairRunning");
+      elements.bookLanguageRepairFeedback.textContent = tr("languageRepairWait");
+      try {
+        const repairResponse = await fetch(`/api/projects/${encodeURIComponent(project.id)}/book-language-repair`, { method: "POST" });
+        const repairPayload = await repairResponse.json();
+        if (!repairResponse.ok) throw new Error(repairPayload.error || tr("languageRepairError"));
+        await pollJob(repairPayload.jobId);
+        elements.bookLanguageRepairFeedback.textContent = tr("languageRepairDone");
+        window.setTimeout(() => window.location.reload(), 500);
+      } catch (error) {
+        elements.repairBookLanguage.disabled = false;
+        elements.repairBookLanguage.textContent = tr("languageRepairAction");
+        elements.bookLanguageRepairFeedback.textContent = error?.message || tr("languageRepairError");
+      }
+    };
+  };
   syncGenerationNotificationPreference(
     project?.continuitySnapshot?.previewNotification?.emailRequested === true,
   );
@@ -3126,6 +3152,7 @@ async function restoreCompletedPreview() {
       projectStatus: project.status,
       qualityReview: project.continuitySnapshot?.generationCheckpoint?.qualityReview,
     }, { scroll: false });
+    renderBookLanguageRepair();
     return true;
   }
   if (project?.status === "preview_failed") {
@@ -3139,6 +3166,7 @@ async function restoreCompletedPreview() {
   }
   if (!["preview_ready", "preview_repairing", "purchased"].includes(project?.status) || !project.previewResult) return false;
   showCompletedPreview({ result: project.previewResult, final_blueprint: project.finalBlueprint, projectStatus: project.status, referenceRecoveryAvailable: project.referenceRecoveryAvailable }, { scroll: false });
+  renderBookLanguageRepair();
   return true;
 }
 

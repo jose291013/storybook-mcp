@@ -24,6 +24,7 @@ import {
   technicalPreviewRetryAvailable,
   technicalPreviewRetryExhausted,
 } from "../services/previewGenerationCheckpoint.js";
+import { bookLanguageStatus } from "../services/bookLanguage.js";
 
 const router = express.Router();
 
@@ -113,6 +114,7 @@ function publicProject(project) {
     technicalReferenceRetryAvailable: technicalReferenceRetryAvailable(project),
     technicalPreviewRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalPreviewRetryExhausted: technicalPreviewRetryExhausted(project),
+    bookLanguageStatus: bookLanguageStatus(project),
   };
 }
 

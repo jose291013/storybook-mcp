@@ -8,35 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/approved-cover-visual-bible`
-- Production/main checkpoint: PR #119 merged at `8a4d603`; independent structural and editorial scenario repairs
-- Current focused checkpoint: approved-cover visual bible and categorical style quarantine
-- Pull request: PR #120, ready for review
+- Current branch: `codex/canonical-book-language`
+- Production/main checkpoint: PR #120 merged at `dc6980b`; approved-cover visual bible and categorical style quarantine
+- Current focused checkpoint: canonical book language and no-charge recovery of mismatched manuscripts
+- Pull request: not yet published
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #119 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #120 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: approved-cover visual bible
+## Current product brick: canonical book language
 
-1. A real 24-page Spanish preview completed, but several interiors drifted between soft painterly, realistic dimensional and photographic-looking rendering while a creator-requested alternative matched the approved cover much better.
-2. The normal path previously placed private identity photos before the cover reference and described all references as jointly controlling identity and style. The repair path could effectively rely on the cover alone after a Render restart, creating an accidental behavioral difference.
-3. The current brick locks a private versioned visual bible when the cover is approved. Every image path places that cover first as the only artistic-medium authority; original photos remain secondary identity-only evidence and durable storage keys remain usable after restart.
-4. A categorical style mismatch receives the existing bounded regeneration and is then preserved for quality review instead of being accepted with a warning. Existing completed previews are unchanged and no additional normal image call is introduced.
+1. A fresh Spanish project produced a Spanish scenario and cover but a French manuscript. The creator stored the explicit choice as `book_language`, while preview normalization read only `language` and silently fell back to French.
+2. `book_language` is now the authoritative persisted alias, independent from interface locale. Blueprint language must match it, and deterministic manuscript-language evidence blocks a wrong-language manuscript before the first image call.
+3. Existing non-purchased previews with a proven mismatch expose a no-charge global repair. One bounded translator call preserves the story exactly; only text pages and, if necessary, the title overlay are recomposed. Private illustrations, photos, quality-review decisions and the approved cover image remain intact.
+4. The repaired language is written consistently to questionnaire, product configuration, blueprint, manuscript checkpoint and whole-book plan so a later repair, delivery or narration cannot fall back to the former language.
 
 ## Verification
 
-- Focused visual continuity and image-quality policy tests: passing.
-- Complete `npm test`: 331/331 passing.
+- Focused canonical-language tests: passing.
+- Complete `npm test`: 337/337 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Publish a focused draft PR; do not merge without explicit confirmation and a Render restart warning.
-2. After deployment, create a fresh test book and compare every interior page against the approved cover, especially a scene containing four or five photographed people.
+1. Complete tests and publish a focused PR; do not merge without explicit confirmation and a Render restart warning.
+2. After deployment, reopen project `97b686f1-a89e-4dba-b48b-2746fb0a6569`, use the global language repair, and verify that all text pages are Spanish while existing illustrations remain unchanged.
+3. Create one fresh Spanish book from a French interface and confirm that scenario, cover and manuscript all remain Spanish before any interior image is generated.
 
 ## Protected local state
 

@@ -66,6 +66,7 @@ import {
 } from "../services/manuscriptBatches.js";
 import { generationCostPolicy } from "../services/generationCostPolicy.js";
 import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../services/visualBible.js";
+import { assertManuscriptLanguage } from "../services/bookLanguage.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -725,6 +726,11 @@ router.post("/preview", async (req, res) => {
         });
         throw new Error(qa?.qa?.issues?.join(" | ") || "Blueprint QA failed");
       }
+      if (String(final_blueprint.language || "").toUpperCase() !== String(answers.language || "").toUpperCase()) {
+        const languageError = new Error(`Blueprint language ${final_blueprint.language || "missing"} does not match requested book language ${answers.language}`);
+        languageError.code = "blueprint_language_mismatch";
+        throw languageError;
+      }
       if (!checkpoint.finalBlueprint) await persistCheckpoint({ finalBlueprint: final_blueprint, phase: "blueprint" }, { finalBlueprint: final_blueprint });
 
       const storyContext = buildNarrativeContext({
@@ -1103,6 +1109,10 @@ router.post("/preview", async (req, res) => {
       Object.entries(storyScenePlan.pageTexts || {}).forEach(([pageNumber, text]) => {
         draftTextByPage.set(Number(pageNumber), String(text || ""));
       });
+      assertManuscriptLanguage(
+        [...draftTextByPage].map(([page_number, text]) => ({ page_number, text })),
+        final_blueprint.language,
+      );
       const manuscriptSafety = await guardChildSafety({
         text: Object.values(storyScenePlan.pageTexts || {}).join("\n"),
         childAge: Number(project.questionnaire?.age),
