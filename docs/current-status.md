@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/scenario-two-stage-repair`
 - Production/main checkpoint: PR #118 merged at `b203bc2`; model-independent Narrative Draft V2 object ledger
 - Current focused checkpoint: independent structural and editorial scenario repair stages
-- Pull request: not published yet
+- Pull request: draft PR #119
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,9 +35,8 @@ PR #55 through PR #118 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Complete the regression suite and publish the focused two-stage repair PR.
-2. Do not merge without explicit confirmation and a Render restart warning.
-3. After deployment, update the preserved invalid Spanish scenario once and verify that an initial structural correction cannot prevent the later editorial repair and final audit.
+1. Review draft PR #119; do not merge without explicit confirmation and a Render restart warning.
+2. After deployment, update the preserved invalid Spanish scenario once and verify that an initial structural correction cannot prevent the later editorial repair and final audit.
 
 ## Protected local state
 
