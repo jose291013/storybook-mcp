@@ -72,6 +72,65 @@ test("completed preview exposes a free repair when blueprint or prose language d
   });
 });
 
+test("legacy preview recovers its requested language from a substantial approved scenario", () => {
+  const spanishScenes = Array.from({ length: 6 }, (_, index) => ({
+    sceneNumber: index + 1,
+    title: `Una aventura para Noa ${index + 1}`,
+    location: "el valle junto al bosque encantado",
+    action: "Noa avanza con su familia mientras observa el camino, pero cada paso le ayuda a confiar y continuar.",
+    narrativeFunction: "mostrar como la protagonista aprende con una accion concreta",
+    dominantEmotion: "esperanza y curiosidad",
+    emotionalShift: "desde la duda hasta una confianza tranquila",
+    storyChange: "Noa comprende que puede intentar de nuevo con su familia.",
+  }));
+  const status = bookLanguageStatus({
+    status: "preview_ready",
+    locale: "FR",
+    questionnaire: { book_language: "FR", language: "FR" },
+    productConfiguration: { book_language: "FR" },
+    finalBlueprint: { language: "FR", cover: { title: "La carrera del patinete" } },
+    continuitySnapshot: {
+      storyScenario: { status: "approved", title: "La carrera del patinete", scenes: spanishScenes },
+    },
+    previewResult: {
+      draftPages: [
+        { page_type: "text", text: "Alors elle avance avec sa famille, mais elle hesite encore dans la foret." },
+        { page_type: "text", text: "Son pere lui dit que tout peut changer quand elle essaie une nouvelle fois." },
+      ],
+    },
+  });
+  assert.deepEqual(status, {
+    expectedLanguage: "ES",
+    blueprintLanguage: "FR",
+    detectedLanguage: "FR",
+    mismatch: true,
+    repairAvailable: true,
+  });
+});
+
+test("a short foreign cover title alone never overrides consistent book metadata", () => {
+  const status = bookLanguageStatus({
+    status: "preview_ready",
+    questionnaire: { book_language: "FR" },
+    finalBlueprint: { language: "FR", cover: { title: "La carrera" } },
+    continuitySnapshot: {
+      storyScenario: {
+        status: "approved",
+        title: "La carrera",
+        scenes: [{ title: "Le depart", action: "Alors Noa avance avec sa famille dans la foret." }],
+      },
+    },
+    previewResult: {
+      draftPages: [
+        { page_type: "text", text: "Alors elle avance avec sa famille, mais elle hesite encore dans la foret." },
+        { page_type: "text", text: "Son pere lui dit que tout peut changer quand elle essaie une nouvelle fois." },
+      ],
+    },
+  });
+  assert.equal(status.expectedLanguage, "FR");
+  assert.equal(status.mismatch, false);
+});
+
 test("language repair requires every original page exactly once", async () => {
   const runner = async ({ input, system }) => {
     assert.equal(input.language, "ES");
