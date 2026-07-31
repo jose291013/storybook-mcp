@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narrative-benchmark-terra`
 - Production/main checkpoint: PR #114 merged; V2 compiler, disabled shadow harness and bounded six-case Sol/Luna benchmark
 - Current focused checkpoint: explicit Terra benchmark route and fail-closed paid CLI selection
-- Pull request: not yet published
+- Pull request: draft PR #115
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,7 +36,7 @@ PR #55 through PR #114 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish and review the focused Terra/CLI-safety PR without activating any production model route.
+1. Review draft PR #115 without activating any production model route.
 2. After explicit merge approval and deployment, run Terra alone on `seed-lifecycle-fr-8`, then `simple-teamwork-fr-7`.
 3. Compare Terra end-to-end acceptance and attributable cost before authorizing another model or corpus run.
 
