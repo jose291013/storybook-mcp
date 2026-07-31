@@ -532,6 +532,73 @@ test("compiler makes every tracked object state explicit on every scene", () => 
   assert.equal(states[2].ownerCharacterId, "bastien");
 });
 
+test("compiler does not turn a non-character object attribution into a character owner", () => {
+  const scenario = approvedScenario();
+  scenario.objects.push({
+    objectId: "shared_workbench",
+    name: "Établi partagé",
+    owner: "atelier collectif",
+    initialState: "visible",
+    trackEveryScene: true,
+    causalAuthority: "graph_v1",
+    lifecycle: {
+      version: 1,
+      kind: "persistent",
+      events: [],
+    },
+  });
+  scenario.causalGraph.entities.push({
+    id: "shared_workbench",
+    label: "Établi partagé",
+    owner: "atelier collectif",
+    initialState: "visible",
+  });
+  for (const scene of scenario.scenes) {
+    scene.objectStates.push({
+      objectId: "shared_workbench",
+      name: "Établi partagé",
+      owner: "atelier collectif",
+      state: "visible",
+      quantity: 1,
+      instruction: "L'établi reste visible dans l'atelier.",
+    });
+  }
+
+  const contract = compile({ scenario: approveAgain(scenario) });
+  const workbench = contract.registries.objects.find(({ id }) => id === "shared_workbench");
+
+  assert.equal(workbench.initialOwnerCharacterId, null);
+  assert.equal(contract.scenes.every((scene) => (
+    scene.objectStates.find(({ objectId }) => objectId === "shared_workbench")
+      ?.ownerCharacterId === null
+  )), true);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
+test("compiler still rejects a possessed object attributed to an unknown character", () => {
+  const scenario = approvedScenario();
+  scenario.scenes[10].objectStates[0] = {
+    ...scenario.scenes[10].objectStates[0],
+    owner: "le groupe",
+    state: "carried",
+  };
+
+  assert.throws(
+    () => compile({ scenario: approveAgain(scenario) }),
+    (error) => (
+      error instanceof NarrativeBookSpecCompileError
+      && error.issues.some((issue) => (
+        issue.code === "unknown_character"
+        && issue.path === "scenes[10].objectStates[0].ownerCharacterId"
+      ))
+      && error.issues.some((issue) => (
+        issue.code === "possessed_object_owner_required"
+        && issue.path === "scenes[10].objectStates[0].ownerCharacterId"
+      ))
+    ),
+  );
+});
+
 test("compiler rejects an unapproved scenario", () => {
   const scenario = approvedScenario();
   scenario.status = "proposed";

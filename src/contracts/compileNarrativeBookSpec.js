@@ -116,6 +116,22 @@ function resolveByName(map, value, issues, path, kind) {
   return resolved || identifier(value, `unknown_${kind}`);
 }
 
+function resolveObjectOwner(characterIds, value, state, issues, path) {
+  const owner = clean(value);
+  if (state === "absent" || !owner) return null;
+  const resolved = characterIds.get(key(owner));
+  if (resolved) return resolved;
+  if (OBJECT_POSSESSION_STATES.has(state)) {
+    addIssue(
+      issues,
+      "unknown_character",
+      path,
+      `${owner} cannot possess an object without a canonical character entry.`,
+    );
+  }
+  return null;
+}
+
 function canonicalSafety(input, issues) {
   const safety = structuredClone(input || {});
   const validation = validateNarrativeBookSpec({
@@ -332,15 +348,13 @@ function compileObjectLedger({
       entity.id === clean(object?.objectId)
     )) || list(graph?.entities)[index] || {};
     const initialState = clean(graphEntity.initialState || object.initialState || "visible");
-    const ownerCharacterId = initialState === "absent" || !clean(object.owner)
-      ? null
-      : resolveByName(
-        characterIds,
-        object.owner,
-        issues,
-        `registries.objects[${index}].initialOwnerCharacterId`,
-        "character",
-      );
+    const ownerCharacterId = resolveObjectOwner(
+      characterIds,
+      object.owner,
+      initialState,
+      issues,
+      `registries.objects[${index}].initialOwnerCharacterId`,
+    );
     return {
       id: objectIds.get(key(objectIdentity(object))),
       name: clean(object.name),
@@ -403,15 +417,13 @@ function compileObjectLedger({
       const quantity = state === "absent"
         ? 0
         : positiveInteger(supplied?.quantity, previous.quantity > 0 ? previous.quantity : 1);
-      const ownerCharacterId = state === "absent" || !clean(supplied?.owner)
-        ? null
-        : resolveByName(
-          characterIds,
-          supplied.owner,
-          issues,
-          `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
-          "character",
-        );
+      const ownerCharacterId = resolveObjectOwner(
+        characterIds,
+        supplied?.owner,
+        state,
+        issues,
+        `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
+      );
       if (OBJECT_POSSESSION_STATES.has(state) && !ownerCharacterId) {
         addIssue(
           issues,

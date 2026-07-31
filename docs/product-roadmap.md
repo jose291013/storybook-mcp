@@ -186,7 +186,11 @@ registries resolve both a stable model id and the approved display name to one
 canonical id, while ambiguous aliases still fail closed. A `return_travel`
 reversing a previously approved ordinary route with the same endpoints and
 mechanism is normalized to `ordinary_travel`; only a true discovered/crossed
-passage keeps canonical passage-return semantics. Shadow compilation
+passage keeps canonical passage-return semantics. Free-form object ownership is
+projected to `ownerCharacterId` only when it resolves to a declared character.
+An unresolved place, group or contextual attribution is removed from
+non-possession states, while `held`, `carried` and `worn` still require exactly
+one canonical character owner and fail closed otherwise. Shadow compilation
 is implemented as a separate disabled-by-default phase and cannot affect legacy
 generation outcomes. `NARRATIVE_V2_SHADOW_MODE=observe` still requires an exact
 project id in `NARRATIVE_V2_SHADOW_PROJECT_IDS`; an eligible approved scenario

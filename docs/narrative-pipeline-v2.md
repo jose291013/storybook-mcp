@@ -162,6 +162,13 @@ planted seed, stored doll or destroyed key from reappearing through omitted
 state. Any change of state, quantity or owner requires one causal event whose
 before and after values match the two adjacent scene snapshots exactly.
 
+The scenario's broad `owner` wording is not automatically a character
+relationship. It becomes canonical `ownerCharacterId` only when it resolves to
+one declared character. An unresolved attribution on a non-possession state
+such as `visible`, `stored`, `planted` or `installed` compiles to `null`; it may
+describe a place, group or context rather than a person. `held`, `carried` and
+`worn` remain fail-closed and require exactly one canonical character owner.
+
 Each physical character has one explicit scene phase and location. Thought,
 memory and voice presences cannot move or appear in the visible cast. The
 validator reconstructs every character's location from ordered movements, so a
