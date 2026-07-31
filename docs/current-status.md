@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/canonical-book-language`
 - Production/main checkpoint: PR #120 merged at `dc6980b`; approved-cover visual bible and categorical style quarantine
 - Current focused checkpoint: canonical book language and no-charge recovery of mismatched manuscripts
-- Pull request: not yet published
+- Pull request: PR #121, ready for review
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
