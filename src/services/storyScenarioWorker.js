@@ -380,7 +380,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         ? "technical_retry"
         : phase === "revision"
           ? "customer_change"
-        : phase === "repair"
+        : String(phase || "").includes("repair")
           ? "quality_repair"
           : "normal";
       return persistGenerationProgress({

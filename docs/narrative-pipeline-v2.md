@@ -261,6 +261,16 @@ A repair is local:
 
 There is no whole-book probabilistic re-audit after an unrelated local repair.
 
+Scenario preparation has two independent bounded correction stages. Deterministic
+validation may request one structural repair before the first semantic audit. The
+editor then owns a separate editorial repair allowance for contradictions such as
+a repeated acquisition, duplicated resolution or an action that restates an event
+already completed. Consuming the structural allowance never consumes the editorial
+allowance. Every editorial candidate must pass deterministic validation and a new
+final semantic audit before it may be shown as valid. If that bounded dialogue still
+fails, the preserved scenario remains reviewable and the creator sees the affected
+scene; Calitiki never silently accepts the candidate.
+
 ## Audit caching and idempotency
 
 Validation evidence is keyed by:
