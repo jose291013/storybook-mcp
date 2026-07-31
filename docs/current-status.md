@@ -8,37 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-benchmark-terra`
-- Production/main checkpoint: PR #114 merged; V2 compiler, disabled shadow harness and bounded six-case Sol/Luna benchmark
-- Current focused checkpoint: explicit Terra benchmark route and fail-closed paid CLI selection
-- Pull request: draft PR #115
+- Current branch: `codex/fix-canonical-aliases-and-return-travel`
+- Production/main checkpoint: PR #115 merged; explicit Terra benchmark route and fail-closed paid CLI selection
+- Current focused checkpoint: canonical character aliases and ordinary-return normalization
+- Pull request: not published yet
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.1`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #114 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #115 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: Explicit Terra benchmark
+## Current product brick: Canonical compiler semantics
 
-1. Four completed Sol/Luna comparisons show material stochastic variation: each model has passed one complete case out of four. Sol has cost USD 3.593703 across those runs; Luna USD 0.228819. The latest simple-story rerun passed scenario validation for both models but failed canonical compilation on passage discovery, plus two Luna object-event defects. Neither model is eligible for a production route change from this evidence.
-2. Terra is added as an isolated benchmark-only role at high reasoning. This does not change any production narrative route.
-3. The paid CLI now requires both a fixture scope and `--variant sol|terra|luna|all`. Unknown, misspelled, duplicated or contradictory options stop before any model call.
-4. The CLI announces the exact variants and paid-run count before execution. Selecting Terra on one fixture launches exactly one variant rather than silently rerunning Sol and Luna.
-5. Existing report-v2 privacy rules remain: only bounded codes, schema paths, counts, duration and attributable cost are emitted; generated prose and explanations remain absent.
+1. Terra produced two valid scenarios. `seed-lifecycle-fr-8` compiled end to end for USD 0.348706; `simple-teamwork-fr-7` failed canonical compilation for one repeated character-owner alias and an ordinary return misclassified as a passage, at USD 0.449864.
+2. The compiler now indexes a character's stable id and approved display name onto the same canonical id. One owner-name alias can no longer create repeated `unknown_character` defects across every scene.
+3. A `return_travel` that exactly reverses an earlier ordinary route with the same mechanism is normalized to canonical `ordinary_travel`. A true discovered/crossed portal remains a passage and retains strict discovery validation.
+4. This brick changes no production model route, customer flow, persistence, safety gate or environment variable.
 
 ## Verification
 
-- Focused benchmark and model-routing tests: 11/11 passing.
-- Complete `npm test`: 317/317 passing.
+- Focused canonical compiler tests: 10/10 passing.
+- Complete `npm test`: 319/319 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #115 without activating any production model route.
-2. After explicit merge approval and deployment, run Terra alone on `seed-lifecycle-fr-8`, then `simple-teamwork-fr-7`.
-3. Compare Terra end-to-end acceptance and attributable cost before authorizing another model or corpus run.
+1. Publish and review the focused compiler PR without changing production model routing.
+2. After explicit merge approval and deployment, rerun only Terra on `simple-teamwork-fr-7`.
+3. Continue the bounded corpus only if canonical compilation passes; do not infer a production route from two fixtures.
 
 ## Protected local state
 

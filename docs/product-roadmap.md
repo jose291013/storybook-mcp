@@ -181,7 +181,12 @@ registries, format page bindings, one end-of-scene visible moment and a complete
 per-scene object ledger; and returns only after deterministic NarrativeBookSpec
 validation. It performs no AI, network, persistence, route, credit or
 customer-flow operation. Transformations are projected into linked
-source/result causal events without asking a model to guess. Shadow compilation
+source/result causal events without asking a model to guess. Character
+registries resolve both a stable model id and the approved display name to one
+canonical id, while ambiguous aliases still fail closed. A `return_travel`
+reversing a previously approved ordinary route with the same endpoints and
+mechanism is normalized to `ordinary_travel`; only a true discovered/crossed
+passage keeps canonical passage-return semantics. Shadow compilation
 is implemented as a separate disabled-by-default phase and cannot affect legacy
 generation outcomes. `NARRATIVE_V2_SHADOW_MODE=observe` still requires an exact
 project id in `NARRATIVE_V2_SHADOW_PROJECT_IDS`; an eligible approved scenario

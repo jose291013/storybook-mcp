@@ -443,6 +443,79 @@ test("compiler binds the approved passage discovery, crossing and return without
   assert.deepEqual(contract.scenes[10].illustration.evokedCharacterIds, ["fee_de_la_foret"]);
 });
 
+test("compiler resolves a stable character id and its display-name aliases to one registry entry", () => {
+  const scenario = approvedScenario();
+  scenario.characters[0].id = "hero_bastien";
+  const contract = compile({ scenario: approveAgain(scenario) });
+  const hero = contract.registries.characters.find((character) => (
+    character.canonicalName === "Bastien"
+  ));
+
+  assert.equal(hero.id, "hero_bastien");
+  assert.equal(contract.scenes[0].presences[0].characterId, "hero_bastien");
+  assert.equal(contract.scenes[10].objectStates[0].ownerCharacterId, "hero_bastien");
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
+test("compiler normalizes a reversed ordinary route without inventing a passage", () => {
+  const scenario = approvedScenario();
+  const outbound = scenario.scenes[4];
+  outbound.locationBefore = "la vallée";
+  outbound.locationAfter = "la clairière";
+  outbound.action = "Bastien, Maman et la Fée marchent de la vallée à la clairière.";
+  outbound.characterPresences = [
+    presence("Bastien", "arrive dans la clairière", { location: "la clairière" }),
+    presence("Marie", "arrive avec Bastien", { location: "la clairière" }),
+    presence("Fée de la Forêt", "accompagne le groupe", { location: "la clairière" }),
+  ];
+  outbound.transition = {
+    kind: "ordinary_travel",
+    mechanism: "sentier forestier",
+    mechanismId: "forest_path",
+    from: "la vallée",
+    to: "la clairière",
+    characters: ["Bastien", "Marie", "Fée de la Forêt"],
+  };
+  outbound.characterMovements = [{
+    id: "outbound-walk",
+    ...outbound.transition,
+  }];
+
+  const returning = scenario.scenes[5];
+  returning.locationBefore = "la clairière";
+  returning.locationAfter = "la vallée";
+  returning.action = "Bastien, Maman et la Fée reprennent le sentier vers la vallée.";
+  returning.characterPresences = [
+    presence("Bastien", "revient dans la vallée", { location: "la vallée" }),
+    presence("Marie", "revient avec Bastien", { location: "la vallée" }),
+    presence("Fée de la Forêt", "ramène le groupe", { location: "la vallée" }),
+  ];
+  returning.transition = {
+    kind: "return_travel",
+    mechanism: "sentier forestier",
+    mechanismId: "forest_path",
+    from: "la clairière",
+    to: "la vallée",
+    characters: ["Bastien", "Marie", "Fée de la Forêt"],
+  };
+  returning.characterMovements = [{
+    id: "return-walk",
+    ...returning.transition,
+  }];
+
+  const contract = compile({ scenario: approveAgain(scenario) });
+
+  assert.deepEqual(contract.registries.passages.map(({ id }) => id), ["garden_arch"]);
+  assert.equal(contract.scenes[4].movements[0].kind, "ordinary_travel");
+  assert.equal(contract.scenes[5].movements[0].kind, "ordinary_travel");
+  assert.equal(contract.scenes[5].movements[0].passageId, null);
+  assert.equal(contract.scenes[5].transition.kind, "ordinary_travel");
+  assert.equal(contract.scenes[5].transition.passageId, null);
+  assert.equal(contract.scenes[10].movements[0].kind, "return_travel");
+  assert.equal(contract.scenes[10].movements[0].passageId, "garden_arch");
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
 test("compiler makes every tracked object state explicit on every scene", () => {
   const contract = compile();
   const states = [

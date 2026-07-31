@@ -167,6 +167,18 @@ memory and voice presences cannot move or appear in the visible cast. The
 validator reconstructs every character's location from ordered movements, so a
 matching presence and illustration cast cannot disguise a teleportation.
 
+Canonical character lookup indexes both the model-provided stable identifier
+and the approved display name onto the same registry id. Object ownership,
+presence and movement may therefore use either representation without creating
+an `unknown_character`; an alias shared by two different characters remains a
+blocking ambiguity.
+
+`return_travel` is not automatically a magical passage. When it reverses an
+earlier `ordinary_travel` between the same endpoints with the same mechanism,
+the compiler normalizes it to canonical `ordinary_travel` with no passage id.
+A return through an explicitly discovered/crossed portal remains
+`return_travel` and keeps the normal discovery-before-crossing invariant.
+
 Every scene selects exactly one `visiblePhase`: `start`, `during` or `end`.
 The illustration's `visibleCharacterIds` is derived only from physical
 presences at that phase (plus presences declared throughout). It is never
