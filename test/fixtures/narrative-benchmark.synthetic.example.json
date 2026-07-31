@@ -1,17 +1,54 @@
 [
   {
-    "id": "forest-perseverance-fr-8",
+    "id": "simple-teamwork-fr-7",
     "synthetic": true,
     "questionnaire": {
       "hero_name": "Lina",
-      "age": "8",
-      "gender": "",
-      "favorite_activities": "observer les oiseaux et dessiner",
+      "age": "7",
+      "favorite_activities": "dessiner et assembler de petits objets",
       "personality": "curieuse et attentive",
-      "dream": "retrouver le chemin d'un jardin lumineux",
-      "challenge": "elle abandonne parfois lorsqu'un premier essai ne fonctionne pas",
-      "message": "on peut changer de stratégie et demander de l'aide",
+      "dream": "réparer avec une amie une lanterne qui éclaire la place",
+      "challenge": "elle hésite à demander de l'aide quand son premier essai ne fonctionne pas",
+      "message": "changer de stratégie et coopérer permet d'avancer",
       "creator_situation": "situation entièrement synthétique destinée au benchmark",
+      "universe_id": "wonder_city",
+      "style_id": "soft_watercolor",
+      "language": "FR",
+      "page_count": 24,
+      "product_type": "ebook",
+      "font_style": "rounded",
+      "child_safety_profile": {
+        "version": 2,
+        "category": "general",
+        "action": "allow",
+        "restricted": false,
+        "confidence": "high",
+        "source": "deterministic"
+      },
+      "story_sensitivity_profile": {
+        "version": 2,
+        "level": 1,
+        "category": "everyday_challenge",
+        "restricted": false,
+        "confidence": "high",
+        "recommended_approach": "light_action_led",
+        "source": "deterministic"
+      }
+    }
+  },
+  {
+    "id": "seed-lifecycle-fr-8",
+    "synthetic": true,
+    "questionnaire": {
+      "hero_name": "Sami",
+      "age": "8",
+      "favorite_activities": "jardiner et observer les insectes",
+      "personality": "enthousiaste et parfois impatient",
+      "dream": "faire pousser une fleur lumineuse dans une clairière",
+      "challenge": "il veut voir le résultat immédiatement et doit apprendre à observer les petites étapes",
+      "message": "prendre soin régulièrement de son projet transforme une petite graine",
+      "signature_object": "une graine argentée unique",
+      "creator_situation": "situation entièrement synthétique destinée à tester le cycle de vie d'un objet",
       "universe_id": "enchanted_forest",
       "style_id": "soft_watercolor",
       "language": "FR",
@@ -33,6 +70,202 @@
         "restricted": false,
         "confidence": "high",
         "recommended_approach": "light_action_led",
+        "source": "deterministic"
+      }
+    }
+  },
+  {
+    "id": "portal-return-es-9",
+    "synthetic": true,
+    "request": {
+      "questionnaire": {
+        "hero_name": "Leo",
+        "age": "9",
+        "favorite_activities": "observar huellas y dibujar dinosaurios",
+        "personality": "prudente y perseverante",
+        "dream": "observar dinosaurios tranquilos y completar un cuaderno de campo",
+        "challenge": "necesita comprobar que un paso es seguro antes de cruzarlo",
+        "message": "prepararse y observar permite avanzar con valentía",
+        "important_people": "Mamá acompaña físicamente a Leo durante toda la expedición",
+        "creator_situation": "situación totalmente sintética para comprobar descubrimiento, cruce y regreso por un mismo portal",
+        "universe_id": "dinosaur_valley",
+        "style_id": "soft_watercolor",
+        "language": "ES",
+        "page_count": 24,
+        "product_type": "ebook",
+        "font_style": "rounded",
+        "child_safety_profile": {
+          "version": 2,
+          "category": "general",
+          "action": "allow",
+          "restricted": false,
+          "confidence": "high",
+          "source": "deterministic"
+        },
+        "story_sensitivity_profile": {
+          "version": 2,
+          "level": 1,
+          "category": "everyday_challenge",
+          "restricted": false,
+          "confidence": "high",
+          "recommended_approach": "light_action_led",
+          "source": "deterministic"
+        }
+      },
+      "photos": [
+        {
+          "id": "synthetic-leo",
+          "role": "child",
+          "story_role": "hero",
+          "name": "Leo",
+          "relationship": "hero"
+        },
+        {
+          "id": "synthetic-mama",
+          "role": "family",
+          "story_role": "guide",
+          "name": "Mamá",
+          "relationship": "mother"
+        }
+      ]
+    }
+  },
+  {
+    "id": "late-arrival-memory-en-9",
+    "synthetic": true,
+    "request": {
+      "questionnaire": {
+        "hero_name": "Maya",
+        "age": "9",
+        "favorite_activities": "building paper mechanisms and listening to family stories",
+        "personality": "inventive and thoughtful",
+        "dream": "repair the clockwork map in a city workshop",
+        "challenge": "she tries to solve every step alone before accepting timely support",
+        "message": "remembering advice and accepting help are different from having someone solve the task",
+        "important_people": "Uncle Theo starts elsewhere and arrives physically at the workshop only after Maya begins. Grandma June is evoked only as a memory and is never physically present.",
+        "creator_situation": "fully synthetic situation testing a late physical arrival and a memory-only relative",
+        "universe_id": "wonder_city",
+        "style_id": "soft_watercolor",
+        "language": "EN",
+        "page_count": 24,
+        "product_type": "ebook",
+        "font_style": "rounded",
+        "child_safety_profile": {
+          "version": 2,
+          "category": "general",
+          "action": "allow",
+          "restricted": false,
+          "confidence": "high",
+          "source": "deterministic"
+        },
+        "story_sensitivity_profile": {
+          "version": 2,
+          "level": 1,
+          "category": "everyday_challenge",
+          "restricted": false,
+          "confidence": "high",
+          "recommended_approach": "light_action_led",
+          "source": "deterministic"
+        }
+      },
+      "photos": [
+        {
+          "id": "synthetic-maya",
+          "role": "child",
+          "story_role": "hero",
+          "name": "Maya",
+          "relationship": "hero"
+        },
+        {
+          "id": "synthetic-theo",
+          "role": "family",
+          "story_role": "ally",
+          "name": "Uncle Theo",
+          "relationship": "uncle"
+        },
+        {
+          "id": "synthetic-june",
+          "role": "family",
+          "story_role": "supporter",
+          "name": "Grandma June",
+          "relationship": "grandmother"
+        }
+      ]
+    }
+  },
+  {
+    "id": "gentle-loss-fr-10",
+    "synthetic": true,
+    "questionnaire": {
+      "hero_name": "Bastien",
+      "age": "10",
+      "favorite_activities": "observer les étoiles et tenir un carnet",
+      "personality": "sensible et imaginatif",
+      "dream": "créer une constellation symbolique à partir de souvenirs heureux",
+      "challenge": "il traverse une période de tristesse après la perte récente d'une grand-mère fictive",
+      "message": "les souvenirs peuvent accompagner un nouveau petit pas sans effacer la tristesse",
+      "creator_situation": "situation entièrement synthétique de deuil, sans promesse de guérison ni résolution définitive",
+      "universe_id": "starry_space",
+      "style_id": "soft_watercolor",
+      "language": "FR",
+      "page_count": 24,
+      "product_type": "ebook",
+      "font_style": "rounded",
+      "child_safety_profile": {
+        "version": 2,
+        "category": "general",
+        "action": "allow",
+        "restricted": false,
+        "confidence": "high",
+        "source": "deterministic"
+      },
+      "story_sensitivity_profile": {
+        "version": 2,
+        "guidance_version": 1,
+        "level": 3,
+        "category": "major_life_event",
+        "restricted": false,
+        "confidence": "high",
+        "recommended_approach": "symbolic_open_ended",
+        "source": "deterministic"
+      }
+    }
+  },
+  {
+    "id": "protective-boundaries-es-8",
+    "synthetic": true,
+    "questionnaire": {
+      "hero_name": "Nora",
+      "age": "8",
+      "favorite_activities": "inventar señales y jugar con cometas",
+      "personality": "amable y observadora",
+      "dream": "crear una señal que ayude a los niños del castillo a expresar si algo les incomoda",
+      "challenge": "le cuesta repetir su límite cuando otra persona insiste",
+      "message": "puede decir no, alejarse y contárselo a más de un adulto de confianza",
+      "creator_situation": "situación educativa totalmente sintética sobre autonomía corporal, sin revelación de abuso",
+      "universe_id": "cloud_castle",
+      "style_id": "soft_watercolor",
+      "language": "ES",
+      "page_count": 24,
+      "product_type": "ebook",
+      "font_style": "rounded",
+      "child_safety_profile": {
+        "version": 2,
+        "category": "protective_education",
+        "action": "allow",
+        "restricted": false,
+        "confidence": "high",
+        "safetyContractId": "body_safety_v1",
+        "source": "deterministic"
+      },
+      "story_sensitivity_profile": {
+        "version": 2,
+        "guidance_version": 1,
+        "level": 2,
+        "category": "emotional_challenge",
+        "restricted": false,
+        "confidence": "high",
+        "recommended_approach": "gentle_action_led",
         "source": "deterministic"
       }
     }
