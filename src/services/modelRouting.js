@@ -57,6 +57,18 @@ const ROUTES = {
     defaultModel: "gpt-5.6-luna",
     defaultEffort: "low",
   },
+  narrative_benchmark_sol: {
+    modelEnv: "NARRATIVE_BENCHMARK_SOL_MODEL",
+    effortEnv: "NARRATIVE_BENCHMARK_SOL_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-sol",
+    defaultEffort: "high",
+  },
+  narrative_benchmark_luna: {
+    modelEnv: "NARRATIVE_BENCHMARK_LUNA_MODEL",
+    effortEnv: "NARRATIVE_BENCHMARK_LUNA_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-luna",
+    defaultEffort: "high",
+  },
 };
 
 function clean(value) {
@@ -85,5 +97,9 @@ export function modelRoute(role = "") {
 }
 
 export function storyModelRoutes() {
-  return Object.fromEntries(Object.keys(ROUTES).map((role) => [role, modelRoute(role)]));
+  return Object.fromEntries(
+    Object.keys(ROUTES)
+      .filter((role) => !role.startsWith("narrative_benchmark_"))
+      .map((role) => [role, modelRoute(role)]),
+  );
 }

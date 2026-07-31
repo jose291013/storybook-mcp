@@ -1,0 +1,40 @@
+[
+  {
+    "id": "forest-perseverance-fr-8",
+    "synthetic": true,
+    "questionnaire": {
+      "hero_name": "Lina",
+      "age": "8",
+      "gender": "",
+      "favorite_activities": "observer les oiseaux et dessiner",
+      "personality": "curieuse et attentive",
+      "dream": "retrouver le chemin d'un jardin lumineux",
+      "challenge": "elle abandonne parfois lorsqu'un premier essai ne fonctionne pas",
+      "message": "on peut changer de stratégie et demander de l'aide",
+      "creator_situation": "situation entièrement synthétique destinée au benchmark",
+      "universe_id": "enchanted_forest",
+      "style_id": "soft_watercolor",
+      "language": "FR",
+      "page_count": 24,
+      "product_type": "ebook",
+      "font_style": "rounded",
+      "child_safety_profile": {
+        "version": 2,
+        "category": "general",
+        "action": "allow",
+        "restricted": false,
+        "confidence": "high",
+        "source": "deterministic"
+      },
+      "story_sensitivity_profile": {
+        "version": 2,
+        "level": 1,
+        "category": "everyday_challenge",
+        "restricted": false,
+        "confidence": "high",
+        "recommended_approach": "light_action_led",
+        "source": "deterministic"
+      }
+    }
+  }
+]

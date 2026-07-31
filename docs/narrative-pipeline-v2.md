@@ -1,10 +1,11 @@
 # Calitiki Narrative Pipeline V2
 
-Status: contract foundation and pure compiler, not connected to production
+Status: contract foundation, pure compiler and allowlisted shadow harness; no
+downstream production consumer
 
 Contract version: `calitiki.narrative-book-spec.v1`
 
-Last updated: 2026-07-30
+Last updated: 2026-07-31
 
 ## Why V2 exists
 
@@ -250,6 +251,27 @@ V2 is introduced side by side:
 The first architecture brick deliberately adds no production flag and changes no
 customer journey.
 
+The separate shadow brick adds a server-side `observe` mode that remains off by
+default and compiles only project ids named in an explicit tester allowlist.
+Compilation runs after a scenario has already passed safety, semantic audit and
+creator approval. Its result is a private project artifact; failure stores only
+bounded issue codes and schema paths. Shadow failure is fail-open and can never
+change the approved scenario, customer response, project status, credit state or
+legacy preview path.
+
+Model quality is evaluated separately from customer traffic. The explicit
+`benchmark:narrative-models` command accepts synthetic fixtures only and runs the
+same normalized input through isolated Sol and Luna role routes. It reports only
+validation, canonical compilation, duration, request count and attributable
+cost. It never runs automatically on Render and never accepts a customer
+project, prompt or photo. A safe starter fixture is provided at
+`test/fixtures/narrative-benchmark.synthetic.example.json` and can be run
+explicitly with:
+
+```text
+npm run benchmark:narrative-models -- test/fixtures/narrative-benchmark.synthetic.example.json
+```
+
 ## Observability
 
 Private structured logs may contain:
@@ -295,16 +317,18 @@ Initial operational targets:
 
 ## Delivery sequence
 
-The contract foundation and pure compiler are implemented behind tests only.
-Shadow compilation is the next separate brick; no production route consumes a
-NarrativeBookSpec yet.
+The contract foundation and pure compiler are implemented behind tests. The
+allowlisted shadow compiler is implemented but disabled by default; no
+production route consumes a NarrativeBookSpec yet.
 
 1. **Contract foundation** — this document, JSON Schema, deterministic validator,
    reference fixture and tests.
 2. **Compiler** — approved scenario to immutable NarrativeBookSpec, still behind
    tests only.
-3. **Shadow mode** — compile new scenarios beside the legacy pipeline and compare
-   without affecting customers or credits.
+3. **Shadow mode** — implemented behind `off` by default plus an explicit tester
+   allowlist; compile approved scenarios beside the legacy pipeline and compare
+   without affecting customers or credits. Synthetic Sol/Luna evaluation is
+   launched only by an explicit local command.
 4. **V2 prose** — scene-local writer and deterministic prose checks.
 5. **V2 illustration contract** — code-built prompts and image validation.
 6. **Tester rollout** — new test books only, with legacy projects untouched.

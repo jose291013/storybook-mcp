@@ -32,6 +32,7 @@ export async function generateValidatedScenario({
   sensitivityContract,
   onStep = async () => {},
   backgroundExecution = null,
+  modelRoles = {},
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const canonicalCharacters = [
@@ -84,6 +85,12 @@ export async function generateValidatedScenario({
   );
 
   const generationRoute = scenarioGenerationRoute(previousScenario);
+  const architectModelRole = generationRoute.phase === "revision"
+    ? (modelRoles.repair || generationRoute.modelRole)
+    : (modelRoles.architect || generationRoute.modelRole);
+  const repairModelRole = modelRoles.repair || "story_repair";
+  const editorModelRole = modelRoles.editor || "story_editor";
+  const jsonRepairModelRole = modelRoles.jsonRepair || repairModelRole;
   await onStep({ phase: generationRoute.phase, attempt: 1 });
   const candidate = await storyScenarioAgent(
     {
@@ -93,7 +100,8 @@ export async function generateValidatedScenario({
     {
       backgroundExecution,
       backgroundStep: `${generationRoute.phase}:1`,
-      modelRole: generationRoute.modelRole,
+      modelRole: architectModelRole,
+      jsonRepairModelRole,
     },
   );
   normalizeCandidate(candidate);
@@ -120,7 +128,8 @@ export async function generateValidatedScenario({
       {
         backgroundExecution,
         backgroundStep: `repair:${repairCalls}`,
-        modelRole: "story_repair",
+        modelRole: repairModelRole,
+        jsonRepairModelRole,
       },
     );
     normalizeCandidate(repaired, repairDirectives);
@@ -140,6 +149,8 @@ export async function generateValidatedScenario({
       {
         backgroundExecution,
         backgroundStep: `editor:${editorCalls}`,
+        modelRole: editorModelRole,
+        jsonRepairModelRole,
       },
     );
     validation = {

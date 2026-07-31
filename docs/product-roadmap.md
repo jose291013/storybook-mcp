@@ -64,7 +64,7 @@ Last updated: 2026-07-30
 - The versioned application pricing table is an operational calculation layer, not accounting authority. It must be updated when OpenAI pricing or model routing changes and may later be reconciled against the provider usage/cost export.
 - The durable ledger stores numeric usage metadata only. It never stores questionnaire answers, prompts, manuscript text, photos, illustrations or generated output. Its rows intentionally survive customer project deletion so aggregate economics remain measurable without retaining the deleted creative content.
 - Cost data is strictly confidential to Calitiki. It is never returned by customer creation, preview, credit, checkout or reader APIs and never appears in **My creations Calitiki**. The only product UI is a WooCommerce administration screen protected by `manage_woocommerce`; WordPress obtains its data server-to-server through a short-lived HMAC-signed internal endpoint with private no-store headers.
-- The first pricing snapshot is `openai-standard-2026-07-30`. Deploying this brick requires database migration `013_openai_cost_ledger.sql` and Calitiki Bridge `0.7.5`; it introduces no new Render variable because the existing WooCommerce bridge secret signs the private report.
+- The first pricing snapshot is `openai-standard-2026-07-30`. The non-retroactive `openai-standard-2026-07-30-luna-reduction` snapshot applies OpenAI's announced 80% Luna reduction and 20% Terra reduction to events recorded after the application update; historical ledger rows keep their original price version. Deploying the cost-ledger foundation requires database migration `013_openai_cost_ledger.sql` and Calitiki Bridge `0.7.5`; it introduces no customer-visible cost or price.
 
 ## Public positioning and trust
 
@@ -182,7 +182,14 @@ per-scene object ledger; and returns only after deterministic NarrativeBookSpec
 validation. It performs no AI, network, persistence, route, credit or
 customer-flow operation. Transformations are projected into linked
 source/result causal events without asking a model to guess. Shadow compilation
-remains the next separate phase and must not affect legacy generation outcomes.
+is implemented as a separate disabled-by-default phase and cannot affect legacy
+generation outcomes. `NARRATIVE_V2_SHADOW_MODE=observe` still requires an exact
+project id in `NARRATIVE_V2_SHADOW_PROJECT_IDS`; an eligible approved scenario
+is compiled privately and any failure stores only bounded issue codes and schema
+paths. A separate explicit local command compares Sol and Luna on synthetic
+fixtures only, so customer books never receive duplicate benchmark calls. Luna
+may replace a production role only after semantic quality, deterministic
+compilation and cost gates pass.
 
 ## Current implementation checkpoint
 
@@ -304,6 +311,9 @@ remains the next separate phase and must not affect legacy generation outcomes.
 - `MANUSCRIPT_EDITOR_MODEL`, `MANUSCRIPT_EDITOR_REASONING_EFFORT`: economical final language-only review; defaults `gpt-5.6-luna` and `medium`.
 - `PREVIEW_AI_TARGET_USD`, `PREVIEW_AI_STRETCH_TARGET_USD`: private operating targets, defaults USD 2.00 and USD 1.50; never exposed to the customer.
 - `UTILITY_TEXT_MODEL`, `UTILITY_REASONING_EFFORT`: reserved economical route for later migration of no-credit helpers; defaults `gpt-5.6-luna` and `low`. Existing helpers remain on `TEXT_MODEL` until evaluated.
+- `NARRATIVE_V2_SHADOW_MODE=off|observe`: disabled-by-default V2 diagnostic compilation after creator approval. `observe` still does nothing unless the project id is explicitly allowlisted.
+- `NARRATIVE_V2_SHADOW_PROJECT_IDS`: comma-separated private tester project ids eligible for shadow compilation. An empty value disables all shadow compilation even when mode is `observe`.
+- `NARRATIVE_BENCHMARK_SOL_MODEL`, `NARRATIVE_BENCHMARK_SOL_REASONING_EFFORT`, `NARRATIVE_BENCHMARK_LUNA_MODEL`, `NARRATIVE_BENCHMARK_LUNA_REASONING_EFFORT`: local synthetic benchmark routes; they are not Render production settings and default to Sol/high versus Luna/high.
 - `PREVIEW_STALE_MINUTES`: no-progress period after which a preview job can be recovered, default 15 minutes.
 - `GENERATION_RECOVERY_ENABLED`: enables automatic detection of expired durable preview leases, default `true`.
 - `GENERATION_RECOVERY_INTERVAL_MS`: durable generation-recovery polling interval, default 60000 ms and minimum 30000 ms.
