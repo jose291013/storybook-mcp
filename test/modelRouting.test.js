@@ -16,6 +16,12 @@ const VARIABLES = [
   "STORY_AUDITOR_REASONING_EFFORT",
   "MANUSCRIPT_EDITOR_MODEL",
   "MANUSCRIPT_EDITOR_REASONING_EFFORT",
+  "NARRATIVE_BENCHMARK_SOL_MODEL",
+  "NARRATIVE_BENCHMARK_SOL_REASONING_EFFORT",
+  "NARRATIVE_BENCHMARK_TERRA_MODEL",
+  "NARRATIVE_BENCHMARK_TERRA_REASONING_EFFORT",
+  "NARRATIVE_BENCHMARK_LUNA_MODEL",
+  "NARRATIVE_BENCHMARK_LUNA_REASONING_EFFORT",
 ];
 
 function withCleanEnvironment(callback) {
@@ -54,6 +60,12 @@ test("quality-first defaults separate architect and editor from legacy text call
     });
     assert.deepEqual(modelRoute("story_auditor"), {
       role: "story_auditor",
+      model: "gpt-5.6-terra",
+      reasoningEffort: "high",
+      api: "responses",
+    });
+    assert.deepEqual(modelRoute("narrative_benchmark_terra"), {
+      role: "narrative_benchmark_terra",
       model: "gpt-5.6-terra",
       reasoningEffort: "high",
       api: "responses",

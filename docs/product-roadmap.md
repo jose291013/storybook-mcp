@@ -186,17 +186,20 @@ is implemented as a separate disabled-by-default phase and cannot affect legacy
 generation outcomes. `NARRATIVE_V2_SHADOW_MODE=observe` still requires an exact
 project id in `NARRATIVE_V2_SHADOW_PROJECT_IDS`; an eligible approved scenario
 is compiled privately and any failure stores only bounded issue codes and schema
-paths. A separate explicit local command compares Sol and Luna on synthetic
-fixtures only, so customer books never receive duplicate benchmark calls. Luna
-may replace a production role only after semantic quality, deterministic
-compilation and cost gates pass. Benchmark report version 2 measures provider
+paths. A separate explicit local command compares a chosen subset of Sol, Terra
+and Luna on synthetic fixtures only, so customer books never receive duplicate
+benchmark calls. A cheaper model may replace a production role only after
+semantic quality, deterministic compilation and cost gates pass. Benchmark
+report version 2 measures provider
 execution, scenario validity and canonical compilation separately, preserves
 the other model result after one variant fails and never emits generated prose
 or diagnostic explanations. Its six-case FR/ES/EN synthetic corpus covers
 simple narrative, object lifecycle, passage return, staggered physical and
 memory presence, prudent level-3 treatment and protective education. Paid runs
-require an explicit single-fixture choice or an explicit full-corpus
-acknowledgement.
+require both an explicit single-fixture choice or full-corpus acknowledgement
+and an explicit `sol`, `terra`, `luna` or `all` variant choice. The CLI rejects
+every unknown, misspelled, duplicated or contradictory option before a provider
+call and prints the exact paid-run count before execution.
 
 ## Current implementation checkpoint
 
@@ -320,7 +323,7 @@ acknowledgement.
 - `UTILITY_TEXT_MODEL`, `UTILITY_REASONING_EFFORT`: reserved economical route for later migration of no-credit helpers; defaults `gpt-5.6-luna` and `low`. Existing helpers remain on `TEXT_MODEL` until evaluated.
 - `NARRATIVE_V2_SHADOW_MODE=off|observe`: disabled-by-default V2 diagnostic compilation after creator approval. `observe` still does nothing unless the project id is explicitly allowlisted.
 - `NARRATIVE_V2_SHADOW_PROJECT_IDS`: comma-separated private tester project ids eligible for shadow compilation. An empty value disables all shadow compilation even when mode is `observe`.
-- `NARRATIVE_BENCHMARK_SOL_MODEL`, `NARRATIVE_BENCHMARK_SOL_REASONING_EFFORT`, `NARRATIVE_BENCHMARK_LUNA_MODEL`, `NARRATIVE_BENCHMARK_LUNA_REASONING_EFFORT`: local synthetic benchmark routes; they are not Render production settings and default to Sol/high versus Luna/high.
+- `NARRATIVE_BENCHMARK_SOL_MODEL`, `NARRATIVE_BENCHMARK_SOL_REASONING_EFFORT`, `NARRATIVE_BENCHMARK_TERRA_MODEL`, `NARRATIVE_BENCHMARK_TERRA_REASONING_EFFORT`, `NARRATIVE_BENCHMARK_LUNA_MODEL`, `NARRATIVE_BENCHMARK_LUNA_REASONING_EFFORT`: explicit synthetic benchmark routes; they do not change production routing and default to Sol/high, Terra/high and Luna/high.
 - `PREVIEW_STALE_MINUTES`: no-progress period after which a preview job can be recovered, default 15 minutes.
 - `GENERATION_RECOVERY_ENABLED`: enables automatic detection of expired durable preview leases, default `true`.
 - `GENERATION_RECOVERY_INTERVAL_MS`: durable generation-recovery polling interval, default 60000 ms and minimum 30000 ms.
