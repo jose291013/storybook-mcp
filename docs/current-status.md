@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/browser-language-defaults`
 - Production/main checkpoint: PR #122 merged at `837a88e`; legacy requested-language recovery
 - Current focused checkpoint: synchronize first-visit storefront, Creator interface and new-book language from the browser while preserving explicit and persisted choices
-- Pull request: pending publication; never merge without explicit confirmation and a Render restart warning
+- Pull request: PR #123 open as draft; never merge without explicit confirmation and a Render restart warning
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -34,7 +34,7 @@ PR #55 through PR #122 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the focused PR with theme package `1.2.2`; do not merge without explicit confirmation and a Render restart warning.
+1. Review PR #123; do not merge without explicit confirmation and a Render restart warning.
 2. After deployment and theme installation, open a clean Spanish-browser session and verify Spanish storefront, Creator and new-book language without manual correction.
 3. Explicitly switch the book to French, save/reopen the draft and verify that the persisted French choice is not overwritten by the Spanish interface.
 
