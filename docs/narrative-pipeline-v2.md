@@ -402,8 +402,10 @@ Initial operational targets:
 The contract foundation, pure compiler and Narrative Draft V2 object projection
 are implemented behind tests. The allowlisted shadow compiler remains available.
 Fresh scenario preparation now requires a successful canonical candidate compile
-before creator review, while preview generation still uses the legacy downstream
-pipeline until the following delivery bricks are activated.
+before creator review. Approval seals that exact contract, and the V2 manuscript
+writer consumes scene-local canonical facts keyed by its immutable digest. The
+legacy downstream path remains available only to projects approved before this
+versioned activation.
 
 1. **Contract foundation** — this document, JSON Schema, deterministic validator,
    reference fixture and tests.
@@ -413,7 +415,9 @@ pipeline until the following delivery bricks are activated.
    allowlist; compile approved scenarios beside the legacy pipeline and compare
    without affecting customers or credits. Synthetic Sol/Luna evaluation is
    launched only by an explicit local command.
-4. **V2 prose** — scene-local writer and deterministic prose checks.
+4. **V2 prose** — implemented foundation: scene-local writer inputs, sealed
+   approval artifact and digest-bound preview authorization. Deterministic prose
+   findings become the next local quality layer rather than a whole-story rewrite.
 5. **V2 illustration contract** — code-built prompts and image validation.
 6. **Tester rollout** — new test books only, with legacy projects untouched.
 7. **Production rollout** — only after acceptance gates and cost thresholds pass.

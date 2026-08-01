@@ -1,6 +1,15 @@
-export function buildNarrativeContext({ blueprint, intake, storybrand, approvedScenario = null, childSafetyContract = null, sensitivityContract = null }) {
+import { manuscriptContractContext } from "./narrativeBookSpecLifecycle.js";
+
+export function buildNarrativeContext({ blueprint, intake, storybrand, approvedScenario = null, narrativeBookSpec = null, childSafetyContract = null, sensitivityContract = null }) {
   const normalizedIntake = intake?.intake || intake || {};
   const normalizedStorybrand = storybrand?.storybrand || storybrand || {};
+  const canonicalContract = manuscriptContractContext(narrativeBookSpec);
+  if (canonicalContract) {
+    return {
+      title: blueprint?.cover?.title || "",
+      canonical_contract: canonicalContract,
+    };
+  }
   return {
     title: blueprint?.cover?.title || "",
     personal_details: {
