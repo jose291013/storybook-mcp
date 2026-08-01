@@ -69,6 +69,7 @@ import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../s
 import { assertManuscriptLanguage } from "../services/bookLanguage.js";
 import { narrativeBookSpecForPreview } from "../services/narrativeBookSpecLifecycle.js";
 import { compileSpecDrivenIllustrationPlan } from "../services/specDrivenIllustrationPlan.js";
+import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGovernor.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -1343,6 +1344,15 @@ router.post("/preview", async (req, res) => {
           text = draftTextByPage.get(page.page_number) || "";
         } else if (page.page_type === "image") {
           const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
+          const economicDecision = await evaluatePreviewEconomicGovernor(projectId);
+          if (economicDecision.mode !== "normal") {
+            console.info("[preview] economic containment", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              pageNumber: page.page_number,
+              mode: economicDecision.mode,
+            }));
+          }
           try {
             localImageUrl = await generateQualityCheckedImage({
               prompt: visualPrompt,
@@ -1370,6 +1380,7 @@ router.post("/preview", async (req, res) => {
               renderingMode: answers.rendering_mode,
               likenessGoal: answers.likeness_goal,
               model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+              retryRepairableFindings: economicDecision.optionalVisualRetry,
             });
           } catch (error) {
             if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;

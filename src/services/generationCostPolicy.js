@@ -4,9 +4,11 @@ function positiveNumber(value, fallback) {
 }
 
 export function generationCostPolicy() {
+  const previewTargetUsd = positiveNumber(process.env.PREVIEW_AI_TARGET_USD, 2);
   return {
-    previewTargetUsd: positiveNumber(process.env.PREVIEW_AI_TARGET_USD, 2),
+    previewTargetUsd,
     previewStretchTargetUsd: positiveNumber(process.env.PREVIEW_AI_STRETCH_TARGET_USD, 1.5),
+    previewHardLimitUsd: positiveNumber(process.env.PREVIEW_AI_HARD_LIMIT_USD, Math.max(3, previewTargetUsd * 1.5)),
     scenario: {
       architectCalls: 1,
       editorCalls: 1,
@@ -22,6 +24,11 @@ export function generationCostPolicy() {
     storyPlan: {
       plannerCalls: 1,
       repairCalls: 1,
+    },
+    containment: {
+      skipOptionalVisualRetriesAtTarget: true,
+      completionFirstAtHardLimit: true,
+      customerBlocking: false,
     },
   };
 }
