@@ -276,7 +276,7 @@ function passageRegistry(scenes, locationIds, issues, ordinaryReturns) {
       addIssue(
         issues,
         "passage_discovery_missing",
-        "registries.passages",
+        definition.crossings[0]?.path || "registries.passages",
         `${definition.name} is crossed without an explicit approved discovery.`,
       );
     }

@@ -15,6 +15,10 @@ function list(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
 }
 
+function passageId(value, fallback = "") {
+  return key(value || fallback).replaceAll(" ", "_");
+}
+
 function localizedNames(names, language) {
   const values = list(names).map(text).filter(Boolean);
   if (values.length < 2) return values[0] || "";
@@ -48,9 +52,9 @@ function discoverySentence({ travelers, mechanism, language }) {
   return `${names} ${plural ? "découvrent" : "découvre"} l’entrée ${destination}, sans encore la franchir.`;
 }
 
-function safeDiscoveryScene(scenes, crossingScene) {
+function safeDiscoveryScene(scenes, crossingScene, travelers = []) {
   const origin = key(crossingScene?.locationBefore);
-  const travelers = new Set(list(crossingScene?.transition?.characters).map(key));
+  const travelerKeys = new Set(list(travelers).map(key));
   return [...scenes]
     .filter((scene) => Number(scene?.sceneNumber) < Number(crossingScene?.sceneNumber))
     .reverse()
@@ -62,45 +66,151 @@ function safeDiscoveryScene(scenes, crossingScene) {
         && key(scene?.locationAfter) === origin
         && (!scene?.transition?.kind || scene.transition.kind === "none")
         && list(scene?.characterMovements).length === 0
-        && [...travelers].every((name) => physical.has(name));
+        && [...travelerKeys].every((name) => physical.has(name));
     }) || null;
+}
+
+function scenePassageEvents(scene) {
+  return [
+    { ...(scene?.transition || {}), source: "transition" },
+    ...list(scene?.characterMovements).map((movement) => ({ ...movement, source: "movement" })),
+  ].filter((event) => ["discover_passage", "cross_passage", "return_travel", "ordinary_travel"].includes(event.kind));
+}
+
+function passageEventSignature(event) {
+  return [
+    key(event.kind),
+    key(event.from),
+    key(event.to),
+    key(event.mechanismId || event.mechanism),
+  ].join("::");
+}
+
+function ordinaryReturnEvents(scenes) {
+  const routes = [];
+  const returns = new Set();
+  for (const scene of scenes) {
+    for (const event of scenePassageEvents(scene)) {
+      const signature = {
+        from: key(event.from),
+        to: key(event.to),
+        mechanism: key(event.mechanismId || event.mechanism),
+      };
+      if (event.kind === "ordinary_travel") {
+        routes.push(signature);
+      } else if (event.kind === "return_travel" && routes.some((route) => (
+        route.from === signature.to
+        && route.to === signature.from
+        && route.mechanism === signature.mechanism
+      ))) {
+        returns.add(passageEventSignature(event));
+      }
+    }
+  }
+  return returns;
+}
+
+function undiscoveredPassageCrossings(scenes) {
+  const discoveries = [];
+  const crossings = [];
+  const ordinaryReturns = ordinaryReturnEvents(scenes);
+  for (const scene of scenes) {
+    for (const event of scenePassageEvents(scene)) {
+      const id = passageId(event.mechanismId, event.mechanism);
+      if (!id) continue;
+      const record = {
+        scene,
+        event,
+        id,
+        mechanismKey: key(event.mechanism),
+      };
+      if (event.kind === "discover_passage") discoveries.push(record);
+      if (event.kind === "cross_passage"
+        || (event.kind === "return_travel" && !ordinaryReturns.has(passageEventSignature(event)))) {
+        crossings.push(record);
+      }
+    }
+  }
+  const discoveryIds = new Set(discoveries.map((record) => record.id));
+  return crossings
+    .filter((crossing) => !discoveryIds.has(crossing.id))
+    .filter((crossing, index, all) => all.findIndex((candidate) => (
+      candidate.scene.sceneNumber === crossing.scene.sceneNumber
+      && candidate.id === crossing.id
+    )) === index)
+    .map((crossing) => ({
+      ...crossing,
+      compatibleDiscovery: discoveries.find((discovery) => (
+        Number(discovery.scene.sceneNumber) < Number(crossing.scene.sceneNumber)
+        && discovery.mechanismKey
+        && discovery.mechanismKey === crossing.mechanismKey
+      )) || null,
+    }));
+}
+
+function passageRepairDirective({ scenes, crossingScene, crossingEvent, compatibleDiscovery = null }) {
+  const travelers = list(crossingEvent.characters).map(text).filter(Boolean);
+  const discoveryScene = compatibleDiscovery?.scene
+    || safeDiscoveryScene(scenes, crossingScene, travelers);
+  const mechanism = text(crossingEvent.mechanism);
+  const mechanismId = compatibleDiscovery?.id
+    || passageId(crossingEvent.mechanismId, mechanism);
+  if (!mechanism || !mechanismId) return null;
+  const instruction = discoveryScene
+    ? [
+      `Repair this causal defect without asking the creator: scene-${discoveryScene.sceneNumber} must discover`,
+      `"${mechanism}" at "${crossingScene.locationBefore}" without crossing it.`,
+      `Use transition kind discover_passage and mechanism_id "${mechanismId}".`,
+      `Scene-${crossingScene.sceneNumber} must then use that exact already-discovered passage with the same mechanism_id`,
+      `and travelers ${travelers.join(", ")}. Preserve every unrelated scene and creator choice.`,
+    ].join(" ")
+    : [
+      `Repair this causal defect without asking the creator: before scene-${crossingScene.sceneNumber}, add the discovery`,
+      `of "${mechanism}" at "${crossingScene.locationBefore}" without crossing it.`,
+      `Use mechanism_id "${mechanismId}", then keep scene-${crossingScene.sceneNumber} as the later crossing.`,
+      "Preserve every unrelated scene and creator choice.",
+    ].join(" ");
+  return {
+    code: "discover_passage_before_crossing",
+    discoverySceneNumber: Number(discoveryScene?.sceneNumber || 0),
+    crossingSceneNumber: Number(crossingScene.sceneNumber),
+    crossingKind: crossingEvent.kind === "return_travel" ? "return_travel" : "cross_passage",
+    mechanism,
+    mechanismId,
+    origin: text(crossingEvent.from || crossingScene.locationBefore),
+    travelers,
+    instruction,
+  };
 }
 
 export function buildStoryScenarioRepairDirectives(scenario = {}, validation = {}) {
   const scenes = list(scenario?.scenes);
   const directives = [];
+  const requestedCrossings = new Set();
   for (const issue of list(validation?.issues).map(text)) {
     const match = issue.match(/scene[- ](\d+)\s+crosses a passage before it was discovered/i);
     if (!match) continue;
-    const crossingScene = scenes.find((scene) => Number(scene?.sceneNumber) === Number(match[1]));
-    if (!crossingScene?.transition?.mechanism) continue;
-    const discoveryScene = safeDiscoveryScene(scenes, crossingScene);
-    const mechanismId = text(crossingScene.transition.mechanismId)
-      || key(crossingScene.transition.mechanism).replaceAll(" ", "_");
-    const instruction = discoveryScene
-      ? [
-        `Repair this causal defect without asking the creator: scene-${discoveryScene.sceneNumber} must discover`,
-        `"${crossingScene.transition.mechanism}" at "${crossingScene.locationBefore}" without crossing it.`,
-        `Use transition kind discover_passage and mechanism_id "${mechanismId}".`,
-        `Scene-${crossingScene.sceneNumber} must then cross that exact already-discovered passage with the same mechanism_id`,
-        `and travelers ${list(crossingScene.transition.characters).join(", ")}. Preserve every unrelated scene and creator choice.`,
-      ].join(" ")
-      : [
-        `Repair this causal defect without asking the creator: before scene-${crossingScene.sceneNumber}, add the discovery`,
-        `of "${crossingScene.transition.mechanism}" at "${crossingScene.locationBefore}" without crossing it.`,
-        `Use mechanism_id "${mechanismId}", then keep scene-${crossingScene.sceneNumber} as the later crossing.`,
-        "Preserve every unrelated scene and creator choice.",
-      ].join(" ");
-    directives.push({
-      code: "discover_passage_before_crossing",
-      discoverySceneNumber: Number(discoveryScene?.sceneNumber || 0),
-      crossingSceneNumber: Number(crossingScene.sceneNumber),
-      mechanism: text(crossingScene.transition.mechanism),
-      mechanismId,
-      origin: text(crossingScene.locationBefore),
-      travelers: list(crossingScene.transition.characters).map(text).filter(Boolean),
-      instruction,
+    requestedCrossings.add(Number(match[1]));
+  }
+  const canonicalDiagnostics = list(validation?.diagnostics)
+    .filter((diagnostic) => diagnostic?.code === "passage_discovery_missing");
+  const canonicalRepairRequested = canonicalDiagnostics.length > 0
+    || list(validation?.issues).some((issue) => /passage_discovery_missing/i.test(text(issue)));
+  for (const diagnostic of canonicalDiagnostics) {
+    if (Number(diagnostic?.sceneNumber) > 0) requestedCrossings.add(Number(diagnostic.sceneNumber));
+  }
+  const missing = undiscoveredPassageCrossings(scenes);
+  const targets = canonicalRepairRequested && requestedCrossings.size === 0
+    ? missing
+    : missing.filter((crossing) => requestedCrossings.has(Number(crossing.scene.sceneNumber)));
+  for (const crossing of targets) {
+    const directive = passageRepairDirective({
+      scenes,
+      crossingScene: crossing.scene,
+      crossingEvent: crossing.event,
+      compatibleDiscovery: crossing.compatibleDiscovery,
     });
+    if (directive) directives.push(directive);
   }
   return directives;
 }
@@ -119,16 +229,21 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
       && key(scene?.transition?.mechanismId || scene?.transition?.mechanism) === key(directive.mechanismId)
     ));
     crossingScene.transition = {
-      kind: "cross_passage",
+      kind: directive.crossingKind || "cross_passage",
       mechanism: directive.mechanism,
       mechanismId: directive.mechanismId,
       from: directive.origin,
       to: crossingScene.locationAfter,
       characters: [...directive.travelers],
     };
-    crossingScene.characterMovements = [{
+    const unrelatedMovements = list(crossingScene.characterMovements).filter((movement) => (
+      !["cross_passage", "return_travel"].includes(movement?.kind)
+      || key(movement?.from) !== key(directive.origin)
+      || key(movement?.to) !== key(crossingScene.locationAfter)
+    ));
+    crossingScene.characterMovements = [...unrelatedMovements, {
       id: "movement-1",
-      kind: "cross_passage",
+      kind: directive.crossingKind || "cross_passage",
       mechanism: directive.mechanism,
       mechanismId: directive.mechanismId,
       from: directive.origin,

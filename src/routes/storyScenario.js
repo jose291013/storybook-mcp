@@ -28,6 +28,10 @@ import {
   childSafetyResponse,
   guardChildSafety,
 } from "../services/childSafety.js";
+import {
+  STORY_SCENARIO_RETRY_POLICY_VERSION,
+  technicalStoryScenarioRetryAvailable,
+} from "../services/storyScenarioRetry.js";
 
 const router = express.Router();
 const EDITABLE_STATUSES = new Set([
@@ -126,7 +130,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     const failedGeneration = generationSnapshot(project);
     const retrying = requestedRetry
       && failedGeneration?.status === "failed"
-      && failedGeneration.retryAvailable === true
+      && technicalStoryScenarioRetryAvailable(project)
       && Boolean(failedGeneration.request);
     if (requestedRetry
       && failedGeneration?.status === "failed"
@@ -188,6 +192,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
           ...project.continuitySnapshot,
           storyScenarioGeneration: {
             version: 1,
+            retryPolicyVersion: STORY_SCENARIO_RETRY_POLICY_VERSION,
             runId: run.id,
             status: "queued",
             phase: "queued",

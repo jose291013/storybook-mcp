@@ -444,6 +444,30 @@ test("compiler binds the approved passage discovery, crossing and return without
   assert.deepEqual(contract.scenes[10].illustration.evokedCharacterIds, ["fee_de_la_foret"]);
 });
 
+test("a missing passage discovery points to the first crossing scene", () => {
+  const scenario = approvedScenario();
+  scenario.scenes[0].transition = {
+    kind: "none",
+    mechanism: "",
+    mechanismId: "",
+    from: scenario.scenes[0].locationBefore,
+    to: scenario.scenes[0].locationAfter,
+    characters: [],
+  };
+  scenario.scenes[0].characterMovements = [];
+
+  let failure = null;
+  try {
+    compile({ scenario: approveAgain(scenario) });
+  } catch (error) {
+    failure = error;
+  }
+
+  assert.ok(failure instanceof NarrativeBookSpecCompileError);
+  const issue = failure.issues.find((candidate) => candidate.code === "passage_discovery_missing");
+  assert.equal(issue?.path, "scenes[1].transition");
+});
+
 test("compiler derives a start-only illustration phase without asking the model to rewrite it", () => {
   const scenario = approvedScenario();
   scenario.scenes[0].characterPresences = scenario.scenes[0].characterPresences.map((entry) => ({
