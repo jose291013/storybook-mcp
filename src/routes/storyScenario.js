@@ -13,6 +13,7 @@ import {
   approveNarrativeBookSpec,
   NARRATIVE_V2_PIPELINE_VERSION,
 } from "../services/narrativeBookSpecLifecycle.js";
+import { narrativeV2RolloutAssignment } from "../services/narrativeV2Rollout.js";
 import {
   clarificationAnswersForApproval,
   hasCurrentStoryScenarioAuditEvidence,
@@ -372,7 +373,9 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       approvedAt: new Date().toISOString(),
     };
     const continuitySnapshot = { ...project.continuitySnapshot, storyScenario: approved };
-    if (Number(approved.version) === 2) {
+    const narrativeV2Rollout = narrativeV2RolloutAssignment(project);
+    continuitySnapshot.narrativeV2Rollout = narrativeV2Rollout;
+    if (Number(approved.version) === 2 && narrativeV2Rollout.enabled) {
       const narrativeBookSpec = approveNarrativeBookSpec({ project, scenario: approved });
       const candidateDigest = project.continuitySnapshot?.narrativeV2Candidate?.artifactDigest;
       if (candidateDigest && candidateDigest !== narrativeBookSpec.validation.artifactDigest) {
@@ -384,8 +387,16 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       continuitySnapshot.narrativeBookSpec = narrativeBookSpec;
       console.info("[narrative-v2] approved canonical contract", JSON.stringify({
         projectId: project.id,
+        rolloutMode: narrativeV2Rollout.mode,
+        rolloutBucket: narrativeV2Rollout.bucket,
         artifactDigest: narrativeBookSpec.validation.artifactDigest.slice(0, 12),
         sceneCount: narrativeBookSpec.scenes.length,
+      }));
+    } else {
+      console.info("[narrative-v2] legacy downstream assigned", JSON.stringify({
+        projectId: project.id,
+        rolloutMode: narrativeV2Rollout.mode,
+        rolloutBucket: narrativeV2Rollout.bucket,
       }));
     }
     if (narrativeV2ShadowEnabled(project.id)) {
