@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/book-language-init-order-final`
-- Production/main checkpoint: PR #128 merged at `d309406`; Narrative V2 progressive rollout with safe default `off`
-- Current focused checkpoint: prevent dynamic questionnaire reconstruction from restoring the static French HTML default over the selected Spanish new-book language
-- Pull request: pending publication under the user's standing authorization while no book is generating
+- Current branch: `codex/narrative-v2-final-checkpoint`
+- Production/main checkpoint: PR #129 merged at `51baa17`; Narrative V2 foundation plus corrected ES/FR new-book initialization
+- Current focused checkpoint: deploy from `main`, verify language initialization, then start a deliberately small Narrative V2 canary
+- Pull request: final documentation checkpoint under the user's standing authorization while no book is generating
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #128 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #129 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: Narrative V2 foundation and book-language initialization
 
@@ -35,9 +35,9 @@ PR #55 through PR #128 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Complete and merge the language regression PR under the user's standing authorization.
-2. After deployment, verify `newBook=1&uiLanguage=ES&bookLanguage=ES`, then explicitly switch the book to French and confirm the saved choice survives reopening.
-3. Start Render with `NARRATIVE_V2_ROLLOUT_MODE=canary` and a deliberately small percentage, then verify one stable spec digest, zero whole-book planner calls and bounded optional image retries on an enrolled test book.
+1. After deployment, verify `newBook=1&uiLanguage=ES&bookLanguage=ES`, then explicitly switch the book to French and confirm the saved choice survives reopening.
+2. Set `NARRATIVE_V2_ROLLOUT_MODE=canary` with a deliberately small `NARRATIVE_V2_ROLLOUT_PERCENT` only when the language check is complete.
+3. On the first enrolled test book, verify one stable spec digest, zero whole-book planner calls, bounded optional image retries and the private per-stage cost ledger.
 
 ## Protected local state
 
