@@ -122,7 +122,15 @@ test("durable scenario worker persists a completed scenario without storing its 
     generate: async ({ onStep }) => {
       await onStep({ phase: "architect", attempt: 1 });
       await onStep({ phase: "editor", attempt: 1 });
-      return { scenario, validation: { valid: true, issues: [] } };
+      return {
+        scenario,
+        validation: { valid: true, issues: [] },
+        canonicalCandidateEvidence: {
+          version: 1,
+          status: "compiled",
+          artifactDigest: "c".repeat(64),
+        },
+      };
     },
   });
 
@@ -132,6 +140,8 @@ test("durable scenario worker persists a completed scenario without storing its 
   assert.equal(completed.continuitySnapshot.storyScenario.title, scenario.title);
   assert.equal(completed.continuitySnapshot.storyScenarioGeneration.status, "completed");
   assert.equal(completed.continuitySnapshot.storyScenarioGeneration.request, null);
+  assert.equal(completed.continuitySnapshot.narrativeV2Candidate.status, "compiled");
+  assert.equal(completed.continuitySnapshot.narrativeV2Candidate.artifactDigest, "c".repeat(64));
   assert.equal(runs.patches.at(-1).status, "completed");
   assert.ok(runs.patches.some((patch) => patch.currentStep === "scenario:architect:attempt:1"));
 });
