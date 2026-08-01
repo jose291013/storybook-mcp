@@ -1,4 +1,5 @@
 import { getWordsTargetByAge } from "../config/readingGuidance.js";
+import { manuscriptSceneContract } from "./narrativeBookSpecLifecycle.js";
 
 const TEXT_PAGE_TYPES = new Set(["text", "opening_text", "closing_text"]);
 
@@ -17,6 +18,7 @@ function fallbackAct(index, total) {
 export function manuscriptBatches({
   pages = [],
   approvedScenario = null,
+  narrativeBookSpec = null,
   heroAge = 8,
 } = {}) {
   const textPages = pages.filter((page) => TEXT_PAGE_TYPES.has(page.page_type));
@@ -36,6 +38,7 @@ export function manuscriptBatches({
       text_prompt: String(page.text_prompt || ""),
       word_target: guidance.target,
       word_tolerance: guidance.tolerance,
+      canonical_scene: manuscriptSceneContract(narrativeBookSpec, page.scene_number),
     };
     grouped.set(act, [...(grouped.get(act) || []), item]);
   });

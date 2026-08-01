@@ -10,6 +10,10 @@ import {
   narrativeV2ShadowEnabled,
 } from "../services/narrativeV2Shadow.js";
 import {
+  approveNarrativeBookSpec,
+  NARRATIVE_V2_PIPELINE_VERSION,
+} from "../services/narrativeBookSpecLifecycle.js";
+import {
   clarificationAnswersForApproval,
   hasCurrentStoryScenarioAuditEvidence,
   recoverLegacyLifecycleValidation,
@@ -368,6 +372,22 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       approvedAt: new Date().toISOString(),
     };
     const continuitySnapshot = { ...project.continuitySnapshot, storyScenario: approved };
+    if (Number(approved.version) === 2) {
+      const narrativeBookSpec = approveNarrativeBookSpec({ project, scenario: approved });
+      const candidateDigest = project.continuitySnapshot?.narrativeV2Candidate?.artifactDigest;
+      if (candidateDigest && candidateDigest !== narrativeBookSpec.validation.artifactDigest) {
+        const error = new Error("The approved narrative contract changed after its canonical gate");
+        error.code = "narrative_book_spec_candidate_mismatch";
+        throw error;
+      }
+      continuitySnapshot.narrativeV2PipelineVersion = NARRATIVE_V2_PIPELINE_VERSION;
+      continuitySnapshot.narrativeBookSpec = narrativeBookSpec;
+      console.info("[narrative-v2] approved canonical contract", JSON.stringify({
+        projectId: project.id,
+        artifactDigest: narrativeBookSpec.validation.artifactDigest.slice(0, 12),
+        sceneCount: narrativeBookSpec.scenes.length,
+      }));
+    }
     if (narrativeV2ShadowEnabled(project.id)) {
       const shadow = compileNarrativeV2Shadow({ project, scenario: approved });
       continuitySnapshot.narrativeV2Shadow = shadow;

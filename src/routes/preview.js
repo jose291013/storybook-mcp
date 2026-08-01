@@ -67,6 +67,7 @@ import {
 import { generationCostPolicy } from "../services/generationCostPolicy.js";
 import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { assertManuscriptLanguage } from "../services/bookLanguage.js";
+import { narrativeBookSpecForPreview } from "../services/narrativeBookSpecLifecycle.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -459,6 +460,15 @@ router.post("/preview", async (req, res) => {
       code: "story_scenario_required",
     });
   }
+  let narrativeBookSpec = null;
+  try {
+    narrativeBookSpec = narrativeBookSpecForPreview(project, approvedScenario);
+  } catch (error) {
+    return res.status(409).json({
+      error: String(error?.message || error),
+      code: error?.code || "narrative_book_spec_invalid",
+    });
+  }
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
   const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
@@ -738,6 +748,7 @@ router.post("/preview", async (req, res) => {
         intake,
         storybrand,
         approvedScenario,
+        narrativeBookSpec,
         childSafetyContract: safety.contract,
         sensitivityContract,
       });
@@ -745,6 +756,7 @@ router.post("/preview", async (req, res) => {
       const batches = manuscriptBatches({
         pages: final_blueprint.pages,
         approvedScenario,
+        narrativeBookSpec,
         heroAge: final_blueprint.hero?.age,
       }).slice(0, generationCostPolicy().manuscript.maximumBatches);
       let previousText = "";

@@ -216,6 +216,14 @@ and an explicit `sol`, `terra`, `luna` or `all` variant choice. The CLI rejects
 every unknown, misspelled, duplicated or contradictory option before a provider
 call and prints the exact paid-run count before execution.
 
+Fresh V2 scenario approval now promotes the successfully gated candidate into
+one immutable private NarrativeBookSpec. Its semantic evidence is sealed against
+the exact artifact digest and preview authorization fails closed if that contract
+is missing, invalid or belongs to another scenario. Manuscript generation receives
+one compact shared registry plus only the canonical contract of each requested
+scene. It no longer needs the full mutable scenario in every act prompt. Existing
+approved projects without the V2 activation marker continue on the legacy path.
+
 ## Current implementation checkpoint
 
 - Calitiki Bridge 0.6.0 adds **Create a new adventure** to every paid eBook in **My creations**. The Storybook service creates or reuses the series and child profile, marks the purchased source as episode 1, freezes its continuity memory, and opens episode 2 with the original ten answers, book choices and authenticated private reference photos. No generation begins until the customer edits the draft, reviews it and explicitly confirms a new preview debit.
