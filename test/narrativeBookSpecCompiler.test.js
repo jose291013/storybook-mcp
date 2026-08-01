@@ -444,6 +444,30 @@ test("compiler binds the approved passage discovery, crossing and return without
   assert.deepEqual(contract.scenes[10].illustration.evokedCharacterIds, ["fee_de_la_foret"]);
 });
 
+test("compiler derives a start-only illustration phase without asking the model to rewrite it", () => {
+  const scenario = approvedScenario();
+  scenario.scenes[0].characterPresences = scenario.scenes[0].characterPresences.map((entry) => ({
+    ...entry,
+    phase: "start",
+  }));
+
+  const contract = compile({ scenario: approveAgain(scenario) });
+
+  assert.equal(contract.scenes[0].timeline.visiblePhase, "start");
+  assert.deepEqual(contract.scenes[0].illustration.visibleCharacterIds, ["bastien", "marie"]);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
+test("compiler derives a missing presence action from the approved scene action", () => {
+  const scenario = approvedScenario();
+  scenario.scenes[0].characterPresences[0].action = "";
+
+  const contract = compile({ scenario: approveAgain(scenario) });
+
+  assert.equal(contract.scenes[0].presences[0].action, scenario.scenes[0].action);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
 test("compiler resolves a stable character id and its display-name aliases to one registry entry", () => {
   const scenario = approvedScenario();
   scenario.characters[0].id = "hero_bastien";

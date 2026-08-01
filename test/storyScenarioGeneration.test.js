@@ -161,5 +161,67 @@ test("an unresolved canonical defect fails internally instead of producing red c
     check: () => ({ valid: false, validation: { valid: false, issues: ["hidden"] } }),
     repair: async () => assert.fail("repair disabled"),
     finalAudit: async () => assert.fail("audit disabled"),
-  }), (error) => error.code === "scenario_contract_invalid");
+  }), (error) => {
+    assert.equal(error.code, "scenario_contract_invalid");
+    assert.deepEqual(error.canonicalDiagnostics, {
+      version: 1,
+      repairAttempted: false,
+      finalAuditAttempted: false,
+      initialIssues: [],
+      finalIssues: [],
+    });
+    return true;
+  });
+});
+
+test("canonical diagnostics retain only bounded technical coordinates", async () => {
+  await assert.rejects(() => runCanonicalCandidateGate({
+    scenario: { revision: "audited" },
+    validation: { valid: true, issues: [] },
+    policy: { canonicalRepairCalls: 0, canonicalFinalAuditCalls: 0 },
+    check: () => ({
+      valid: false,
+      validation: { valid: false, issues: ["private story prose"] },
+      issues: [{
+        code: "unknown character!",
+        path: "scenes[4].presences[0] / private name",
+        sceneNumber: 5,
+        explanation: "This private sentence must never be persisted.",
+      }],
+    }),
+    repair: async () => assert.fail("repair disabled"),
+    finalAudit: async () => assert.fail("audit disabled"),
+  }), (error) => {
+    assert.deepEqual(error.canonicalDiagnostics.finalIssues, [{
+      code: "unknown_character_",
+      path: "scenes[4].presences[0]_private_name",
+      sceneNumber: 5,
+    }]);
+    assert.equal(JSON.stringify(error.canonicalDiagnostics).includes("private sentence"), false);
+    return true;
+  });
+});
+
+test("a canonical repair that breaks semantic validation still fails privately", async () => {
+  await assert.rejects(() => runCanonicalCandidateGate({
+    scenario: { revision: "audited" },
+    validation: { valid: true, issues: [] },
+    policy: { canonicalRepairCalls: 1, canonicalFinalAuditCalls: 1 },
+    check: () => ({
+      valid: false,
+      validation: { valid: false, issues: ["mechanical defect"] },
+      issues: [{ code: "unknown_location", path: "scenes[2].locationId", sceneNumber: 3 }],
+      repairDirectives: [{ code: "repair_location" }],
+    }),
+    repair: async () => ({
+      scenario: { revision: "semantically-broken" },
+      validation: { valid: false, issues: ["private semantic defect"] },
+    }),
+    finalAudit: async () => assert.fail("invalid repair must not receive final audit"),
+  }), (error) => {
+    assert.equal(error.code, "scenario_contract_invalid");
+    assert.equal(error.canonicalDiagnostics.repairAttempted, true);
+    assert.equal(error.canonicalDiagnostics.finalAuditAttempted, false);
+    return true;
+  });
 });

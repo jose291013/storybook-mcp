@@ -183,7 +183,7 @@ introduced by the contract-foundation brick. The normative design is
 
 The pure compiler brick is implemented behind tests only. It requires the exact
 approved-scenario audit, movement ledger v1 and a supported causal graph v1 or v2; derives stable
-registries, format page bindings, one end-of-scene visible moment and a complete
+registries, format page bindings, one explicit visible phase and a complete
 per-scene object ledger; and returns only after deterministic NarrativeBookSpec
 validation. It performs no AI, network, persistence, route, credit or
 customer-flow operation. Transformations are projected into linked
@@ -215,6 +215,19 @@ require both an explicit single-fixture choice or full-corpus acknowledgement
 and an explicit `sol`, `terra`, `luna` or `all` variant choice. The CLI rejects
 every unknown, misspelled, duplicated or contradictory option before a provider
 call and prints the exact paid-run count before execution.
+
+Compiler version 2 removes three remaining probabilistic dependencies from the
+fresh-scenario gate. For causal graph v2, the graph alone determines every
+per-scene object state, quantity and owner; contradictory model snapshots are
+ignored. Physical presence locations are admitted into the canonical location
+registry, and a scene whose physical cast exists only at the beginning compiles
+an explicit `start` illustration phase instead of inventing an end-of-scene
+cast. A missing presence action inherits the already approved scene action.
+These are lossless mechanical projections and therefore consume no repair call.
+If the bounded gate still cannot compile, the run stores only capped issue codes,
+schema paths, scene numbers and whether its repair/audit allowances ran. It never
+persists generated prose or customer wording in diagnostics, remains freely
+retryable and never exposes hidden compiler mechanics as red creator cards.
 
 Fresh V2 scenario approval now promotes the successfully gated candidate into
 one immutable private NarrativeBookSpec. Its semantic evidence is sealed against
