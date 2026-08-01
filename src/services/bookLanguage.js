@@ -56,6 +56,35 @@ export function manuscriptLanguageEvidence(value) {
   };
 }
 
+function approvedScenarioLanguageEvidence(project = {}) {
+  const scenario = project.continuitySnapshot?.storyScenario;
+  if (!scenario || scenario.status !== "approved") return manuscriptLanguageEvidence("");
+  const scenes = Array.isArray(scenario.scenes) ? scenario.scenes : [];
+  const visibleText = [
+    scenario.title,
+    scenario.summary,
+    scenario.logline,
+    project.finalBlueprint?.cover?.title,
+    ...scenes.flatMap((scene) => [
+      scene?.title,
+      scene?.location,
+      scene?.action,
+      scene?.narrativeFunction,
+      scene?.dominantEmotion,
+      scene?.emotionalShift,
+      scene?.storyChange,
+    ]),
+  ].filter(Boolean);
+  return manuscriptLanguageEvidence(visibleText);
+}
+
+function strongLanguageEvidence(evidence = {}) {
+  const ranked = Object.values(evidence.scores || {}).sort((left, right) => right - left);
+  return Number(evidence.tokenCount || 0) >= 40
+    && Number(ranked[0] || 0) >= 8
+    && Number(ranked[0] || 0) >= Number(ranked[1] || 0) + 4;
+}
+
 export function assertManuscriptLanguage(pages, expectedLanguage) {
   const expected = normalizeBookLanguage(expectedLanguage);
   const evidence = manuscriptLanguageEvidence(
@@ -72,12 +101,27 @@ export function assertManuscriptLanguage(pages, expectedLanguage) {
 }
 
 export function bookLanguageStatus(project = {}) {
-  const expectedLanguage = canonicalBookLanguage(project);
-  const blueprintLanguage = normalizeBookLanguage(project.finalBlueprint?.language || expectedLanguage);
+  const persistedLanguage = canonicalBookLanguage(project);
+  const blueprintLanguage = normalizeBookLanguage(project.finalBlueprint?.language || persistedLanguage);
   const textPages = (project.previewResult?.draftPages || [])
     .filter((page) => ["text", "opening_text", "closing_text"].includes(page?.page_type));
   const evidence = manuscriptLanguageEvidence(textPages.map((page) => page.text));
   const detectedLanguage = evidence.language;
+  const scenarioEvidence = approvedScenarioLanguageEvidence(project);
+  // Early projects could persist the interface fallback (usually FR) in every
+  // language field even though their approved scenario and cover were authored
+  // in the creator's selected language. Recover only this narrow false-negative
+  // signature: metadata, blueprint and manuscript all agree with each other,
+  // while a substantial approved scenario strongly proves another language.
+  const legacyScenarioLanguage = strongLanguageEvidence(scenarioEvidence)
+    && scenarioEvidence.language
+    && detectedLanguage
+    && persistedLanguage === blueprintLanguage
+    && persistedLanguage === detectedLanguage
+    && scenarioEvidence.language !== persistedLanguage
+    ? scenarioEvidence.language
+    : "";
+  const expectedLanguage = legacyScenarioLanguage || persistedLanguage;
   const mismatch = Boolean(
     project.finalBlueprint
     && (blueprintLanguage !== expectedLanguage || (detectedLanguage && detectedLanguage !== expectedLanguage)),
