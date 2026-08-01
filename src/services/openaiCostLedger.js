@@ -205,6 +205,24 @@ export async function getBookCostDetails(projectId) {
   };
 }
 
+export async function currentBookCostUsdMicros(projectId) {
+  const cleanProjectId = clean(projectId, 80);
+  if (!cleanProjectId) return 0;
+  const database = getDatabasePool();
+  if (!database) {
+    return memoryEvents
+      .filter((event) => event.projectId === cleanProjectId)
+      .reduce((total, event) => total + Number(event.costUsdMicros || 0), 0);
+  }
+  const { rows } = await database.query(
+    `SELECT COALESCE(SUM(cost_usd_micros),0)::bigint AS total
+     FROM openai_cost_events
+     WHERE project_id=$1`,
+    [cleanProjectId],
+  );
+  return Number(rows[0]?.total || 0);
+}
+
 export function resetMemoryCostLedgerForTests() {
   memoryEvents.splice(0, memoryEvents.length);
 }

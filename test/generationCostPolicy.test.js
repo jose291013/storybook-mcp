@@ -12,6 +12,7 @@ test("the internal cost governor defaults to one premium narrative pass and thre
   const policy = generationCostPolicy();
   assert.equal(policy.previewTargetUsd, 2);
   assert.equal(policy.previewStretchTargetUsd, 1.5);
+  assert.equal(policy.previewHardLimitUsd, 3);
   assert.deepEqual(policy.scenario, {
     architectCalls: 1,
     editorCalls: 1,
@@ -24,6 +25,7 @@ test("the internal cost governor defaults to one premium narrative pass and thre
   assert.equal(policy.manuscript.maximumBatches, 3);
   assert.equal(policy.storyPlan.plannerCalls, 1);
   assert.equal(policy.storyPlan.repairCalls, 1);
+  assert.equal(policy.containment.customerBlocking, false);
 });
 
 test("manuscript pages are grouped into three acts and merged atomically", () => {

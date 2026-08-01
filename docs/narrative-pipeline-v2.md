@@ -422,5 +422,8 @@ versioned activation.
    from the sealed spec, carry its digest and bypass the whole-book planning/audit
    loop. Severity-based validation blocks objective mechanics while containing
    subjective visual findings.
+6. **Economic containment** — implemented privately: attributed spend selects
+   normal, containment or completion-first mode. Only optional visual retries are
+   removed; required completion and safety remain invariant.
 6. **Tester rollout** — new test books only, with legacy projects untouched.
 7. **Production rollout** — only after acceptance gates and cost thresholds pass.

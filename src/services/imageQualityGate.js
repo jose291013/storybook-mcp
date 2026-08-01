@@ -307,6 +307,7 @@ export async function generateQualityCheckedImage({
   onAttempt = null,
   onCandidate = null,
   sceneFidelityContract = null,
+  retryRepairableFindings = true,
   ...generationOptions
 }) {
   let previousIssues = [];
@@ -391,6 +392,30 @@ export async function generateQualityCheckedImage({
         styleIssues: styleInspection.issues,
         identityIssues: identityInspection.issues,
       });
+      if (
+        inspection.approved
+        && disposition.blocking.length === 0
+        && disposition.repairable.length > 0
+        && !retryRepairableFindings
+      ) {
+        await onCandidate?.({
+          imageUrl,
+          attempt,
+          maximumAttempts: attemptLimit,
+          status: "accepted",
+          rejectionKind: !identityInspection.approved ? "identity" : !sceneInspection.approved ? "scene" : "style",
+          issues: disposition.repairable,
+          warning: true,
+        });
+        onAttempt?.({
+          phase: "approved-with-budget-warning",
+          attempt,
+          maximumAttempts: attemptLimit,
+          pageLabel,
+          issues: disposition.repairable,
+        });
+        return imageUrl;
+      }
       if (inspection.approved
         && attempt === attemptLimit
         && disposition.blocking.length === 0) {
