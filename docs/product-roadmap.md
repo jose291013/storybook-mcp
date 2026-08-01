@@ -229,6 +229,16 @@ schema paths, scene numbers and whether its repair/audit allowances ran. It neve
 persists generated prose or customer wording in diagnostics, remains freely
 retryable and never exposes hidden compiler mechanics as red creator cards.
 
+Canonical passage failures preserve the concrete path of the first crossing
+rather than collapsing the defect into a global registry error. The generic
+scenario controller consumes that structured diagnostic, finds a safe earlier
+scene at the crossing origin, records discovery without traversal and aligns the
+stable passage id on the later crossing. If an earlier discovery already exists
+under the same approved mechanism wording, only the invisible ids are aligned.
+Unrelated character movements and creator choices remain untouched. Scenario
+retry policy version 2 grants one bounded creator-free recovery to projects that
+exhausted their earlier attempts before this invariant was available.
+
 Fresh V2 scenario approval now promotes the successfully gated candidate into
 one immutable private NarrativeBookSpec. Its semantic evidence is sealed against
 the exact artifact digest and preview authorization fails closed if that contract

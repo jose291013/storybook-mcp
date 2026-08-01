@@ -8,36 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/canonical-gate-diagnostics`
-- Production/main checkpoint: PR #130 merged at `f573ed3`; Narrative V2 rollout checkpoint documented
-- Current focused checkpoint: compiler-v2 deterministic projections plus private canonical-gate diagnostics after the first canary scenario stopped safely at `scenario_contract_invalid`
+- Current branch: `codex/canonical-passage-recovery`
+- Production/main checkpoint: PR #131 merged at `2afef50`; deterministic canonical-gate diagnostics deployed
+- Current focused checkpoint: connect canonical `passage_discovery_missing` diagnostics to the generic discovery-before-crossing repair and restore one policy-versioned recovery to the preserved canary project
 - Pull request: being prepared; not merged
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #130 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #131 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: deterministic canonical gate recovery
+## Current product brick: canonical passage recovery
 
-1. Causal graph v2 is the sole authority for object state, quantity and owner; parallel scene snapshots no longer provoke a paid repair.
-2. Physical presence locations, start-only visible casts and missing presence actions are derived deterministically from approved facts.
-3. An unresolved canonical gate persists only bounded private codes, paths and scene numbers in the generation run; no questionnaire or generated prose is copied.
-4. The interrupted canary project is intentionally preserved as the post-deploy retry and regression target.
+1. A missing passage discovery now points to its first concrete crossing scene instead of only the global passage registry.
+2. Canonical diagnostics reuse the existing generic discovery-before-crossing repair; stable passage ids are aligned without changing unrelated scenes.
+3. Scenario retry policy version 2 grants one new creator-free recovery to projects exhausted before this fix, including the preserved canary project.
+4. Child Safety, sensitivity contracts and private bounded diagnostics remain unchanged.
 
 ## Verification
 
-- Focused canonical compiler, candidate-gate and durable-worker tests: 30/30 passing.
-- Complete `npm test`: 364/364 passing.
+- Focused passage, compiler and retry-policy tests: passing.
+- Complete `npm test`: 369/369 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
 1. Publish and deploy this brick without deleting project `1a76ebc1-b389-4453-8f01-0205e7b4c206`.
-2. Use its existing free retry; confirm it reaches scenario review without a new hidden mechanical card.
-3. If it still fails, inspect only `generation_runs.metadata.canonicalGate` or the bounded Render `canonicalGate` log and add a generic invariant rather than a story-specific repair.
+2. Reopen the preserved project; its free retry must be visible again through the policy-versioned recovery.
+3. Confirm the retry reaches scenario review and the canonical compiler no longer reports `passage_discovery_missing`.
 
 ## Protected local state
 

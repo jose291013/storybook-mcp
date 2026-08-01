@@ -134,6 +134,58 @@ test("the narrative controller turns an undiscovered crossing into a targeted sc
   assert.deepEqual(validateStoryScenario(repaired), { valid: true, issues: [] });
 });
 
+test("the canonical passage diagnostic reuses the deterministic discovery repair", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].action = "Nolan et MathÃ©o observent la clairiÃ¨re et choisissent leur chemin.";
+  scenario.scenes[0].transition = {
+    kind: "none",
+    mechanism: "",
+    mechanismId: "",
+    from: "la clairiÃ¨re",
+    to: "la clairiÃ¨re",
+    characters: [],
+  };
+  const validation = {
+    valid: false,
+    issues: ["scene-2: passage_discovery_missing: le portail bleu is crossed without an explicit approved discovery."],
+    diagnostics: [{
+      code: "passage_discovery_missing",
+      path: "scenes[1].transition",
+      sceneNumber: 2,
+    }],
+  };
+
+  const directives = buildStoryScenarioRepairDirectives(scenario, validation);
+  assert.equal(directives.length, 1);
+  assert.equal(directives[0].discoverySceneNumber, 1);
+  assert.equal(directives[0].crossingSceneNumber, 2);
+  const repaired = applyStoryScenarioRepairDirectives(scenario, directives, { language: "FR" });
+  assert.deepEqual(validateStoryScenario(repaired), { valid: true, issues: [] });
+});
+
+test("canonical passage repair aligns a descriptive crossing with an earlier stable passage id", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].transition.mechanismId = "portail_bleu";
+  scenario.scenes[1].transition.mechanismId = "porte_lumineuse";
+  scenario.scenes[1].transition.mechanism = "le portail bleu";
+  scenario.scenes[1].characterMovements = [{
+    id: "movement-1",
+    ...scenario.scenes[1].transition,
+  }];
+  const directives = buildStoryScenarioRepairDirectives(scenario, {
+    valid: false,
+    issues: ["passage_discovery_missing: le portail bleu is crossed without an explicit approved discovery."],
+    diagnostics: [{ code: "passage_discovery_missing", sceneNumber: 2 }],
+  });
+
+  assert.equal(directives.length, 1);
+  assert.equal(directives[0].mechanismId, "portail_bleu");
+  const repaired = applyStoryScenarioRepairDirectives(scenario, directives, { language: "FR" });
+  assert.equal(repaired.scenes[1].transition.mechanismId, "portail_bleu");
+  assert.equal(repaired.scenes[1].characterMovements[0].mechanismId, "portail_bleu");
+  assert.deepEqual(validateStoryScenario(repaired), { valid: true, issues: [] });
+});
+
 test("the narrative contract requires distinct progression, emotions and declared symbols", () => {
   const scenario = coherentPortalScenario();
   scenario.narrativeContract = {

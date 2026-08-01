@@ -952,9 +952,8 @@ async function pollStoryScenarioJob(jobId) {
           { cache: "no-store" },
         );
         const payload = await projectResponse.json();
-        const checkpoint = payload.project?.continuitySnapshot?.storyScenarioGeneration;
-        error.retryAvailable = checkpoint?.retryAvailable === true;
-        error.retryExhausted = checkpoint?.retryExhausted === true;
+        error.retryAvailable = payload.project?.technicalStoryScenarioRetryAvailable === true;
+        error.retryExhausted = payload.project?.technicalStoryScenarioRetryExhausted === true;
       } catch {
         error.retryAvailable = false;
       }
@@ -3109,15 +3108,15 @@ async function restoreCompletedPreview() {
     || scenarioGeneration?.status === "failed") {
     if (scenario) {
       renderStoryScenario(scenario, { scroll: false });
-      state.storyScenarioRetryAvailable = scenarioGeneration?.retryAvailable === true;
+      state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       state.storyScenarioUpdateFailed = true;
       elements.scenarioFeedback.value = scenarioGeneration?.request?.feedback || "";
       setScenarioStatus(tr("scenarioRevisionError"), "error");
     } else {
-      state.storyScenarioRetryAvailable = scenarioGeneration?.retryAvailable === true;
+      state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       showInitialScenarioPreparation();
       const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
-      elements.scenarioPreparationFeedback.textContent = scenarioGeneration?.retryExhausted
+      elements.scenarioPreparationFeedback.textContent = project?.technicalStoryScenarioRetryExhausted
         ? copy.exhausted
         : scenarioGeneration?.errorCode === "scenario_timeout"
           ? copy.timeout

@@ -25,6 +25,10 @@ import {
   technicalPreviewRetryExhausted,
 } from "../services/previewGenerationCheckpoint.js";
 import { bookLanguageStatus } from "../services/bookLanguage.js";
+import {
+  technicalStoryScenarioRetryAvailable,
+  technicalStoryScenarioRetryExhausted,
+} from "../services/storyScenarioRetry.js";
 
 const router = express.Router();
 
@@ -114,6 +118,8 @@ function publicProject(project) {
     technicalReferenceRetryAvailable: technicalReferenceRetryAvailable(project),
     technicalPreviewRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalPreviewRetryExhausted: technicalPreviewRetryExhausted(project),
+    technicalStoryScenarioRetryAvailable: technicalStoryScenarioRetryAvailable(project),
+    technicalStoryScenarioRetryExhausted: technicalStoryScenarioRetryExhausted(project),
     bookLanguageStatus: bookLanguageStatus(project),
   };
 }
