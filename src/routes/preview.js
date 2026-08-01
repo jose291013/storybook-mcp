@@ -68,6 +68,7 @@ import { generationCostPolicy } from "../services/generationCostPolicy.js";
 import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { assertManuscriptLanguage } from "../services/bookLanguage.js";
 import { narrativeBookSpecForPreview } from "../services/narrativeBookSpecLifecycle.js";
+import { compileSpecDrivenIllustrationPlan } from "../services/specDrivenIllustrationPlan.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -820,11 +821,28 @@ router.post("/preview", async (req, res) => {
       }
 
       updateJob(job.id, { step: "story:coherence-and-scene-contracts" });
-      const hasCurrentStoryScenePlan = Boolean(checkpoint.storyScenePlan)
-        && Number(checkpoint.storyScenePlanFidelityVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
+      const hasCurrentStoryScenePlan = narrativeBookSpec
+        ? Boolean(checkpoint.storyScenePlan)
+          && checkpoint.storyScenePlan?.artifactDigest === narrativeBookSpec.validation.artifactDigest
+          && checkpoint.storyScenePlan?.contractSource === "narrative_book_spec_v1"
+        : Boolean(checkpoint.storyScenePlan)
+          && Number(checkpoint.storyScenePlanFidelityVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
       let storyScenePlan = hasCurrentStoryScenePlan
         ? checkpoint.storyScenePlan
         : null;
+      if (!storyScenePlan && narrativeBookSpec) {
+        storyScenePlan = compileSpecDrivenIllustrationPlan({
+          spec: narrativeBookSpec,
+          blueprint: final_blueprint,
+          pageTexts: Object.fromEntries(draftTextByPage),
+        });
+        console.info("[preview] spec-driven illustration plan compiled", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          artifactDigest: narrativeBookSpec.validation.artifactDigest.slice(0, 12),
+          sceneCount: storyScenePlan.sceneContracts.length,
+        }));
+      }
       if (!storyScenePlan) {
         const storyScenePlanStartedAt = Date.now();
         console.info("[preview] story scene plan started", JSON.stringify({

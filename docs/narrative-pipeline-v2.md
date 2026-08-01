@@ -418,6 +418,9 @@ versioned activation.
 4. **V2 prose** — implemented foundation: scene-local writer inputs, sealed
    approval artifact and digest-bound preview authorization. Deterministic prose
    findings become the next local quality layer rather than a whole-story rewrite.
-5. **V2 illustration contract** — code-built prompts and image validation.
+5. **V2 illustration contract** — implemented: code-built scene prompts derive
+   from the sealed spec, carry its digest and bypass the whole-book planning/audit
+   loop. Severity-based validation blocks objective mechanics while containing
+   subjective visual findings.
 6. **Tester rollout** — new test books only, with legacy projects untouched.
 7. **Production rollout** — only after acceptance gates and cost thresholds pass.
