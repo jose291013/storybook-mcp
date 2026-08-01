@@ -350,6 +350,7 @@ export function sceneContractImagePrompt({
       ? "Create one policy-safe square children's-book illustration from this minimal visual specification. Every character is original and unbranded."
       : "Create one detailed square children's-book illustration from this compact visual specification.",
     `MAIN ACTION: ${compact.main_action.subject} ${compact.main_action.verb} ${compact.main_action.target}. The subject, gesture and target must be unmistakable.`,
+    contract?.artifact_digest ? `CANONICAL CONTRACT DIGEST: ${contract.artifact_digest}. Do not reinterpret or expand this scene contract.` : "",
     named ? `VISIBLE CHARACTER ROLES: ${named}` : "",
     generic ? `GENERIC CHARACTERS: ${generic}` : "",
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",

@@ -81,6 +81,29 @@ export function blockingStyleContinuityIssues(issues = []) {
   return (Array.isArray(issues) ? issues : []).map(String).filter(Boolean);
 }
 
+export function visualQualityDisposition({
+  technicalApproved = true,
+  technicalIssues = [],
+  sceneIssues = [],
+  styleIssues = [],
+  identityIssues = [],
+} = {}) {
+  const blocking = [
+    ...(technicalApproved ? [] : technicalIssues),
+    ...blockingSceneContractIssues(sceneIssues),
+  ].map(String).filter(Boolean);
+  const repairable = [
+    ...objectiveSceneContractIssues(sceneIssues).filter((issue) => !blocking.includes(issue)),
+    ...blockingStyleContinuityIssues(styleIssues),
+    ...(Array.isArray(identityIssues) ? identityIssues : []),
+  ].map(String).filter(Boolean);
+  return {
+    severity: blocking.length ? "blocking" : repairable.length ? "repairable" : "accepted",
+    blocking: [...new Set(blocking)],
+    repairable: [...new Set(repairable)],
+  };
+}
+
 export function isImageSafetyRejection(error) {
   return /(rejected by the safety system|safety system|safety rejection)/iu.test(String(error?.message || error || ""));
 }
@@ -361,14 +384,16 @@ export async function generateQualityCheckedImage({
       // Style comparison is bounded. It may request one stronger regeneration;
       // a remaining categorical medium break is quarantined for quality review
       // rather than shown silently or allowed to abort the complete preview.
-      const blockingSceneIssues = blockingSceneContractIssues(sceneInspection.issues);
-      const blockingStyleIssues = styleInspection.approved
-        ? []
-        : blockingStyleContinuityIssues(styleInspection.issues);
+      const disposition = visualQualityDisposition({
+        technicalApproved: inspection.approved,
+        technicalIssues: inspection.issues,
+        sceneIssues: sceneInspection.issues,
+        styleIssues: styleInspection.issues,
+        identityIssues: identityInspection.issues,
+      });
       if (inspection.approved
         && attempt === attemptLimit
-        && blockingSceneIssues.length === 0
-        && blockingStyleIssues.length === 0) {
+        && disposition.blocking.length === 0) {
         const warningIssues = [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues];
         await onCandidate?.({
           imageUrl,
@@ -429,9 +454,11 @@ export async function generateQualityCheckedImage({
       throw error;
     }
   }
-  const finalBlockingIssues = previousRejectionKind === "style"
-    ? blockingStyleContinuityIssues(previousIssues)
-    : blockingSceneContractIssues(previousIssues);
+  const finalBlockingIssues = previousRejectionKind === "technical"
+    ? previousIssues
+    : previousRejectionKind === "scene"
+      ? blockingSceneContractIssues(previousIssues)
+      : [];
   const reportedFailureIssues = finalBlockingIssues.length ? finalBlockingIssues : previousIssues;
   throw new IllustrationQualityError({
     candidateImageUrl: lastCandidateImageUrl,

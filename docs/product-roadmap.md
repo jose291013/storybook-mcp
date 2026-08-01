@@ -224,6 +224,16 @@ one compact shared registry plus only the canonical contract of each requested
 scene. It no longer needs the full mutable scenario in every act prompt. Existing
 approved projects without the V2 activation marker continue on the legacy path.
 
+The same activated V2 contract now compiles every interior illustration contract
+without a second whole-book narrative-planning call. Visible cast, focal action,
+object quantity/state, passage/location context and forbidden elements come from
+the sealed registries and scene ledger. Visual QA uses an explicit severity split:
+technical corruption, identity fusion/duplication, missing required cast, wrong
+focal action and object-state contradictions remain blocking; aesthetic, minor
+accessory, wardrobe and ambiguous likeness/style findings cannot destroy a complete
+book after their bounded repair opportunity. The cover remains creator-approved
+visual evidence and the legacy planner remains available for pre-V2 projects.
+
 ## Current implementation checkpoint
 
 - Calitiki Bridge 0.6.0 adds **Create a new adventure** to every paid eBook in **My creations**. The Storybook service creates or reuses the series and child profile, marks the purchased source as episode 1, freezes its continuity memory, and opens episode 2 with the original ten answers, book choices and authenticated private reference photos. No generation begins until the customer edits the draft, reviews it and explicitly confirms a new preview debit.
