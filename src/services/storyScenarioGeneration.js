@@ -103,7 +103,11 @@ export async function runCanonicalCandidateGate({
     return { scenario, validation, evidence: null };
   }
   let candidate = check(scenario);
+  const initialIssues = privateCanonicalIssues(candidate);
+  let repairAttempted = false;
+  let finalAuditAttempted = false;
   if (!candidate.valid && policy.canonicalRepairCalls > 0) {
+    repairAttempted = true;
     ({ scenario, validation } = await repair({
       scenario,
       validation: candidate.validation,
@@ -111,13 +115,21 @@ export async function runCanonicalCandidateGate({
       attempt: 1,
     }));
     if (validation.valid && policy.canonicalFinalAuditCalls > 0) {
+      finalAuditAttempted = true;
       ({ scenario, validation } = await finalAudit({ scenario, validation }));
     }
-    if (validation.valid) candidate = check(scenario);
+    candidate = check(scenario);
   }
-  if (validation.valid && !candidate.valid) {
+  if (!validation.valid || !candidate.valid) {
     const error = new Error("The canonical scenario candidate could not be compiled after its bounded internal repair.");
     error.code = "scenario_contract_invalid";
+    error.canonicalDiagnostics = {
+      version: 1,
+      repairAttempted,
+      finalAuditAttempted,
+      initialIssues,
+      finalIssues: privateCanonicalIssues(candidate),
+    };
     throw error;
   }
   return {
@@ -125,6 +137,18 @@ export async function runCanonicalCandidateGate({
     validation,
     evidence: validation.valid ? candidate.evidence : null,
   };
+}
+
+function privateCanonicalIssues(result = {}) {
+  return (Array.isArray(result?.issues) ? result.issues : [])
+    .slice(0, 12)
+    .map((issue) => ({
+      code: String(issue?.code || "canonical_compile_failed")
+        .replace(/[^a-z0-9_-]+/gi, "_")
+        .slice(0, 80),
+      path: String(issue?.path || "").replace(/[^a-z0-9_.\[\]-]+/gi, "_").slice(0, 180),
+      sceneNumber: Math.max(0, Number(issue?.sceneNumber || 0)),
+    }));
 }
 
 export async function generateValidatedScenario({

@@ -331,6 +331,7 @@ function compileObjectLedger({
   issues,
 }) {
   const graph = scenario.causalGraph;
+  const graphIsAuthoritative = Number(graph?.version) === 2;
   const graphEvents = list(graph?.events).filter((event) => event?.structurallyValid !== false);
   const objectByGraphId = new Map(objectEntries.map((object, index) => [
     clean(object?.objectId || graph?.entities?.[index]?.id),
@@ -416,13 +417,27 @@ function compileObjectLedger({
       const expectedState = isProducedResult
         ? clean(rawEvent.resultState)
         : sourceEvents[0] ? clean(rawEvent.toState) : previous.state;
-      const state = clean(supplied?.state || expectedState);
+      const state = graphIsAuthoritative
+        ? expectedState
+        : clean(supplied?.state || expectedState);
+      const expectedQuantity = isProducedResult
+        ? positiveInteger(rawEvent?.resultQuantity, 1)
+        : rawEvent
+          ? positiveInteger(rawEvent?.toQuantity, 1)
+          : previous.quantity;
       const quantity = state === "absent"
         ? 0
-        : positiveInteger(supplied?.quantity, previous.quantity > 0 ? previous.quantity : 1);
+        : graphIsAuthoritative
+          ? expectedQuantity
+          : positiveInteger(supplied?.quantity, previous.quantity > 0 ? previous.quantity : 1);
+      const expectedOwner = isProducedResult
+        ? rawEvent?.resultOwnerCharacter
+        : rawEvent
+          ? rawEvent?.toOwnerCharacter
+          : previous.ownerCharacterId;
       const ownerCharacterId = resolveObjectOwner(
         characterIds,
-        supplied?.owner,
+        graphIsAuthoritative ? expectedOwner : supplied?.owner,
         state,
         issues,
         `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
@@ -448,7 +463,7 @@ function compileObjectLedger({
           `${object.name} changes after its terminal state ${previous.state}.`,
         );
       }
-      if (!rawEvent && changed) {
+      if (!graphIsAuthoritative && !rawEvent && changed) {
         addIssue(
           issues,
           "object_changed_without_causal_event",
@@ -456,7 +471,7 @@ function compileObjectLedger({
           `${object.name} changes state, owner or quantity without an approved causal event.`,
         );
       }
-      if (rawEvent && state !== expectedState) {
+      if (!graphIsAuthoritative && rawEvent && state !== expectedState) {
         addIssue(
           issues,
           "object_event_result_mismatch",
@@ -589,6 +604,9 @@ export function compileNarrativeBookSpec({
       addLocation(movement.from);
       addLocation(movement.to);
     }
+    for (const presence of list(scene.characterPresences)) {
+      if (presence.mode === "physical") addLocation(presence.location);
+    }
   }
   const locationIds = uniqueIds(locationNames, "location", issues);
   const locations = locationNames.map((name) => ({
@@ -686,7 +704,8 @@ export function compileNarrativeBookSpec({
     const presences = list(scene.characterPresences).map((presence, presenceIndex) => {
       const mode = clean(presence.mode);
       const physical = mode === "physical";
-      if (!clean(presence.action)) {
+      const presenceAction = clean(presence.action || scene.action);
+      if (!presenceAction) {
         addIssue(issues, "presence_action_required", `${scenePath}.presences[${presenceIndex}].action`, "Every presence needs an approved action.");
       }
       return {
@@ -708,11 +727,17 @@ export function compileNarrativeBookSpec({
             "location",
           )
           : "",
-        action: clean(presence.action),
+        action: presenceAction,
       };
     });
+    const physicalPresences = presences.filter((presence) => presence.mode === "physical");
+    const visiblePhase = physicalPresences.some((presence) => (
+      presence.phase === "end" || presence.phase === "throughout"
+    )) ? "end" : physicalPresences.some((presence) => presence.phase === "start") ? "start" : "end";
     const visible = presences
-      .filter((presence) => presence.mode === "physical" && ["end", "throughout"].includes(presence.phase))
+      .filter((presence) => presence.mode === "physical" && (
+        presence.phase === "throughout" || presence.phase === visiblePhase
+      ))
       .map((presence) => presence.characterId);
     const evoked = presences
       .filter((presence) => presence.mode !== "physical")
@@ -831,7 +856,7 @@ export function compileNarrativeBookSpec({
         prerequisiteSceneIds: list(scene.prerequisiteSceneIds).map((id) => (
           sceneIds.get(Number(String(id).replace("scene-", ""))) || identifier(id)
         )),
-        visiblePhase: "end",
+        visiblePhase,
         visibleMoment: clean(scene.action),
       },
       presences,

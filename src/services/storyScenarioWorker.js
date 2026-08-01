@@ -91,6 +91,27 @@ function safeTechnicalError(error) {
   };
 }
 
+function privateCanonicalDiagnostics(error) {
+  const input = error?.canonicalDiagnostics;
+  if (!input || Number(input.version) !== 1) return null;
+  const issues = (value) => (Array.isArray(value) ? value : [])
+    .slice(0, 12)
+    .map((issue) => ({
+      code: String(issue?.code || "canonical_compile_failed")
+        .replace(/[^a-z0-9_-]+/gi, "_")
+        .slice(0, 80),
+      path: String(issue?.path || "").replace(/[^a-z0-9_.\[\]-]+/gi, "_").slice(0, 180),
+      sceneNumber: Math.max(0, Number(issue?.sceneNumber || 0)),
+    }));
+  return {
+    version: 1,
+    repairAttempted: Boolean(input.repairAttempted),
+    finalAuditAttempted: Boolean(input.finalAuditAttempted),
+    initialIssues: issues(input.initialIssues),
+    finalIssues: issues(input.finalIssues),
+  };
+}
+
 async function persistGenerationProgress({
   projects,
   runs,
@@ -284,6 +305,7 @@ async function failScenario({
   const latest = await projects.get(project.id).catch(() => project);
   const generation = scenarioGenerationSnapshot(latest);
   const technical = safeTechnicalError(error);
+  const canonicalDiagnostics = privateCanonicalDiagnostics(error);
   const failedAt = now();
   const technicalAttempt = Math.max(1, Number(generation?.technicalAttempt || 1));
   const maxTechnicalAttempts = Math.max(
@@ -313,11 +335,20 @@ async function failScenario({
       },
     }).catch(() => null);
   }
+  const latestRun = typeof runs.getRun === "function"
+    ? await runs.getRun(run.id).catch(() => null)
+    : null;
   await runs.updateRun(run.id, {
     status: "failed",
     currentStep: "scenario:failed",
     errorCode: technical.code,
     errorMessage: technical.message,
+    ...(canonicalDiagnostics ? {
+      metadata: {
+        ...(latestRun?.metadata || run.metadata || {}),
+        canonicalGate: canonicalDiagnostics,
+      },
+    } : {}),
     completedAt: failedAt,
     leaseOwner: "",
     leaseExpiresAt: null,
@@ -340,6 +371,7 @@ async function failScenario({
     elapsedMs: Date.now() - startedAt,
     requestId: error?.request_id || error?.requestId || null,
     error: String(error?.message || error),
+    ...(canonicalDiagnostics ? { canonicalGate: canonicalDiagnostics } : {}),
   }));
 }
 

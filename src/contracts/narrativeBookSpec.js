@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 
 export const NARRATIVE_BOOK_SPEC_VERSION = 1;
 export const NARRATIVE_BOOK_SPEC_ID = "calitiki.narrative-book-spec.v1";
-export const NARRATIVE_BOOK_SPEC_COMPILER_VERSION = 1;
+export const NARRATIVE_BOOK_SPEC_COMPILER_VERSION = 2;
 export const NARRATIVE_BOOK_SPEC_VALIDATOR_VERSION = 1;
 
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);

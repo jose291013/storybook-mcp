@@ -341,3 +341,66 @@ test("failed scenario revision keeps the previously reviewable scenario", async 
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
   assert.equal(runs.patches.at(-1).errorCode, "scenario_provider_unavailable");
 });
+
+test("canonical failure stores only private bounded diagnostics in run metadata", async () => {
+  const projects = fakeProjects(projectFixture());
+  const runs = fakeRuns({
+    requestKind: "initial",
+    providerResponses: { architect: { responseId: "resp_1" } },
+  });
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:editor:attempt:1",
+    metadata: { requestKind: "initial" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => {
+      const error = new Error("The canonical scenario candidate could not be compiled.");
+      error.code = "scenario_contract_invalid";
+      error.canonicalDiagnostics = {
+        version: 1,
+        repairAttempted: true,
+        finalAuditAttempted: false,
+        initialIssues: [{
+          code: "unknown character!",
+          path: "scenes[3].presences[0] / private name",
+          sceneNumber: 4,
+          explanation: "Never persist this private story sentence.",
+        }],
+        finalIssues: [{
+          code: "unknown_location",
+          path: "scenes[3].locationId",
+          sceneNumber: 4,
+          privatePayload: "secret",
+        }],
+      };
+      throw error;
+    },
+  });
+
+  assert.deepEqual(runs.current().metadata, {
+    requestKind: "initial",
+    providerResponses: { architect: { responseId: "resp_1" } },
+    canonicalGate: {
+      version: 1,
+      repairAttempted: true,
+      finalAuditAttempted: false,
+      initialIssues: [{
+        code: "unknown_character_",
+        path: "scenes[3].presences[0]_private_name",
+        sceneNumber: 4,
+      }],
+      finalIssues: [{
+        code: "unknown_location",
+        path: "scenes[3].locationId",
+        sceneNumber: 4,
+      }],
+    },
+  });
+  assert.equal(JSON.stringify(runs.current().metadata).includes("private story sentence"), false);
+  assert.equal(projects.current().continuitySnapshot.canonicalGate, undefined);
+});
