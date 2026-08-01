@@ -1,15 +1,24 @@
 import { translate } from "./i18n.js";
+import { defaultNewBookLanguage, initialCreatorLanguage, normalizeSupportedLanguage } from "./languagePreference.js";
 
 const initialUrl = new URL(window.location.href);
-const queryLocale = String(initialUrl.searchParams.get("uiLanguage") || "").toUpperCase();
+const queryLocale = normalizeSupportedLanguage(initialUrl.searchParams.get("uiLanguage"));
+const queryBookLanguage = normalizeSupportedLanguage(initialUrl.searchParams.get("bookLanguage"));
 let referrerLocale = "";
 try {
   const referrer = new URL(document.referrer);
   if (referrer.hostname === "calitiki.com" || referrer.hostname.endsWith(".calitiki.com")) {
-    referrerLocale = ({ fr: "FR", es: "ES", en: "EN" })[referrer.pathname.split("/").filter(Boolean)[0]] || "FR";
+    referrerLocale = normalizeSupportedLanguage(referrer.pathname.split("/").filter(Boolean)[0]);
   }
 } catch { referrerLocale = ""; }
-const requestedUiLanguage = ["FR", "ES", "EN"].includes(queryLocale) ? queryLocale : referrerLocale;
+let storedUiLanguage = "";
+try { storedUiLanguage = localStorage.getItem("storybook-ui-language") || ""; } catch { storedUiLanguage = ""; }
+const requestedUiLanguage = initialCreatorLanguage({
+  queryLanguage: queryLocale,
+  referrerLanguage: referrerLocale,
+  storedLanguage: storedUiLanguage,
+  browserLanguages: navigator.languages?.length ? navigator.languages : [navigator.language],
+});
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
 const CREATIONS_RETURN_KEY = "calitiki-creations-return-v1";
@@ -73,7 +82,8 @@ function creationsReturnUrl() {
 
 const state = {
   config: null,
-  locale: requestedUiLanguage || localStorage.getItem("storybook-ui-language") || "FR",
+  locale: requestedUiLanguage,
+  bookLanguageLocked: false,
   step: 0,
   selectedStyle: "",
   selectedUniverse: "",
@@ -3228,6 +3238,7 @@ function loadSeriesDraft(project) {
   state.childSafetyIntervention = "";
   state.storySuggestions = Array.isArray(questionnaire.story_suggestions) ? questionnaire.story_suggestions : [];
   state.storySuggestionMode = questionnaire.story_seed_id ? "suggestion" : "custom";
+  state.bookLanguageLocked = true;
   renderQuestions(questionnaire);
   restoreValues(questionnaire);
   document.querySelector("#language").value = questionnaire.book_language || configuration.book_language || project.locale || "FR";
@@ -3313,8 +3324,17 @@ async function startGeneration(event) {
   }
 }
 
+function syncNewBookLanguageDefault() {
+  const field = document.querySelector("#language");
+  if (!field || state.bookLanguageLocked || state.projectId || state.previewComplete) return;
+  field.value = defaultNewBookLanguage({ queryBookLanguage, interfaceLanguage: state.locale });
+}
+
 function changeLocale(locale) {
-  const values = state.config ? formValues() : {}; state.locale = ["FR", "ES", "EN"].includes(locale) ? locale : "FR"; localStorage.setItem("storybook-ui-language", state.locale); applyTranslations();
+  const values = state.config ? formValues() : {}; state.locale = normalizeSupportedLanguage(locale) || "FR";
+  try { localStorage.setItem("storybook-ui-language", state.locale); } catch { /* Browser storage is optional. */ }
+  applyTranslations();
+  syncNewBookLanguageDefault();
   if (state.config) { renderQuestions(values); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
   if (activeSafetyIntervention()) refreshSafetyResources().catch(() => null);
 }
@@ -3341,6 +3361,7 @@ async function init() {
     state.safetyCountry = saved?.safetyCountry || "";
     state.storySuggestions = Array.isArray(saved?.storySuggestions) ? saved.storySuggestions : [];
     state.storySuggestionMode = saved?.storySuggestionMode || "";
+    state.bookLanguageLocked = Boolean(normalizeSupportedLanguage(saved?.values?.language || saved?.values?.book_language));
     changeLocale(saved?.locale || state.locale);
     if (saved?.values) restoreValues(saved.values);
     renderStoryIntentions();
@@ -3365,7 +3386,7 @@ elements.photoInput.addEventListener("change", (event) => { addPhotos(event.targ
 ["dragenter", "dragover"].forEach((name) => elements.photoDropZone.addEventListener(name, (event) => { event.preventDefault(); elements.photoDropZone.classList.add("is-dragover"); }));
 ["dragleave", "drop"].forEach((name) => elements.photoDropZone.addEventListener(name, (event) => { event.preventDefault(); elements.photoDropZone.classList.remove("is-dragover"); }));
 elements.photoDropZone.addEventListener("drop", (event) => addPhotos(event.dataTransfer.files));
-elements.uiLanguage.addEventListener("change", () => changeLocale(elements.uiLanguage.value)); document.querySelector("#language").addEventListener("change", emitWooConfiguration);
+elements.uiLanguage.addEventListener("change", () => changeLocale(elements.uiLanguage.value)); document.querySelector("#language").addEventListener("change", () => { state.bookLanguageLocked = true; emitWooConfiguration(); });
 elements.prevButton.addEventListener("click", () => showStep(state.step - 1)); elements.nextButton.addEventListener("click", () => { if (validateStep()) showStep(state.step + 1); });
 document.querySelectorAll(".step").forEach((step, index) => step.addEventListener("click", () => { if (index <= state.step || validateStep()) showStep(index); })); elements.form.addEventListener("submit", startGeneration);
 elements.form.addEventListener("input", scheduleLocalDraft);
