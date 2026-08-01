@@ -242,6 +242,15 @@ mechanical repair. It suppresses only optional retries for style, uncertain
 likeness, wardrobe and composition preferences. Customer APIs and WordPress cards
 receive neither raw cost nor governor mode.
 
+Narrative V2 rollout is assigned once per project at scenario approval and stored
+with that project. `NARRATIVE_V2_ROLLOUT_MODE=off` is the safe default;
+`canary` uses a stable hash bucket and `NARRATIVE_V2_ROLLOUT_PERCENT`; `on` enrolls
+all newly approved projects. Changing Render variables never moves a project that
+already started between legacy and V2. Emergency rollback therefore affects only
+new assignments and cannot invalidate a book in progress. Recommended production
+progression is `off`, then a small canary, then 50%, then `on`, with completion,
+quality-review and private cost metrics reviewed at each step.
+
 ## Current implementation checkpoint
 
 - Calitiki Bridge 0.6.0 adds **Create a new adventure** to every paid eBook in **My creations**. The Storybook service creates or reuses the series and child profile, marks the purchased source as episode 1, freezes its continuity memory, and opens episode 2 with the original ten answers, book choices and authenticated private reference photos. No generation begins until the customer edits the draft, reviews it and explicitly confirms a new preview debit.

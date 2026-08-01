@@ -425,5 +425,8 @@ versioned activation.
 6. **Economic containment** — implemented privately: attributed spend selects
    normal, containment or completion-first mode. Only optional visual retries are
    removed; required completion and safety remain invariant.
+7. **Progressive rollout** — implemented with a persisted deterministic assignment.
+   New projects can move from `off` through a percentage canary to `on`; existing
+   books never switch pipeline after scenario approval.
 6. **Tester rollout** — new test books only, with legacy projects untouched.
 7. **Production rollout** — only after acceptance gates and cost thresholds pass.
