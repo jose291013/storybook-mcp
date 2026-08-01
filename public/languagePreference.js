@@ -36,3 +36,10 @@ export function defaultNewBookLanguage({ queryBookLanguage = "", interfaceLangua
     || normalizeSupportedLanguage(interfaceLanguage)
     || "FR";
 }
+
+export function withDefaultNewBookLanguage(values = {}, options = {}) {
+  return {
+    ...values,
+    language: defaultNewBookLanguage(options),
+  };
+}

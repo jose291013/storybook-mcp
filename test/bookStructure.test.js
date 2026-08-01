@@ -337,6 +337,7 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(app, /searchParams\.get\("bookLanguage"\)/);
   assert.match(app, /navigator\.languages/);
   assert.match(app, /bookLanguageLocked/);
+  assert.match(app, /renderQuestions\(renderedValues\)/);
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);

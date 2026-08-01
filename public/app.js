@@ -1,5 +1,5 @@
 import { translate } from "./i18n.js";
-import { defaultNewBookLanguage, initialCreatorLanguage, normalizeSupportedLanguage } from "./languagePreference.js";
+import { defaultNewBookLanguage, initialCreatorLanguage, normalizeSupportedLanguage, withDefaultNewBookLanguage } from "./languagePreference.js";
 
 const initialUrl = new URL(window.location.href);
 const queryLocale = normalizeSupportedLanguage(initialUrl.searchParams.get("uiLanguage"));
@@ -3332,10 +3332,13 @@ function syncNewBookLanguageDefault() {
 
 function changeLocale(locale) {
   const values = state.config ? formValues() : {}; state.locale = normalizeSupportedLanguage(locale) || "FR";
+  const renderedValues = !state.bookLanguageLocked && !state.projectId && !state.previewComplete
+    ? withDefaultNewBookLanguage(values, { queryBookLanguage, interfaceLanguage: state.locale })
+    : values;
   try { localStorage.setItem("storybook-ui-language", state.locale); } catch { /* Browser storage is optional. */ }
   applyTranslations();
+  if (state.config) { renderQuestions(renderedValues); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
   syncNewBookLanguageDefault();
-  if (state.config) { renderQuestions(values); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
   if (activeSafetyIntervention()) refreshSafetyResources().catch(() => null);
 }
 
