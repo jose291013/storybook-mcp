@@ -5,6 +5,7 @@ import {
   detectBrowserLanguage,
   initialCreatorLanguage,
   normalizeSupportedLanguage,
+  withDefaultNewBookLanguage,
 } from "../public/languagePreference.js";
 
 test("normalizes supported browser locale variants", () => {
@@ -41,4 +42,12 @@ test("a new book follows the explicit storefront language or the Creator languag
   assert.equal(defaultNewBookLanguage({ queryBookLanguage: "ES", interfaceLanguage: "FR" }), "ES");
   assert.equal(defaultNewBookLanguage({ interfaceLanguage: "EN" }), "EN");
   assert.equal(defaultNewBookLanguage(), "FR");
+});
+
+test("a stale HTML default cannot overwrite the new book language during field reconstruction", () => {
+  const values = withDefaultNewBookLanguage(
+    { hero_name: "Noa", language: "FR" },
+    { queryBookLanguage: "ES", interfaceLanguage: "ES" },
+  );
+  assert.deepEqual(values, { hero_name: "Noa", language: "ES" });
 });
