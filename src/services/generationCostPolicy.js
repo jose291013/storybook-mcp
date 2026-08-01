@@ -12,6 +12,7 @@ export function generationCostPolicy() {
     scenario: {
       architectCalls: 1,
       editorCalls: 1,
+      maximumRepairCalls: 1,
       structuralRepairCalls: 1,
       editorialRepairCalls: 1,
       finalAuditCalls: 1,

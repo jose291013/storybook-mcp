@@ -9,7 +9,12 @@ import {
   sanitizeStoryRepairText,
 } from "../src/agents/storySceneTextRepair.js";
 import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, hasCurrentStoryScenarioAuditEvidence, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario, withStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
-import { applyStoryScenarioRepairDirectives, buildStoryScenarioRepairDirectives } from "../src/services/storyScenarioRepairs.js";
+import {
+  applyStoryScenarioRepairDirectives,
+  buildStoryScenarioRepairDirectives,
+  precompileStoryScenarioPassageLifecycles,
+  validateStoryScenarioPassageLifecycles,
+} from "../src/services/storyScenarioRepairs.js";
 import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
 
 function coherentPortalScenario() {
@@ -184,6 +189,85 @@ test("canonical passage repair aligns a descriptive crossing with an earlier sta
   assert.equal(repaired.scenes[1].transition.mechanismId, "portail_bleu");
   assert.equal(repaired.scenes[1].characterMovements[0].mechanismId, "portail_bleu");
   assert.deepEqual(validateStoryScenario(repaired), { valid: true, issues: [] });
+});
+
+test("passage preflight records discovery after arrival without replacing the arrival movement", () => {
+  const scenario = coherentPortalScenario();
+  scenario.characters[0].initialLocation = "la maison";
+  scenario.characters[1].initialLocation = "la maison";
+  scenario.scenes[0] = {
+    ...scenario.scenes[0],
+    title: "L'arrivée au seuil",
+    action: "Nolan et Mathéo arrivent dans la clairière et observent les arbres.",
+    locationBefore: "la maison",
+    locationAfter: "la clairière",
+    transition: {
+      kind: "ordinary_travel",
+      mechanism: "le sentier",
+      mechanismId: "sentier",
+      from: "la maison",
+      to: "la clairière",
+      characters: ["Nolan", "Mathéo"],
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "ordinary_travel",
+      mechanism: "le sentier",
+      mechanismId: "sentier",
+      from: "la maison",
+      to: "la clairière",
+      characters: ["Nolan", "Mathéo"],
+    }],
+  };
+
+  assert.equal(validateStoryScenarioPassageLifecycles(scenario).valid, false);
+  const compiled = precompileStoryScenarioPassageLifecycles(scenario, { language: "FR" });
+
+  assert.equal(scenario.scenes[0].characterMovements.length, 1, "the source remains immutable");
+  assert.deepEqual(compiled.scenes[0].characterMovements.map((movement) => movement.kind), [
+    "ordinary_travel",
+    "discover_passage",
+  ]);
+  assert.equal(compiled.scenes[0].transition.kind, "ordinary_travel");
+  assert.equal(compiled.scenes[0].characterMovements[1].mechanismId, "le_portail_bleu");
+  assert.deepEqual(validateStoryScenarioPassageLifecycles(compiled), {
+    valid: true,
+    issues: [],
+    diagnostics: [],
+  });
+  assert.deepEqual(validateStoryScenario(compiled), { valid: true, issues: [] });
+});
+
+test("a discovery after the first crossing cannot satisfy the passage lifecycle", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].transition = {
+    kind: "none",
+    mechanism: "",
+    mechanismId: "",
+    from: scenario.scenes[0].locationBefore,
+    to: scenario.scenes[0].locationAfter,
+    characters: [],
+  };
+  scenario.scenes[2].transition = {
+    kind: "discover_passage",
+    mechanism: "le portail bleu",
+    mechanismId: "le_portail_bleu",
+    from: scenario.scenes[2].locationBefore,
+    to: scenario.scenes[2].locationBefore,
+    characters: [],
+  };
+
+  const before = validateStoryScenarioPassageLifecycles(scenario);
+  assert.equal(before.valid, false);
+  assert.equal(before.diagnostics[0].sceneNumber, 2);
+
+  const compiled = precompileStoryScenarioPassageLifecycles(scenario, { language: "FR" });
+  assert.equal(compiled.scenes[0].transition.kind, "discover_passage");
+  assert.deepEqual(validateStoryScenarioPassageLifecycles(compiled), {
+    valid: true,
+    issues: [],
+    diagnostics: [],
+  });
 });
 
 test("the narrative contract requires distinct progression, emotions and declared symbols", () => {

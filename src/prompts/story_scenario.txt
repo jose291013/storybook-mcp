@@ -115,7 +115,7 @@ OUTPUT
       "prerequisite_scene_ids": [],
       "character_presences": [{"name":"exact canonical name","mode":"physical | thought | memory | voice","phase":"start | throughout | end, or empty for nonphysical presence","location":"exact focal location for the selected physical phase, or empty for nonphysical presence","action":"role in this exact scene"}],
       "transition": {"kind":"none | discover_passage | cross_passage | ordinary_travel | return_travel | join_travel","mechanism_id":"stable_snake_case_id or empty","mechanism":"named portal, route or vehicle, or empty","from":"traveler origin","to":"destination","characters":["exact canonical names who travel"]},
-      "character_movements": [{"id":"movement-1","kind":"ordinary_travel | return_travel | cross_passage | join_travel","from":"group's established origin","to":"group's destination","characters":["exact canonical physical travelers in this group"],"mechanism_id":"stable passage id or empty","mechanism":"named portal, route or vehicle, or empty"}],
+      "character_movements": [{"id":"movement-1","kind":"ordinary_travel | return_travel | cross_passage | join_travel | discover_passage","from":"group's established origin or discovery location","to":"group's destination or the same discovery location","characters":["exact canonical physical travelers in this group"],"mechanism_id":"stable passage id or empty","mechanism":"named portal, route or vehicle, or empty"}],
       "continuity_to_next":"state that the next scene inherits"
     }]
   }
@@ -125,7 +125,7 @@ MANDATORY
 - Copy canonical names exactly.
 - Copy scene_number and story_role exactly from page_plan.
 - Use only prior scene ids such as scene-1 in prerequisite_scene_ids.
-- A discover_passage scene does not cross the passage and does not change location.
+- A discover_passage event does not cross the passage and does not change location. It may be the scene transition when the whole scene is stationary, or the final character_movement event after the travelers arrive at the passage threshold.
 - A cross_passage scene copies the exact mechanism_id from its earlier discovery, names every traveler and changes location from the established origin to the destination.
 - A join_travel scene keeps location_before and location_after at the focal destination, starts from the incoming travelers' shared established origin, and names only the characters who arrive.
 - Every physical movement appears exactly once in character_movements. A resident has no movement. Several movement events may coexist in one scene, but each event must begin at every named traveler's current ledger location.

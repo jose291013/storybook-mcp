@@ -751,7 +751,7 @@ export function compileNarrativeBookSpec({
 
     const movements = list(scene.characterMovements).map((movement, movementIndex) => {
       const movementKind = canonicalMovementKind(movement, ordinaryReturns);
-      const passageId = ["cross_passage", "return_travel"].includes(movementKind)
+      const passageId = PASSAGE_MOVEMENT_KINDS.has(movementKind)
         ? passageIds.get(key(movement.mechanismId || movement.mechanism)) || null
         : null;
       return {

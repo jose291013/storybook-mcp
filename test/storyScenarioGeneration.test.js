@@ -60,6 +60,36 @@ test("a structural repair never consumes the independent editorial repair", asyn
   assert.equal(result.scenario.revision, "audited");
 });
 
+test("one shared repair budget prevents structural and editorial repair cascades", async () => {
+  const calls = [];
+  const result = await runScenarioQualityDialogue({
+    initialScenario: { revision: "architect" },
+    initialValidation: { valid: false, issues: ["mechanical contradiction"] },
+    policy,
+    repairBudget: { remaining: 1 },
+    repairStructural: async () => {
+      calls.push("structural-repair");
+      return {
+        scenario: { revision: "structurally-repaired" },
+        validation: { valid: true, issues: [] },
+        repairDirectives: [],
+      };
+    },
+    auditEditorial: async ({ scenario }) => {
+      calls.push("editor");
+      return {
+        scenario,
+        validation: { valid: false, issues: ["semantic contradiction"] },
+        repairDirectives: [{ code: "semantic_repair" }],
+      };
+    },
+    repairEditorial: async () => assert.fail("the shared budget is exhausted"),
+  });
+
+  assert.deepEqual(calls, ["structural-repair", "editor"]);
+  assert.equal(result.validation.valid, false);
+});
+
 test("an editorial repair cannot be accepted without its final audit", async () => {
   const result = await runScenarioQualityDialogue({
     initialScenario: { revision: "architect" },
@@ -151,6 +181,26 @@ test("the canonical pre-review gate repairs internally and never delegates mecha
 
   assert.deepEqual(calls, ["repair:canonical_object_repair", "final-audit"]);
   assert.equal(result.evidence.artifactDigest, "digest");
+});
+
+test("an exhausted shared repair budget prevents a later canonical repair call", async () => {
+  await assert.rejects(() => runCanonicalCandidateGate({
+    scenario: { revision: "audited" },
+    validation: { valid: true, issues: [] },
+    policy: { canonicalRepairCalls: 1, canonicalFinalAuditCalls: 1 },
+    repairBudget: { remaining: 0 },
+    check: () => ({
+      valid: false,
+      issues: [{ code: "passage_discovery_missing", path: "scenes[10].transition", sceneNumber: 11 }],
+      validation: { valid: false, issues: ["hidden"] },
+    }),
+    repair: async () => assert.fail("canonical repair must not run"),
+    finalAudit: async () => assert.fail("final audit must not run"),
+  }), (error) => {
+    assert.equal(error.code, "scenario_contract_invalid");
+    assert.equal(error.canonicalDiagnostics.repairAttempted, false);
+    return true;
+  });
 });
 
 test("an unresolved canonical defect fails internally instead of producing red creator cards", async () => {

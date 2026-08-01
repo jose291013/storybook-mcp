@@ -12,6 +12,8 @@ import {
 import {
   applyStoryScenarioRepairDirectives,
   buildStoryScenarioRepairDirectives,
+  precompileStoryScenarioPassageLifecycles,
+  validateStoryScenarioPassageLifecycles,
 } from "./storyScenarioRepairs.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
 
@@ -21,6 +23,14 @@ export function scenarioGenerationRoute(previousScenario = null) {
     : { phase: "architect", modelRole: "story_architect" };
 }
 
+function consumeRepairBudget(repairBudget) {
+  if (!repairBudget) return true;
+  if (!Number.isFinite(repairBudget.remaining)) return true;
+  if (repairBudget.remaining <= 0) return false;
+  repairBudget.remaining -= 1;
+  return true;
+}
+
 export async function runScenarioQualityDialogue({
   initialScenario,
   initialValidation,
@@ -28,6 +38,7 @@ export async function runScenarioQualityDialogue({
   repairStructural,
   auditEditorial,
   repairEditorial,
+  repairBudget = null,
 }) {
   let scenario = initialScenario;
   let validation = initialValidation;
@@ -38,6 +49,7 @@ export async function runScenarioQualityDialogue({
   let finalAuditCalls = 0;
 
   while (!validation.valid && structuralRepairCalls < policy.structuralRepairCalls) {
+    if (!consumeRepairBudget(repairBudget)) break;
     structuralRepairCalls += 1;
     ({ scenario, validation, repairDirectives = [] } = await repairStructural({
       scenario,
@@ -60,6 +72,7 @@ export async function runScenarioQualityDialogue({
   }));
 
   while (!validation.valid && editorialRepairCalls < policy.editorialRepairCalls) {
+    if (!consumeRepairBudget(repairBudget)) break;
     editorialRepairCalls += 1;
     ({ scenario, validation, repairDirectives = [] } = await repairEditorial({
       scenario,
@@ -98,6 +111,7 @@ export async function runCanonicalCandidateGate({
   check,
   repair,
   finalAudit,
+  repairBudget = null,
 }) {
   if (!validation.valid || typeof check !== "function") {
     return { scenario, validation, evidence: null };
@@ -106,7 +120,7 @@ export async function runCanonicalCandidateGate({
   const initialIssues = privateCanonicalIssues(candidate);
   let repairAttempted = false;
   let finalAuditAttempted = false;
-  if (!candidate.valid && policy.canonicalRepairCalls > 0) {
+  if (!candidate.valid && policy.canonicalRepairCalls > 0 && consumeRepairBudget(repairBudget)) {
     repairAttempted = true;
     ({ scenario, validation } = await repair({
       scenario,
@@ -195,10 +209,11 @@ export async function generateValidatedScenario({
     previous_scenario: previousScenario || null,
   };
   const policy = generationCostPolicy().scenario;
+  const repairBudget = { remaining: Number(policy.maximumRepairCalls) };
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
   const normalizeCandidate = (candidate, directives = []) => (
-    applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
+    precompileStoryScenarioPassageLifecycles(applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
       applyCreatorStoryScenarioEdits(
         normalizeStoryScenario(candidate, {
           pagePlan,
@@ -210,8 +225,18 @@ export async function generateValidatedScenario({
         }),
         { sceneEdits, addedCharacters },
       ),
-    ), directives, { language: normalized.answers.language })
+    ), directives, { language: normalized.answers.language }), { language: normalized.answers.language })
   );
+  const validateCandidate = (candidate) => {
+    const base = validateStoryScenario(candidate);
+    const passage = validateStoryScenarioPassageLifecycles(candidate);
+    return {
+      ...base,
+      valid: base.valid && passage.valid,
+      issues: [...new Set([...(base.issues || []), ...(passage.issues || [])])],
+      diagnostics: [...(base.diagnostics || []), ...(passage.diagnostics || [])],
+    };
+  };
 
   const generationRoute = scenarioGenerationRoute(previousScenario);
   const architectModelRole = generationRoute.phase === "revision"
@@ -235,7 +260,7 @@ export async function generateValidatedScenario({
   );
   scenario = normalizeCandidate(candidate);
   await onStep({ phase: "validation", attempt: 1 });
-  validation = validateStoryScenario(scenario);
+  validation = validateCandidate(scenario);
 
   const repairScenario = async ({
     scenario: currentScenario,
@@ -269,7 +294,7 @@ export async function generateValidatedScenario({
     await onStep({ phase: "validation", attempt });
     return {
       scenario: repairedScenario,
-      validation: validateStoryScenario(repairedScenario),
+      validation: validateCandidate(repairedScenario),
       repairDirectives: directives,
     };
   };
@@ -319,6 +344,7 @@ export async function generateValidatedScenario({
     repairStructural: (state) => repairScenario({ ...state, kind: "structural" }),
     auditEditorial: auditScenario,
     repairEditorial: (state) => repairScenario({ ...state, kind: "editorial" }),
+    repairBudget,
   }));
   let canonicalCandidateEvidence = null;
   if (validation.valid && typeof canonicalCandidateCheck === "function") {
@@ -329,6 +355,7 @@ export async function generateValidatedScenario({
       check: canonicalCandidateCheck,
       repair: (state) => repairScenario({ ...state, kind: "canonical" }),
       finalAudit: (state) => auditScenario({ ...state, attempt: 3, final: true }),
+      repairBudget,
     });
     scenario = gated.scenario;
     validation = gated.validation;
