@@ -11,6 +11,11 @@ import {
 } from "./storyScenario.js";
 import { storySensitivityContract } from "./storySensitivity.js";
 import { withOpenAICostContext } from "./openaiCostContext.js";
+import {
+  canonicalGateRepairDirectives,
+  canonicalGateValidation,
+  compileNarrativeV2Candidate,
+} from "./narrativeV2CandidateGate.js";
 
 const WORKER_KIND = "story_scenario";
 const DEFAULT_LEASE_MS = 120000;
@@ -61,6 +66,12 @@ function createBackgroundExecution({ runs, run }) {
 
 function safeTechnicalError(error) {
   const message = String(error?.message || error || "");
+  if (error?.code === "scenario_contract_invalid") {
+    return {
+      code: "scenario_contract_invalid",
+      message: "The scenario contract could not be finalized internally. Retry is available.",
+    };
+  }
   if (error?.code === "scenario_background_timeout"
     || /timed out|timeout/i.test(message)) {
     return {
@@ -186,6 +197,7 @@ async function completeScenario({
   run,
   scenario,
   validation,
+  canonicalCandidateEvidence,
   notifyMilestone,
 }) {
   const latest = await projects.get(project.id);
@@ -223,6 +235,7 @@ async function completeScenario({
         startedAt: previous?.createdAt || createdAt,
       },
       storyScenario: storedScenario,
+      narrativeV2Candidate: validation.valid ? canonicalCandidateEvidence : null,
       storyScenarioGeneration: {
         ...generation,
         status: "completed",
@@ -392,7 +405,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         attempt,
       });
     };
-    const { scenario, validation } = await withOpenAICostContext({
+    const { scenario, validation, canonicalCandidateEvidence } = await withOpenAICostContext({
       projectId: run.projectId,
       runId: run.id,
       workflow: "scenario",
@@ -411,6 +424,14 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       ),
       onStep,
       backgroundExecution,
+      canonicalCandidateCheck: (candidate) => {
+        const result = compileNarrativeV2Candidate({ project, scenario: candidate });
+        return {
+          ...result,
+          validation: canonicalGateValidation(result),
+          repairDirectives: canonicalGateRepairDirectives(result),
+        };
+      },
     }));
     return await completeScenario({
       projects,
@@ -419,6 +440,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       run,
       scenario,
       validation,
+      canonicalCandidateEvidence,
       notifyMilestone,
     });
   } catch (error) {

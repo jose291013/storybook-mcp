@@ -13,6 +13,8 @@ export function generationCostPolicy() {
       structuralRepairCalls: 1,
       editorialRepairCalls: 1,
       finalAuditCalls: 1,
+      canonicalRepairCalls: 1,
+      canonicalFinalAuditCalls: 1,
     },
     manuscript: {
       maximumBatches: 3,

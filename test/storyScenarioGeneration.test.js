@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { runScenarioQualityDialogue } from "../src/services/storyScenarioGeneration.js";
+import {
+  runCanonicalCandidateGate,
+  runScenarioQualityDialogue,
+} from "../src/services/storyScenarioGeneration.js";
 
 const policy = {
   editorCalls: 1,
@@ -115,4 +118,48 @@ test("a failed final audit remains blocking after the bounded editorial repair",
   assert.equal(auditCalls, 2);
   assert.equal(result.validation.valid, false);
   assert.deepEqual(result.validation.issues, ["semantic contradiction remains"]);
+});
+
+test("the canonical pre-review gate repairs internally and never delegates mechanics to the creator", async () => {
+  const calls = [];
+  const result = await runCanonicalCandidateGate({
+    scenario: { revision: "audited" },
+    validation: { valid: true, issues: [] },
+    policy: { canonicalRepairCalls: 1, canonicalFinalAuditCalls: 1 },
+    check: (scenario) => scenario.revision === "final"
+      ? { valid: true, evidence: { artifactDigest: "digest" } }
+      : {
+        valid: false,
+        validation: { valid: false, issues: ["canonical object contradiction"] },
+        repairDirectives: [{ code: "canonical_object_repair" }],
+      },
+    repair: async ({ repairDirectives }) => {
+      calls.push(`repair:${repairDirectives[0].code}`);
+      return {
+        scenario: { revision: "repaired" },
+        validation: { valid: true, issues: [] },
+      };
+    },
+    finalAudit: async () => {
+      calls.push("final-audit");
+      return {
+        scenario: { revision: "final" },
+        validation: { valid: true, issues: [] },
+      };
+    },
+  });
+
+  assert.deepEqual(calls, ["repair:canonical_object_repair", "final-audit"]);
+  assert.equal(result.evidence.artifactDigest, "digest");
+});
+
+test("an unresolved canonical defect fails internally instead of producing red creator cards", async () => {
+  await assert.rejects(() => runCanonicalCandidateGate({
+    scenario: { revision: "audited" },
+    validation: { valid: true, issues: [] },
+    policy: { canonicalRepairCalls: 0, canonicalFinalAuditCalls: 0 },
+    check: () => ({ valid: false, validation: { valid: false, issues: ["hidden"] } }),
+    repair: async () => assert.fail("repair disabled"),
+    finalAudit: async () => assert.fail("audit disabled"),
+  }), (error) => error.code === "scenario_contract_invalid");
 });

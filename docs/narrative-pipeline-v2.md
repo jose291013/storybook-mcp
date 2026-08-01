@@ -1,7 +1,7 @@
 # Calitiki Narrative Pipeline V2
 
-Status: contract foundation, pure compiler and allowlisted shadow harness; no
-downstream production consumer
+Status: contract foundation, pure compiler, allowlisted shadow harness and
+pre-review canonical candidate gate; downstream preview consumers remain legacy
 
 Contract version: `calitiki.narrative-book-spec.v1`
 
@@ -135,7 +135,7 @@ invariant cannot be compiled safely. That rejection is an internal product
 defect or a genuine unresolved creator choice, not an invitation for another
 model to guess.
 
-The first pure implementation is
+The pure implementation is
 `src/contracts/compileNarrativeBookSpec.js`. It accepts only:
 
 - an explicitly approved scenario v2;
@@ -145,8 +145,13 @@ The first pure implementation is
   narrative drafts;
 - one supported book format and sanitized immutable safety references.
 
-It is deliberately not called by a route, worker or customer journey yet. It
-performs no storage, network or model operation. It derives stable registries,
+The scenario worker now calls it through a pre-review candidate gate after the
+independent semantic audit. The candidate is compiled with approval-shaped
+operational metadata but is not yet the purchased or series-canonical artifact.
+One bounded internal repair and one fresh semantic audit are allowed. A remaining
+mechanical failure becomes a technical scenario interruption instead of red
+creator cards. The compiler itself performs no storage, network or model
+operation. It derives stable registries,
 page bindings, the exact end-of-scene visible moment and complete object
 snapshots, then executes the mechanical NarrativeBookSpec validator before
 returning. Semantic evidence is initialized as `pending`, never invented by the
@@ -395,9 +400,10 @@ Initial operational targets:
 ## Delivery sequence
 
 The contract foundation, pure compiler and Narrative Draft V2 object projection
-are implemented behind tests. The
-allowlisted shadow compiler is implemented but disabled by default; no
-production route consumes a NarrativeBookSpec yet.
+are implemented behind tests. The allowlisted shadow compiler remains available.
+Fresh scenario preparation now requires a successful canonical candidate compile
+before creator review, while preview generation still uses the legacy downstream
+pipeline until the following delivery bricks are activated.
 
 1. **Contract foundation** — this document, JSON Schema, deterministic validator,
    reference fixture and tests.

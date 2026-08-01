@@ -91,6 +91,42 @@ export async function runScenarioQualityDialogue({
   return { scenario, validation };
 }
 
+export async function runCanonicalCandidateGate({
+  scenario,
+  validation,
+  policy,
+  check,
+  repair,
+  finalAudit,
+}) {
+  if (!validation.valid || typeof check !== "function") {
+    return { scenario, validation, evidence: null };
+  }
+  let candidate = check(scenario);
+  if (!candidate.valid && policy.canonicalRepairCalls > 0) {
+    ({ scenario, validation } = await repair({
+      scenario,
+      validation: candidate.validation,
+      repairDirectives: candidate.repairDirectives,
+      attempt: 1,
+    }));
+    if (validation.valid && policy.canonicalFinalAuditCalls > 0) {
+      ({ scenario, validation } = await finalAudit({ scenario, validation }));
+    }
+    if (validation.valid) candidate = check(scenario);
+  }
+  if (validation.valid && !candidate.valid) {
+    const error = new Error("The canonical scenario candidate could not be compiled after its bounded internal repair.");
+    error.code = "scenario_contract_invalid";
+    throw error;
+  }
+  return {
+    scenario,
+    validation,
+    evidence: validation.valid ? candidate.evidence : null,
+  };
+}
+
 export async function generateValidatedScenario({
   normalized,
   previousScenario,
@@ -103,6 +139,7 @@ export async function generateValidatedScenario({
   onStep = async () => {},
   backgroundExecution = null,
   modelRoles = {},
+  canonicalCandidateCheck = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const canonicalCharacters = [
@@ -259,6 +296,20 @@ export async function generateValidatedScenario({
     auditEditorial: auditScenario,
     repairEditorial: (state) => repairScenario({ ...state, kind: "editorial" }),
   }));
+  let canonicalCandidateEvidence = null;
+  if (validation.valid && typeof canonicalCandidateCheck === "function") {
+    const gated = await runCanonicalCandidateGate({
+      scenario,
+      validation,
+      policy,
+      check: canonicalCandidateCheck,
+      repair: (state) => repairScenario({ ...state, kind: "canonical" }),
+      finalAudit: (state) => auditScenario({ ...state, attempt: 3, final: true }),
+    });
+    scenario = gated.scenario;
+    validation = gated.validation;
+    canonicalCandidateEvidence = gated.evidence;
+  }
   await onStep({ phase: "finalizing", attempt: 0 });
-  return { scenario, validation };
+  return { scenario, validation, canonicalCandidateEvidence };
 }
