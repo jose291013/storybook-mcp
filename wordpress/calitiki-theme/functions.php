@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.2.1');
+define('CALITIKI_THEME_VERSION', '1.2.2');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -33,6 +33,7 @@ function calitiki_generator_url() {
     return esc_url(add_query_arg(array(
         'newBook' => '1',
         'uiLanguage' => calitiki_creator_language(),
+        'bookLanguage' => calitiki_creator_language(),
         'libraryUrl' => calitiki_creations_url(),
     ), $base_url));
 }

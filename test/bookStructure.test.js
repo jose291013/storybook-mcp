@@ -324,6 +324,7 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
     fs.readFile("public/i18n.js", "utf8"),
   ]);
   assert.match(themeFunctions, /'uiLanguage' => calitiki_creator_language\(\)/);
+  assert.match(themeFunctions, /'bookLanguage' => calitiki_creator_language\(\)/);
   assert.match(themeFunctions, /trp_custom_language_switcher\(\)/);
   assert.match(themeFunctions, /shortcode_exists\('language-switcher'\)/);
   assert.match(themeFunctions, /do_shortcode\('\[language-switcher\]'\)/);
@@ -333,10 +334,13 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(themeStyles, /\.calitiki-language-switcher/);
   assert.match(themeStyles, /\.calitiki-translatepress-switcher/);
   assert.match(app, /searchParams\.get\("uiLanguage"\)/);
+  assert.match(app, /searchParams\.get\("bookLanguage"\)/);
+  assert.match(app, /navigator\.languages/);
+  assert.match(app, /bookLanguageLocked/);
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
-  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.2\.1'/);
+  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.2\.2'/);
   assert.match(themeFunctions, /'libraryUrl' => calitiki_creations_url\(\)/);
   assert.match(themeFunctions, /wc_get_account_endpoint_url\('calitiki-creations'\)/);
   assert.match(header, /account-link-creations/);
