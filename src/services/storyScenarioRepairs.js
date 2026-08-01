@@ -70,6 +70,26 @@ function safeDiscoveryScene(scenes, crossingScene, travelers = []) {
     }) || null;
 }
 
+function endOfPreviousSceneDiscovery(scenes, crossingScene, travelers = []) {
+  const crossingIndex = scenes.findIndex((scene) => (
+    Number(scene?.sceneNumber) === Number(crossingScene?.sceneNumber)
+  ));
+  if (crossingIndex <= 0) return null;
+  const candidate = scenes[crossingIndex - 1];
+  const origin = key(crossingScene?.locationBefore);
+  if (!origin || key(candidate?.locationAfter) !== origin) return null;
+  const physicalAtEnd = new Set(list(candidate?.characterPresences)
+    .filter((presence) => (
+      presence?.mode === "physical"
+      && (!presence?.phase || ["end", "throughout"].includes(presence.phase))
+      && key(presence?.location || candidate?.locationAfter) === origin
+    ))
+    .map((presence) => key(presence?.name)));
+  return list(travelers).map(key).every((name) => physicalAtEnd.has(name))
+    ? candidate
+    : null;
+}
+
 function scenePassageEvents(scene) {
   return [
     { ...(scene?.transition || {}), source: "transition" },
@@ -131,9 +151,11 @@ function undiscoveredPassageCrossings(scenes) {
       }
     }
   }
-  const discoveryIds = new Set(discoveries.map((record) => record.id));
   return crossings
-    .filter((crossing) => !discoveryIds.has(crossing.id))
+    .filter((crossing) => !discoveries.some((discovery) => (
+      discovery.id === crossing.id
+      && Number(discovery.scene.sceneNumber) < Number(crossing.scene.sceneNumber)
+    )))
     .filter((crossing, index, all) => all.findIndex((candidate) => (
       candidate.scene.sceneNumber === crossing.scene.sceneNumber
       && candidate.id === crossing.id
@@ -150,8 +172,10 @@ function undiscoveredPassageCrossings(scenes) {
 
 function passageRepairDirective({ scenes, crossingScene, crossingEvent, compatibleDiscovery = null }) {
   const travelers = list(crossingEvent.characters).map(text).filter(Boolean);
-  const discoveryScene = compatibleDiscovery?.scene
+  const stationaryDiscovery = compatibleDiscovery?.scene
     || safeDiscoveryScene(scenes, crossingScene, travelers);
+  const discoveryScene = stationaryDiscovery
+    || endOfPreviousSceneDiscovery(scenes, crossingScene, travelers);
   const mechanism = text(crossingEvent.mechanism);
   const mechanismId = compatibleDiscovery?.id
     || passageId(crossingEvent.mechanismId, mechanism);
@@ -173,6 +197,7 @@ function passageRepairDirective({ scenes, crossingScene, crossingEvent, compatib
   return {
     code: "discover_passage_before_crossing",
     discoverySceneNumber: Number(discoveryScene?.sceneNumber || 0),
+    discoveryPlacement: stationaryDiscovery ? "scene_transition" : "scene_end_event",
     crossingSceneNumber: Number(crossingScene.sceneNumber),
     crossingKind: crossingEvent.kind === "return_travel" ? "return_travel" : "cross_passage",
     mechanism,
@@ -225,8 +250,12 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
     const discoveryScene = scenes.find((scene) => Number(scene?.sceneNumber) === Number(directive.discoverySceneNumber));
     if (crossingIndex < 0 || !discoveryScene) continue;
     const alreadyDiscovered = scenes.slice(0, crossingIndex).some((scene) => (
-      scene?.transition?.kind === "discover_passage"
-      && key(scene?.transition?.mechanismId || scene?.transition?.mechanism) === key(directive.mechanismId)
+      (scene?.transition?.kind === "discover_passage"
+        && key(scene?.transition?.mechanismId || scene?.transition?.mechanism) === key(directive.mechanismId))
+      || list(scene?.characterMovements).some((movement) => (
+        movement?.kind === "discover_passage"
+        && key(movement?.mechanismId || movement?.mechanism) === key(directive.mechanismId)
+      ))
     ));
     crossingScene.transition = {
       kind: directive.crossingKind || "cross_passage",
@@ -252,16 +281,37 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
     }];
     if (alreadyDiscovered) continue;
 
-    discoveryScene.locationAfter = directive.origin;
-    discoveryScene.characterMovements = [];
-    discoveryScene.transition = {
-      kind: "discover_passage",
-      mechanism: directive.mechanism,
-      mechanismId: directive.mechanismId,
-      from: directive.origin,
-      to: directive.origin,
-      characters: [],
-    };
+    if (directive.discoveryPlacement === "scene_end_event") {
+      const duplicateDiscovery = list(discoveryScene.characterMovements).some((movement) => (
+        movement?.kind === "discover_passage"
+        && key(movement?.mechanismId || movement?.mechanism) === key(directive.mechanismId)
+      ));
+      if (!duplicateDiscovery) {
+        discoveryScene.characterMovements = [
+          ...list(discoveryScene.characterMovements),
+          {
+            id: `movement-${list(discoveryScene.characterMovements).length + 1}`,
+            kind: "discover_passage",
+            mechanism: directive.mechanism,
+            mechanismId: directive.mechanismId,
+            from: directive.origin,
+            to: directive.origin,
+            characters: [...directive.travelers],
+          },
+        ];
+      }
+    } else {
+      discoveryScene.locationAfter = directive.origin;
+      discoveryScene.characterMovements = [];
+      discoveryScene.transition = {
+        kind: "discover_passage",
+        mechanism: directive.mechanism,
+        mechanismId: directive.mechanismId,
+        from: directive.origin,
+        to: directive.origin,
+        characters: [],
+      };
+    }
     const actionKey = key(discoveryScene.action);
     const mentionsMechanism = actionKey.includes(key(directive.mechanism));
     const mentionsDiscovery = /\b(decouvr|descubr|discover|trouv|encuentr|find)\w*/i.test(actionKey);
@@ -278,4 +328,33 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
     });
   }
   return scenario;
+}
+
+export function precompileStoryScenarioPassageLifecycles(input = {}, { language = "FR" } = {}) {
+  const scenario = structuredClone(input);
+  const scenes = list(scenario?.scenes);
+  const directives = undiscoveredPassageCrossings(scenes)
+    .map((crossing) => passageRepairDirective({
+      scenes,
+      crossingScene: crossing.scene,
+      crossingEvent: crossing.event,
+      compatibleDiscovery: crossing.compatibleDiscovery,
+    }))
+    .filter((directive) => directive?.discoverySceneNumber);
+  return applyStoryScenarioRepairDirectives(scenario, directives, { language });
+}
+
+export function validateStoryScenarioPassageLifecycles(scenario = {}) {
+  const missing = undiscoveredPassageCrossings(list(scenario?.scenes));
+  return {
+    valid: missing.length === 0,
+    issues: missing.map((crossing) => (
+      `scene-${crossing.scene.sceneNumber} crosses a passage before it was discovered`
+    )),
+    diagnostics: missing.map((crossing) => ({
+      code: "passage_discovery_missing",
+      sceneNumber: Number(crossing.scene.sceneNumber),
+      path: `scenes[${Math.max(0, Number(crossing.scene.sceneNumber) - 1)}].transition`,
+    })),
+  };
 }

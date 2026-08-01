@@ -444,6 +444,50 @@ test("compiler binds the approved passage discovery, crossing and return without
   assert.deepEqual(contract.scenes[10].illustration.evokedCharacterIds, ["fee_de_la_foret"]);
 });
 
+test("compiler accepts an ordered arrival then passage discovery in the same scene", () => {
+  const scenario = approvedScenario();
+  scenario.characters[0].initialLocation = "la maison";
+  scenario.characters[1].initialLocation = "la maison";
+  scenario.scenes[0].locationBefore = "la maison";
+  scenario.scenes[0].action = "Bastien et Maman arrivent dans le jardin et découvrent l'arche lumineuse.";
+  scenario.scenes[0].characterPresences = scenario.scenes[0].characterPresences.map((entry) => ({
+    ...entry,
+    phase: "end",
+    location: "le jardin",
+  }));
+  scenario.scenes[0].transition = {
+    kind: "ordinary_travel",
+    mechanism: "le chemin",
+    mechanismId: "",
+    from: "la maison",
+    to: "le jardin",
+    characters: ["Bastien", "Marie"],
+  };
+  scenario.scenes[0].characterMovements = [
+    {
+      id: "movement-1",
+      ...scenario.scenes[0].transition,
+    },
+    {
+      id: "movement-2",
+      kind: "discover_passage",
+      mechanism: "l'arche lumineuse",
+      mechanismId: "garden_arch",
+      from: "le jardin",
+      to: "le jardin",
+      characters: ["Bastien", "Marie"],
+    },
+  ];
+
+  const contract = compile({ scenario: approveAgain(scenario) });
+
+  assert.deepEqual(contract.scenes[0].movements.map((movement) => movement.kind), [
+    "ordinary_travel",
+    "discover_passage",
+  ]);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
 test("a missing passage discovery points to the first crossing scene", () => {
   const scenario = approvedScenario();
   scenario.scenes[0].transition = {

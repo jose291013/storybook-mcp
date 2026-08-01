@@ -5,6 +5,7 @@ const MOVEMENT_KINDS = new Set([
   "return_travel",
   "cross_passage",
   "join_travel",
+  "discover_passage",
 ]);
 const PRESENCE_PHASES = new Set(["start", "throughout", "end"]);
 
@@ -65,6 +66,7 @@ export function normalizeCharacterMovements(value, {
 
 function legacyTransitionMovements(scene, characters, characterLocations, { repairOrigins = false } = {}) {
   const transition = scene?.transition || {};
+  if (transition.kind === "discover_passage") return [];
   if (!MOVEMENT_KINDS.has(transition.kind) || !list(transition.characters).length) return [];
   const destination = text(transition.to || scene.locationAfter);
   const byOrigin = new Map();
@@ -108,7 +110,9 @@ function appendInferredArrivals({
     ))
     .map((presence) => canonicalName(presence?.name, characters))
     .filter(Boolean);
-  const explicitlyMoved = new Set(movements.flatMap((movement) => movement.characters));
+  const explicitlyMoved = new Set(movements
+    .filter((movement) => movement.kind !== "discover_passage")
+    .flatMap((movement) => movement.characters));
   const byOrigin = new Map();
   for (const name of physicalNames) {
     if (explicitlyMoved.has(name)) continue;
@@ -139,6 +143,7 @@ function appendInferredArrivals({
 
 function applyMovementsToLocations(movements, characterLocations) {
   for (const movement of movements) {
+    if (movement.kind === "discover_passage") continue;
     for (const name of movement.characters) characterLocations.set(name, movement.to);
   }
 }
@@ -194,10 +199,20 @@ function movementIssuesForScene({
     if (!MOVEMENT_KINDS.has(movement.kind)) {
       issues.push(`${scene.id}: movement ${movement.id} has an unknown kind`);
     }
-    if (!movement.from || !movement.to || key(movement.from) === key(movement.to)) {
+    if (!movement.from || !movement.to || (
+      movement.kind !== "discover_passage" && key(movement.from) === key(movement.to)
+    )) {
       issues.push(`${scene.id}: movement ${movement.id} requires distinct origin and destination`);
     }
     if (!movement.characters.length) issues.push(`${scene.id}: movement ${movement.id} requires travelers`);
+    if (movement.kind === "discover_passage") {
+      const mechanismId = passageId(movement.mechanismId, movement.mechanism);
+      if (!movement.mechanism || !mechanismId || key(movement.from) !== key(movement.to)) {
+        issues.push(`${scene.id}: passage discovery needs one named mechanism at the current location`);
+      } else {
+        discoveredPassages.add(mechanismId);
+      }
+    }
     if (movement.kind === "cross_passage") {
       const mechanismId = passageId(movement.mechanismId, movement.mechanism);
       if (!movement.mechanism || !mechanismId || !discoveredPassages.has(mechanismId)) {
@@ -217,7 +232,7 @@ function movementIssuesForScene({
       } else if (key(knownLocation) !== key(movement.from)) {
         issues.push(`${scene.id}: ${name} cannot depart from ${movement.from}`);
       }
-      characterLocations.set(name, movement.to);
+      if (movement.kind !== "discover_passage") characterLocations.set(name, movement.to);
       const visited = visitedLocations.get(name) || [];
       visited.push(movement.to);
       visitedLocations.set(name, visited);

@@ -8,36 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/canonical-passage-recovery`
-- Production/main checkpoint: PR #131 merged at `2afef50`; deterministic canonical-gate diagnostics deployed
-- Current focused checkpoint: connect canonical `passage_discovery_missing` diagnostics to the generic discovery-before-crossing repair and restore one policy-versioned recovery to the preserved canary project
+- Current branch: `codex/passage-lifecycle-preflight`
+- Production/main checkpoint: PR #132 merged at `5e212ec`; canonical passage recovery diagnostics deployed
+- Current focused checkpoint: precompile every passage lifecycle deterministically and cap the whole scenario pipeline to one paid AI repair
 - Pull request: being prepared; not merged
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #131 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #132 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: canonical passage recovery
+## Current product brick: deterministic passage lifecycle preflight
 
-1. A missing passage discovery now points to its first concrete crossing scene instead of only the global passage registry.
-2. Canonical diagnostics reuse the existing generic discovery-before-crossing repair; stable passage ids are aligned without changing unrelated scenes.
-3. Scenario retry policy version 2 grants one new creator-free recovery to projects exhausted before this fix, including the preserved canary project.
-4. Child Safety, sensitivity contracts and private bounded diagnostics remain unchanged.
+1. A character may arrive at a passage location and discover the passage at the end of that same scene through two ordered events; the discovery never replaces the arrival.
+2. The movement ledger and canonical compiler recognize a zero-distance `discover_passage` event with one stable passage id before any later crossing or return.
+3. A deterministic precompiler inserts safely inferable discoveries and validates the complete passage lifecycle before the independent narrative editor runs.
+4. Structural, editorial and canonical phases share one scenario-wide paid repair budget. At most one AI repair call is allowed; later unresolved defects fail fast instead of creating a repair cascade.
+5. Child Safety, sensitivity contracts, creator choices and persisted legacy compatibility remain unchanged.
 
 ## Verification
 
-- Focused passage, compiler and retry-policy tests: passing.
-- Complete `npm test`: 369/369 passing.
+- Focused passage, compiler, generation-dialogue and cost-policy tests: 77/77 passing.
+- Complete `npm test`: 374/374 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Publish and deploy this brick without deleting project `1a76ebc1-b389-4453-8f01-0205e7b4c206`.
-2. Reopen the preserved project; its free retry must be visible again through the policy-versioned recovery.
-3. Confirm the retry reaches scenario review and the canonical compiler no longer reports `passage_discovery_missing`.
+1. Publish and deploy this brick after explicit confirmation and only while no preview is generating.
+2. Create a fresh scenario containing an arrival, a discovery at that destination, a later crossing and a return through the same passage id.
+3. Confirm that scenario preparation reaches review without `passage_discovery_missing` and that cost logs contain at most one scenario repair call across every validation phase.
 
 ## Protected local state
 
