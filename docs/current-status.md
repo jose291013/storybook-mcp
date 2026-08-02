@@ -8,36 +8,40 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/canonical-preflight-audit-order`
-- Production/main checkpoint: PR #135 merged at `0b0fae2`; canonical repair priority deployed
-- Current focused checkpoint: keep pre-editor mechanical compilation independent from authoritative final audit evidence
+- Current branch: `codex/targeted-visual-qa-v2`
+- Production/main checkpoint: PR #136 merged at `d7a5ef7`; canonical preflight is independent from final semantic audit
+- Current focused checkpoint: bounded targeted visual QA V2 for interior illustrations
 - Pull request: pending publication
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #135 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #136 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: canonical preflight audit ordering
+## Current product brick: targeted visual QA V2
 
-1. The pre-editor canonical check is a non-persistent mechanical compilation, not the authoritative semantic audit.
-2. A stale or absent audit digest is refreshed only on the in-memory compiler candidate and is never routed to the scenario model as a repair directive.
-3. The source proposal remains untouched; the independent editor still creates the only authoritative audit evidence.
-4. Final approval and contract persistence continue to require a digest matching the exact audited scenario.
+1. Visual findings receive stable private codes, severity, confidence and an automatic-repair decision.
+2. Only high-confidence objective scene defects enter automatic interior-page repair: duplicated, fused, substituted or missing required identities, forbidden elements, contradictory object state, or the wrong main-action subject.
+3. The first coherent defective page candidate is quarantined immediately instead of paying for a second full regeneration.
+4. The repair call receives that exact private candidate as the target image to edit, plus the approved cover and identity references. It must preserve every unaffected part of the composition.
+5. Post-edit QA rechecks only the original defect codes, permanent severe identity guardrails and technical integrity. It cannot reopen subjective composition, style, likeness or gesture preferences.
+6. A page receives at most one ordinary coherent candidate and one targeted edit under this path. An inconclusive edit enters creator quality review with every candidate preserved.
 
 ## Verification
 
-- Focused candidate-gate, scenario-pipeline and strict-compiler tests: 29/29 passing.
-- Complete `npm test`: 379/379 passing.
+- Focused visual policy and page-isolation tests: 14/14 passing.
+- Complete `npm test`: 382/382 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Publish and deploy this brick only while no preview is generating.
-2. Do not spend another retry on project `b00272d9-f52e-428c-965b-c75739c429ea`; it is an exhausted legacy verification project.
-3. Start one genuinely new scenario and confirm that `stale_scenario_audit` never appears in the canonical gate.
-4. Confirm that a real mechanical contradiction may still receive the single bounded repair and that the final stored scenario carries current audit evidence.
+1. Publish this brick as one focused PR after the complete test suite passes.
+2. Deploy only while no preview is generating because Render may restart.
+3. Generate one new 24-page test book containing at least three recurring characters.
+4. Confirm logs show `quarantined-for-targeted-repair` at attempt 1 for a high-confidence identity/cast defect, followed by one `targeted_image_edit` outcome at most.
+5. Confirm composition or likeness-only warnings do not trigger another paid image call.
+6. Compare total illustration calls and correction cost with the previous completed test book.
 
 ## Protected local state
 
