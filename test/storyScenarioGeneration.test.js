@@ -90,6 +90,56 @@ test("one shared repair budget prevents structural and editorial repair cascades
   assert.equal(result.validation.valid, false);
 });
 
+test("the canonical contract receives the shared repair before editorial review", async () => {
+  const calls = [];
+  const repairBudget = { remaining: 1 };
+  const result = await runScenarioQualityDialogue({
+    initialScenario: { revision: "architect" },
+    initialValidation: { valid: true, issues: [] },
+    policy,
+    repairBudget,
+    repairStructural: async () => assert.fail("structural repair must not run"),
+    beforeEditorial: async ({ scenario, validation }) => {
+      calls.push("canonical-preflight");
+      const gated = await runCanonicalCandidateGate({
+        scenario,
+        validation,
+        policy: { canonicalRepairCalls: 1, canonicalFinalAuditCalls: 1 },
+        repairBudget,
+        check: (candidate) => candidate.revision === "canonical"
+          ? { valid: true, evidence: { artifactDigest: "digest" } }
+          : {
+            valid: false,
+            validation: { valid: false, issues: ["ambiguous object events"] },
+            repairDirectives: [{ code: "canonical_object_repair" }],
+          },
+        repair: async () => {
+          calls.push("canonical-repair");
+          return {
+            scenario: { revision: "repaired" },
+            validation: { valid: true, issues: [] },
+          };
+        },
+        finalAudit: async () => {
+          calls.push("final-audit");
+          return {
+            scenario: { revision: "canonical" },
+            validation: { valid: true, issues: [] },
+          };
+        },
+      });
+      return { ...gated, skipEditorial: gated.finalAuditAttempted };
+    },
+    auditEditorial: async () => assert.fail("the canonical final audit already reviewed the repair"),
+    repairEditorial: async () => assert.fail("editorial repair must not run"),
+  });
+
+  assert.deepEqual(calls, ["canonical-preflight", "canonical-repair", "final-audit"]);
+  assert.equal(repairBudget.remaining, 0);
+  assert.equal(result.validation.valid, true);
+  assert.equal(result.beforeEditorialResult.evidence.artifactDigest, "digest");
+});
+
 test("an editorial repair cannot be accepted without its final audit", async () => {
   const result = await runScenarioQualityDialogue({
     initialScenario: { revision: "architect" },
@@ -199,6 +249,8 @@ test("an exhausted shared repair budget prevents a later canonical repair call",
   }), (error) => {
     assert.equal(error.code, "scenario_contract_invalid");
     assert.equal(error.canonicalDiagnostics.repairAttempted, false);
+    assert.equal(error.canonicalDiagnostics.repairBlockedByBudget, true);
+    assert.match(error.message, /shared repair budget was already exhausted/);
     return true;
   });
 });

@@ -107,6 +107,7 @@ function privateCanonicalDiagnostics(error) {
     version: 1,
     repairAttempted: Boolean(input.repairAttempted),
     finalAuditAttempted: Boolean(input.finalAuditAttempted),
+    ...(input.repairBlockedByBudget ? { repairBlockedByBudget: true } : {}),
     initialIssues: issues(input.initialIssues),
     finalIssues: issues(input.finalIssues),
   };
