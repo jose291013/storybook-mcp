@@ -8,6 +8,7 @@ import {
 
 const policy = {
   previewTargetUsd: 2,
+  previewStretchTargetUsd: 1.5,
   previewHardLimitUsd: 3,
 };
 
@@ -28,10 +29,32 @@ test("economic governor contains optional retries without blocking the customer"
   assert.equal(completion.customerBlocking, false);
 });
 
+test("economic governor reserves required page cost before an optional retry", () => {
+  const normal = previewEconomicDecision(900_000, policy, {
+    estimatedMandatoryRemainingUsdMicros: 500_000,
+    estimatedOptionalRetryUsdMicros: 50_000,
+  });
+  assert.equal(normal.mode, "normal");
+  assert.equal(normal.optionalVisualRetry, true);
+
+  const containment = previewEconomicDecision(1_000_001, policy, {
+    estimatedMandatoryRemainingUsdMicros: 450_000,
+    estimatedOptionalRetryUsdMicros: 50_000,
+  });
+  assert.equal(containment.mode, "containment");
+  assert.equal(containment.reason, "projected_stretch_target");
+  assert.equal(containment.optionalVisualRetry, false);
+  assert.equal(Object.hasOwn(containment, "projectedCostUsdMicros"), false);
+});
+
 test("economic governor reads private attributed cost only", async () => {
   const result = await evaluatePreviewEconomicGovernor("private-project", {
     readCost: async (projectId) => projectId === "private-project" ? 2_500_000 : 0,
     policy,
+    projection: {
+      estimatedMandatoryRemainingUsdMicros: 100_000,
+      estimatedOptionalRetryUsdMicros: 50_000,
+    },
   });
   assert.equal(result.mode, "containment");
   assert.equal(Object.hasOwn(result, "spentUsdMicros"), false);

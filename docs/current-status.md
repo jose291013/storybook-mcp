@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-01
+Last updated: 2026-08-02
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,37 +8,38 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/passage-lifecycle-preflight`
-- Production/main checkpoint: PR #132 merged at `5e212ec`; canonical passage recovery diagnostics deployed
-- Current focused checkpoint: precompile every passage lifecycle deterministically and cap the whole scenario pipeline to one paid AI repair
+- Current branch: `codex/predictive-visual-cost-control`
+- Production/main checkpoint: PR #133 merged at `06125b2`; deterministic passage lifecycle preflight deployed
+- Current focused checkpoint: predict the unavoidable remaining illustration cost and stop low-yield optional visual retries before the private USD 1.50 operating target is exceeded
 - Pull request: being prepared; not merged
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #132 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #133 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: deterministic passage lifecycle preflight
+## Current product brick: predictive visual cost control
 
-1. A character may arrive at a passage location and discover the passage at the end of that same scene through two ordered events; the discovery never replaces the arrival.
-2. The movement ledger and canonical compiler recognize a zero-distance `discover_passage` event with one stable passage id before any later crossing or return.
-3. A deterministic precompiler inserts safely inferable discoveries and validates the complete passage lifecycle before the independent narrative editor runs.
-4. Structural, editorial and canonical phases share one scenario-wide paid repair budget. At most one AI repair call is allowed; later unresolved defects fail fast instead of creating a repair cascade.
-5. Child Safety, sensitivity contracts, creator choices and persisted legacy compatibility remain unchanged.
+1. The private economic governor reserves an estimated USD 0.05 for every required interior illustration still missing before allowing an optional retry.
+2. The projection uses the private USD 1.50 stretch target; it never blocks required pages, Child Safety or an objective mechanical correction and is never exposed to the customer.
+3. Standalone identity-likeness warnings are accepted on the first coherent image instead of paying for a low-yield second attempt. Missing cast, substitution, fusion, duplication, wrong actor, object contradiction and technical corruption remain blocking.
+4. Automatic quarantine repair and creator-requested correction now have distinct honest progress messages in French, Spanish and English.
+5. The estimate is configurable through `PREVIEW_ESTIMATED_INTERIOR_IMAGE_USD` and defaults to USD 0.05.
 
 ## Verification
 
-- Focused passage, compiler, generation-dialogue and cost-policy tests: 77/77 passing.
-- Complete `npm test`: 374/374 passing.
+- Focused governor, visual-severity and progress-message tests: 7/7 passing.
+- Complete `npm test`: 377/377 passing.
 - Complete npm production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 
 ## Next verification target
 
 1. Publish and deploy this brick after explicit confirmation and only while no preview is generating.
-2. Create a fresh scenario containing an arrival, a discovery at that destination, a later crossing and a return through the same passage id.
-3. Confirm that scenario preparation reaches review without `passage_discovery_missing` and that cost logs contain at most one scenario repair call across every validation phase.
+2. Generate one fresh 24-page preview with a recurring animal reference and keep the internal cost report through completion.
+3. Confirm that identity-only coat/marking warnings produce `approved-with-identity-warning` on attempt 1, while objective cast or anatomy defects still receive a bounded correction.
+4. Compare total and rework cost with the USD 1.96 reference preview; the expected saving from its five identity-only retries is about USD 0.25 before later narrative-cost work.
 
 ## Protected local state
 

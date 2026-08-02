@@ -63,3 +63,19 @@ test("visual severity blocks mechanics but keeps preferences repairable", () => 
   });
   assert.equal(technical.severity, "blocking");
 });
+
+test("likeness-only findings are advisory while objective identity failures remain blocking", () => {
+  const likeness = visualQualityDisposition({
+    identityIssues: ["The dog's coat markings differ slightly from the reference portrait."],
+  });
+  assert.equal(likeness.severity, "advisory");
+  assert.deepEqual(likeness.repairable, []);
+  assert.equal(likeness.advisory.length, 1);
+
+  const substitution = visualQualityDisposition({
+    sceneIssues: ["Required named animal Kovu is missing and replaced by a human child."],
+    identityIssues: ["Kovu's coat is different from the reference portrait."],
+  });
+  assert.equal(substitution.severity, "blocking");
+  assert.equal(substitution.blocking.length, 1);
+});

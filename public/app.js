@@ -2399,7 +2399,8 @@ function friendlyStep(step = "") {
   if (step.includes("scenario-fidelity-repair")) return tr("progressFidelityRepair");
   if (step.includes("scenario-fidelity")) return tr("progressFidelityCheck");
   if (step.includes("cover")) return tr("progressCover");
-  if (step.includes("quality:repair:page") || step.includes("draft:repair:page")) return tr("progressQualityRepair");
+  if (step.includes("quality:repair:page")) return tr("progressQualityRepair");
+  if (step.includes("draft:repair:page")) return tr("progressAutomaticQualityRepair");
   const match = step.match(/^(?:draft:)?page:(\d+)/);
   return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing");
 }
