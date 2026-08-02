@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/targeted-visual-qa-v2`
 - Production/main checkpoint: PR #136 merged at `d7a5ef7`; canonical preflight is independent from final semantic audit
 - Current focused checkpoint: bounded targeted visual QA V2 for interior illustrations
-- Pull request: pending publication
+- Pull request: draft PR #137
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,7 +36,7 @@ PR #55 through PR #136 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish this brick as one focused PR after the complete test suite passes.
+1. Review draft PR #137 and merge only after explicit user confirmation.
 2. Deploy only while no preview is generating because Render may restart.
 3. Generate one new 24-page test book containing at least three recurring characters.
 4. Confirm logs show `quarantined-for-targeted-repair` at attempt 1 for a high-confidence identity/cast defect, followed by one `targeted_image_edit` outcome at most.
