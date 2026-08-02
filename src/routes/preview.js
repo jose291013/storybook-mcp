@@ -1297,6 +1297,9 @@ router.post("/preview", async (req, res) => {
 
       const draftPages = (priorResult.draftPages || []).filter(isReusableDraftPage);
       const completedPageNumbers = new Set(draftPages.map((page) => Number(page.page_number)));
+      const estimatedInteriorImageUsdMicros = Math.round(
+        generationCostPolicy().estimatedInteriorImageUsd * 1_000_000,
+      );
       const coverReferencePath = localCoverImageUrl ? outputImagePath(localCoverImageUrl) : "";
       const lockedCoverStorageKey = visualBibleCoverStorageKey(project) || coverImageStorageKey;
       const buildPageVisualRequest = (page) => {
@@ -1344,13 +1347,24 @@ router.post("/preview", async (req, res) => {
           text = draftTextByPage.get(page.page_number) || "";
         } else if (page.page_type === "image") {
           const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
-          const economicDecision = await evaluatePreviewEconomicGovernor(projectId);
+          const remainingRequiredImageCount = final_blueprint.pages.filter((candidate) => (
+            candidate.page_type === "image"
+            && !completedPageNumbers.has(Number(candidate.page_number))
+          )).length;
+          const economicDecision = await evaluatePreviewEconomicGovernor(projectId, {
+            projection: {
+              estimatedMandatoryRemainingUsdMicros: remainingRequiredImageCount
+                * estimatedInteriorImageUsdMicros,
+              estimatedOptionalRetryUsdMicros: estimatedInteriorImageUsdMicros,
+            },
+          });
           if (economicDecision.mode !== "normal") {
             console.info("[preview] economic containment", JSON.stringify({
               jobId: job.id,
               projectId,
               pageNumber: page.page_number,
               mode: economicDecision.mode,
+              reason: economicDecision.reason,
             }));
           }
           try {

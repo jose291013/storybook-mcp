@@ -95,12 +95,25 @@ export function visualQualityDisposition({
   const repairable = [
     ...objectiveSceneContractIssues(sceneIssues).filter((issue) => !blocking.includes(issue)),
     ...blockingStyleContinuityIssues(styleIssues),
-    ...(Array.isArray(identityIssues) ? identityIssues : []),
   ].map(String).filter(Boolean);
+  // Identity comparison is intentionally advisory here. Objective substitutions,
+  // missing cast, fusions and duplicate identities are already classified by the
+  // technical and scene-contract gates above. A likeness-only warning has proved
+  // too subjective and too unlikely to improve to justify another paid image.
+  const advisory = (Array.isArray(identityIssues) ? identityIssues : [])
+    .map(String)
+    .filter(Boolean);
   return {
-    severity: blocking.length ? "blocking" : repairable.length ? "repairable" : "accepted",
+    severity: blocking.length
+      ? "blocking"
+      : repairable.length
+        ? "repairable"
+        : advisory.length
+          ? "advisory"
+          : "accepted",
     blocking: [...new Set(blocking)],
     repairable: [...new Set(repairable)],
+    advisory: [...new Set(advisory)],
   };
 }
 
@@ -395,6 +408,30 @@ export async function generateQualityCheckedImage({
       if (
         inspection.approved
         && disposition.blocking.length === 0
+        && disposition.repairable.length === 0
+        && disposition.advisory.length > 0
+      ) {
+        await onCandidate?.({
+          imageUrl,
+          attempt,
+          maximumAttempts: attemptLimit,
+          status: "accepted",
+          rejectionKind: "identity",
+          issues: disposition.advisory,
+          warning: true,
+        });
+        onAttempt?.({
+          phase: "approved-with-identity-warning",
+          attempt,
+          maximumAttempts: attemptLimit,
+          pageLabel,
+          issues: disposition.advisory,
+        });
+        return imageUrl;
+      }
+      if (
+        inspection.approved
+        && disposition.blocking.length === 0
         && disposition.repairable.length > 0
         && !retryRepairableFindings
       ) {
@@ -404,7 +441,7 @@ export async function generateQualityCheckedImage({
           maximumAttempts: attemptLimit,
           status: "accepted",
           rejectionKind: !identityInspection.approved ? "identity" : !sceneInspection.approved ? "scene" : "style",
-          issues: disposition.repairable,
+          issues: [...disposition.repairable, ...disposition.advisory],
           warning: true,
         });
         onAttempt?.({
@@ -412,7 +449,7 @@ export async function generateQualityCheckedImage({
           attempt,
           maximumAttempts: attemptLimit,
           pageLabel,
-          issues: disposition.repairable,
+          issues: [...disposition.repairable, ...disposition.advisory],
         });
         return imageUrl;
       }

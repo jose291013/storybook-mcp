@@ -254,12 +254,16 @@ the sealed registries and scene ledger. Visual QA uses an explicit severity spli
 technical corruption, identity fusion/duplication, missing required cast, wrong
 focal action and object-state contradictions remain blocking; aesthetic, minor
 accessory, wardrobe and ambiguous likeness/style findings cannot destroy a complete
-book after their bounded repair opportunity. The cover remains creator-approved
+book. A standalone likeness warning is advisory on the first coherent image and
+does not buy a second low-yield generation; objective substitution, fusion,
+duplication and cast failures remain on the blocking scene/technical path. The cover remains creator-approved
 visual evidence and the legacy planner remains available for pre-V2 projects.
 
-An internal economic governor reads only the private attributed cost ledger. Its
-default soft target is `$2.00` and its completion-first threshold is `$3.00`, both
-configurable without changing customer prices. Crossing a threshold never blocks
+An internal economic governor reads only the private attributed cost ledger. Before
+each interior image it also reserves the configured estimated cost of every required
+image still missing plus the contemplated optional retry. The private stretch target
+is `$1.50`, the soft target is `$2.00` and the completion-first threshold is `$3.00`;
+all are configurable without changing customer prices. Crossing or projecting a threshold never blocks
 the creator and never suppresses Child Safety, mandatory pages or objective
 mechanical repair. It suppresses only optional retries for style, uncertain
 likeness, wardrobe and composition preferences. Customer APIs and WordPress cards
@@ -393,6 +397,7 @@ quality-review and private cost metrics reviewed at each step.
 - `STORY_WRITER_MODEL`, `STORY_WRITER_REASONING_EFFORT`: page prose and bounded text-repair route; defaults `gpt-5.6-terra` and `medium`.
 - `MANUSCRIPT_EDITOR_MODEL`, `MANUSCRIPT_EDITOR_REASONING_EFFORT`: economical final language-only review; defaults `gpt-5.6-luna` and `medium`.
 - `PREVIEW_AI_TARGET_USD`, `PREVIEW_AI_STRETCH_TARGET_USD`: private operating targets, defaults USD 2.00 and USD 1.50; never exposed to the customer.
+- `PREVIEW_ESTIMATED_INTERIOR_IMAGE_USD`: private estimate reserved for each required low-quality interior image still missing before an optional retry is allowed; defaults to USD 0.05 and is never exposed to the customer.
 - `UTILITY_TEXT_MODEL`, `UTILITY_REASONING_EFFORT`: reserved economical route for later migration of no-credit helpers; defaults `gpt-5.6-luna` and `low`. Existing helpers remain on `TEXT_MODEL` until evaluated.
 - `NARRATIVE_V2_SHADOW_MODE=off|observe`: disabled-by-default V2 diagnostic compilation after creator approval. `observe` still does nothing unless the project id is explicitly allowlisted.
 - `NARRATIVE_V2_SHADOW_PROJECT_IDS`: comma-separated private tester project ids eligible for shadow compilation. An empty value disables all shadow compilation even when mode is `observe`.

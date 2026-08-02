@@ -9,6 +9,7 @@ export function generationCostPolicy() {
     previewTargetUsd,
     previewStretchTargetUsd: positiveNumber(process.env.PREVIEW_AI_STRETCH_TARGET_USD, 1.5),
     previewHardLimitUsd: positiveNumber(process.env.PREVIEW_AI_HARD_LIMIT_USD, Math.max(3, previewTargetUsd * 1.5)),
+    estimatedInteriorImageUsd: positiveNumber(process.env.PREVIEW_ESTIMATED_INTERIOR_IMAGE_USD, 0.05),
     scenario: {
       architectCalls: 1,
       editorCalls: 1,
