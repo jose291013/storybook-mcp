@@ -7,6 +7,7 @@ import {
   compileNarrativeV2Candidate,
 } from "../src/services/narrativeV2CandidateGate.js";
 import { NarrativeBookSpecCompileError } from "../src/contracts/compileNarrativeBookSpec.js";
+import { hasCurrentStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
 
 function project() {
   return {
@@ -33,11 +34,17 @@ function project() {
   };
 }
 
-test("the pre-review gate compiles an approved-shaped candidate without mutating the proposal", () => {
+test("the mechanical pre-review gate refreshes stale audit metadata without mutating the proposal", () => {
   const scenario = {
     status: "proposed",
     revision: 0,
-    auditEvidence: { digest: "a".repeat(64) },
+    title: "Candidate awaiting editorial audit",
+    auditEvidence: {
+      version: 1,
+      status: "approved",
+      digest: "a".repeat(64),
+      auditedAt: "2026-07-31T10:00:00.000Z",
+    },
   };
   let received = null;
   const result = compileNarrativeV2Candidate({ project: project(), scenario }, {
@@ -58,8 +65,11 @@ test("the pre-review gate compiles an approved-shaped candidate without mutating
   assert.equal(result.valid, true);
   assert.equal(received.scenario.status, "approved");
   assert.equal(received.scenario.revision, 1);
+  assert.equal(hasCurrentStoryScenarioAuditEvidence(received.scenario), true);
+  assert.notEqual(received.scenario.auditEvidence.digest, scenario.auditEvidence.digest);
   assert.equal(received.book.language, "ES");
   assert.equal(scenario.status, "proposed");
+  assert.equal(scenario.auditEvidence.digest, "a".repeat(64));
   assert.equal(result.evidence.artifactDigest, "c".repeat(64));
 });
 
