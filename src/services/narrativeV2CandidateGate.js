@@ -6,6 +6,7 @@ import {
   canonicalNarrativeV2Safety,
   narrativeV2BookConfiguration,
 } from "./narrativeV2Shadow.js";
+import { withStoryScenarioAuditEvidence } from "./storyScenario.js";
 
 export const NARRATIVE_V2_CANDIDATE_GATE_VERSION = 1;
 
@@ -18,13 +19,18 @@ function sceneNumberFromPath(path = "") {
   return match ? Number(match[1]) + 1 : 0;
 }
 
-function candidateScenario(scenario = {}, now = new Date().toISOString()) {
-  return {
+function mechanicalCandidateScenario(scenario = {}, now = new Date().toISOString()) {
+  const approvedShape = {
     ...scenario,
     status: "approved",
     revision: Math.max(1, Number(scenario.revision || 1)),
     approvedAt: scenario.approvedAt || now,
   };
+  // This candidate is never persisted. The strict compiler requires an audit
+  // digest, so the mechanical preflight supplies an ephemeral digest for the
+  // exact in-memory shape being compiled. The real editor audit remains
+  // mandatory before the scenario or its final contract can be stored.
+  return withStoryScenarioAuditEvidence(approvedShape, { auditedAt: now });
 }
 
 function boundedCompileIssues(error) {
@@ -46,7 +52,7 @@ export function compileNarrativeV2Candidate(
   try {
     const spec = compile({
       projectId: project?.id,
-      scenario: candidateScenario(scenario, now()),
+      scenario: mechanicalCandidateScenario(scenario, now()),
       book: narrativeV2BookConfiguration(project),
       safety: canonicalNarrativeV2Safety(project),
     });
