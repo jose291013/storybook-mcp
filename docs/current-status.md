@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/predictive-visual-cost-control`
 - Production/main checkpoint: PR #133 merged at `06125b2`; deterministic passage lifecycle preflight deployed
 - Current focused checkpoint: predict the unavoidable remaining illustration cost and stop low-yield optional visual retries before the private USD 1.50 operating target is exceeded
-- Pull request: being prepared; not merged
+- Pull request: #134 open as draft; not merged
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
