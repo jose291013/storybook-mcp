@@ -38,6 +38,7 @@ export async function runScenarioQualityDialogue({
   repairStructural,
   auditEditorial,
   repairEditorial,
+  beforeEditorial = null,
   repairBudget = null,
 }) {
   let scenario = initialScenario;
@@ -59,8 +60,23 @@ export async function runScenarioQualityDialogue({
     }));
   }
 
-  if (!validation.valid || policy.editorCalls < 1) {
-    return { scenario, validation };
+  if (!validation.valid) {
+    return { scenario, validation, beforeEditorialResult: null };
+  }
+
+  let beforeEditorialResult = null;
+  if (typeof beforeEditorial === "function") {
+    beforeEditorialResult = await beforeEditorial({
+      scenario,
+      validation,
+      repairBudget,
+    });
+    scenario = beforeEditorialResult?.scenario || scenario;
+    validation = beforeEditorialResult?.validation || validation;
+  }
+
+  if (!validation.valid || beforeEditorialResult?.skipEditorial || policy.editorCalls < 1) {
+    return { scenario, validation, beforeEditorialResult };
   }
 
   editorCalls += 1;
@@ -101,7 +117,7 @@ export async function runScenarioQualityDialogue({
     }));
   }
 
-  return { scenario, validation };
+  return { scenario, validation, beforeEditorialResult };
 }
 
 export async function runCanonicalCandidateGate({
@@ -120,6 +136,11 @@ export async function runCanonicalCandidateGate({
   const initialIssues = privateCanonicalIssues(candidate);
   let repairAttempted = false;
   let finalAuditAttempted = false;
+  const repairEnabled = policy.canonicalRepairCalls > 0;
+  const repairBudgetAvailable = !repairBudget
+    || !Number.isFinite(repairBudget.remaining)
+    || repairBudget.remaining > 0;
+  const repairBlockedByBudget = !candidate.valid && repairEnabled && !repairBudgetAvailable;
   if (!candidate.valid && policy.canonicalRepairCalls > 0 && consumeRepairBudget(repairBudget)) {
     repairAttempted = true;
     ({ scenario, validation } = await repair({
@@ -135,12 +156,17 @@ export async function runCanonicalCandidateGate({
     candidate = check(scenario);
   }
   if (!validation.valid || !candidate.valid) {
-    const error = new Error("The canonical scenario candidate could not be compiled after its bounded internal repair.");
+    const error = new Error(repairAttempted
+      ? "The canonical scenario candidate could not be compiled after its bounded internal repair."
+      : repairBlockedByBudget
+        ? "The canonical scenario candidate could not be compiled because the shared repair budget was already exhausted."
+        : "The canonical scenario candidate could not be compiled within the bounded repair policy.");
     error.code = "scenario_contract_invalid";
     error.canonicalDiagnostics = {
       version: 1,
       repairAttempted,
       finalAuditAttempted,
+      ...(repairBlockedByBudget ? { repairBlockedByBudget: true } : {}),
       initialIssues,
       finalIssues: privateCanonicalIssues(candidate),
     };
@@ -150,6 +176,8 @@ export async function runCanonicalCandidateGate({
     scenario,
     validation,
     evidence: validation.valid ? candidate.evidence : null,
+    repairAttempted,
+    finalAuditAttempted,
   };
 }
 
@@ -337,25 +365,55 @@ export async function generateValidatedScenario({
     };
   };
 
-  ({ scenario, validation } = await runScenarioQualityDialogue({
+  let canonicalCandidateEvidence = null;
+  const qualityResult = await runScenarioQualityDialogue({
     initialScenario: scenario,
     initialValidation: validation,
     policy,
     repairStructural: (state) => repairScenario({ ...state, kind: "structural" }),
     auditEditorial: auditScenario,
     repairEditorial: (state) => repairScenario({ ...state, kind: "editorial" }),
+    beforeEditorial: typeof canonicalCandidateCheck === "function"
+      ? async ({ scenario: currentScenario, validation: currentValidation }) => {
+        const gated = await runCanonicalCandidateGate({
+          scenario: currentScenario,
+          validation: currentValidation,
+          policy,
+          check: canonicalCandidateCheck,
+          repair: (state) => repairScenario({ ...state, kind: "canonical" }),
+          finalAudit: (state) => auditScenario({ ...state, attempt: 2, final: true }),
+          repairBudget,
+        });
+        canonicalCandidateEvidence = gated.evidence;
+        return {
+          ...gated,
+          skipEditorial: gated.finalAuditAttempted,
+        };
+      }
+      : null,
     repairBudget,
-  }));
-  let canonicalCandidateEvidence = null;
+  });
+  scenario = qualityResult.scenario;
+  validation = qualityResult.validation;
   if (validation.valid && typeof canonicalCandidateCheck === "function") {
+    // The editor is read-only when it approves a candidate, but an editorial
+    // repair may have changed causal mechanics. Recompile once without another
+    // model call so the one-repair ceiling remains absolute.
     const gated = await runCanonicalCandidateGate({
       scenario,
       validation,
-      policy,
+      policy: {
+        ...policy,
+        canonicalRepairCalls: 0,
+        canonicalFinalAuditCalls: 0,
+      },
       check: canonicalCandidateCheck,
-      repair: (state) => repairScenario({ ...state, kind: "canonical" }),
-      finalAudit: (state) => auditScenario({ ...state, attempt: 3, final: true }),
-      repairBudget,
+      repair: async () => {
+        throw new Error("final canonical verification cannot repair");
+      },
+      finalAudit: async () => {
+        throw new Error("final canonical verification cannot audit");
+      },
     });
     scenario = gated.scenario;
     validation = gated.validation;

@@ -70,6 +70,20 @@ test("a multi-stage transformation chain has one authoritative acyclic history",
   );
 });
 
+test("strictly duplicate causal events are removed before canonical compilation", () => {
+  const duplicated = chainEvents();
+  duplicated.splice(1, 0, {
+    ...duplicated[0],
+    id: "find_seed_duplicate",
+  });
+
+  const normalized = graph(duplicated);
+
+  assert.equal(normalized.events.length, chainEvents().length);
+  assert.deepEqual(normalized.events.map((event) => event.sequence), [1, 2, 3, 4]);
+  assert.equal(normalized.events.filter((event) => event.entityId === "seed" && event.sceneNumber === 2).length, 1);
+});
+
 test("an explicit causal graph overrides conflicting wording inference", () => {
   const narrativeScenes = scenes().map((scene) => ({
     ...scene,

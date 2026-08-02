@@ -156,7 +156,25 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], c
         && (!resultEntityId || entityIds.has(resultEntityId)),
       ),
     };
-  });
+  }).filter((event, index, all) => {
+    const signature = (candidate) => JSON.stringify({
+      sceneNumber: candidate.sceneNumber,
+      type: candidate.type,
+      entityId: candidate.entityId,
+      resultEntityId: candidate.resultEntityId,
+      fromState: candidate.fromState,
+      toState: candidate.toState,
+      toOwnerCharacter: candidate.toOwnerCharacter,
+      toQuantity: candidate.toQuantity,
+      resultState: candidate.resultState,
+      resultOwnerCharacter: candidate.resultOwnerCharacter,
+      resultQuantity: candidate.resultQuantity,
+    });
+    return all.findIndex((candidate) => signature(candidate) === signature(event)) === index;
+  }).map((event, index) => ({
+    ...event,
+    sequence: index + 1,
+  }));
   return {
     version,
     authority: version === STORY_CAUSAL_GRAPH_VERSION ? "draft_v2" : "architect_legacy",

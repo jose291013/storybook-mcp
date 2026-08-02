@@ -8,38 +8,37 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/predictive-visual-cost-control`
-- Production/main checkpoint: PR #133 merged at `06125b2`; deterministic passage lifecycle preflight deployed
-- Current focused checkpoint: predict the unavoidable remaining illustration cost and stop low-yield optional visual retries before the private USD 1.50 operating target is exceeded
-- Pull request: #134 open as draft; not merged
+- Current branch: `codex/canonical-repair-priority`
+- Production/main checkpoint: PR #134 merged at `e84e3b3`; predictive visual cost control deployed
+- Current focused checkpoint: prevent a late canonical object defect from losing the scenario-wide repair allowance to an earlier editorial correction
+- Pull request: pending publication
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #133 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #134 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: predictive visual cost control
+## Current product brick: canonical repair priority
 
-1. The private economic governor reserves an estimated USD 0.05 for every required interior illustration still missing before allowing an optional retry.
-2. The projection uses the private USD 1.50 stretch target; it never blocks required pages, Child Safety or an objective mechanical correction and is never exposed to the customer.
-3. Standalone identity-likeness warnings are accepted on the first coherent image instead of paying for a low-yield second attempt. Missing cast, substitution, fusion, duplication, wrong actor, object contradiction and technical corruption remain blocking.
-4. Automatic quarantine repair and creator-requested correction now have distinct honest progress messages in French, Spanish and English.
-5. The estimate is configurable through `PREVIEW_ESTIMATED_INTERIOR_IMAGE_USD` and defaults to USD 0.05.
+1. Strictly identical causal events are removed deterministically before canonical compilation; genuinely different changes to one object in the same scene remain blocking.
+2. After base structural validation, the NarrativeBookSpec contract compiles before editorial review and therefore has priority over the single shared paid repair call.
+3. A canonical repair receives its required fresh semantic audit. Because that audit already acts as editor-in-chief, the ordinary editorial pass is not repeated.
+4. An ordinary editorial repair is followed by one final deterministic canonical compilation with no further repair or model call.
+5. Private diagnostics now distinguish a canonical defect that was not repaired because the shared allowance had already been consumed.
 
 ## Verification
 
-- Focused governor, visual-severity and progress-message tests: 7/7 passing.
-- Complete `npm test`: 377/377 passing.
-- Complete npm production dependency audit: 0 vulnerabilities.
+- Focused causal-graph, scenario-pipeline and durable-worker tests: 26/26 passing.
+- Complete `npm test`: 379/379 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Publish and deploy this brick after explicit confirmation and only while no preview is generating.
-2. Generate one fresh 24-page preview with a recurring animal reference and keep the internal cost report through completion.
-3. Confirm that identity-only coat/marking warnings produce `approved-with-identity-warning` on attempt 1, while objective cast or anatomy defects still receive a bounded correction.
-4. Compare total and rework cost with the USD 1.96 reference preview; the expected saving from its five identity-only retries is about USD 0.25 before later narrative-cost work.
+1. Publish and deploy this brick only while no preview is generating.
+2. Resume project `b00272d9-f52e-428c-965b-c75739c429ea` through its existing free technical retry after Render is fully live.
+3. Confirm that an exact duplicate scene-1 object event is removed without a repair call, or that a genuine ambiguity receives the one canonical repair before editorial review.
+4. Confirm that the scenario reaches creator review without exposing internal object-state diagnostics and inspect its private cost report for at most one scenario repair call.
 
 ## Protected local state
 
