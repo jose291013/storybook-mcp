@@ -131,6 +131,21 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
     const project = await projectStore.getForCustomer(req.params.id, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
     const activeGeneration = generationSnapshot(project);
+    if (automaticRepair
+      && activeGeneration?.status === "failed"
+      && activeGeneration?.request?.automaticRepair === true
+      && activeGeneration?.errorCode === "scenario_auto_repair_unresolved") {
+      return res.status(409).json({
+        error: "The bounded automatic repair has already been attempted",
+        code: "scenario_auto_repair_exhausted",
+        failure: activeGeneration.automaticRepairFailure || {
+          version: 1,
+          reason: "final_checks_failed",
+          categories: ["incomplete"],
+          sceneNumbers: [],
+        },
+      });
+    }
     if (project.status === "scenario_generating"
       && activeGeneration?.runId
       && ["queued", "running"].includes(activeGeneration.status)) {

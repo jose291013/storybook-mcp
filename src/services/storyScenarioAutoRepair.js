@@ -21,6 +21,15 @@ const REPAIRABLE_CATEGORIES = new Set([
   "age",
 ]);
 
+function categoryFromFailureCode(code = "") {
+  const value = text(code).toLowerCase();
+  if (/passage|cross/.test(value)) return "passage";
+  if (/object|state|quantity|owner|held|worn/.test(value)) return "object";
+  if (/character|location|travel|movement|presence/.test(value)) return "travel";
+  if (/order|prerequisite|sequence/.test(value)) return "order";
+  return "incomplete";
+}
+
 function list(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -97,5 +106,21 @@ export function storyScenarioAutomaticRepairAssessment(scenario = {}) {
         Object.entries(summary.categoryScenes).filter(([category]) => REPAIRABLE_CATEGORIES.has(category)),
       ),
     },
+  };
+}
+
+export function storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics = null) {
+  const finalIssues = list(canonicalDiagnostics?.finalIssues);
+  const initialIssues = list(canonicalDiagnostics?.initialIssues);
+  const issues = finalIssues.length ? finalIssues : initialIssues;
+  const categories = [...new Set(issues.map((issue) => categoryFromFailureCode(issue?.code)))];
+  const sceneNumbers = [...new Set(issues
+    .map((issue) => Math.max(0, Number(issue?.sceneNumber || 0)))
+    .filter((sceneNumber) => sceneNumber > 0))].sort((left, right) => left - right);
+  return {
+    version: 1,
+    reason: "final_checks_failed",
+    categories: categories.length ? categories : ["incomplete"],
+    sceneNumbers,
   };
 }

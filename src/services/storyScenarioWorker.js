@@ -16,6 +16,7 @@ import {
   canonicalGateValidation,
   compileNarrativeV2Candidate,
 } from "./narrativeV2CandidateGate.js";
+import { storyScenarioAutomaticRepairFailureSummary } from "./storyScenarioAutoRepair.js";
 
 const WORKER_KIND = "story_scenario";
 const DEFAULT_LEASE_MS = 120000;
@@ -323,6 +324,9 @@ async function failScenario({
     ? false
     : technicalAttempt < maxTechnicalAttempts;
   if (generation?.runId === run.id) {
+    const automaticRepairFailure = generation?.request?.automaticRepair === true
+      ? storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics)
+      : null;
     await projects.update(project.id, {
       status: generation.previousProjectStatus === "scenario_review"
         || generation.previousProjectStatus === "scenario_needs_clarification"
@@ -336,6 +340,7 @@ async function failScenario({
           status: "failed",
           phase: "failed",
           errorCode: technical.code,
+          ...(automaticRepairFailure ? { automaticRepairFailure } : {}),
           retryAvailable,
           retryExhausted: !retryAvailable,
           failedAt,
