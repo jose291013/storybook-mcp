@@ -32,6 +32,7 @@ import {
   STORY_SCENARIO_RETRY_POLICY_VERSION,
   technicalStoryScenarioRetryAvailable,
 } from "../services/storyScenarioRetry.js";
+import { storyScenarioAutomaticRepairAssessment } from "../services/storyScenarioAutoRepair.js";
 
 const router = express.Router();
 const EDITABLE_STATUSES = new Set([
@@ -82,12 +83,28 @@ function generationSnapshot(project) {
   return project?.continuitySnapshot?.storyScenarioGeneration || null;
 }
 
-function queuedRequest(project, body, safetyContract, retrying) {
+function queuedRequest(project, body, safetyContract, retrying, automaticRepair = null) {
   const prior = generationSnapshot(project);
   if (retrying) {
     return { ...prior.request, safetyContract };
   }
   const previous = storyScenarioSnapshot(project);
+  if (automaticRepair?.available) {
+    return {
+      creatorClarifications: { ...(previous?.creatorClarifications || {}) },
+      sceneEdits: [],
+      addedCharacters: [],
+      feedback: "",
+      safetyContract,
+      automaticRepair: true,
+      automaticRepairPlan: {
+        version: 1,
+        validation: automaticRepair.validation,
+        directives: automaticRepair.directives,
+        publicSummary: automaticRepair.publicSummary,
+      },
+    };
+  }
   return {
     creatorClarifications: {
       ...(previous?.creatorClarifications || {}),
@@ -100,7 +117,7 @@ function queuedRequest(project, body, safetyContract, retrying) {
   };
 }
 
-router.post("/projects/:id/story-scenario", async (req, res) => {
+async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) {
   const identity = requireIdentity(req, res); if (!identity) return;
   if (activeScenarioEnqueues.has(req.params.id)) {
     return res.status(409).json({
@@ -125,6 +142,15 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     }
     if (!EDITABLE_STATUSES.has(project.status)) {
       return res.status(409).json({ error: "This project can no longer replace its scenario", code: "scenario_locked" });
+    }
+    const automaticRepairAssessment = automaticRepair
+      ? storyScenarioAutomaticRepairAssessment(storyScenarioSnapshot(project))
+      : null;
+    if (automaticRepair && !automaticRepairAssessment?.available) {
+      return res.status(409).json({
+        error: "This scenario cannot be repaired automatically",
+        code: automaticRepairAssessment?.reason || "scenario_auto_repair_unavailable",
+      });
     }
     const requestedRetry = req.body?.retry === true;
     const failedGeneration = generationSnapshot(project);
@@ -165,7 +191,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     }
     const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
     const fingerprint = previewRequestFingerprint(normalized);
-    const request = queuedRequest(project, req.body, safety.contract, retrying);
+    const request = queuedRequest(project, req.body, safety.contract, retrying, automaticRepairAssessment);
     const technicalAttempt = retrying
       ? Number(failedGeneration.technicalAttempt || 1) + 1
       : 1;
@@ -179,7 +205,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
       currentStep: "scenario:created",
       inputFingerprint: fingerprint,
       metadata: {
-        requestKind: storyScenarioSnapshot(project) ? "revision" : "initial",
+        requestKind: automaticRepair ? "automatic_repair" : storyScenarioSnapshot(project) ? "revision" : "initial",
         retryOf: retrying ? generationSnapshot(project)?.runId || null : null,
       },
     });
@@ -247,7 +273,7 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
     console.info("[story-scenario] queued", JSON.stringify({
       runId: run.id,
       projectId: project.id,
-      requestKind: storyScenarioSnapshot(project) ? "revision" : "initial",
+      requestKind: automaticRepair ? "automatic_repair" : storyScenarioSnapshot(project) ? "revision" : "initial",
       retrying,
     }));
     res.set("Cache-Control", "private, no-store");
@@ -269,7 +295,12 @@ router.post("/projects/:id/story-scenario", async (req, res) => {
   } finally {
     activeScenarioEnqueues.delete(req.params.id);
   }
-});
+}
+
+router.post("/projects/:id/story-scenario", (req, res) => enqueueStoryScenario(req, res));
+router.post("/projects/:id/story-scenario/auto-repair", (req, res) => (
+  enqueueStoryScenario(req, res, { automaticRepair: true })
+));
 
 router.post("/projects/:id/story-scenario/revalidate", async (req, res) => {
   const identity = requireIdentity(req, res); if (!identity) return;

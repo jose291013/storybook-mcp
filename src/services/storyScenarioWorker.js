@@ -66,6 +66,12 @@ function createBackgroundExecution({ runs, run }) {
 
 function safeTechnicalError(error) {
   const message = String(error?.message || error || "");
+  if (error?.code === "scenario_auto_repair_unresolved") {
+    return {
+      code: "scenario_auto_repair_unresolved",
+      message: "The automatic repair did not pass every scenario check. The previous scenario was preserved.",
+    };
+  }
   if (error?.code === "scenario_contract_invalid") {
     return {
       code: "scenario_contract_invalid",
@@ -313,7 +319,9 @@ async function failScenario({
     1,
     Number(generation?.maxTechnicalAttempts || 2),
   );
-  const retryAvailable = technicalAttempt < maxTechnicalAttempts;
+  const retryAvailable = error?.noTechnicalRetry === true
+    ? false
+    : technicalAttempt < maxTechnicalAttempts;
   if (generation?.runId === run.id) {
     await projects.update(project.id, {
       status: generation.previousProjectStatus === "scenario_review"
@@ -438,34 +446,53 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         attempt,
       });
     };
-    const { scenario, validation, canonicalCandidateEvidence } = await withOpenAICostContext({
-      projectId: run.projectId,
-      runId: run.id,
-      workflow: "scenario",
-      getStage: () => costStage,
-      getAttemptKind: () => costAttemptKind,
-    }, () => generate({
-      normalized,
-      previousScenario: previous?.fingerprint === generation.fingerprint ? previous : null,
-      creatorClarifications: request.creatorClarifications || {},
-      sceneEdits: request.sceneEdits || [],
-      addedCharacters: request.addedCharacters || [],
-      feedback: request.feedback || "",
-      safetyContract: request.safetyContract || null,
-      sensitivityContract: storySensitivityContract(
-        project.questionnaire?.story_sensitivity_profile,
-      ),
-      onStep,
-      backgroundExecution,
-      canonicalCandidateCheck: (candidate) => {
-        const result = compileNarrativeV2Candidate({ project, scenario: candidate });
-        return {
-          ...result,
-          validation: canonicalGateValidation(result),
-          repairDirectives: canonicalGateRepairDirectives(result),
-        };
-      },
-    }));
+    const automaticRepair = request.automaticRepair === true;
+    let generated;
+    try {
+      generated = await withOpenAICostContext({
+        projectId: run.projectId,
+        runId: run.id,
+        workflow: "scenario",
+        getStage: () => costStage,
+        getAttemptKind: () => costAttemptKind,
+      }, () => generate({
+        normalized,
+        previousScenario: previous?.fingerprint === generation.fingerprint ? previous : null,
+        creatorClarifications: request.creatorClarifications || {},
+        sceneEdits: request.sceneEdits || [],
+        addedCharacters: request.addedCharacters || [],
+        feedback: request.feedback || "",
+        safetyContract: request.safetyContract || null,
+        sensitivityContract: storySensitivityContract(
+          project.questionnaire?.story_sensitivity_profile,
+        ),
+        automaticRepair,
+        automaticRepairPlan: request.automaticRepairPlan || null,
+        onStep,
+        backgroundExecution,
+        canonicalCandidateCheck: (candidate) => {
+          const result = compileNarrativeV2Candidate({ project, scenario: candidate });
+          return {
+            ...result,
+            validation: canonicalGateValidation(result),
+            repairDirectives: canonicalGateRepairDirectives(result),
+          };
+        },
+      }));
+    } catch (error) {
+      if (automaticRepair) {
+        error.code = "scenario_auto_repair_unresolved";
+        error.noTechnicalRetry = true;
+      }
+      throw error;
+    }
+    const { scenario, validation, canonicalCandidateEvidence } = generated;
+    if (automaticRepair && !validation.valid) {
+      const error = new Error("The automatic scenario repair did not pass its final audit.");
+      error.code = "scenario_auto_repair_unresolved";
+      error.noTechnicalRetry = true;
+      throw error;
+    }
     return await completeScenario({
       projects,
       runs,

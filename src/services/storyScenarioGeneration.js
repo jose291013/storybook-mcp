@@ -17,7 +17,10 @@ import {
 } from "./storyScenarioRepairs.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
 
-export function scenarioGenerationRoute(previousScenario = null) {
+export function scenarioGenerationRoute(previousScenario = null, automaticRepair = false) {
+  if (previousScenario && automaticRepair) {
+    return { phase: "automatic-repair", modelRole: "story_repair" };
+  }
   return previousScenario
     ? { phase: "revision", modelRole: "story_repair" }
     : { phase: "architect", modelRole: "story_architect" };
@@ -206,6 +209,8 @@ export async function generateValidatedScenario({
   backgroundExecution = null,
   modelRoles = {},
   canonicalCandidateCheck = null,
+  automaticRepair = false,
+  automaticRepairPlan = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const canonicalCharacters = [
@@ -235,8 +240,28 @@ export async function generateValidatedScenario({
     child_safety_contract: safetyContract,
     sensitivity_contract: sensitivityContract,
     previous_scenario: previousScenario || null,
+    ...(automaticRepair ? {
+      automatic_repair: true,
+      validation_issues: automaticRepairPlan?.validation?.issues || [],
+      repair_directives: automaticRepairPlan?.directives || [],
+      repair_phase: "automatic",
+      repair_contract: {
+        preserve_unrelated_creator_choices: true,
+        maximum_model_repair_calls: 1,
+        require_fresh_validation: true,
+      },
+    } : {}),
   };
-  const policy = generationCostPolicy().scenario;
+  const configuredPolicy = generationCostPolicy().scenario;
+  const policy = automaticRepair ? {
+    ...configuredPolicy,
+    maximumRepairCalls: 0,
+    structuralRepairCalls: 0,
+    editorialRepairCalls: 0,
+    finalAuditCalls: 0,
+    canonicalRepairCalls: 0,
+    canonicalFinalAuditCalls: 0,
+  } : configuredPolicy;
   const repairBudget = { remaining: Number(policy.maximumRepairCalls) };
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
@@ -266,8 +291,8 @@ export async function generateValidatedScenario({
     };
   };
 
-  const generationRoute = scenarioGenerationRoute(previousScenario);
-  const architectModelRole = generationRoute.phase === "revision"
+  const generationRoute = scenarioGenerationRoute(previousScenario, automaticRepair);
+  const architectModelRole = generationRoute.phase !== "architect"
     ? (modelRoles.repair || generationRoute.modelRole)
     : (modelRoles.architect || generationRoute.modelRole);
   const repairModelRole = modelRoles.repair || "story_repair";
