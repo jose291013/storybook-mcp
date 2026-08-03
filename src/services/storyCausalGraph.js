@@ -12,6 +12,7 @@ const EVENT_TYPES = new Set([
 const TERMINAL_TYPES = new Set(["consume", "transform", "destroy"]);
 const TERMINAL_STATES = new Set(["consumed", "transformed", "destroyed", "used_up"]);
 const POSSESSION_STATES = new Set(["worn", "held", "carried"]);
+const SPATIAL_MODES = new Set(["portable", "location_bound"]);
 
 function clean(value) {
   return String(value || "").trim();
@@ -60,6 +61,27 @@ function stateOwner(state, supplied, characters = []) {
   return canonicalCharacterName(supplied, characters);
 }
 
+function boundedProgress(value, maximum = 20) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) ? Math.max(0, Math.min(maximum, parsed)) : 0;
+}
+
+function sceneFocalLocation(scene = {}) {
+  return clean(scene.locationAfter || scene.location_after || scene.locationBefore || scene.location_before);
+}
+
+function objectSpatialState(object = {}, canonical = {}, scene = {}) {
+  if (object.spatialMode !== "location_bound") return canonical;
+  const atHome = stableId(sceneFocalLocation(scene)) === stableId(object.homeLocation);
+  if (atHome || canonical.state === "absent" || TERMINAL_STATES.has(canonical.state)) return canonical;
+  return {
+    ...canonical,
+    state: "absent",
+    owner: "",
+    quantity: 0,
+  };
+}
+
 function graphEntityOwner(graph = {}, entityIdValue = "", characters = []) {
   const entity = values(graph.entities, 30).find((candidate) => candidate.id === entityIdValue);
   const owners = [
@@ -87,6 +109,10 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], c
       initialState,
       initialOwnerCharacter: stateOwner(initialState, object.owner, characters),
       initialQuantity: stateQuantity(initialState, object.initialQuantity),
+      spatialMode: SPATIAL_MODES.has(object.spatialMode) ? object.spatialMode : "portable",
+      homeLocation: clean(object.homeLocation),
+      progressTotal: boundedProgress(object.progressTotal),
+      initialProgress: 0,
     };
   });
   const suppliedEntities = values(rawGraph.entities, 30);
@@ -108,6 +134,17 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], c
         initialState,
         supplied.initial_quantity ?? supplied.initialQuantity,
         entity.initialQuantity,
+      ),
+      spatialMode: SPATIAL_MODES.has(supplied.spatial_mode || supplied.spatialMode)
+        ? clean(supplied.spatial_mode || supplied.spatialMode)
+        : entity.spatialMode,
+      homeLocation: clean(supplied.home_location || supplied.homeLocation || entity.homeLocation),
+      progressTotal: boundedProgress(
+        supplied.progress_total ?? supplied.progressTotal ?? entity.progressTotal,
+      ),
+      initialProgress: boundedProgress(
+        supplied.initial_progress ?? supplied.initialProgress ?? entity.initialProgress,
+        boundedProgress(supplied.progress_total ?? supplied.progressTotal ?? entity.progressTotal) || 20,
       ),
     };
   });
@@ -147,6 +184,7 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], c
         resultState,
         item?.result_quantity ?? item?.resultQuantity,
       ),
+      progressStep: boundedProgress(item?.progress_step ?? item?.progressStep),
       sequence: index + 1,
       structurallyValid: Boolean(
         sceneNumbers.has(sceneNumber)
@@ -169,12 +207,23 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], c
       resultState: candidate.resultState,
       resultOwnerCharacter: candidate.resultOwnerCharacter,
       resultQuantity: candidate.resultQuantity,
+      progressStep: candidate.progressStep,
     });
     return all.findIndex((candidate) => signature(candidate) === signature(event)) === index;
   }).map((event, index) => ({
     ...event,
     sequence: index + 1,
   }));
+  for (const entity of entities) {
+    const hasIntroduction = events.some((event) => (
+      event.entityId === entity.id
+      && ["introduce", "acquire"].includes(event.type)
+    ));
+    if (entity.spatialMode === "location_bound" && entity.initialState === "absent" && !hasIntroduction) {
+      entity.initialState = "visible";
+      entity.initialQuantity = 1;
+    }
+  }
   return {
     version,
     authority: version === STORY_CAUSAL_GRAPH_VERSION ? "draft_v2" : "architect_legacy",
@@ -197,6 +246,9 @@ export function applyCausalGraph(input = {}) {
       object.initialState = entity.initialState;
       object.initialQuantity = entity.initialQuantity;
       object.owner = graphEntityOwner(graph, object.objectId, scenario.characters);
+      object.spatialMode = entity.spatialMode || object.spatialMode || "portable";
+      object.homeLocation = clean(entity.homeLocation || object.homeLocation);
+      object.progressTotal = boundedProgress(entity.progressTotal || object.progressTotal);
     }
   }
   for (const object of objects) {
@@ -245,6 +297,7 @@ export function projectCausalGraphObjectLedger(input = {}) {
     owner: entity.initialOwnerCharacter || "",
     quantity: stateQuantity(entity.initialState, entity.initialQuantity),
     eventId: "",
+    progressStep: boundedProgress(entity.initialProgress, boundedProgress(entity.progressTotal) || 20),
   }]));
   const events = values(graph.events, 80)
     .filter((event) => event.structurallyValid)
@@ -257,6 +310,7 @@ export function projectCausalGraphObjectLedger(input = {}) {
         owner: event.toOwnerCharacter || "",
         quantity: stateQuantity(event.toState, event.toQuantity),
         eventId: event.id,
+        progressStep: event.progressStep || stateByEntity.get(event.entityId)?.progressStep || 0,
       });
       if (event.resultEntityId) {
         stateByEntity.set(event.resultEntityId, {
@@ -264,18 +318,22 @@ export function projectCausalGraphObjectLedger(input = {}) {
           owner: event.resultOwnerCharacter || "",
           quantity: stateQuantity(event.resultState, event.resultQuantity),
           eventId: event.id,
+          progressStep: event.progressStep || stateByEntity.get(event.resultEntityId)?.progressStep || 0,
         });
       }
     }
     scene.objectStates = entities.map((entity) => {
-      const current = stateByEntity.get(entity.id);
+      const canonical = stateByEntity.get(entity.id);
       const object = objects.find((candidate, index) => objectId(candidate, index) === entity.id);
+      const current = objectSpatialState(object, canonical, scene);
       return {
         objectId: entity.id,
         name: clean(object?.name || entity.label),
         owner: current.owner,
         state: current.state,
         quantity: current.quantity,
+        progressStep: current.progressStep || 0,
+        progressTotal: boundedProgress(entity.progressTotal),
         instruction: ledgerInstruction({
           label: clean(object?.name || entity.label),
           state: current.state,
@@ -301,6 +359,12 @@ export function validateCausalGraph(scenario = {}) {
     else if (entityIds.has(entity.id)) issues.push(`causal entity ${entity.id} is declared more than once`);
     entityIds.add(entity.id);
     if (Number(graph.version) === STORY_CAUSAL_GRAPH_VERSION) {
+      if (entity.spatialMode === "location_bound" && !clean(entity.homeLocation)) {
+        issues.push(`causal entity ${entity.id} requires a home location while location_bound`);
+      }
+      if (boundedProgress(entity.initialProgress) > boundedProgress(entity.progressTotal)) {
+        issues.push(`causal entity ${entity.id} initial progress exceeds its total`);
+      }
       if (POSSESSION_STATES.has(entity.initialState) && !entity.initialOwnerCharacter) {
         issues.push(`causal entity ${entity.id} requires an initial character owner while ${entity.initialState}`);
       }
@@ -330,6 +394,9 @@ export function validateCausalGraph(scenario = {}) {
   const currentStates = new Map(
     values(graph.entities, 30).map((entity) => [entity.id, entity.initialState]),
   );
+  const progressByEntity = new Map(
+    values(graph.entities, 30).map((entity) => [entity.id, boundedProgress(entity.initialProgress)]),
+  );
   for (const event of ordered) {
     if (!event.id) issues.push("causal event id is required");
     else if (eventIds.has(event.id)) issues.push(`causal event ${event.id} is declared more than once`);
@@ -339,6 +406,18 @@ export function validateCausalGraph(scenario = {}) {
       continue;
     }
     if (Number(graph.version) === STORY_CAUSAL_GRAPH_VERSION) {
+      const entity = values(graph.entities, 30).find((candidate) => candidate.id === event.entityId);
+      const previousProgress = progressByEntity.get(event.entityId) || 0;
+      if (event.progressStep && !boundedProgress(entity?.progressTotal)) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} advances undeclared progress`);
+      }
+      if (event.progressStep && event.progressStep < previousProgress) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} cannot reverse progress`);
+      }
+      if (event.progressStep > boundedProgress(entity?.progressTotal)) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} progress exceeds its total`);
+      }
+      if (event.progressStep) progressByEntity.set(event.entityId, event.progressStep);
       if (POSSESSION_STATES.has(event.toState) && !event.toOwnerCharacter) {
         issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a character owner while ${event.toState}`);
       }

@@ -25,6 +25,7 @@ const OBJECT_STATES = new Set([
   "planted", "installed", "consumed", "transformed", "destroyed", "used_up",
 ]);
 const OBJECT_LIFECYCLE_KINDS = new Set(["persistent", "discoverable", "transformable", "consumable"]);
+const OBJECT_SPATIAL_MODES = new Set(["portable", "location_bound"]);
 const OBJECT_EVENT_TYPES = new Set([
   "introduce", "acquire", "plant", "install", "consume", "transform", "destroy",
   "retrieve", "store", "transfer", "use",
@@ -235,12 +236,20 @@ export function normalizeStoryScenario(candidate = {}, {
   const objects = list(raw?.objects, 20).map((item) => {
     const lifecycle = normalizedObjectLifecycle(item);
     const explicitObjectId = passageId(item?.entity_id || item?.entityId || item?.object_id || item?.objectId);
+    const spatialMode = OBJECT_SPATIAL_MODES.has(item?.spatial_mode || item?.spatialMode)
+      ? (item.spatial_mode || item.spatialMode)
+      : "portable";
     return {
       ...(explicitObjectId ? { objectId: explicitObjectId } : {}),
       name: text(item?.name),
       owner: canonicalName(item?.owner, scenarioCharacters) || text(item?.owner),
       initialState: OBJECT_STATES.has(item?.initial_state) ? item.initial_state : "visible",
       trackEveryScene: item?.track_every_scene === true,
+      spatialMode,
+      homeLocation: spatialMode === "location_bound"
+        ? text(item?.home_location || item?.homeLocation)
+        : "",
+      progressTotal: Math.max(0, Math.min(20, Number(item?.progress_total || item?.progressTotal || 0))),
       ...(lifecycle ? { lifecycle } : {}),
     };
   }).filter((item, index, all) => (
@@ -1040,8 +1049,13 @@ function validateNarrativeObjectLifecycles(scenario = {}) {
       const supplied = list(scene.objectStates, 30).find((state) => (
         objectInstanceKey(state, objects) === objectInstanceKey(object, objects)
       ));
-      if (!supplied || supplied.state !== expectedState) {
-        issues.push(`scene-${scene.sceneNumber}: object ${object.name} must be ${expectedState} according to its lifecycle`);
+      const locationBoundElsewhere = object.spatialMode === "location_bound"
+        && key(scene.locationAfter) !== key(object.homeLocation)
+        && expectedState !== "absent"
+        && !OBJECT_TERMINAL_STATES.has(expectedState);
+      const expectedSceneState = locationBoundElsewhere ? "absent" : expectedState;
+      if (!supplied || supplied.state !== expectedSceneState) {
+        issues.push(`scene-${scene.sceneNumber}: object ${object.name} must be ${expectedSceneState} according to its lifecycle and location`);
       }
     }
 

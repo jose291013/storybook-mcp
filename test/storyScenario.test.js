@@ -317,6 +317,17 @@ test("scenario normalization preserves the new editorial metadata without imposi
       secondary_symbols: [{ name: "pont", purpose: "rendre le passage concret" }],
     },
     characters: [{ name: "Lina", initial_location: "le jardin" }],
+    objects: [
+      {
+        entity_id: "bridge_mural",
+        name: "fresque du pont",
+        initial_state: "installed",
+        track_every_scene: true,
+        spatial_mode: "location_bound",
+        home_location: "le jardin",
+        progress_total: 3,
+      },
+    ],
     scenes: [{
       scene_number: 1,
       title: "Le premier pas",
@@ -328,6 +339,7 @@ test("scenario normalization preserves the new editorial metadata without imposi
       emotional_shift: "hésitation vers curiosité",
       story_change: "Lina choisit de suivre le sentier",
       symbol_use: [{ name: "ruban", role: "marque le premier choix" }],
+      object_states: [{ name: "fresque du pont", state: "installed", quantity: 1 }],
       character_presences: [{ name: "Lina", mode: "physical", location: "le jardin" }],
       transition: { kind: "none", from: "le jardin", to: "le jardin", characters: [] },
     }],
@@ -339,6 +351,9 @@ test("scenario normalization preserves the new editorial metadata without imposi
   assert.equal(modern.scenes[0].dominantEmotion, "hésitation");
   assert.equal(modern.version, 2);
   assert.equal(modern.movementLedgerVersion, 1);
+  assert.equal(modern.objects[0].spatialMode, "location_bound");
+  assert.equal(modern.objects[0].homeLocation, "le jardin");
+  assert.equal(modern.objects[0].progressTotal, 3);
   assert.equal(modern.scenes[0].characterPresences[0].phase, "end");
   assert.equal(validateStoryScenario(modern).valid, true);
 
