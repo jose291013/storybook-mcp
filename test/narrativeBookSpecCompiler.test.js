@@ -677,6 +677,106 @@ test("compiler consumes the deterministic version-2 object ledger instead of mod
   assert.equal(validateNarrativeBookSpec(contract).valid, true);
 });
 
+test("compiler applies several ordered version-2 changes for one object in the same scene", () => {
+  const scenario = approvedScenario();
+  scenario.causalGraph.version = 2;
+  scenario.causalGraph.authority = "draft_v2";
+  scenario.causalGraph.entities[0] = {
+    id: "bond_flower",
+    label: "Fleur du lien",
+    initialState: "absent",
+    initialOwnerCharacter: "",
+    initialQuantity: 0,
+    spatialMode: "portable",
+    homeLocation: "",
+    progressTotal: 0,
+    initialProgress: 0,
+  };
+  scenario.causalGraph.events[0] = {
+    ...scenario.causalGraph.events[0],
+    toOwnerCharacter: "",
+    toQuantity: 1,
+  };
+  scenario.causalGraph.events[1] = {
+    ...scenario.causalGraph.events[1],
+    toOwnerCharacter: "Bastien",
+    toQuantity: 1,
+  };
+  scenario.objects.push({
+    objectId: "special_light",
+    name: "Lumiere speciale",
+    owner: "",
+    initialState: "installed",
+    initialQuantity: 1,
+    trackEveryScene: true,
+    spatialMode: "portable",
+    progressTotal: 0,
+    causalAuthority: "graph_v2",
+    lifecycle: { version: 1, kind: "persistent", events: [] },
+  });
+  scenario.causalGraph.entities.push({
+    id: "special_light",
+    label: "Lumiere speciale",
+    initialState: "installed",
+    initialOwnerCharacter: "",
+    initialQuantity: 1,
+    spatialMode: "portable",
+    homeLocation: "",
+    progressTotal: 0,
+    initialProgress: 0,
+  });
+  scenario.causalGraph.events.push({
+    id: "light_retrieved",
+    sceneNumber: 3,
+    type: "retrieve",
+    entityId: "special_light",
+    resultEntityId: "",
+    fromState: "installed",
+    toState: "held",
+    toOwnerCharacter: "Bastien",
+    toQuantity: 1,
+    resultState: "visible",
+    resultOwnerCharacter: "",
+    resultQuantity: 1,
+    progressStep: 0,
+    sequence: 3,
+    structurallyValid: true,
+  }, {
+    id: "light_installed",
+    sceneNumber: 3,
+    type: "install",
+    entityId: "special_light",
+    resultEntityId: "",
+    fromState: "held",
+    toState: "installed",
+    toOwnerCharacter: "",
+    toQuantity: 1,
+    resultState: "visible",
+    resultOwnerCharacter: "",
+    resultQuantity: 1,
+    progressStep: 0,
+    sequence: 4,
+    structurallyValid: true,
+  });
+  scenario.scenes[2].action = "Bastien retire la lumiere de son premier support puis la fixe sur le second.";
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  const contract = compile({ scenario: approveAgain(stabilized) });
+  const lightEvents = contract.registries.causalEvents.filter(({ objectId }) => objectId === "special_light");
+  const sceneThreeState = contract.scenes[2].objectStates.find(({ objectId }) => objectId === "special_light");
+
+  assert.deepEqual(lightEvents.map(({ id }) => id), ["light_retrieved", "light_installed"]);
+  assert.deepEqual(lightEvents.map(({ fromState, toState }) => [fromState, toState]), [
+    ["installed", "held"],
+    ["held", "installed"],
+  ]);
+  assert.deepEqual(lightEvents.map(({ sequence }) => sequence), [3, 4]);
+  assert.equal(sceneThreeState.state, "installed");
+  assert.equal(sceneThreeState.ownerCharacterId, null);
+  assert.equal(sceneThreeState.eventId, "light_installed");
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
 test("compiler does not turn a non-character object attribution into a character owner", () => {
   const scenario = approvedScenario();
   scenario.objects.push({

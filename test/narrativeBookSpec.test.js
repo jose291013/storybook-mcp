@@ -5,7 +5,9 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 
 import {
+  NARRATIVE_BOOK_SPEC_COMPILER_VERSION,
   NARRATIVE_BOOK_SPEC_ID,
+  NARRATIVE_BOOK_SPEC_VALIDATOR_VERSION,
   NARRATIVE_BOOK_SPEC_VERSION,
   narrativeBookSpecDigest,
   validateNarrativeBookSpec,
@@ -34,6 +36,8 @@ test("canonical schema and reference fixture declare the same immutable contract
   assert.equal(schema.properties.contractId.const, NARRATIVE_BOOK_SPEC_ID);
   assert.equal(example.schemaVersion, NARRATIVE_BOOK_SPEC_VERSION);
   assert.equal(example.contractId, NARRATIVE_BOOK_SPEC_ID);
+  assert.equal(example.validation.compilerVersion, NARRATIVE_BOOK_SPEC_COMPILER_VERSION);
+  assert.equal(example.validation.mechanicalValidatorVersion, NARRATIVE_BOOK_SPEC_VALIDATOR_VERSION);
   assert.ok(schema.required.includes("safety"));
   assert.ok(schema.required.includes("registries"));
   assert.ok(schema.required.includes("scenes"));
@@ -91,7 +95,7 @@ test("digest changes with the compiler version but not project timestamps or rev
   operationallyReissued.sourceScenario.approvedAt = "2030-01-01T00:00:00.000Z";
   assert.equal(narrativeBookSpecDigest(operationallyReissued), narrativeBookSpecDigest(example));
 
-  operationallyReissued.validation.compilerVersion = 2;
+  operationallyReissued.validation.compilerVersion = NARRATIVE_BOOK_SPEC_COMPILER_VERSION + 1;
   assert.notEqual(narrativeBookSpecDigest(operationallyReissued), narrativeBookSpecDigest(example));
 });
 

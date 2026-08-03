@@ -2,8 +2,8 @@ import crypto from "node:crypto";
 
 export const NARRATIVE_BOOK_SPEC_VERSION = 1;
 export const NARRATIVE_BOOK_SPEC_ID = "calitiki.narrative-book-spec.v1";
-export const NARRATIVE_BOOK_SPEC_COMPILER_VERSION = 2;
-export const NARRATIVE_BOOK_SPEC_VALIDATOR_VERSION = 1;
+export const NARRATIVE_BOOK_SPEC_COMPILER_VERSION = 3;
+export const NARRATIVE_BOOK_SPEC_VALIDATOR_VERSION = 2;
 
 const PRESENCE_MODES = new Set(["physical", "thought", "memory", "voice"]);
 const PHYSICAL_PHASES = new Set(["start", "throughout", "end"]);
@@ -263,6 +263,7 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
 
   const eventsById = new Map(causalEvents.map((event) => [event?.id, event]));
   const objectsById = new Map(objects.map((object) => [object.id, object]));
+  const eventSequenceKeys = new Set();
   for (const [index, event] of causalEvents.entries()) {
     if (!sceneIds.has(event?.sceneId)) {
       addIssue(issues, "unknown_event_scene", `registries.causalEvents[${index}].sceneId`, "Causal event scene is unknown.");
@@ -272,6 +273,20 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
     }
     if (event?.resultObjectId && !objectIds.has(event.resultObjectId)) {
       addIssue(issues, "unknown_result_object", `registries.causalEvents[${index}].resultObjectId`, "Result object is unknown.");
+    }
+    if (!Number.isInteger(event?.sequence) || event.sequence < 1) {
+      addIssue(issues, "invalid_event_sequence", `registries.causalEvents[${index}].sequence`, "Object event sequence must be a positive integer.");
+    } else {
+      const sequenceKey = `${event.sceneId}:${event.objectId}:${event.sequence}`;
+      if (eventSequenceKeys.has(sequenceKey)) {
+        addIssue(
+          issues,
+          "duplicate_object_event_sequence",
+          `registries.causalEvents[${index}].sequence`,
+          "One object cannot have two causal changes at the same ordered step in one scene.",
+        );
+      }
+      eventSequenceKeys.add(sequenceKey);
     }
     for (const field of ["fromOwnerCharacterId", "toOwnerCharacterId"]) {
       if (event?.[field] && !characterIds.has(event[field])) {
@@ -318,13 +333,6 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
   const pageNumbers = new Set();
   const discoveredPassages = new Set();
   const characterLocations = new Map(characters.map((character) => [character.id, character.initialLocationId]));
-  const objectState = new Map(objects.map((object) => [object.id, {
-    state: object.initialState,
-    quantity: object.initialQuantity,
-    ownerCharacterId: object.initialOwnerCharacterId || null,
-    terminal: TERMINAL_OBJECT_STATES.has(object.initialState),
-    progress: object.initialProgress || 0,
-  }]));
   const causalObjectState = new Map(objects.map((object) => [object.id, {
     state: object.initialState,
     quantity: object.initialQuantity,
@@ -581,7 +589,6 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
       if (snapshot.ownerCharacterId && !characterIds.has(snapshot.ownerCharacterId)) {
         addIssue(issues, "unknown_object_owner", `${snapshotPath}.ownerCharacterId`, "Object owner is not canonical.");
       }
-      const previous = objectState.get(snapshot.objectId);
       const previousCausal = causalObjectState.get(snapshot.objectId);
       const registeredObject = objects.find((object) => object.id === snapshot.objectId);
       if (registeredObject?.progressTotal !== undefined
@@ -596,43 +603,103 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
           `${snapshotPath}.eventId`,
           "Object event must belong to this scene and object.",
         );
-      } else if (event) {
-        const previousOwner = previousCausal?.ownerCharacterId || null;
+      }
+      const sceneObjectEvents = causalEvents
+        .filter((candidate) => candidate.sceneId === scene.id && candidate.objectId === snapshot.objectId)
+        .slice()
+        .sort((left, right) => left.sequence - right.sequence);
+      if (sceneObjectEvents.length) {
+        const finalEvent = sceneObjectEvents.at(-1);
+        if (snapshot.eventId !== finalEvent.id) {
+          addIssue(
+            issues,
+            "invalid_object_event",
+            `${snapshotPath}.eventId`,
+            "Object snapshot must reference the final ordered change for this scene and object.",
+          );
+          if (
+            !snapshot.eventId
+            && previousCausal
+            && (
+              snapshot.state !== previousCausal.state
+              || snapshot.quantity !== previousCausal.quantity
+              || (snapshot.ownerCharacterId || null) !== previousCausal.ownerCharacterId
+            )
+          ) {
+            addIssue(
+              issues,
+              "object_changed_without_event",
+              snapshotPath,
+              `${snapshot.objectId} changes state, owner or quantity without referencing its causal event.`,
+            );
+          }
+        }
+        let projected = { ...previousCausal };
+        for (const orderedEvent of sceneObjectEvents) {
+          const previousOwner = projected?.ownerCharacterId || null;
+          const eventFromOwner = orderedEvent.fromOwnerCharacterId || null;
+          const eventToOwner = orderedEvent.toOwnerCharacterId || null;
+          if (
+            projected?.state !== orderedEvent.fromState
+            || previousOwner !== eventFromOwner
+            || projected?.quantity !== orderedEvent.fromQuantity
+            || (registeredObject?.progressTotal !== undefined
+              && orderedEvent.fromProgress !== projected?.progress)
+          ) {
+            addIssue(
+              issues,
+              "object_event_state_mismatch",
+              snapshotPath,
+              `Event ${orderedEvent.id} does not begin at the preceding canonical object state, owner and quantity.`,
+            );
+          }
+          if (
+            projected?.terminal
+            && (
+              orderedEvent.toState !== projected.state
+              || orderedEvent.toQuantity !== projected.quantity
+              || eventToOwner !== projected.ownerCharacterId
+            )
+          ) {
+            addIssue(
+              issues,
+              "terminal_object_reappears",
+              snapshotPath,
+              `${snapshot.objectId} changes after a terminal state.`,
+            );
+          }
+          projected = {
+            state: orderedEvent.toState,
+            quantity: orderedEvent.toQuantity,
+            ownerCharacterId: eventToOwner,
+            terminal: TERMINAL_OBJECT_STATES.has(orderedEvent.toState),
+            progress: orderedEvent.toProgress ?? projected?.progress ?? 0,
+          };
+        }
+        const eventToOwner = projected.ownerCharacterId || null;
         const snapshotOwner = snapshot.ownerCharacterId || null;
-        const eventFromOwner = event.fromOwnerCharacterId || null;
-        const eventToOwner = event.toOwnerCharacterId || null;
         const outsideFixtureHome = registeredObject?.spatialMode === "location_bound"
           && registeredObject.homeLocationId !== scene.timeline.locationAfterId
-          && event.toState !== "absent"
-          && !TERMINAL_OBJECT_STATES.has(event.toState);
-        const expectedSnapshotState = outsideFixtureHome ? "absent" : event.toState;
-        const expectedSnapshotQuantity = outsideFixtureHome ? 0 : event.toQuantity;
+          && projected.state !== "absent"
+          && !TERMINAL_OBJECT_STATES.has(projected.state);
+        const expectedSnapshotState = outsideFixtureHome ? "absent" : projected.state;
+        const expectedSnapshotQuantity = outsideFixtureHome ? 0 : projected.quantity;
         const expectedSnapshotOwner = outsideFixtureHome ? null : eventToOwner;
         if (
-          previousCausal?.state !== event.fromState
-          || previousOwner !== eventFromOwner
-          || previousCausal?.quantity !== event.fromQuantity
-          || snapshot.state !== expectedSnapshotState
+          snapshot.state !== expectedSnapshotState
           || snapshotOwner !== expectedSnapshotOwner
           || snapshot.quantity !== expectedSnapshotQuantity
           || (registeredObject?.progressTotal !== undefined
-            && (event.fromProgress !== previousCausal?.progress
-              || event.toProgress !== snapshot.progress))
+            && projected.progress !== snapshot.progress)
         ) {
           addIssue(
             issues,
             "object_event_state_mismatch",
             snapshotPath,
-            `Event ${event.id} does not match the previous and resulting object state, owner and quantity.`,
+            `The ordered events ending at ${finalEvent.id} do not match the resulting object state, owner and quantity.`,
           );
         }
-        causalObjectState.set(snapshot.objectId, {
-          state: event.toState,
-          quantity: event.toQuantity,
-          ownerCharacterId: eventToOwner,
-          terminal: TERMINAL_OBJECT_STATES.has(event.toState),
-          progress: event.toProgress ?? previousCausal?.progress ?? 0,
-        });
+        causalObjectState.set(snapshot.objectId, projected);
       } else if (
         previousCausal
         && (
@@ -659,29 +726,6 @@ export function validateNarrativeBookSpec(spec = {}, { verifyDigest = true } = {
           `${snapshot.objectId} changes state, owner or quantity without a causal event.`,
         );
       }
-      if (
-        previousCausal?.terminal
-        && event
-        && (
-          event.toState !== previousCausal.state
-          || event.toQuantity !== previousCausal.quantity
-          || (event.toOwnerCharacterId || null) !== previousCausal.ownerCharacterId
-        )
-      ) {
-        addIssue(
-          issues,
-          "terminal_object_reappears",
-          snapshotPath,
-          `${snapshot.objectId} changes after a terminal state.`,
-        );
-      }
-      objectState.set(snapshot.objectId, {
-        state: snapshot.state,
-        quantity: snapshot.quantity,
-        ownerCharacterId: snapshot.ownerCharacterId || null,
-        terminal: TERMINAL_OBJECT_STATES.has(snapshot.state),
-        progress: snapshot.progress ?? previousCausal?.progress ?? 0,
-      });
     }
   }
 

@@ -334,6 +334,7 @@ function compileObjectLedger({
   const graph = scenario.causalGraph;
   const graphIsAuthoritative = Number(graph?.version) === 2;
   const graphEvents = list(graph?.events).filter((event) => event?.structurallyValid !== false);
+  const graphEventOrder = new Map(graphEvents.map((event, index) => [event, index + 1]));
   const objectByGraphId = new Map(objectEntries.map((object, index) => [
     clean(object?.objectId || graph?.entities?.[index]?.id),
     object,
@@ -425,47 +426,126 @@ function compileObjectLedger({
         Number(event.sceneNumber) === Number(scene.sceneNumber)
         && event.resultEntityId === graphId
       ));
-      if (sourceEvents.length > 1 || resultEvents.length > 1 || (sourceEvents.length && resultEvents.length)) {
+      const orderedObjectEvents = [
+        ...sourceEvents.map((event) => ({ event, producedResult: false })),
+        ...resultEvents.map((event) => ({ event, producedResult: true })),
+      ].sort((left, right) => (
+        (Number(left.event.sequence) || graphEventOrder.get(left.event) || 0)
+        - (Number(right.event.sequence) || graphEventOrder.get(right.event) || 0)
+      ));
+      if (!graphIsAuthoritative && orderedObjectEvents.length > 1) {
         addIssue(
           issues,
           "ambiguous_object_events",
           `scenes[${sceneIndex}].objectStates[${objectIndex}]`,
-          `${object.name} has more than one causal change in the same scene.`,
+          `${object.name} has more than one legacy causal change in the same scene.`,
         );
       }
-      const rawEvent = sourceEvents[0] || resultEvents[0] || null;
-      const isProducedResult = Boolean(resultEvents[0]);
-      const expectedState = isProducedResult
-        ? clean(rawEvent.resultState)
-        : sourceEvents[0] ? clean(rawEvent.toState) : previous.state;
+      const eventSteps = graphIsAuthoritative ? orderedObjectEvents : [];
+      const legacyEventStep = graphIsAuthoritative ? null : orderedObjectEvents[0] || null;
+      let projected = { ...previous };
+      let eventId = null;
+
+      for (const { event: rawEvent, producedResult: isProducedResult } of eventSteps) {
+        const expectedState = isProducedResult
+          ? clean(rawEvent.resultState)
+          : clean(rawEvent.toState);
+        const expectedQuantity = expectedState === "absent"
+          ? 0
+          : isProducedResult
+            ? positiveInteger(rawEvent.resultQuantity, 1)
+            : positiveInteger(rawEvent.toQuantity, 1);
+        const expectedOwner = isProducedResult
+          ? rawEvent.resultOwnerCharacter
+          : rawEvent.toOwnerCharacter;
+        const projectedOwner = resolveObjectOwner(
+          characterIds,
+          expectedOwner,
+          expectedState,
+          issues,
+          `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
+        );
+        const progressTotal = object.progressTotal || 0;
+        const projectedProgress = progressTotal
+          ? Math.max(0, Math.min(progressTotal, Number(rawEvent.progressStep || projected.progress || 0)))
+          : 0;
+        const changed = (
+          expectedState !== projected.state
+          || expectedQuantity !== projected.quantity
+          || projectedOwner !== projected.ownerCharacterId
+          || projectedProgress !== projected.progress
+        );
+        if (projected.terminal && changed) {
+          addIssue(
+            issues,
+            "terminal_object_reappears",
+            `scenes[${sceneIndex}].objectStates[${objectIndex}]`,
+            `${object.name} changes after its terminal state ${projected.state}.`,
+          );
+        }
+
+        eventId = isProducedResult
+          ? identifier(`${rawEvent.id}_result`)
+          : identifier(rawEvent.id);
+        causalEvents.push({
+          id: eventId,
+          sequence: Number(rawEvent.sequence) || graphEventOrder.get(rawEvent) || 1,
+          sceneId: sceneIds.get(scene.sceneNumber),
+          type: isProducedResult ? "introduce" : clean(rawEvent.type),
+          objectId: object.id,
+          fromState: projected.state,
+          toState: expectedState,
+          fromOwnerCharacterId: projected.ownerCharacterId,
+          toOwnerCharacterId: projectedOwner,
+          fromQuantity: projected.quantity,
+          toQuantity: expectedQuantity,
+          resultObjectId: isProducedResult
+            ? null
+            : canonicalObjectIdByGraphId.get(rawEvent.resultEntityId) || null,
+          ...(progressTotal ? {
+            fromProgress: projected.progress,
+            toProgress: projectedProgress,
+          } : {}),
+        });
+        projected = {
+          state: expectedState,
+          quantity: expectedQuantity,
+          ownerCharacterId: projectedOwner,
+          terminal: OBJECT_TERMINAL_STATES.has(expectedState),
+          progress: projectedProgress,
+        };
+      }
+
+      const legacyRawEvent = legacyEventStep?.event || null;
+      const expectedState = graphIsAuthoritative
+        ? projected.state
+        : legacyEventStep?.producedResult
+          ? clean(legacyRawEvent?.resultState)
+          : legacyRawEvent
+            ? clean(legacyRawEvent.toState)
+            : previous.state;
       const canonicalState = graphIsAuthoritative
         ? expectedState
         : clean(supplied?.state || expectedState);
-      const expectedQuantity = isProducedResult
-        ? positiveInteger(rawEvent?.resultQuantity, 1)
-        : rawEvent
-          ? positiveInteger(rawEvent?.toQuantity, 1)
-          : previous.quantity;
       const canonicalQuantity = canonicalState === "absent"
         ? 0
         : graphIsAuthoritative
-          ? expectedQuantity
+          ? projected.quantity
           : positiveInteger(supplied?.quantity, previous.quantity > 0 ? previous.quantity : 1);
-      const expectedOwner = isProducedResult
-        ? rawEvent?.resultOwnerCharacter
-        : rawEvent
-          ? rawEvent?.toOwnerCharacter
-          : previous.ownerCharacterId;
       const ownerCharacterId = resolveObjectOwner(
         characterIds,
-        graphIsAuthoritative ? expectedOwner : supplied?.owner,
+        graphIsAuthoritative ? projected.ownerCharacterId : supplied?.owner,
         canonicalState,
         issues,
         `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
       );
       const progressTotal = object.progressTotal || 0;
       const canonicalProgress = progressTotal
-        ? Math.max(0, Math.min(progressTotal, Number(rawEvent?.progressStep || previous.progress || 0)))
+        ? Math.max(0, Math.min(progressTotal, Number(
+          graphIsAuthoritative
+            ? projected.progress || previous.progress || 0
+            : legacyRawEvent?.progressStep || previous.progress || 0,
+        )))
         : 0;
       if (OBJECT_POSSESSION_STATES.has(canonicalState) && !ownerCharacterId) {
         addIssue(
@@ -489,6 +569,7 @@ function compileObjectLedger({
           `${object.name} changes after its terminal state ${previous.state}.`,
         );
       }
+      const rawEvent = legacyRawEvent;
       if (!graphIsAuthoritative && !rawEvent && changed) {
         addIssue(
           issues,
@@ -506,13 +587,14 @@ function compileObjectLedger({
         );
       }
 
-      let eventId = null;
-      if (rawEvent) {
+      if (!graphIsAuthoritative && rawEvent) {
+        const isProducedResult = Boolean(legacyEventStep?.producedResult);
         eventId = isProducedResult
           ? identifier(`${rawEvent.id}_result`)
           : identifier(rawEvent.id);
         causalEvents.push({
           id: eventId,
+          sequence: Number(rawEvent.sequence) || graphEventOrder.get(rawEvent) || 1,
           sceneId: sceneIds.get(scene.sceneNumber),
           type: isProducedResult ? "introduce" : clean(rawEvent.type),
           objectId: object.id,
@@ -556,6 +638,7 @@ function compileObjectLedger({
     snapshotsByScene.set(scene.sceneNumber, snapshots);
   }
 
+  causalEvents.sort((left, right) => left.sequence - right.sequence);
   return { objects: registries, causalEvents, snapshotsByScene };
 }
 

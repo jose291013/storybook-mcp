@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/automatic-repair-exhausted-state`
-- Production/main checkpoint: PR #139 merged at `dbdc8a6`; bounded one-click scenario repair is on `main`
-- Current focused checkpoint: durable exhausted state after an inconclusive automatic repair
-- Pull request: draft PR #140
+- Current branch: `codex/ordered-object-transitions`
+- Production/main checkpoint: PR #140 merged at `7c40c47`; repeated automatic scenario repairs are stopped durably
+- Current focused checkpoint: ordered same-scene object transitions in the deterministic NarrativeBookSpec compiler
+- Pull request: PR #141, ready for the authorized merge
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -19,26 +19,25 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through PR #139 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: automatic-repair terminal state
+## Current product brick: ordered object continuity
 
-1. An inconclusive automatic repair persists a creator-safe failure summary containing only bounded categories and scene numbers.
-2. The automatic-repair button disappears and is replaced by a localized explanation that the attempt stopped to prevent a loop.
-3. The existing scenario remains visible and editable; the creator may make a targeted manual change or contact Calitiki.
-4. A second identical automatic-repair request is rejected server-side, including from an older browser tab.
-5. The prior scenario is preserved and no customer credit is used.
+1. NarrativeBookSpec compiler version 3 consumes every ordered version-2 causal event instead of rejecting a second change for the same object and scene.
+2. The mechanical validator version 2 simulates the complete intra-scene chain and compares the scene snapshot only with its final event.
+3. State, owner, quantity and progress are carried between atomic steps; an incorrect predecessor or duplicate ordered step remains a deterministic failure.
+4. Location-bound fixture visibility and model-independent per-scene object projection remain authoritative.
+5. The scenario prompt now makes a later same-scene event declare the state produced by its predecessor. No new environment variable or AI repair route is introduced.
 
 ## Verification
 
-- Focused scenario, worker and UI structure tests: passing.
-- Complete `npm test`: 392/392 passing.
+- Focused causal graph, canonical compiler and validator tests: 47/47 passing.
+- Complete `npm test`: 394/394 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #140.
-2. Merge only with fresh user confirmation and while no preview is generating because Render may restart.
-3. Reopen project `ec1dcd70-d131-4c1a-8b41-5bca11e98cfe`; confirm the repair button is gone and the preserved scenario shows a localized no-loop explanation.
-4. Confirm a direct repeated request returns `scenario_auto_repair_exhausted` without a model call.
+1. Merge PR #141 under the user's recorded authorization while no preview is generating; Render will restart.
+2. Create a fresh scenario containing an explicit same-scene transfer such as installed support A -> held -> installed support B.
+3. Confirm the scenario compiles without `ambiguous_object_events`, without an automatic-repair call and with one final illustration state.
 
 ## Protected local state
 

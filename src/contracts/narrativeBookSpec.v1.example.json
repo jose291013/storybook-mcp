@@ -100,6 +100,7 @@
     "causalEvents": [
       {
         "id": "flower_appears",
+        "sequence": 1,
         "sceneId": "scene-2",
         "type": "introduce",
         "objectId": "bond_flower",
@@ -113,6 +114,7 @@
       },
       {
         "id": "flower_acquired",
+        "sequence": 2,
         "sceneId": "scene-3",
         "type": "acquire",
         "objectId": "bond_flower",
@@ -379,13 +381,13 @@
     }
   ],
   "validation": {
-    "compilerVersion": 1,
-    "mechanicalValidatorVersion": 1,
-    "artifactDigest": "29cb7d22626ed5d056575c96e3281e3f131756962de125e0da2ae65364029a09",
+    "compilerVersion": 3,
+    "mechanicalValidatorVersion": 2,
+    "artifactDigest": "e36a1a6892b2b7e160317f4e883edc7aef7e325b2e815ab298375b1d19182d20",
     "semanticAudit": {
       "validatorVersion": 1,
       "policyVersion": 1,
-      "artifactDigest": "29cb7d22626ed5d056575c96e3281e3f131756962de125e0da2ae65364029a09",
+      "artifactDigest": "e36a1a6892b2b7e160317f4e883edc7aef7e325b2e815ab298375b1d19182d20",
       "status": "approved",
       "auditedAt": "2026-07-30T12:05:00.000Z"
     }
