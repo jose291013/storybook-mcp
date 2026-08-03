@@ -11,10 +11,13 @@ test("automatic scenario repair has a dedicated non-commerce endpoint and creato
   ]);
   assert.match(route, /story-scenario\/auto-repair/);
   assert.match(route, /automaticRepair: true/);
+  assert.match(route, /scenario_auto_repair_exhausted/);
   assert.doesNotMatch(route, /reservePreview|capturePreview|credits\/reserve/);
   assert.match(app, /automaticallyRepairStoryScenario/);
+  assert.match(app, /automaticRepairFailureFromProject/);
   assert.match(app, /story-scenario\/auto-repair/);
   assert.match(html, /id="automaticRepairScenarioButton"/);
+  assert.match(html, /id="automaticRepairScenarioFailure"/);
   assert.match(worker, /scenario_auto_repair_unresolved/);
   assert.match(worker, /noTechnicalRetry = true/);
 });

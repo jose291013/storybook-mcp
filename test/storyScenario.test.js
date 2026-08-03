@@ -16,7 +16,10 @@ import {
   validateStoryScenarioPassageLifecycles,
 } from "../src/services/storyScenarioRepairs.js";
 import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
-import { storyScenarioAutomaticRepairAssessment } from "../src/services/storyScenarioAutoRepair.js";
+import {
+  storyScenarioAutomaticRepairAssessment,
+  storyScenarioAutomaticRepairFailureSummary,
+} from "../src/services/storyScenarioAutoRepair.js";
 
 function coherentPortalScenario() {
   return {
@@ -145,6 +148,27 @@ test("automatic scenario repair stays unavailable for a valid scenario", () => {
   assert.deepEqual(storyScenarioAutomaticRepairAssessment(coherentPortalScenario()), {
     available: false,
     reason: "scenario_already_valid",
+  });
+});
+
+test("automatic scenario repair exposes only bounded final failure details", () => {
+  assert.deepEqual(storyScenarioAutomaticRepairFailureSummary({
+    initialIssues: [{ code: "passage_discovery_missing", sceneNumber: 2 }],
+    finalIssues: [
+      { code: "ambiguous_object_events", sceneNumber: 7, explanation: "private" },
+      { code: "ambiguous_object_events", sceneNumber: 9, path: "private" },
+    ],
+  }), {
+    version: 1,
+    reason: "final_checks_failed",
+    categories: ["object"],
+    sceneNumbers: [7, 9],
+  });
+  assert.deepEqual(storyScenarioAutomaticRepairFailureSummary(), {
+    version: 1,
+    reason: "final_checks_failed",
+    categories: ["incomplete"],
+    sceneNumbers: [],
   });
 });
 

@@ -371,7 +371,16 @@ test("failed automatic repair preserves the previous scenario without opening a 
     workerId: "worker-1",
     heartbeatMs: 60000,
     generate: async () => {
-      throw new Error("Targeted repair remained inconsistent.");
+      const error = new Error("Targeted repair remained inconsistent.");
+      error.canonicalDiagnostics = {
+        version: 1,
+        initialIssues: [{ code: "ambiguous_object_events", sceneNumber: 7 }],
+        finalIssues: [
+          { code: "ambiguous_object_events", sceneNumber: 7 },
+          { code: "ambiguous_object_events", sceneNumber: 9 },
+        ],
+      };
+      throw error;
     },
   });
 
@@ -380,6 +389,12 @@ test("failed automatic repair preserves the previous scenario without opening a 
   assert.equal(failed.continuitySnapshot.storyScenario.title, previousScenario.title);
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, false);
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryExhausted, true);
+  assert.deepEqual(failed.continuitySnapshot.storyScenarioGeneration.automaticRepairFailure, {
+    version: 1,
+    reason: "final_checks_failed",
+    categories: ["object"],
+    sceneNumbers: [7, 9],
+  });
   assert.equal(runs.patches.at(-1).errorCode, "scenario_auto_repair_unresolved");
 });
 

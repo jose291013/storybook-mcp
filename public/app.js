@@ -115,6 +115,7 @@ const state = {
   storyScenarioAddedCharacters: [],
   storyScenarioRetryAvailable: false,
   storyScenarioRevalidationAttempted: false,
+  storyScenarioAutomaticRepairFailure: null,
   generationStage: "cover",
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
@@ -163,7 +164,7 @@ const elements = {
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioCreationJourney: document.querySelector("#scenarioCreationJourney"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), automaticRepairScenarioButton: document.querySelector("#automaticRepairScenarioButton"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioCreationJourney: document.querySelector("#scenarioCreationJourney"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), automaticRepairScenarioButton: document.querySelector("#automaticRepairScenarioButton"), automaticRepairScenarioFailure: document.querySelector("#automaticRepairScenarioFailure"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -798,6 +799,36 @@ function scenarioNeedsRevision() {
   return state.storyScenario?.validation?.valid === false;
 }
 
+function automaticRepairFailureFromProject(project) {
+  const generation = project?.continuitySnapshot?.storyScenarioGeneration;
+  if (generation?.status !== "failed"
+    || generation?.request?.automaticRepair !== true
+    || generation?.errorCode !== "scenario_auto_repair_unresolved") return null;
+  return generation.automaticRepairFailure || {
+    version: 1,
+    reason: "final_checks_failed",
+    categories: ["incomplete"],
+    sceneNumbers: [],
+  };
+}
+
+function renderAutomaticRepairFailure() {
+  const failure = state.storyScenarioAutomaticRepairFailure;
+  elements.automaticRepairScenarioFailure.hidden = !failure;
+  if (!failure) {
+    elements.automaticRepairScenarioFailure.innerHTML = "";
+    return;
+  }
+  const category = ["passage", "object", "travel", "order"].includes(failure.categories?.[0])
+    ? failure.categories[0]
+    : "incomplete";
+  const scenes = (failure.sceneNumbers || []).join(", ");
+  const detailKey = scenes
+    ? `automaticRepairScenarioExhausted_${category}`
+    : "automaticRepairScenarioExhausted_incomplete";
+  elements.automaticRepairScenarioFailure.innerHTML = `<strong>${escapeHtml(tr("automaticRepairScenarioExhaustedTitle"))}</strong><p>${escapeHtml(tr(detailKey, { scenes }))}</p><small>${escapeHtml(tr("automaticRepairScenarioExhaustedHelp"))}</small>`;
+}
+
 function setScenarioStatus(message, kind = "") {
   elements.scenarioFeedbackMessage.textContent = message;
   elements.scenarioStatus.classList.toggle("is-loading", kind === "loading");
@@ -812,6 +843,7 @@ function scenarioApiMessage(payload, fallbackKey) {
     scenario_stale: "scenarioStale",
     scenario_clarification_required: "scenarioNeedsAnswers",
     scenario_auto_repair_unresolved: "automaticRepairScenarioError",
+    scenario_auto_repair_exhausted: "automaticRepairScenarioExhaustedTitle",
     scenario_auto_repair_unavailable: "automaticRepairScenarioUnavailable",
     scenario_already_valid: "automaticRepairScenarioUnavailable",
     creator_clarification_required: "automaticRepairScenarioNeedsClarification",
@@ -961,6 +993,7 @@ async function pollStoryScenarioJob(jobId) {
         const payload = await projectResponse.json();
         error.retryAvailable = payload.project?.technicalStoryScenarioRetryAvailable === true;
         error.retryExhausted = payload.project?.technicalStoryScenarioRetryExhausted === true;
+        error.automaticRepairFailure = automaticRepairFailureFromProject(payload.project);
       } catch {
         error.retryAvailable = false;
       }
@@ -1020,7 +1053,10 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   const validation = scenario.validation || { valid: true, categories: [], sceneNumbers: [], categoryScenes: {} };
   const needsRevision = validation.valid === false;
   elements.scenarioDiagnostics.hidden = !needsRevision;
-  elements.automaticRepairScenarioButton.hidden = !needsRevision || clarifications.length > 0;
+  elements.automaticRepairScenarioButton.hidden = !needsRevision
+    || clarifications.length > 0
+    || Boolean(state.storyScenarioAutomaticRepairFailure);
+  renderAutomaticRepairFailure();
   const diagnosticKeys = new Set(["passage", "object", "travel", "order", "incomplete", "progression", "emotion", "privacy", "symbol", "repetition", "age"]);
   elements.scenarioDiagnosticList.innerHTML = needsRevision ? (validation.categories || ["incomplete"]).map((category) => {
     const safeCategory = diagnosticKeys.has(category) ? category : "incomplete";
@@ -1076,15 +1112,22 @@ async function automaticallyRepairStoryScenario() {
     });
     const payload = await response.json();
     if (!response.ok || response.status !== 202 || !payload.jobId) {
-      throw new Error(scenarioApiMessage(payload, "automaticRepairScenarioError"));
+      const error = new Error(scenarioApiMessage(payload, "automaticRepairScenarioError"));
+      error.automaticRepairFailure = payload.failure || state.storyScenarioAutomaticRepairFailure;
+      throw error;
     }
     state.jobId = payload.jobId;
     const project = await pollStoryScenarioJob(payload.jobId);
     const scenario = project.continuitySnapshot?.storyScenario;
     if (!scenario) throw new Error(tr("automaticRepairScenarioError"));
+    state.storyScenarioAutomaticRepairFailure = null;
     renderStoryScenario(scenario);
     setScenarioStatus(tr("automaticRepairScenarioSuccess"));
   } catch (error) {
+    state.storyScenarioAutomaticRepairFailure = error.automaticRepairFailure
+      || state.storyScenarioAutomaticRepairFailure;
+    renderAutomaticRepairFailure();
+    elements.automaticRepairScenarioButton.hidden = Boolean(state.storyScenarioAutomaticRepairFailure);
     setScenarioStatus(error.message || tr("automaticRepairScenarioError"), "error");
   } finally {
     setStoryScenarioBusy(false);
@@ -1135,6 +1178,7 @@ async function requestStoryScenario({ includeEdits = false, retry = false } = {}
     if (!scenario) throw new Error("Scenario result unavailable");
     elements.scenarioFeedback.value = "";
     state.storyScenarioRetryAvailable = false;
+    state.storyScenarioAutomaticRepairFailure = null;
     renderStoryScenario(scenario);
   } catch (error) {
     if (queuedJobId) state.storyScenarioRetryAvailable = error?.retryAvailable === true;
@@ -3033,6 +3077,8 @@ async function submitVisualProof(action) {
 
 async function restoreCompletedPreview() {
   if (!state.customerSession?.authenticated || !state.projectId) return false;
+  state.storyScenarioAutomaticRepairFailure = null;
+  renderAutomaticRepairFailure();
   const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
   if (!response.ok) return false;
   const payload = await response.json();
@@ -3123,8 +3169,16 @@ async function restoreCompletedPreview() {
     } catch (error) {
       state.storyScenarioRetryAvailable = error?.retryAvailable === true;
       if (scenario) {
+        state.storyScenarioAutomaticRepairFailure = error.automaticRepairFailure || null;
+        renderAutomaticRepairFailure();
+        elements.automaticRepairScenarioButton.hidden = Boolean(state.storyScenarioAutomaticRepairFailure);
         state.storyScenarioUpdateFailed = true;
-        setScenarioStatus(tr("scenarioRevisionError"), "error");
+        setScenarioStatus(
+          state.storyScenarioAutomaticRepairFailure
+            ? tr("automaticRepairScenarioExhaustedTitle")
+            : tr("scenarioRevisionError"),
+          "error",
+        );
       } else {
         const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
         elements.scenarioPreparationFeedback.textContent = error?.retryExhausted
@@ -3143,11 +3197,17 @@ async function restoreCompletedPreview() {
   if (project?.status === "scenario_generation_failed"
     || scenarioGeneration?.status === "failed") {
     if (scenario) {
+      state.storyScenarioAutomaticRepairFailure = automaticRepairFailureFromProject(project);
       renderStoryScenario(scenario, { scroll: false });
       state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       state.storyScenarioUpdateFailed = true;
       elements.scenarioFeedback.value = scenarioGeneration?.request?.feedback || "";
-      setScenarioStatus(tr("scenarioRevisionError"), "error");
+      setScenarioStatus(
+        state.storyScenarioAutomaticRepairFailure
+          ? tr("automaticRepairScenarioExhaustedTitle")
+          : tr("scenarioRevisionError"),
+        "error",
+      );
     } else {
       state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       showInitialScenarioPreparation();
