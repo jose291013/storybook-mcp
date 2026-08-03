@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/ordered-object-transitions`
 - Production/main checkpoint: PR #140 merged at `7c40c47`; repeated automatic scenario repairs are stopped durably
 - Current focused checkpoint: ordered same-scene object transitions in the deterministic NarrativeBookSpec compiler
-- Pull request: pending publication
+- Pull request: PR #141, ready for the authorized merge
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,10 +35,9 @@ PR #55 through PR #139 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Run the complete suite and publish the ordered-object-transition PR.
-2. Merge under the user's recorded authorization while no preview is generating; Render will restart.
-3. Create a fresh scenario containing an explicit same-scene transfer such as installed support A -> held -> installed support B.
-4. Confirm the scenario compiles without `ambiguous_object_events`, without an automatic-repair call and with one final illustration state.
+1. Merge PR #141 under the user's recorded authorization while no preview is generating; Render will restart.
+2. Create a fresh scenario containing an explicit same-scene transfer such as installed support A -> held -> installed support B.
+3. Confirm the scenario compiles without `ambiguous_object_events`, without an automatic-repair call and with one final illustration state.
 
 ## Protected local state
 
