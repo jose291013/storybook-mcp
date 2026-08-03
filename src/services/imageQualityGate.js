@@ -44,6 +44,118 @@ const EXPLICIT_SCENE_CONTRADICTION_PATTERN = /(?:\babsent\b|\bmissing\b|\bomitte
 const BLOCKING_SCENE_CONTRADICTION_PATTERN = /(?:wrong (?:subject|target|central action)|required (?:named )?(?:character|person|animal|creature)[^.]{0,100}(?:absent|missing|omitted)|mandatory (?:visible )?cast[^.]{0,100}(?:absent|missing|omitted)|substitut|replac|transform|merge|fuse|hybrid|forbidden[^.]{0,80}(?:present|visible|shown)|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|personne|animal|cr[ée]ature) (?:nomm[ée]e? )?requis(?:e)?[^.]{0,100}(?:absent|manquant|omis)|distribution obligatoire[^.]{0,100}(?:absent|manquant|omis)|remplac|transform|fusion|hybride|interdit[^.]{0,80}(?:pr[ée]sent|visible|montr[ée])|(?:sujeto|objetivo|acci[oó]n principal) incorrect[oa]|(?:personaje|persona|animal|criatura) requerid[oa][^.]{0,100}(?:ausente|falta|omitid[oa])|reparto obligatorio[^.]{0,100}(?:ausente|falta|omitid[oa])|sustitu|reemplaz|transform|fusion|h[ií]brid|prohibid[oa][^.]{0,80}(?:presente|visible|mostrad[oa]))/iu;
 const DUPLICATE_IDENTITY_PATTERN = /(?:required named identity is duplicated|same (?:named )?(?:character|identity|person|child|animal)[^.]{0,100}(?:appears|is shown|is depicted|rendered)[^.]{0,80}(?:twice|two times|two positions|multiple positions|two copies)|(?:character|identity|person|child|animal)[^.]{0,80}(?:appears|is shown|is depicted|rendered) twice|m[êe]me (?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,100}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]|est dessin[ée])[^.]{0,80}(?:deux fois|deux positions|plusieurs positions|deux exemplaires)|(?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,80}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]) deux fois|mis[mt]o (?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,100}(?:aparece|se muestra|se representa)[^.]{0,80}(?:dos veces|dos posiciones|varias posiciones|dos copias)|(?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,80}(?:aparece|se muestra|se representa) dos veces)/iu;
 
+const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
+  "identity_duplicate",
+  "identity_fusion",
+  "identity_substitution",
+  "required_cast_missing",
+  "technical_integrity",
+]);
+const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
+  "identity_duplicate",
+  "identity_fusion",
+  "identity_substitution",
+  "required_cast_missing",
+  "forbidden_element",
+  "object_state",
+  "main_action",
+]);
+
+function normalizedIssueText(issue) {
+  return String(issue || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+export function classifyVisualIssue(issue, { source = "scene" } = {}) {
+  const text = normalizedIssueText(issue);
+  let code = "other_visible_difference";
+  let severity = "advisory";
+  let confidence = "medium";
+
+  if (source === "technical" || /corrupt|blank|noise|band|stripe|decoder|unfinished|broken pixel|extreme blur|extra (?:arm|hand|leg|foot|head|limb|finger)/u.test(text)) {
+    code = "technical_integrity";
+    severity = "blocking";
+    confidence = "high";
+  } else if (DUPLICATE_IDENTITY_PATTERN.test(String(issue || "")) || /identity is duplicated|personnage[^.]{0,50}deux fois|personaje[^.]{0,50}dos veces/u.test(text)) {
+    code = "identity_duplicate";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/identit(?:y|ies).{0,40}(?:fused|merged)|fused.{0,40}(?:identity|body)|hybrid|fusionn|fusionad|anatomy fusion/u.test(text)) {
+    code = "identity_fusion";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/substitut|replac|reemplaz|sustitu|different person|different child|different animal|wrong (?:person|child|animal|character)/u.test(text)) {
+    code = "identity_substitution";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/required (?:named )?(?:character|person|animal|creature).{0,100}(?:missing|absent|omitted)|(?:personnage|personne|animal|creature).{0,60}(?:requis|requise).{0,80}(?:manquant|absent|omis)|(?:personaje|persona|animal|criatura).{0,60}(?:requerid|obligatori).{0,80}(?:falta|ausente|omitid)/u.test(text)) {
+    code = "required_cast_missing";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/forbidden.{0,80}(?:present|visible|shown)|interdit.{0,80}(?:present|visible|montre)|prohibid.{0,80}(?:presente|visible|mostrad)/u.test(text)) {
+    code = "forbidden_element";
+    severity = "blocking";
+    confidence = "high";
+  } else if (OBJECT_STATE_CONTRADICTION_PATTERN.test(String(issue || ""))) {
+    code = "object_state";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/wrong (?:subject|target|central action)|main action subject is wrong|mauvais(?:e)? (?:sujet|cible|action principale)|(?:sujeto|objetivo|accion principal) incorrect/u.test(text)) {
+    code = "main_action";
+    severity = "blocking";
+    confidence = "high";
+  } else if (source === "style") {
+    code = "style_family";
+    severity = "local";
+    confidence = "medium";
+  } else if (source === "identity") {
+    code = "likeness";
+    severity = "advisory";
+    confidence = "medium";
+  } else if (/scale|spatial|position|large|small|echelle|taille|posicion|escala/u.test(text)) {
+    code = "composition_or_scale";
+    severity = "local";
+    confidence = "medium";
+  } else if (objectiveSceneContractIssues([issue]).length) {
+    code = "scene_contract";
+    severity = "local";
+    confidence = "medium";
+  }
+
+  return {
+    code,
+    severity,
+    confidence,
+    automaticRepair: severity === "blocking"
+      && confidence === "high"
+      && AUTOMATIC_TARGETED_REPAIR_CODES.has(code),
+    issue: String(issue || ""),
+  };
+}
+
+export function classifyVisualIssues(issues = [], options = {}) {
+  return (Array.isArray(issues) ? issues : [])
+    .map((issue) => classifyVisualIssue(issue, options))
+    .filter((item) => item.issue);
+}
+
+export function targetedVisualRepairPolicy(issues = [], { source = "scene" } = {}) {
+  const classifications = classifyVisualIssues(issues, { source });
+  const targetCodes = [...new Set(classifications
+    .filter((item) => item.automaticRepair)
+    .map((item) => item.code))];
+  return {
+    version: 2,
+    classifications,
+    targetCodes,
+    automaticRepair: targetCodes.length > 0
+      && classifications.every((item) => item.automaticRepair),
+    verificationCodes: [...new Set([...targetCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES])],
+  };
+}
+
 export function objectiveTechnicalIssues(issues = []) {
   return (Array.isArray(issues) ? issues : [])
     .map(String)
@@ -103,6 +215,12 @@ export function visualQualityDisposition({
   const advisory = (Array.isArray(identityIssues) ? identityIssues : [])
     .map(String)
     .filter(Boolean);
+  const classifications = [
+    ...classifyVisualIssues(technicalApproved ? [] : technicalIssues, { source: "technical" }),
+    ...classifyVisualIssues(sceneIssues, { source: "scene" }),
+    ...classifyVisualIssues(styleIssues, { source: "style" }),
+    ...classifyVisualIssues(identityIssues, { source: "identity" }),
+  ];
   return {
     severity: blocking.length
       ? "blocking"
@@ -114,6 +232,10 @@ export function visualQualityDisposition({
     blocking: [...new Set(blocking)],
     repairable: [...new Set(repairable)],
     advisory: [...new Set(advisory)],
+    classifications,
+    issueCodes: [...new Set(classifications.map((item) => item.code))],
+    automaticRepair: classifications.length > 0
+      && classifications.every((item) => item.automaticRepair),
   };
 }
 
@@ -126,7 +248,13 @@ export function isTransientImageGenerationError(error) {
 }
 
 export class IllustrationQualityError extends Error {
-  constructor({ candidateImageUrl = "", rejectionKind = "technical", issues = [], attemptCount = 0 } = {}) {
+  constructor({
+    candidateImageUrl = "",
+    rejectionKind = "technical",
+    issues = [],
+    attemptCount = 0,
+    repairPolicy = null,
+  } = {}) {
     const normalizedIssues = (Array.isArray(issues) ? issues : []).map(String).filter(Boolean);
     super(`Illustration requires targeted repair after ${attemptCount} attempts: ${normalizedIssues.join(" | ") || "visual quality failure"}`);
     this.name = "IllustrationQualityError";
@@ -135,6 +263,10 @@ export class IllustrationQualityError extends Error {
     this.rejectionKind = rejectionKind;
     this.issues = normalizedIssues;
     this.attemptCount = attemptCount;
+    this.repairPolicy = repairPolicy || targetedVisualRepairPolicy(normalizedIssues, { source: rejectionKind });
+    this.issueCodes = this.repairPolicy.targetCodes.length
+      ? this.repairPolicy.targetCodes
+      : [...new Set(this.repairPolicy.classifications.map((item) => item.code))];
   }
 }
 
@@ -230,10 +362,19 @@ Return only JSON in this exact form: {"approved":true,"issues":[]} or {"approved
   return { approved, issues: approved ? [] : issues };
 }
 
-export async function inspectSceneFidelity({ imagePath, sceneContract, pageLabel = "illustration" }) {
+export async function inspectSceneFidelity({
+  imagePath,
+  sceneContract,
+  pageLabel = "illustration",
+  issueScope = [],
+}) {
   if (!sceneContract) return { approved: true, issues: [] };
   if (process.env.IMAGE_SCENE_QA_ENABLED === "false") return { approved: true, issues: [] };
   const source = await sharp(await fs.readFile(imagePath)).rotate().resize(512, 512, { fit: "inside" }).jpeg({ quality: 72 }).toBuffer();
+  const scopedCodes = (Array.isArray(issueScope) ? issueScope : []).map(String).filter(Boolean);
+  const scopedInstruction = scopedCodes.length
+    ? `\nTARGETED REPAIR VERIFICATION:\n- Recheck only these original defect codes: ${scopedCodes.join(", ")}.\n- Also report a newly introduced duplicated, fused, substituted or missing required identity.\n- Do not reopen composition, style, likeness, scale, gesture nuance or another scene interpretation that was not one of the original target codes.\n- If the targeted defect is corrected and no severe identity guardrail was introduced, approve.`
+    : "";
   const instruction = `You are checking whether one children's-book ${pageLabel} depicts its authoritative structured scene contract.
 Judge only objective, clearly visible contradictions:
 - the main action has the wrong subject or wrong target;
@@ -247,6 +388,7 @@ Judge only objective, clearly visible contradictions:
 Tiny jewelry and small personal accessories may be partly hidden by pose, hair, framing or clothing. A missing tiny necklace, pendant, bracelet, earring or charm alone is advisory and MUST NOT cause rejection. Object duplication or a held-versus-worn contradiction remains rejectable.
 For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused." When the same named identity is rendered more than once without an explicit reflection, portrait, memory, vision or montage contract, begin the issue with "Required named identity is duplicated."
 Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.
+${scopedInstruction}
 SCENE CONTRACT JSON:
 ${JSON.stringify(sceneContract)}
 Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short objective contradiction"]}.`;
@@ -260,7 +402,11 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
   });
   const result = parseJson(extractText(response));
   const reportedIssues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 4) : [];
-  const issues = objectiveSceneContractIssues(reportedIssues);
+  const objectiveIssues = objectiveSceneContractIssues(reportedIssues);
+  const allowedCodes = new Set([...scopedCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES]);
+  const issues = scopedCodes.length
+    ? objectiveIssues.filter((issue) => allowedCodes.has(classifyVisualIssue(issue, { source: "scene" }).code))
+    : objectiveIssues;
   // This check owns action, cast, quantity and spatial contradictions only.
   // Models sometimes report wardrobe or logo differences despite the explicit
   // instruction above; those belong to continuity prompting, not scene QA.
@@ -321,6 +467,8 @@ export async function generateQualityCheckedImage({
   onCandidate = null,
   sceneFidelityContract = null,
   retryRepairableFindings = true,
+  qualityReviewScope = [],
+  targetedRepairAvailable = false,
   ...generationOptions
 }) {
   let previousIssues = [];
@@ -370,11 +518,19 @@ export async function generateQualityCheckedImage({
         }
       };
       const identityReferences = generationOptions.referenceImages?.filter((reference) => reference?.kind === "identity") || [];
+      const scopedRepairVerification = Array.isArray(qualityReviewScope) && qualityReviewScope.length > 0;
       const [styleInspection, sceneInspection, identityInspection] = inspection.approved
         ? await Promise.all([
-          advisoryCheck(inspectStyleConsistency({ imagePath: outputImagePath(imageUrl), styleReference, pageLabel })),
-          advisoryCheck(inspectSceneFidelity({ imagePath: outputImagePath(imageUrl), sceneContract: sceneFidelityContract, pageLabel })),
-          advisoryCheck(inspectIdentityLikeness({
+          scopedRepairVerification
+            ? Promise.resolve({ approved: true, issues: [] })
+            : advisoryCheck(inspectStyleConsistency({ imagePath: outputImagePath(imageUrl), styleReference, pageLabel })),
+          advisoryCheck(inspectSceneFidelity({
+            imagePath: outputImagePath(imageUrl),
+            sceneContract: sceneFidelityContract,
+            pageLabel,
+            issueScope: qualityReviewScope,
+          })),
+          scopedRepairVerification ? Promise.resolve({ approved: true, issues: [] }) : advisoryCheck(inspectIdentityLikeness({
             imagePath: outputImagePath(imageUrl),
             identityReferences,
             renderingMode: generationOptions.renderingMode,
@@ -405,6 +561,9 @@ export async function generateQualityCheckedImage({
         styleIssues: styleInspection.issues,
         identityIssues: identityInspection.issues,
       });
+      const automaticRepairPolicy = targetedVisualRepairPolicy(disposition.blocking, {
+        source: inspection.approved ? "scene" : "technical",
+      });
       if (
         inspection.approved
         && disposition.blocking.length === 0
@@ -433,7 +592,6 @@ export async function generateQualityCheckedImage({
         inspection.approved
         && disposition.blocking.length === 0
         && disposition.repairable.length > 0
-        && !retryRepairableFindings
       ) {
         await onCandidate?.({
           imageUrl,
@@ -445,7 +603,7 @@ export async function generateQualityCheckedImage({
           warning: true,
         });
         onAttempt?.({
-          phase: "approved-with-budget-warning",
+          phase: retryRepairableFindings ? "approved-with-local-warning" : "approved-with-budget-warning",
           attempt,
           maximumAttempts: attemptLimit,
           pageLabel,
@@ -479,15 +637,32 @@ export async function generateQualityCheckedImage({
       previousRejectionKind = inspection.approved
         ? (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
         : "technical";
+      const quarantineImmediately = inspection.approved
+        && targetedRepairAvailable
+        && automaticRepairPolicy.automaticRepair
+        && attempt < attemptLimit;
       await onCandidate?.({
         imageUrl,
         attempt,
-        maximumAttempts: attemptLimit,
-        status: attempt === attemptLimit ? "quarantined" : "rejected",
+        maximumAttempts: quarantineImmediately ? attempt : attemptLimit,
+        status: attempt === attemptLimit || quarantineImmediately ? "quarantined" : "rejected",
         rejectionKind: previousRejectionKind,
         issues: previousIssues,
+        issueCodes: disposition.issueCodes,
+        repairPolicy: automaticRepairPolicy,
       });
-      onAttempt?.({ phase: "rejected", attempt, maximumAttempts: attemptLimit, pageLabel, issues: previousIssues });
+      onAttempt?.({
+        phase: quarantineImmediately ? "quarantined-for-targeted-repair" : "rejected",
+        attempt,
+        maximumAttempts: quarantineImmediately ? attempt : attemptLimit,
+        pageLabel,
+        issues: previousIssues,
+        issueCodes: disposition.issueCodes,
+      });
+      if (quarantineImmediately) {
+        attemptLimit = attempt;
+        break;
+      }
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts: attemptLimit, pageLabel, error: String(error?.message || error) });
       if (isImageSafetyRejection(error) && !omitReferenceImages && generationOptions.referenceImages?.length) {
@@ -527,5 +702,6 @@ export async function generateQualityCheckedImage({
     rejectionKind: previousRejectionKind,
     issues: reportedFailureIssues,
     attemptCount: attemptLimit,
+    repairPolicy: targetedVisualRepairPolicy(reportedFailureIssues, { source: previousRejectionKind }),
   });
 }

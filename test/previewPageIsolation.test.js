@@ -12,12 +12,16 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(qualityGate, /class IllustrationQualityError extends Error/);
   assert.match(qualityGate, /candidateImageUrl/);
   assert.match(qualityGate, /onCandidate/);
-  assert.match(qualityGate, /status: attempt === attemptLimit \? "quarantined" : "rejected"/);
+  assert.match(qualityGate, /status: attempt === attemptLimit \|\| quarantineImmediately \? "quarantined" : "rejected"/);
+  assert.match(qualityGate, /quarantined-for-targeted-repair/);
 
   assert.match(preview, /createImageCandidateRecorder/);
   assert.match(preview, /page quarantined for repair/);
   assert.match(preview, /qualityStatus = "repair_pending"/);
   assert.match(preview, /maximumAttempts: 1/);
+  assert.match(preview, /kind: "repair_source"/);
+  assert.match(preview, /qualityReviewScope: repairPolicy\.targetCodes/);
+  assert.match(preview, /FINAL TARGETED IMAGE EDIT \(policy V2\)/);
   assert.match(preview, /accepted_after_repair/);
   assert.match(preview, /status: "preview_quality_review"/);
   assert.match(preview, /completed with pages awaiting quality review/);

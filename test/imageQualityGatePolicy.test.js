@@ -5,13 +5,19 @@ import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import {
   blockingSceneContractIssues,
   blockingStyleContinuityIssues,
+  classifyVisualIssue,
   IllustrationQualityError,
   isImageSafetyRejection,
   isTransientImageGenerationError,
   objectiveSceneContractIssues,
   objectiveTechnicalIssues,
+  targetedVisualRepairPolicy,
 } from "../src/services/imageQualityGate.js";
-import { sanitizeBrandSensitiveText } from "../src/services/imageRunner.js";
+import {
+  buildFinalPrompt,
+  prioritizeVisualReferences,
+  sanitizeBrandSensitiveText,
+} from "../src/services/imageRunner.js";
 
 test("image QA ignores artistic preferences and retains objective file defects", () => {
   assert.deepEqual(objectiveTechnicalIssues(["photo-realistic style, not an illustration"]), []);
@@ -115,6 +121,57 @@ test("missing required cast and fused identities remain blocking after the final
   ]), []);
 });
 
+test("visual QA policy assigns stable codes and reserves automatic repair for high-confidence defects", () => {
+  assert.deepEqual(
+    classifyVisualIssue("Required named identity is duplicated. Noa appears twice."),
+    {
+      code: "identity_duplicate",
+      severity: "blocking",
+      confidence: "high",
+      automaticRepair: true,
+      issue: "Required named identity is duplicated. Noa appears twice.",
+    },
+  );
+  assert.equal(
+    classifyVisualIssue("Required named character family member 3 is missing.").code,
+    "required_cast_missing",
+  );
+  assert.deepEqual(
+    classifyVisualIssue("The giant ferns look smaller than preferred."),
+    {
+      code: "composition_or_scale",
+      severity: "local",
+      confidence: "medium",
+      automaticRepair: false,
+      issue: "The giant ferns look smaller than preferred.",
+    },
+  );
+  const policy = targetedVisualRepairPolicy([
+    "Required named identity is duplicated.",
+    "Required named character family member 3 is missing.",
+  ]);
+  assert.equal(policy.version, 2);
+  assert.equal(policy.automaticRepair, true);
+  assert.deepEqual(policy.targetCodes, ["identity_duplicate", "required_cast_missing"]);
+  assert.ok(policy.verificationCodes.includes("identity_fusion"));
+});
+
+test("a targeted repair edits the preserved candidate before continuity and identity references", () => {
+  const references = prioritizeVisualReferences([
+    { kind: "identity", label: "hero" },
+    { kind: "continuity", label: "cover" },
+    { kind: "repair_source", label: "page candidate" },
+  ]);
+  assert.deepEqual(references.map((item) => item.kind), ["repair_source", "continuity", "identity"]);
+  const prompt = buildFinalPrompt({
+    prompt: "Remove only the duplicated hero.",
+    referenceImages: references,
+  });
+  assert.match(prompt, /TARGET IMAGE TO EDIT/);
+  assert.match(prompt, /smallest local correction/);
+  assert.match(prompt, /do not redesign or regenerate the scene/);
+});
+
 test("a categorical style mismatch remains blocking after the final image attempt", () => {
   assert.deepEqual(blockingStyleContinuityIssues([
     "Image 1 is soft_painterly while Image 2 is realistic_dimensional.",
@@ -135,7 +192,18 @@ test("an unresolved page-quality decision carries its preserved candidate into t
   assert.equal(error.candidateImageUrl, "/outputs/page-7-attempt2.png");
   assert.equal(error.rejectionKind, "scene");
   assert.equal(error.attemptCount, 2);
+  assert.deepEqual(error.issueCodes, ["required_cast_missing"]);
+  assert.equal(error.repairPolicy.automaticRepair, true);
   assert.deepEqual(error.issues, ["Required named character Maïté is missing."]);
+});
+
+test("objective identity defects skip a second full regeneration and enter targeted repair", async () => {
+  const qualityGate = await fs.readFile("src/services/imageQualityGate.js", "utf8");
+  assert.match(qualityGate, /quarantined-for-targeted-repair/);
+  assert.match(qualityGate, /automaticRepairPolicy\.automaticRepair/);
+  assert.match(qualityGate, /attemptLimit = attempt/);
+  assert.match(qualityGate, /TARGETED REPAIR VERIFICATION/);
+  assert.match(qualityGate, /issueScope: qualityReviewScope/);
 });
 
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {

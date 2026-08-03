@@ -4,6 +4,7 @@ import {
   generateQualityCheckedImage,
   IllustrationQualityError,
   outputImagePath,
+  targetedVisualRepairPolicy,
 } from "../services/imageQualityGate.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
@@ -131,6 +132,8 @@ function createImageCandidateRecorder({
     rejectionKind = "",
     issues = [],
     warning = false,
+    issueCodes = [],
+    repairPolicy = null,
   }) => {
     const persisted = await persistPreviewAsset({ projectId, assetUrl: imageUrl });
     assetCache.set(imageUrl, persisted);
@@ -151,7 +154,17 @@ function createImageCandidateRecorder({
       previewUrl: persisted.previewUrl,
       rejectionKind,
       issues,
-      metadata: { warning },
+      metadata: {
+        warning,
+        issueCodes: Array.isArray(issueCodes) ? issueCodes : [],
+        classifications: (repairPolicy?.classifications || []).map(({ code, severity, confidence }) => ({
+          code,
+          severity,
+          confidence,
+        })),
+        repairPolicyVersion: repairPolicy?.version || null,
+        automaticRepair: repairPolicy?.automaticRepair === true,
+      },
     });
     await generationRunStore.updateStep(step.id, {
       status: status === "accepted"
@@ -160,7 +173,19 @@ function createImageCandidateRecorder({
           ? "repair_pending"
           : "running",
       maxAttempts: maximumAttempts,
-      diagnostics: { rejectionKind, issues, warning },
+      diagnostics: {
+        rejectionKind,
+        issues,
+        warning,
+        issueCodes: Array.isArray(issueCodes) ? issueCodes : [],
+        classifications: (repairPolicy?.classifications || []).map(({ code, severity, confidence }) => ({
+          code,
+          severity,
+          confidence,
+        })),
+        repairPolicyVersion: repairPolicy?.version || null,
+        automaticRepair: repairPolicy?.automaticRepair === true,
+      },
       ...(status === "accepted" ? { completedAt: new Date().toISOString() } : {}),
     });
   };
@@ -1342,6 +1367,7 @@ router.post("/preview", async (req, res) => {
         let qualityStatus = "accepted";
         let qualityIssues = [];
         let qualityKind = "";
+        let qualityRepairPolicy = null;
 
         if (["text", "opening_text", "closing_text"].includes(page.page_type)) {
           text = draftTextByPage.get(page.page_number) || "";
@@ -1395,6 +1421,7 @@ router.post("/preview", async (req, res) => {
               likenessGoal: answers.likeness_goal,
               model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
               retryRepairableFindings: economicDecision.optionalVisualRetry,
+              targetedRepairAvailable: true,
             });
           } catch (error) {
             if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;
@@ -1402,13 +1429,17 @@ router.post("/preview", async (req, res) => {
             qualityStatus = "repair_pending";
             qualityIssues = error.issues;
             qualityKind = error.rejectionKind;
+            qualityRepairPolicy = error.repairPolicy
+              || targetedVisualRepairPolicy(error.issues, { source: error.rejectionKind });
             console.warn("[preview] page quarantined for repair", JSON.stringify({
               jobId: job.id,
               projectId,
               pageNumber: page.page_number,
               rejectionKind: qualityKind,
-              issues: qualityIssues,
+              issueCodes: qualityRepairPolicy.targetCodes,
+              automaticRepair: qualityRepairPolicy.automaticRepair,
             }));
+            qualityStatus = qualityRepairPolicy.automaticRepair ? "repair_pending" : "review_required";
           }
           const persistedImage = candidateAssetCache.get(localImageUrl)
             || await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
@@ -1442,6 +1473,7 @@ router.post("/preview", async (req, res) => {
             qualityStatus,
             qualityIssues,
             qualityKind,
+            qualityRepairPolicy,
           } : {}),
         });
         draftPages.sort((left, right) => Number(left.page_number) - Number(right.page_number));
@@ -1484,9 +1516,21 @@ router.post("/preview", async (req, res) => {
           currentStep: `draft:repair:page:${page.page_number}`,
         });
         const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
+        const repairPolicy = pendingPage.qualityRepairPolicy
+          || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
+            source: pendingPage.qualityKind || "scene",
+          });
+        const repairReferences = [
+          ...(pendingPage.imageStorageKey ? [{
+            kind: "repair_source",
+            storageKey: pendingPage.imageStorageKey,
+            label: "preserved page candidate; edit only the classified defect",
+          }] : []),
+          ...(sceneContinuity.referenceImages || []),
+        ];
         try {
           const repairedLocalImageUrl = await generateQualityCheckedImage({
-            prompt: `${visualPrompt}\n\nFINAL TARGETED REPAIR: the previous candidates were quarantined because ${(pendingPage.qualityIssues || []).join("; ")}. Correct only these objective contradictions while preserving the approved cover medium and every other scene requirement.`,
+            prompt: `${visualPrompt}\n\nFINAL TARGETED IMAGE EDIT (policy V2): edit the preserved candidate instead of redesigning it. Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium pixel-for-pixel wherever possible. Do not introduce any other narrative change.`,
             safetyFallbackPrompt: sceneContractImagePrompt({
               contract: page.scene_contract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
@@ -1507,11 +1551,13 @@ router.post("/preview", async (req, res) => {
               assetCache: candidateAssetCache,
             }),
             ...sceneContinuity,
+            referenceImages: repairReferences,
             size: "1024x1024",
             quality: "low",
             renderingMode: answers.rendering_mode,
             likenessGoal: answers.likeness_goal,
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+            qualityReviewScope: repairPolicy.targetCodes,
           });
           const persistedImage = candidateAssetCache.get(repairedLocalImageUrl)
             || await persistPreviewAsset({ projectId, assetUrl: repairedLocalImageUrl });
@@ -1536,6 +1582,10 @@ router.post("/preview", async (req, res) => {
             qualityStatus: "accepted_after_repair",
             qualityIssues: [],
             qualityKind: "",
+            qualityRepairPolicy: {
+              ...repairPolicy,
+              outcome: "accepted_after_targeted_edit",
+            },
             repairedAt: new Date().toISOString(),
           };
           await generationRunStore.updateStep(repairStep.id, {
@@ -1557,6 +1607,8 @@ router.post("/preview", async (req, res) => {
             jobId: job.id,
             projectId,
             pageNumber: page.page_number,
+            issueCodes: repairPolicy.targetCodes,
+            repairMode: "targeted_image_edit",
           }));
         } catch (error) {
           const qualityError = error instanceof IllustrationQualityError;
@@ -1569,6 +1621,11 @@ router.post("/preview", async (req, res) => {
             qualityStatus: "review_required",
             qualityIssues: issues,
             qualityKind: qualityError ? error.rejectionKind : "provider",
+            qualityRepairPolicy: {
+              ...repairPolicy,
+              outcome: "creator_review_required",
+              remainingIssueCodes: qualityError ? error.issueCodes : [],
+            },
           };
           unresolvedQualityPages.push({
             pageNumber: Number(page.page_number),
@@ -1592,7 +1649,7 @@ router.post("/preview", async (req, res) => {
             projectId,
             pageNumber: page.page_number,
             kind: qualityError ? error.rejectionKind : "provider",
-            issues,
+            issueCodes: qualityError ? error.issueCodes : repairPolicy.targetCodes,
           }));
         }
       }
