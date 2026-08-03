@@ -328,6 +328,7 @@ function compileObjectLedger({
   objectIds,
   characterIds,
   sceneIds,
+  locationIds,
   issues,
 }) {
   const graph = scenario.causalGraph;
@@ -338,10 +339,14 @@ function compileObjectLedger({
     object,
   ]));
   const canonicalObjectIdByGraphId = new Map();
+  const sourceObjectByCanonicalId = new Map();
   for (const [index, entity] of list(graph?.entities).entries()) {
     const object = objectByGraphId.get(entity.id) || objectEntries[index];
     const canonicalId = objectIds.get(key(objectIdentity(object)));
-    if (canonicalId) canonicalObjectIdByGraphId.set(entity.id, canonicalId);
+    if (canonicalId) {
+      canonicalObjectIdByGraphId.set(entity.id, canonicalId);
+      sourceObjectByCanonicalId.set(canonicalId, object);
+    }
   }
 
   const registries = objectEntries.map((object, index) => {
@@ -359,6 +364,10 @@ function compileObjectLedger({
     const initialQuantity = initialState === "absent"
       ? 0
       : positiveInteger(graphEntity.initialQuantity, 1);
+    const progressTotal = Math.max(0, Math.min(20, Number(graphEntity.progressTotal || object.progressTotal || 0)));
+    const initialProgress = progressTotal
+      ? Math.max(0, Math.min(progressTotal, Number(graphEntity.initialProgress || 0)))
+      : 0;
     return {
       id: objectIds.get(key(objectIdentity(object))),
       name: clean(object.name),
@@ -366,6 +375,17 @@ function compileObjectLedger({
       initialQuantity,
       initialOwnerCharacterId: ownerCharacterId,
       lifecycleKind: clean(object?.lifecycle?.kind || "persistent"),
+      spatialMode: object?.spatialMode === "location_bound" ? "location_bound" : "portable",
+      homeLocationId: object?.spatialMode === "location_bound"
+        ? resolveByName(
+          locationIds,
+          object.homeLocation,
+          issues,
+          `registries.objects[${index}].homeLocationId`,
+          "location",
+        )
+        : null,
+      ...(progressTotal ? { progressTotal, initialProgress } : {}),
     };
   });
 
@@ -374,6 +394,7 @@ function compileObjectLedger({
     quantity: object.initialQuantity,
     ownerCharacterId: object.initialOwnerCharacterId,
     terminal: OBJECT_TERMINAL_STATES.has(object.initialState),
+    progress: object.initialProgress || 0,
   }]));
   const causalEvents = [];
   const snapshotsByScene = new Map();
@@ -417,7 +438,7 @@ function compileObjectLedger({
       const expectedState = isProducedResult
         ? clean(rawEvent.resultState)
         : sourceEvents[0] ? clean(rawEvent.toState) : previous.state;
-      const state = graphIsAuthoritative
+      const canonicalState = graphIsAuthoritative
         ? expectedState
         : clean(supplied?.state || expectedState);
       const expectedQuantity = isProducedResult
@@ -425,7 +446,7 @@ function compileObjectLedger({
         : rawEvent
           ? positiveInteger(rawEvent?.toQuantity, 1)
           : previous.quantity;
-      const quantity = state === "absent"
+      const canonicalQuantity = canonicalState === "absent"
         ? 0
         : graphIsAuthoritative
           ? expectedQuantity
@@ -438,22 +459,27 @@ function compileObjectLedger({
       const ownerCharacterId = resolveObjectOwner(
         characterIds,
         graphIsAuthoritative ? expectedOwner : supplied?.owner,
-        state,
+        canonicalState,
         issues,
         `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
       );
-      if (OBJECT_POSSESSION_STATES.has(state) && !ownerCharacterId) {
+      const progressTotal = object.progressTotal || 0;
+      const canonicalProgress = progressTotal
+        ? Math.max(0, Math.min(progressTotal, Number(rawEvent?.progressStep || previous.progress || 0)))
+        : 0;
+      if (OBJECT_POSSESSION_STATES.has(canonicalState) && !ownerCharacterId) {
         addIssue(
           issues,
           "possessed_object_owner_required",
           `scenes[${sceneIndex}].objectStates[${objectIndex}].ownerCharacterId`,
-          `${object.name} cannot be ${state} without one canonical owner.`,
+          `${object.name} cannot be ${canonicalState} without one canonical owner.`,
         );
       }
       const changed = (
-        state !== previous.state
-        || quantity !== previous.quantity
+        canonicalState !== previous.state
+        || canonicalQuantity !== previous.quantity
         || ownerCharacterId !== previous.ownerCharacterId
+        || canonicalProgress !== previous.progress
       );
       if (previous.terminal && changed) {
         addIssue(
@@ -471,7 +497,7 @@ function compileObjectLedger({
           `${object.name} changes state, owner or quantity without an approved causal event.`,
         );
       }
-      if (!graphIsAuthoritative && rawEvent && state !== expectedState) {
+      if (!graphIsAuthoritative && rawEvent && canonicalState !== expectedState) {
         addIssue(
           issues,
           "object_event_result_mismatch",
@@ -491,29 +517,40 @@ function compileObjectLedger({
           type: isProducedResult ? "introduce" : clean(rawEvent.type),
           objectId: object.id,
           fromState: previous.state,
-          toState: state,
+          toState: canonicalState,
           fromOwnerCharacterId: previous.ownerCharacterId,
           toOwnerCharacterId: ownerCharacterId,
           fromQuantity: previous.quantity,
-          toQuantity: quantity,
+          toQuantity: canonicalQuantity,
           resultObjectId: isProducedResult
             ? null
             : canonicalObjectIdByGraphId.get(rawEvent.resultEntityId) || null,
+          ...(progressTotal ? {
+            fromProgress: previous.progress,
+            toProgress: canonicalProgress,
+          } : {}),
         });
       }
+      const sourceObject = sourceObjectByCanonicalId.get(object.id) || {};
+      const locationBoundElsewhere = sourceObject.spatialMode === "location_bound"
+        && key(scene.locationAfter) !== key(sourceObject.homeLocation)
+        && canonicalState !== "absent"
+        && !OBJECT_TERMINAL_STATES.has(canonicalState);
       const snapshot = {
         objectId: object.id,
-        state,
-        quantity,
-        ownerCharacterId,
+        state: locationBoundElsewhere ? "absent" : canonicalState,
+        quantity: locationBoundElsewhere ? 0 : canonicalQuantity,
+        ownerCharacterId: locationBoundElsewhere ? null : ownerCharacterId,
         eventId,
+        ...(progressTotal ? { progress: canonicalProgress } : {}),
       };
       snapshots.push(snapshot);
       stateByObject.set(object.id, {
-        state,
-        quantity,
+        state: canonicalState,
+        quantity: canonicalQuantity,
         ownerCharacterId,
-        terminal: OBJECT_TERMINAL_STATES.has(state),
+        terminal: OBJECT_TERMINAL_STATES.has(canonicalState),
+        progress: canonicalProgress,
       });
     }
     snapshotsByScene.set(scene.sceneNumber, snapshots);
@@ -595,6 +632,9 @@ export function compileNarrativeBookSpec({
     if (name && !locationNames.some((candidate) => key(candidate) === key(name))) locationNames.push(name);
   }
   for (const character of list(scenario?.characters)) addLocation(character.initialLocation);
+  for (const object of list(scenario?.objects)) {
+    if (object?.spatialMode === "location_bound") addLocation(object.homeLocation);
+  }
   for (const scene of scenes) {
     addLocation(scene.locationBefore);
     addLocation(scene.locationAfter);
@@ -696,6 +736,7 @@ export function compileNarrativeBookSpec({
     objectIds,
     characterIds,
     sceneIds,
+    locationIds,
     issues,
   });
 

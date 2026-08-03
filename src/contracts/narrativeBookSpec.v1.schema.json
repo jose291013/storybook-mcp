@@ -352,6 +352,24 @@
         "lifecycleKind": {
           "type": "string",
           "enum": ["persistent", "discoverable", "transformable", "consumable"]
+        },
+        "spatialMode": {
+          "type": "string",
+          "enum": ["portable", "location_bound"]
+        },
+        "homeLocationId": {
+          "type": ["string", "null"],
+          "maxLength": 120
+        },
+        "progressTotal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "initialProgress": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
         }
       }
     },
@@ -429,6 +447,16 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 99
+        },
+        "fromProgress": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "toProgress": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
         },
         "resultObjectId": {
           "type": ["string", "null"],
@@ -681,6 +709,11 @@
         "eventId": {
           "type": ["string", "null"],
           "maxLength": 120
+        },
+        "progress": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
         }
       }
     },

@@ -37,6 +37,8 @@ CAUSAL RULES
 - A guide may instead be present as thought, memory or voice. Such a guide is not physically visible and must never be included among travelers.
 - The child remains the active hero. Guides advise but do not solve the climax.
 - Track every recurring wearable, carried or plot-critical object, but declare its physical state only in causal_graph. Do not return a second lifecycle or per-scene object ledger. Calitiki deterministically expands the graph into exactly one state per object and scene.
+- Classify every tracked entity spatially. A portable object moves through its causal owner/state. A location_bound fixture belongs to one exact home_location and is visible only in scenes whose focal location is that place; examples are a lighthouse, workshop table, fixed bridge or wall mechanism. Never retrieve, carry or globally display a location-bound fixture. A fixture that already exists at its home starts visible; use an introduce event only when the story genuinely creates or reveals it later.
+- When an object accumulates several meaningful stages without changing physical identity (for example a lamp charged twice, a map completed in three clues or a gauge filled progressively), declare progress_total and advance progress_step monotonically on its causal use events. Do not simulate progress by repeatedly retrieving and reinstalling the same object unless the visible action physically does so.
 - Build causal_graph before writing the visible scenes. Give every recurring or plot-critical object one stable entity_id, even when two objects have similar names. Every physical change is one ordered causal event with a stable id, affected entity, resulting state, resulting character owner when possessed, quantity and optional distinct result entity. Do not repeat the previous state: Calitiki derives it from the ordered ledger.
 - causal_graph is the authority for discoverable, consumable and transformable objects. A result entity starts absent, cannot appear before its producing event and has exactly one producer. A source entity has at most one terminal outcome. Transformations form an acyclic chain: for example source -> intermediate result -> final result, never source -> two competing results or a result introduced before its source changes.
 - causal_graph.version 2 is the only mechanical source of truth. Calitiki derives legacy lifecycle metadata and every per-scene object state from it. An object is absent before introduce/acquire, planting changes the original object to planted, consumption or destruction is terminal, and transformation replaces the source with its declared resulting object. A planted, consumed, transformed, destroyed or used-up object never returns to a hand unless a later explicit retrieve event makes that physically possible.
@@ -73,7 +75,10 @@ OUTPUT
     "objects": [{
       "entity_id":"stable_unique_snake_case_id",
       "name":"stable object name",
-      "track_every_scene":true
+      "track_every_scene":true,
+      "spatial_mode":"portable | location_bound",
+      "home_location":"exact scene location for location_bound, otherwise empty",
+      "progress_total":0
     }],
     "causal_graph": {
       "version": 2,
@@ -82,7 +87,11 @@ OUTPUT
         "label": "exact object name",
         "initial_state": "one allowed object state",
         "initial_owner_character": "exact canonical character name only when initially worn, held or carried; otherwise empty",
-        "initial_quantity": 0
+        "initial_quantity": 0,
+        "spatial_mode":"portable | location_bound",
+        "home_location":"exact home location for a location_bound fixture, otherwise empty",
+        "progress_total":0,
+        "initial_progress":0
       }],
       "events": [{
         "id": "stable_unique_event_id",
@@ -95,7 +104,8 @@ OUTPUT
         "result_entity_id": "distinct entity created by a transformation or empty",
         "result_state": "initial produced state or visible",
         "result_owner_character": "exact canonical character name only when the result is possessed; otherwise empty",
-        "result_quantity": 1
+        "result_quantity": 1,
+        "progress_step":0
       }]
     },
     "scenes": [{
@@ -132,6 +142,7 @@ MANDATORY
 - Use phase start for a character shown before leaving, phase end for a character shown after arriving, and throughout only for a character who stays at the same focal location for the whole scene.
 - Nonphysical thoughts, memories and voices are narratively present but not physically visible.
 - Do not return objects[].owner, objects[].initial_state, objects[].lifecycle or scenes[].object_states. Those duplicated ledgers are forbidden in a version-2 draft and are generated deterministically from causal_graph.
+- Every object must declare spatial_mode. A location_bound object must copy one exact location_before/location_after value into home_location. It is not transported with the cast and Calitiki derives its scene visibility from that location. progress_total is zero for ordinary objects; otherwise progress_step starts at zero, never decreases, never exceeds progress_total and changes only on a causal event that advances the story.
 - Return causal_graph.version 2. Every graph entity id must match exactly one objects[].entity_id. `initial_quantity` is 0 only for `absent`, otherwise positive. An initial or resulting `worn`, `held` or `carried` state names exactly one canonical character owner; every other state has an empty owner. Every graph event id is unique, ordered by scene, and uses only declared entity ids. A result entity has one producer, begins absent and never appears earlier. A source entity has at most one terminal transformation, consumption or destruction, and no causal event may revive it later. The transformation graph must contain no cycle.
 - Return narrative_contract.version 1. Use no more than one primary symbol and two secondary symbols. An empty primary_symbol is allowed when the story is stronger without a recurring symbol.
 - Every scene must contain a non-empty narrative_function, dominant_emotion, emotional_shift and story_change. Do not duplicate a narrative function and story change across scenes.

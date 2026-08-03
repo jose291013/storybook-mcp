@@ -720,6 +720,119 @@ test("compiler does not turn a non-character object attribution into a character
   assert.equal(validateNarrativeBookSpec(contract).valid, true);
 });
 
+test("compiler derives a fixed fixture visibility from its home location", () => {
+  const scenario = approvedScenario();
+  const homeLocation = scenario.scenes[0].locationAfter;
+  scenario.objects.push({
+    objectId: "fixed_lighthouse",
+    name: "Phare fixe",
+    owner: "",
+    initialState: "visible",
+    trackEveryScene: true,
+    spatialMode: "location_bound",
+    homeLocation,
+    causalAuthority: "graph_v2",
+    lifecycle: { version: 1, kind: "persistent", events: [] },
+  });
+  scenario.causalGraph.entities.push({
+    id: "fixed_lighthouse",
+    label: "Phare fixe",
+    initialState: "visible",
+    initialOwnerCharacter: "",
+    initialQuantity: 1,
+    spatialMode: "location_bound",
+    homeLocation,
+    progressTotal: 0,
+    initialProgress: 0,
+  });
+  for (const scene of scenario.scenes) {
+    scene.objectStates.push({
+      objectId: "fixed_lighthouse",
+      name: "Phare fixe",
+      owner: "",
+      state: "visible",
+      quantity: 1,
+      instruction: "Contradictory model visibility must be replaced by location projection.",
+    });
+  }
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  const contract = compile({ scenario: approveAgain(stabilized) });
+  const states = contract.scenes.map((scene, index) => ({
+    state: scene.objectStates.find(({ objectId }) => objectId === "fixed_lighthouse")?.state,
+    expected: scenario.scenes[index].locationAfter === homeLocation ? "visible" : "absent",
+  }));
+
+  assert.equal(states.every(({ state, expected }) => state === expected), true);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
+test("compiler preserves bounded progressive work without repeating object installation", () => {
+  const scenario = approvedScenario();
+  scenario.causalGraph.version = 2;
+  scenario.objects[0].causalAuthority = "graph_v2";
+  scenario.causalGraph.entities[0].initialQuantity = 0;
+  scenario.causalGraph.events[0].toQuantity = 1;
+  scenario.causalGraph.events[1].toQuantity = 1;
+  scenario.causalGraph.events[1].toOwnerCharacter = "Bastien";
+  scenario.objects.push({
+    objectId: "progressive_mural",
+    name: "Fresque progressive",
+    owner: "",
+    initialState: "installed",
+    trackEveryScene: true,
+    spatialMode: "portable",
+    progressTotal: 2,
+    causalAuthority: "graph_v2",
+    lifecycle: { version: 1, kind: "persistent", events: [] },
+  });
+  scenario.causalGraph.entities.push({
+    id: "progressive_mural",
+    label: "Fresque progressive",
+    initialState: "installed",
+    initialOwnerCharacter: "",
+    initialQuantity: 1,
+    spatialMode: "portable",
+    progressTotal: 2,
+    initialProgress: 0,
+  });
+  scenario.causalGraph.events.push(
+    {
+      id: "mural_step_1", sceneNumber: 2, type: "use", entityId: "progressive_mural",
+      fromState: "installed", toState: "installed", toQuantity: 1, progressStep: 1,
+      sequence: 3, structurallyValid: true,
+    },
+    {
+      id: "mural_step_2", sceneNumber: 3, type: "use", entityId: "progressive_mural",
+      fromState: "installed", toState: "installed", toQuantity: 1, progressStep: 2,
+      sequence: 4, structurallyValid: true,
+    },
+  );
+  for (const scene of scenario.scenes) {
+    scene.objectStates.push({
+      objectId: "progressive_mural",
+      name: "Fresque progressive",
+      owner: "",
+      state: "installed",
+      quantity: 1,
+    });
+  }
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  const contract = compile({ scenario: approveAgain(stabilized) });
+  const mural = contract.registries.objects.find(({ id }) => id === "progressive_mural");
+  const muralEvents = contract.registries.causalEvents.filter(({ objectId }) => objectId === mural.id);
+  const progress = contract.scenes.slice(0, 3).map((scene) => (
+    scene.objectStates.find(({ objectId }) => objectId === mural.id)?.progress
+  ));
+
+  assert.equal(mural.progressTotal, 2);
+  assert.deepEqual(muralEvents.map(({ type }) => type), ["use", "use"]);
+  assert.deepEqual(muralEvents.map(({ toProgress }) => toProgress), [1, 2]);
+  assert.deepEqual(progress, [0, 1, 2]);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
 test("compiler still rejects a possessed object attributed to an unknown character", () => {
   const scenario = approvedScenario();
   scenario.scenes[10].objectStates[0] = {

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyCausalGraph,
   normalizeCausalGraph,
+  projectCausalGraphObjectLedger,
   validateCausalGraph,
 } from "../src/services/storyCausalGraph.js";
 import { stabilizeStoryScenario } from "../src/services/storyScenario.js";
@@ -268,4 +269,103 @@ test("version-2 graph fails closed when a possessed state has no canonical owner
   assert.ok(validateCausalGraph(scenario).some((issue) => (
     issue.includes("requires a character owner while held")
   )));
+});
+
+test("location-bound fixtures are visible only at their canonical home location", () => {
+  const narrativeScenes = [
+    { sceneNumber: 1, locationBefore: "place du phare", locationAfter: "place du phare" },
+    { sceneNumber: 2, locationBefore: "place du phare", locationAfter: "atelier des Ã©chos" },
+    { sceneNumber: 3, locationBefore: "atelier des Ã©chos", locationAfter: "place du phare" },
+  ];
+  const trackedObjects = [{
+    objectId: "lighthouse",
+    name: "phare des deux routes",
+    initialState: "absent",
+    trackEveryScene: true,
+    spatialMode: "location_bound",
+    homeLocation: "place du phare",
+  }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "lighthouse",
+      label: "phare des deux routes",
+      initial_state: "absent",
+      spatial_mode: "location_bound",
+      home_location: "place du phare",
+    }],
+    events: [],
+  }, trackedObjects, narrativeScenes, []);
+  const scenario = {
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    characters: [],
+    causalGraph,
+  };
+
+  applyCausalGraph(scenario);
+  projectCausalGraphObjectLedger(scenario);
+
+  assert.equal(causalGraph.entities[0].initialState, "visible");
+  assert.deepEqual(
+    scenario.scenes.map((scene) => scene.objectStates[0].state),
+    ["visible", "absent", "visible"],
+  );
+  assert.deepEqual(validateCausalGraph(scenario), []);
+});
+
+test("progressive uses advance monotonically without fake retrieval and installation", () => {
+  const narrativeScenes = scenes(3).map((scene) => ({
+    ...scene,
+    locationBefore: "atelier",
+    locationAfter: "atelier",
+  }));
+  const trackedObjects = [{
+    objectId: "special_light",
+    name: "lumiÃ¨re spÃ©ciale",
+    initialState: "installed",
+    trackEveryScene: true,
+    spatialMode: "portable",
+    progressTotal: 2,
+  }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "special_light",
+      label: "lumiÃ¨re spÃ©ciale",
+      initial_state: "installed",
+      initial_quantity: 1,
+      progress_total: 2,
+      initial_progress: 0,
+    }],
+    events: [
+      {
+        id: "first_charge", scene_number: 2, type: "use", entity_id: "special_light",
+        from_state: "installed", to_state: "installed", to_quantity: 1, progress_step: 1,
+      },
+      {
+        id: "second_charge", scene_number: 3, type: "use", entity_id: "special_light",
+        from_state: "installed", to_state: "installed", to_quantity: 1, progress_step: 2,
+      },
+    ],
+  }, trackedObjects, narrativeScenes, []);
+  const scenario = {
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    characters: [],
+    causalGraph,
+  };
+
+  applyCausalGraph(scenario);
+  projectCausalGraphObjectLedger(scenario);
+
+  assert.deepEqual(
+    scenario.scenes.map((scene) => scene.objectStates[0].progressStep),
+    [0, 1, 2],
+  );
+  assert.deepEqual(
+    scenario.scenes.map((scene) => scene.objectStates[0].state),
+    ["installed", "installed", "installed"],
+  );
+  assert.deepEqual(validateCausalGraph(scenario), []);
 });

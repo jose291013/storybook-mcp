@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,40 +8,39 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/targeted-visual-qa-v2`
-- Production/main checkpoint: PR #136 merged at `d7a5ef7`; canonical preflight is independent from final semantic audit
-- Current focused checkpoint: bounded targeted visual QA V2 for interior illustrations
-- Pull request: draft PR #137
+- Current branch: `codex/location-aware-object-contracts`
+- Production/main checkpoint: PR #137 merged at `3cdd59c`; bounded targeted visual QA V2 is on `main`
+- Current focused checkpoint: model-independent spatial and progressive object contracts
+- Pull request: pending publication
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #136 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #137 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: targeted visual QA V2
+## Current product brick: location-aware and progressive objects
 
-1. Visual findings receive stable private codes, severity, confidence and an automatic-repair decision.
-2. Only high-confidence objective scene defects enter automatic interior-page repair: duplicated, fused, substituted or missing required identities, forbidden elements, contradictory object state, or the wrong main-action subject.
-3. The first coherent defective page candidate is quarantined immediately instead of paying for a second full regeneration.
-4. The repair call receives that exact private candidate as the target image to edit, plus the approved cover and identity references. It must preserve every unaffected part of the composition.
-5. Post-edit QA rechecks only the original defect codes, permanent severe identity guardrails and technical integrity. It cannot reopen subjective composition, style, likeness or gesture preferences.
-6. A page receives at most one ordinary coherent candidate and one targeted edit under this path. An inconclusive edit enters creator quality review with every candidate preserved.
+1. Every recurring object is explicitly `portable` or `location_bound`.
+2. A location-bound fixture has one canonical home location and becomes scene-visible or scene-absent from that location without fake possession or installation events.
+3. Returning to the home location reveals the same fixture in its latest canonical state.
+4. Repeated work advances bounded monotonic progress instead of repeating discovery, acquisition or installation.
+5. The causal graph, legacy compatibility ledger, canonical compiler and NarrativeBookSpec validator share this same deterministic rule.
+6. Legacy objects remain portable by default and the new schema fields stay optional for stored-book compatibility.
 
 ## Verification
 
-- Focused visual policy and page-isolation tests: 14/14 passing.
-- Complete `npm test`: 382/382 passing.
+- Focused scenario, causal graph and canonical contract tests: passing.
+- Complete `npm test`: 386/386 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Review draft PR #137 and merge only after explicit user confirmation.
-2. Deploy only while no preview is generating because Render may restart.
-3. Generate one new 24-page test book containing at least three recurring characters.
-4. Confirm logs show `quarantined-for-targeted-repair` at attempt 1 for a high-confidence identity/cast defect, followed by one `targeted_image_edit` outcome at most.
-5. Confirm composition or likeness-only warnings do not trigger another paid image call.
-6. Compare total illustration calls and correction cost with the previous completed test book.
+1. Publish and merge the spatial-object brick under the user's existing no-book-in-progress authorization.
+2. Build the separate automatic targeted scenario-repair brick on the refreshed `main` branch.
+3. Deploy only while no preview is generating because Render may restart.
+4. Test one story with a fixed machine, mural, chest or bridge visited, left and revisited; confirm it never follows the characters.
+5. Test one multi-step construction or restoration; confirm progress advances once per scene without repeated discovery or installation.
 
 ## Protected local state
 
