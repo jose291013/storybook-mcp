@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/automatic-repair-exhausted-state`
 - Production/main checkpoint: PR #139 merged at `dbdc8a6`; bounded one-click scenario repair is on `main`
 - Current focused checkpoint: durable exhausted state after an inconclusive automatic repair
-- Pull request: pending publication
+- Pull request: draft PR #140
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #139 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the terminal-state PR after the complete test suite passes.
+1. Review draft PR #140.
 2. Merge only with fresh user confirmation and while no preview is generating because Render may restart.
 3. Reopen project `ec1dcd70-d131-4c1a-8b41-5bca11e98cfe`; confirm the repair button is gone and the preserved scenario shows a localized no-loop explanation.
 4. Confirm a direct repeated request returns `scenario_auto_repair_exhausted` without a model call.
