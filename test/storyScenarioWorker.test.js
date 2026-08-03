@@ -9,6 +9,7 @@ function projectFixture({
   previousProjectStatus = "ready_for_preview",
   technicalAttempt = 1,
   notificationRequested = false,
+  automaticRepair = false,
 } = {}) {
   const questionnaire = {
     age: 8,
@@ -51,6 +52,10 @@ function projectFixture({
           addedCharacters: [],
           feedback: "",
           safetyContract: { action: "allow" },
+          ...(automaticRepair ? {
+            automaticRepair: true,
+            automaticRepairPlan: { version: 1, validation: { valid: false, issues: ["scene-2: travel"] } },
+          } : {}),
         },
       },
     },
@@ -340,6 +345,42 @@ test("failed scenario revision keeps the previously reviewable scenario", async 
   assert.equal(failed.continuitySnapshot.storyScenario.title, previousScenario.title);
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
   assert.equal(runs.patches.at(-1).errorCode, "scenario_provider_unavailable");
+});
+
+test("failed automatic repair preserves the previous scenario without opening a retry loop", async () => {
+  const previousScenario = {
+    title: "Scénario conservé",
+    fingerprint: "legacy",
+    revision: 2,
+    clarifications: [],
+  };
+  const projects = fakeProjects(projectFixture({
+    previousScenario,
+    previousProjectStatus: "scenario_review",
+    automaticRepair: true,
+  }));
+  const runs = fakeRuns({ requestKind: "automatic_repair" });
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:automatic-repair:attempt:1",
+    metadata: { requestKind: "automatic_repair" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => {
+      throw new Error("Targeted repair remained inconsistent.");
+    },
+  });
+
+  const failed = projects.current();
+  assert.equal(failed.status, "scenario_review");
+  assert.equal(failed.continuitySnapshot.storyScenario.title, previousScenario.title);
+  assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, false);
+  assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryExhausted, true);
+  assert.equal(runs.patches.at(-1).errorCode, "scenario_auto_repair_unresolved");
 });
 
 test("canonical failure stores only private bounded diagnostics in run metadata", async () => {

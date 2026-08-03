@@ -16,6 +16,7 @@ import {
   validateStoryScenarioPassageLifecycles,
 } from "../src/services/storyScenarioRepairs.js";
 import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
+import { storyScenarioAutomaticRepairAssessment } from "../src/services/storyScenarioAutoRepair.js";
 
 function coherentPortalScenario() {
   return {
@@ -96,6 +97,54 @@ test("only a first proposal uses the premium architect while revisions use targe
   assert.deepEqual(scenarioGenerationRoute({ revision: 1 }), {
     phase: "revision",
     modelRole: "story_repair",
+  });
+  assert.deepEqual(scenarioGenerationRoute({ revision: 1 }, true), {
+    phase: "automatic-repair",
+    modelRole: "story_repair",
+  });
+});
+
+test("automatic scenario repair exposes a bounded plan for technical contradictions", () => {
+  const scenario = coherentPortalScenario();
+  scenario.scenes[0].transition = {
+    kind: "none",
+    mechanism: "",
+    from: "la clairière",
+    to: "la clairière",
+    characters: [],
+  };
+  scenario.validation = {
+    valid: false,
+    diagnostics: [{
+      code: "passage_discovery_missing",
+      sceneNumber: 2,
+      explanation: "Le portail doit être découvert avant la traversée.",
+    }],
+  };
+  const assessment = storyScenarioAutomaticRepairAssessment(scenario);
+  assert.equal(assessment.available, true);
+  assert.ok(assessment.publicSummary.categories.includes("passage"));
+  assert.deepEqual(assessment.publicSummary.sceneNumbers, [2]);
+  assert.equal(assessment.directives[0].code, "discover_passage_before_crossing");
+});
+
+test("automatic scenario repair never replaces a creator clarification", () => {
+  const scenario = coherentPortalScenario();
+  scenario.validation = {
+    valid: false,
+    diagnostics: [{ code: "travel", sceneNumber: 2, explanation: "Qui traverse ?" }],
+  };
+  scenario.clarifications = [{ id: "travelers", question: "Qui traverse ?" }];
+  assert.deepEqual(storyScenarioAutomaticRepairAssessment(scenario), {
+    available: false,
+    reason: "creator_clarification_required",
+  });
+});
+
+test("automatic scenario repair stays unavailable for a valid scenario", () => {
+  assert.deepEqual(storyScenarioAutomaticRepairAssessment(coherentPortalScenario()), {
+    available: false,
+    reason: "scenario_already_valid",
   });
 });
 
