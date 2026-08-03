@@ -369,3 +369,43 @@ test("progressive uses advance monotonically without fake retrieval and installa
   );
   assert.deepEqual(validateCausalGraph(scenario), []);
 });
+
+test("same-scene object changes remain ordered and reject a contradictory declared predecessor", () => {
+  const narrativeScenes = scenes(2);
+  const trackedObjects = [{
+    objectId: "special_light",
+    name: "lumiere speciale",
+    initialState: "installed",
+    trackEveryScene: true,
+  }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "special_light",
+      label: "lumiere speciale",
+      initial_state: "installed",
+      initial_quantity: 1,
+    }],
+    events: [
+      {
+        id: "detach_light", scene_number: 2, type: "retrieve", entity_id: "special_light",
+        from_state: "installed", to_state: "held", to_owner_character: "Lina", to_quantity: 1,
+      },
+      {
+        id: "attach_light", scene_number: 2, type: "install", entity_id: "special_light",
+        from_state: "visible", to_state: "installed", to_owner_character: "", to_quantity: 1,
+      },
+    ],
+  }, trackedObjects, narrativeScenes, [{ name: "Lina" }]);
+  const scenario = {
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    characters: [{ name: "Lina" }],
+    causalGraph,
+  };
+
+  assert.deepEqual(causalGraph.events.map(({ sequence }) => sequence), [1, 2]);
+  assert.ok(validateCausalGraph(scenario).some((issue) => (
+    issue.includes("attach_light expects visible but special_light is held")
+  )));
+});

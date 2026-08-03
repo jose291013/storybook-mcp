@@ -400,6 +400,7 @@
       "additionalProperties": false,
       "required": [
         "id",
+        "sequence",
         "sceneId",
         "type",
         "objectId",
@@ -413,6 +414,10 @@
       "properties": {
         "id": {
           "$ref": "#/$defs/identifier"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
         },
         "sceneId": {
           "$ref": "#/$defs/identifier"
