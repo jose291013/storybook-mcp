@@ -215,11 +215,20 @@ export function normalizeCausalGraph(rawGraph = {}, objects = [], scenes = [], c
     sequence: index + 1,
   }));
   for (const entity of entities) {
-    const hasIntroduction = events.some((event) => (
-      event.entityId === entity.id
-      && ["introduce", "acquire"].includes(event.type)
+    const hasDeferredAppearance = events.some((event) => (
+      event.resultEntityId === entity.id
+      || (
+        event.entityId === entity.id
+        && event.toState !== "absent"
+        && (
+          event.fromState === "absent"
+          || ["introduce", "acquire"].includes(event.type)
+        )
+      )
     ));
-    if (entity.spatialMode === "location_bound" && entity.initialState === "absent" && !hasIntroduction) {
+    if (entity.spatialMode === "location_bound"
+      && entity.initialState === "absent"
+      && !hasDeferredAppearance) {
       entity.initialState = "visible";
       entity.initialQuantity = 1;
     }
