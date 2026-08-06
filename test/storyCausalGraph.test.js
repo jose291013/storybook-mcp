@@ -314,6 +314,137 @@ test("location-bound fixtures are visible only at their canonical home location"
   assert.deepEqual(validateCausalGraph(scenario), []);
 });
 
+test("a location-bound result stays absent until its producing transformation", () => {
+  const narrativeScenes = [
+    { sceneNumber: 1, locationBefore: "rive du fleuve", locationAfter: "rive du fleuve" },
+    { sceneNumber: 2, locationBefore: "rive du fleuve", locationAfter: "rive du fleuve" },
+    { sceneNumber: 3, locationBefore: "rive du fleuve", locationAfter: "rive du fleuve" },
+    { sceneNumber: 4, locationBefore: "rive du fleuve", locationAfter: "rive du fleuve" },
+  ];
+  const trackedObjects = [
+    {
+      objectId: "bridge_in_progress",
+      name: "structure initiale du pont",
+      initialState: "installed",
+      initialQuantity: 1,
+      trackEveryScene: true,
+      spatialMode: "location_bound",
+      homeLocation: "rive du fleuve",
+    },
+    {
+      objectId: "safe_bridge",
+      name: "pont solide",
+      initialState: "absent",
+      initialQuantity: 0,
+      trackEveryScene: true,
+      spatialMode: "location_bound",
+      homeLocation: "rive du fleuve",
+    },
+  ];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [
+      {
+        id: "bridge_in_progress",
+        label: "structure initiale du pont",
+        initial_state: "installed",
+        initial_quantity: 1,
+        spatial_mode: "location_bound",
+        home_location: "rive du fleuve",
+      },
+      {
+        id: "safe_bridge",
+        label: "pont solide",
+        initial_state: "absent",
+        initial_quantity: 0,
+        spatial_mode: "location_bound",
+        home_location: "rive du fleuve",
+      },
+    ],
+    events: [{
+      id: "finish_bridge",
+      scene_number: 3,
+      type: "transform",
+      entity_id: "bridge_in_progress",
+      from_state: "installed",
+      to_state: "transformed",
+      to_quantity: 1,
+      result_entity_id: "safe_bridge",
+      result_state: "installed",
+      result_quantity: 1,
+    }],
+  }, trackedObjects, narrativeScenes, []);
+  const scenario = {
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    characters: [],
+    causalGraph,
+  };
+
+  applyCausalGraph(scenario);
+  projectCausalGraphObjectLedger(scenario);
+
+  assert.equal(causalGraph.entities.find((entity) => entity.id === "safe_bridge").initialState, "absent");
+  assert.deepEqual(
+    scenario.scenes.map((scene) => (
+      scene.objectStates.find((state) => state.objectId === "safe_bridge").state
+    )),
+    ["absent", "absent", "installed", "installed"],
+  );
+  assert.deepEqual(validateCausalGraph(scenario), []);
+});
+
+test("a location-bound object installed later stays absent before installation", () => {
+  const narrativeScenes = [
+    { sceneNumber: 1, locationBefore: "atelier", locationAfter: "atelier" },
+    { sceneNumber: 2, locationBefore: "atelier", locationAfter: "atelier" },
+  ];
+  const trackedObjects = [{
+    objectId: "wall_lamp",
+    name: "lampe murale",
+    initialState: "absent",
+    initialQuantity: 0,
+    trackEveryScene: true,
+    spatialMode: "location_bound",
+    homeLocation: "atelier",
+  }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "wall_lamp",
+      label: "lampe murale",
+      initial_state: "absent",
+      initial_quantity: 0,
+      spatial_mode: "location_bound",
+      home_location: "atelier",
+    }],
+    events: [{
+      id: "install_lamp",
+      scene_number: 2,
+      type: "install",
+      entity_id: "wall_lamp",
+      from_state: "absent",
+      to_state: "installed",
+      to_quantity: 1,
+    }],
+  }, trackedObjects, narrativeScenes, []);
+  const scenario = {
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    characters: [],
+    causalGraph,
+  };
+
+  applyCausalGraph(scenario);
+  projectCausalGraphObjectLedger(scenario);
+
+  assert.deepEqual(
+    scenario.scenes.map((scene) => scene.objectStates[0].state),
+    ["absent", "installed"],
+  );
+  assert.deepEqual(validateCausalGraph(scenario), []);
+});
+
 test("progressive uses advance monotonically without fake retrieval and installation", () => {
   const narrativeScenes = scenes(3).map((scene) => ({
     ...scene,
