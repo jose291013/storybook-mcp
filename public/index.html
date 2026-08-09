@@ -278,12 +278,9 @@
           <section class="scenario-character-manager">
             <div>
               <h3 data-i18n="scenarioCharactersTitle">Personnages disponibles</h3>
-              <p data-i18n="scenarioCharactersLead">Ajoutez ici un personnage absent de la liste, puis choisissez sa présence dans les scènes concernées.</p>
+              <p data-i18n="scenarioCharactersLead">Ces personnages proviennent de vos photos de référence. Vous pouvez choisir leur présence dans chaque scène.</p>
             </div>
-            <div class="scenario-character-add">
-              <input type="text" id="scenarioNewCharacterName" data-i18n-placeholder="scenarioNewCharacterPlaceholder" placeholder="Nom du personnage" maxlength="120" />
-              <button type="button" class="toolbar-button" id="scenarioAddCharacterButton" data-i18n="scenarioAddCharacter">Ajouter au scénario</button>
-            </div>
+            <div class="scenario-cast-list" id="scenarioCastList"></div>
           </section>
           <div class="scenario-acts" id="scenarioActs"></div>
           <label class="scenario-feedback"><span data-i18n="scenarioFeedbackLabel">Une modification générale à demander (facultatif)</span><textarea id="scenarioFeedback" data-i18n-placeholder="scenarioFeedbackPlaceholder" placeholder="Par exemple : Alexandra guide Nolan seulement par la pensée dans la vallée."></textarea></label>

@@ -112,7 +112,6 @@ const state = {
   storyScenarioBusy: false,
   storyScenarioUpdateFailed: false,
   storyScenarioDirty: false,
-  storyScenarioAddedCharacters: [],
   storyScenarioRetryAvailable: false,
   storyScenarioRevalidationAttempted: false,
   storyScenarioAutomaticRepairFailure: null,
@@ -164,14 +163,14 @@ const elements = {
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioCreationJourney: document.querySelector("#scenarioCreationJourney"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), automaticRepairScenarioButton: document.querySelector("#automaticRepairScenarioButton"), automaticRepairScenarioFailure: document.querySelector("#automaticRepairScenarioFailure"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioNewCharacterName: document.querySelector("#scenarioNewCharacterName"), scenarioAddCharacterButton: document.querySelector("#scenarioAddCharacterButton"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioCreationJourney: document.querySelector("#scenarioCreationJourney"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), automaticRepairScenarioButton: document.querySelector("#automaticRepairScenarioButton"), automaticRepairScenarioFailure: document.querySelector("#automaticRepairScenarioFailure"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioCastList: document.querySelector("#scenarioCastList"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
   constructor(message, code = "preview_generation_failed") { super(message); this.code = code; this.technical = true; }
 }
 
-const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "important_people", "extra_notes"]);
+const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "extra_notes"]);
 
 const INTENTION_EXAMPLES = {
   FR: ["Il abandonne quand quelque chose lui paraît difficile.", "Elle n'ose pas aller vers les autres.", "Il aimerait apprendre quelque chose, mais il a peur de ne pas réussir.", "Je ne sais pas exactement : aidez-moi à trouver."],
@@ -729,6 +728,28 @@ function scenarioClarificationAnswers() {
     .filter(([, answer]) => answer));
 }
 
+function scenarioNameKey(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function scenarioCreatorCast(scenario = state.storyScenario) {
+  const participants = scenario?.castParticipationContract?.participants || [];
+  if (!participants.length) return scenario?.characters || [];
+  const participantNames = new Set(participants.map((participant) => scenarioNameKey(participant.name)));
+  return (scenario?.characters || []).filter((character) => participantNames.has(scenarioNameKey(character.name)));
+}
+
+function scenarioSystemPresences(scene, scenario = state.storyScenario) {
+  if (!scenario?.castParticipationContract?.participants?.length) return [];
+  const creatorNames = new Set(scenarioCreatorCast(scenario).map((character) => scenarioNameKey(character.name)));
+  return (scene?.characterPresences || []).filter((presence) => !creatorNames.has(scenarioNameKey(presence.name)));
+}
+
 function scenarioSceneEdits() {
   return [...elements.scenarioActs.querySelectorAll("[data-scenario-scene]")].map((card) => {
     const title = card.querySelector("[data-scene-title]");
@@ -739,10 +760,13 @@ function scenarioSceneEdits() {
       ...(title?.dataset.creatorEdited === "true" ? { title: title.value } : {}),
       ...(location?.dataset.creatorEdited === "true" ? { location: location.value } : {}),
       ...(action?.dataset.creatorEdited === "true" ? { action: action.value } : {}),
-      ...(card.dataset.presencesEdited === "true" ? { character_presences: [...card.querySelectorAll("[data-presence-character]")].map((select) => ({
-        name: select.dataset.presenceCharacter,
-        mode: select.value,
-      })) } : {}),
+      ...(card.dataset.presencesEdited === "true" ? { character_presences: [
+        ...scenarioSystemPresences((state.storyScenario?.scenes || []).find((scene) => Number(scene.sceneNumber) === Number(card.dataset.scenarioScene))),
+        ...[...card.querySelectorAll("[data-presence-character]")].map((select) => ({
+          name: select.dataset.presenceCharacter,
+          mode: select.value,
+        })),
+      ] } : {}),
     };
   }).filter((edit) => Object.keys(edit).length > 1);
 }
@@ -757,7 +781,11 @@ function scenarioPresenceControl(name, mode = "absent") {
 }
 
 function updateScenarioPresenceSummary(card) {
-  const selections = [...card.querySelectorAll("[data-presence-character]")].map((select) => ({ name: select.dataset.presenceCharacter, mode: select.value }));
+  const scene = (state.storyScenario?.scenes || []).find((item) => Number(item.sceneNumber) === Number(card.dataset.scenarioScene));
+  const selections = [
+    ...scenarioSystemPresences(scene),
+    ...[...card.querySelectorAll("[data-presence-character]")].map((select) => ({ name: select.dataset.presenceCharacter, mode: select.value })),
+  ];
   const physical = selections.filter(({ mode }) => mode === "physical").map(({ name }) => name);
   const evoked = selections.filter(({ mode }) => ["thought", "memory", "voice"].includes(mode)).map(({ name, mode }) => `${name} (${scenarioPresenceModeLabel(mode).toLowerCase()})`);
   card.querySelector("[data-physical-summary]").textContent = physical.length ? physical.join(", ") : tr("scenarioNone");
@@ -769,23 +797,6 @@ function markStoryScenarioDirty() {
   state.storyScenarioDirty = true;
   elements.approveScenarioButton.disabled = true;
   setScenarioStatus(tr("scenarioUnsavedChanges"));
-}
-
-function addScenarioCharacter() {
-  const name = elements.scenarioNewCharacterName.value.trim();
-  if (!name) return;
-  const exists = (state.storyScenario?.characters || []).some((character) => character.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0);
-  if (exists) {
-    setScenarioStatus(tr("scenarioCharacterExists", { name }), "error");
-    return;
-  }
-  const character = { name, role: "story_character", storyRole: "guest", initialLocation: "", defaultPresenceMode: "physical" };
-  state.storyScenario.characters ||= [];
-  state.storyScenario.characters.push(character);
-  state.storyScenarioAddedCharacters.push({ name });
-  elements.scenarioActs.querySelectorAll("[data-presence-editor]").forEach((editor) => editor.insertAdjacentHTML("beforeend", scenarioPresenceControl(name)));
-  elements.scenarioNewCharacterName.value = "";
-  markStoryScenarioDirty();
 }
 
 function scenarioHasUnansweredClarifications() {
@@ -819,7 +830,7 @@ function renderAutomaticRepairFailure() {
     elements.automaticRepairScenarioFailure.innerHTML = "";
     return;
   }
-  const category = ["passage", "object", "travel", "order"].includes(failure.categories?.[0])
+  const category = ["passage", "object", "travel", "order", "cast"].includes(failure.categories?.[0])
     ? failure.categories[0]
     : "incomplete";
   const scenes = (failure.sceneNumbers || []).join(", ");
@@ -841,6 +852,7 @@ function scenarioApiMessage(payload, fallbackKey) {
     scenario_update_in_progress: "scenarioAlreadyUpdating",
     scenario_locked: "scenarioLocked",
     scenario_stale: "scenarioStale",
+    scenario_character_photo_required: "scenarioCharacterPhotoRequired",
     scenario_clarification_required: "scenarioNeedsAnswers",
     scenario_auto_repair_unresolved: "automaticRepairScenarioError",
     scenario_auto_repair_exhausted: "automaticRepairScenarioExhaustedTitle",
@@ -857,7 +869,6 @@ function setStoryScenarioBusy(busy, action = "update") {
   state.storyScenarioBusy = busy;
   elements.storyScenarioPanel.setAttribute("aria-busy", String(busy));
   elements.storyScenarioPanel.querySelectorAll("input:not([data-allow-during-busy]), textarea, select, [data-toggle-presences]").forEach((control) => { control.disabled = busy; });
-  elements.scenarioAddCharacterButton.disabled = busy;
   elements.retryInitialScenarioButton.disabled = busy;
   elements.automaticRepairScenarioButton.disabled = busy;
   elements.reviseScenarioButton.disabled = busy;
@@ -1008,7 +1019,6 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   state.storyScenarioUpdateFailed = false;
   state.storyScenarioRetryAvailable = false;
   state.storyScenarioDirty = false;
-  state.storyScenarioAddedCharacters = [];
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
@@ -1057,7 +1067,7 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
     || clarifications.length > 0
     || Boolean(state.storyScenarioAutomaticRepairFailure);
   renderAutomaticRepairFailure();
-  const diagnosticKeys = new Set(["passage", "object", "travel", "order", "incomplete", "progression", "emotion", "privacy", "symbol", "repetition", "age"]);
+  const diagnosticKeys = new Set(["passage", "object", "travel", "order", "cast", "incomplete", "progression", "emotion", "privacy", "symbol", "repetition", "age"]);
   elements.scenarioDiagnosticList.innerHTML = needsRevision ? (validation.categories || ["incomplete"]).map((category) => {
     const safeCategory = diagnosticKeys.has(category) ? category : "incomplete";
     const numbers = validation.categoryScenes?.[safeCategory] || validation.sceneNumbers || [];
@@ -1071,6 +1081,16 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   }).join("") : "";
   elements.scenarioClarifications.hidden = !clarifications.length;
   elements.scenarioQuestionList.innerHTML = clarifications.map((item) => `<label class="scenario-question"><strong>${escapeHtml(item.question)}</strong>${item.reason ? `<small>${escapeHtml(item.reason)}</small>` : ""}<input type="text" data-scenario-question="${escapeHtml(item.id)}" value="${escapeHtml(scenario.creatorClarifications?.[item.id] || item.suggestedAnswer || "")}" /></label>`).join("");
+  const creatorCast = scenarioCreatorCast(scenario);
+  const participantByName = new Map((scenario.castParticipationContract?.participants || []).map((participant) => [scenarioNameKey(participant.name), participant]));
+  elements.scenarioCastList.innerHTML = creatorCast.map((character) => {
+    const participant = participantByName.get(scenarioNameKey(character.name));
+    const sceneNumbers = (scenario.scenes || []).filter((scene) => (
+      (scene.characterPresences || []).some((presence) => scenarioNameKey(presence.name) === scenarioNameKey(character.name))
+    )).map((scene) => scene.sceneNumber);
+    const role = ROLE_LABELS[state.locale]?.[participant?.storyRole || character.storyRole] || participant?.storyRole || character.storyRole || "";
+    return `<div class="scenario-cast-member"><strong>${escapeHtml(character.name)}</strong><span>${escapeHtml(role)}</span><small>${escapeHtml(sceneNumbers.length ? tr("scenarioCastScenes", { scenes: sceneNumbers.join(", ") }) : tr("scenarioCastNotAssigned"))}</small></div>`;
+  }).join("");
   const acts = new Map();
   for (const scene of scenario.scenes || []) {
     const scenes = acts.get(scene.act) || [];
@@ -1085,7 +1105,7 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
       [tr("scenarioEmotion"), [scene.dominantEmotion, scene.emotionalShift].filter(Boolean).join(" → ")],
       [tr("scenarioChange"), scene.storyChange],
     ].filter(([, value]) => String(value || "").trim());
-    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label>${narrativeMeta.length ? `<dl class="scenario-narrative-meta">${narrativeMeta.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}<div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${(scenario.characters || []).map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
+    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label>${narrativeMeta.length ? `<dl class="scenario-narrative-meta">${narrativeMeta.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}<div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${creatorCast.map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
   }).join("")}</section>`).join("");
   const invalidScenes = new Set(validation.sceneNumbers || []);
   elements.scenarioActs.querySelectorAll("[data-scenario-scene]").forEach((card) => {
@@ -1153,7 +1173,7 @@ async function requestStoryScenario({ includeEdits = false, retry = false } = {}
       body: JSON.stringify({
         clarifications: scenarioClarificationAnswers(),
         sceneEdits: includeEdits ? scenarioSceneEdits() : [],
-        addedCharacters: state.storyScenarioAddedCharacters,
+        addedCharacters: [],
         feedback: elements.scenarioFeedback.value.trim(),
         retry: retrying,
       }),
@@ -3525,8 +3545,6 @@ elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenar
   retry: state.storyScenarioRetryAvailable,
 }));
 elements.approveScenarioButton.addEventListener("click", approveStoryScenario);
-elements.scenarioAddCharacterButton.addEventListener("click", addScenarioCharacter);
-elements.scenarioNewCharacterName.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); addScenarioCharacter(); } });
 elements.scenarioQuestionList.addEventListener("input", markStoryScenarioDirty);
 elements.scenarioFeedback.addEventListener("input", markStoryScenarioDirty);
 elements.scenarioActs.addEventListener("input", (event) => {

@@ -12,6 +12,7 @@ const REPAIRABLE_CATEGORIES = new Set([
   "object",
   "travel",
   "order",
+  "cast",
   "incomplete",
   "progression",
   "emotion",
@@ -23,6 +24,7 @@ const REPAIRABLE_CATEGORIES = new Set([
 
 function categoryFromFailureCode(code = "") {
   const value = text(code).toLowerCase();
+  if (/cast|participant|role/.test(value)) return "cast";
   if (/passage|cross/.test(value)) return "passage";
   if (/object|state|quantity|owner|held|worn/.test(value)) return "object";
   if (/character|location|travel|movement|presence/.test(value)) return "travel";

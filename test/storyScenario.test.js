@@ -1473,7 +1473,9 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(i18n, /scenarioDefaultsReady: "Les réponses proposées sont déjà appliquées au scénario/);
   assert.match(app, /data-presence-character/);
   assert.match(app, /storyScenarioDirty/);
-  assert.match(app, /addedCharacters: state\.storyScenarioAddedCharacters/);
+  assert.match(app, /addedCharacters: \[\]/);
+  assert.match(app, /scenarioCreatorCast/);
+  assert.match(app, /scenarioSystemPresences/);
   assert.match(scenarioGeneration, /applyCreatorStoryScenarioEdits/);
   assert.match(scenarioRoute, /character_presences/);
   assert.doesNotMatch(app, /\.\.\.\(payload\.issues \|\| \[\]\)/);
@@ -1488,8 +1490,10 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(html, /id="scenarioReviewContent"/);
   assert.match(html, /id="scenarioStatus"/);
   assert.match(html, /id="scenarioDiagnostics"/);
-  assert.match(html, /id="scenarioNewCharacterName"/);
-  assert.match(html, /id="scenarioAddCharacterButton"/);
+  assert.match(html, /id="scenarioCastList"/);
+  assert.doesNotMatch(html, /id="scenarioNewCharacterName"/);
+  assert.doesNotMatch(html, /id="scenarioAddCharacterButton"/);
+  assert.match(scenarioRoute, /scenario_character_photo_required/);
   assert.match(scenarioRoute, /kind: "story_scenario"/);
   assert.match(scenarioRoute, /status: "scenario_generating"/);
   assert.match(scenarioRoute, /storyScenarioGeneration/);

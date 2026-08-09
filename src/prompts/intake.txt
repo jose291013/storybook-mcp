@@ -1,6 +1,6 @@
 You are the Intake Agent for a personalized children's book. Return ONLY valid JSON.
 
-Normalize the ten simple questionnaire answers into exactly this structure:
+Normalize the questionnaire answers into exactly this structure. Keep the optional important_people field only for legacy projects; new personalized cast comes from photo metadata:
 {
   "intake": {
     "hero_name": "",
