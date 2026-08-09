@@ -1,10 +1,12 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 ## Narrative V2 delivery checkpoint
 
 Before a fresh scenario is shown to the creator, its final audited candidate must compile into the deterministic NarrativeBookSpec contract. One bounded internal canonical repair and one fresh semantic audit may resolve a mechanical compiler finding. A remaining compiler defect interrupts scenario preparation as a freely retryable technical failure; it is never exposed as red scene cards asking the parent to diagnose hidden state. The successful candidate stores only bounded private compiler evidence until explicit approval. Child Safety and Story Sensitivity remain independent, immutable gates.
+
+When that bounded repair successfully restores the canonical contract but the required fresh semantic audit still rejects the story, the result is not a compiler failure. Calitiki preserves the audit's structured narrative findings and returns the reviewable scenario without another model call. Only a candidate that still fails deterministic compilation remains a private `scenario_contract_invalid` technical failure. This distinction prevents an empty `finalIssues` compiler report from hiding a real editorial finding while preserving the absolute one-repair ceiling.
 
 The causal contract now receives priority over editorial correction. After base structural validation, strictly identical causal events are removed deterministically and NarrativeBookSpec compiles before the narrative editor runs. A genuine canonical ambiguity may consume the single scenario-wide paid repair; its fresh semantic audit then replaces the redundant ordinary editor pass. If the ordinary editor instead consumes that repair, its candidate is recompiled once in code with no further model call. This keeps the absolute one-repair ceiling while preventing a late object-state finding from being starved by an earlier editorial correction.
 

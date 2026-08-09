@@ -233,6 +233,45 @@ test("the canonical pre-review gate repairs internally and never delegates mecha
   assert.equal(result.evidence.artifactDigest, "digest");
 });
 
+test("a repaired canonical candidate preserves a final semantic rejection instead of reporting a compiler failure", async () => {
+  const result = await runCanonicalCandidateGate({
+    scenario: { revision: "audited" },
+    validation: { valid: true, issues: [] },
+    policy: { canonicalRepairCalls: 1, canonicalFinalAuditCalls: 1 },
+    check: (scenario) => scenario.revision === "repaired"
+      ? { valid: true, evidence: { artifactDigest: "digest" } }
+      : {
+        valid: false,
+        issues: [{
+          code: "ambiguous_passage_endpoints",
+          path: "registries.passages",
+          sceneNumber: 0,
+        }],
+        validation: { valid: false, issues: ["hidden mechanical defect"] },
+        repairDirectives: [{ code: "repair_passage" }],
+      },
+    repair: async () => ({
+      scenario: { revision: "repaired" },
+      validation: { valid: true, issues: [] },
+    }),
+    finalAudit: async ({ scenario }) => ({
+      scenario,
+      validation: {
+        valid: false,
+        issues: ["scene-7: guide_action: The guide resolves the climax"],
+        diagnostics: [{ code: "guide_action", sceneNumber: 7 }],
+      },
+    }),
+  });
+
+  assert.equal(result.semanticAuditRejected, true);
+  assert.equal(result.evidence, null);
+  assert.equal(result.validation.valid, false);
+  assert.deepEqual(result.validation.issues, [
+    "scene-7: guide_action: The guide resolves the climax",
+  ]);
+});
+
 test("an exhausted shared repair budget prevents a later canonical repair call", async () => {
   await assert.rejects(() => runCanonicalCandidateGate({
     scenario: { revision: "audited" },

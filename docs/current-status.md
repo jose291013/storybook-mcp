@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,36 +8,35 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/canonical-cast-participation`
-- Production/main checkpoint: PR #142 merged at `8559526`; produced or later-installed location-bound objects remain absent until their causal appearance
-- Current focused checkpoint: make reference photos the sole registry for personalized characters and enforce each selected narrative role inside the scenario
-- Pull request: PR #143, published as a draft pending explicit merge authorization
+- Current branch: `codex/preserve-post-canonical-audit`
+- Production/main checkpoint: PR #143 merged at `54bf175`; reference photos are authoritative for personalized cast and every selected narrative role has deterministic participation requirements
+- Current focused checkpoint: preserve a final semantic-audit rejection after a successful canonical repair instead of misreporting `scenario_contract_invalid`
+- Pull request: PR #144, published as a draft pending explicit merge authorization
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #142 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #143 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: canonical personalized cast
+## Current product brick: post-canonical semantic diagnostics
 
-1. The photo step is the sole creation point for personalized characters: name, relationship and narrative role remain authoritative.
-2. The duplicated questionnaire field asking who accompanies the child is removed for new projects; legacy answers remain readable.
-3. A versioned cast-participation contract gives every selected role a minimum number of meaningful and, where appropriate, physical scenes.
-4. Deterministic scenario validation rejects a missing companion, guide, ally, supporter or guest before approval and supports one bounded automatic repair.
-5. Scenario presence controls list only the photographed creator cast; arbitrary free-text additions are rejected by the API, while generic world characters remain preserved.
+1. A canonical compiler defect may still consume the single scenario repair and receive one fresh semantic audit.
+2. When the repaired candidate compiles but that audit rejects it, the canonical gate returns the real semantic validation instead of throwing a false compiler failure.
+3. No additional AI call or repair loop is introduced; the creator receives the reviewable scenario and its actual narrative findings.
+4. A genuinely unresolved compiler defect continues to fail privately as `scenario_contract_invalid`.
 
 ## Verification
 
-- Focused questionnaire, scenario and cast tests: passing.
-- Complete `npm test`: 400/400 passing.
+- Focused scenario-generation and durable-worker tests: 20/20 passing.
+- Complete `npm test`: 401/401 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Merge PR #143 only after explicit authorization while no generation is active; Render will restart.
-2. Create a fresh book with hero, companion, guide and supporter photos, then confirm each appears in the scenario according to the selected role.
-3. Confirm the scenario presence editor contains no arbitrary-name field and preserves generic world characters when creator presences change.
+1. Merge PR #144 only after explicit authorization while no generation is active; Render will restart.
+2. After deployment, retry project `551119ae-7c9b-44f6-9048-80ed4f874311` once for free.
+3. Confirm that a repaired canonical candidate either completes validly or exposes its real narrative findings without `finalIssues: []` being reported as a compiler failure.
 
 ## Protected local state
 
