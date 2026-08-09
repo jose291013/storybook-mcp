@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/canonical-cast-participation`
 - Production/main checkpoint: PR #142 merged at `8559526`; produced or later-installed location-bound objects remain absent until their causal appearance
 - Current focused checkpoint: make reference photos the sole registry for personalized characters and enforce each selected narrative role inside the scenario
-- Pull request: not published yet
+- Pull request: PR #143, published as a draft pending explicit merge authorization
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,10 +35,9 @@ PR #55 through PR #142 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the cast-participation pull request after the complete test suite passes.
-2. Merge only after explicit authorization while no generation is active; Render will restart.
-3. Create a fresh book with hero, companion, guide and supporter photos, then confirm each appears in the scenario according to the selected role.
-4. Confirm the scenario presence editor contains no arbitrary-name field and preserves generic world characters when creator presences change.
+1. Merge PR #143 only after explicit authorization while no generation is active; Render will restart.
+2. Create a fresh book with hero, companion, guide and supporter photos, then confirm each appears in the scenario according to the selected role.
+3. Confirm the scenario presence editor contains no arbitrary-name field and preserves generic world characters when creator presences change.
 
 ## Protected local state
 
