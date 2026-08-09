@@ -94,9 +94,9 @@ test("whole-book scene planning covers every spread in 36- and 44-page books", (
   }
 });
 
-test("questionnaire contains ten simple questions", () => {
-  assert.equal(BOOK_QUESTIONS.length, 10);
-  assert.equal(new Set(BOOK_QUESTIONS.map((question) => question.id)).size, 10);
+test("questionnaire contains nine simple questions without duplicating the photo cast", () => {
+  assert.equal(BOOK_QUESTIONS.length, 9);
+  assert.equal(new Set(BOOK_QUESTIONS.map((question) => question.id)).size, 9);
   assert.deepEqual(BOOK_QUESTIONS.map((question) => question.id), [
     "hero_name",
     "age",
@@ -106,7 +106,6 @@ test("questionnaire contains ten simple questions", () => {
     "challenge",
     "message",
     "signature_object",
-    "important_people",
     "universe",
   ]);
 });

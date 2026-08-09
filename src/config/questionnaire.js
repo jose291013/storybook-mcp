@@ -56,13 +56,6 @@ export const BOOK_QUESTIONS = [
     type: "text",
   },
   {
-    id: "important_people",
-    label: "Qui doit l'accompagner dans l'histoire ?",
-    help: "Mascotte, ami, frère, sœur ou autre proche. Indiquez leur prénom et leur lien.",
-    required: false,
-    type: "textarea",
-  },
-  {
     id: "universe",
     label: "Dans quel univers l'aventure doit-elle se dérouler ?",
     help: "Forêt magique, espace, océan, château, ville fantastique…",

@@ -24,6 +24,7 @@ CAUSAL RULES
 - Treat story_seed_* as the creator's selected inspiration when present. Preserve its dream, challenge, adaptation, key moment and transformation without copying its wording mechanically.
 - When story_intent_id is present, preserve the confirmed parent intention as one coherent arc: desire -> protective doubt -> positive anticipation -> accessible first step -> progressive attempts -> the child's own courageous choice -> reward -> inner realization. Do not substitute another lesson.
 - A guide encourages, reassures or provides a tool, but never performs the decisive action or earns the reward for the child.
+- cast_participation_contract is authoritative. Every listed creator-cast participant must receive at least minimumMeaningfulScenes meaningful scene presences, and every presence needs a concrete action in that exact scene. Meet minimumPhysicalScenes with physical presences; thought, memory or voice may count only toward meaningful scenes. Distribute the cast across useful story beats instead of crowding every illustration. Never replace one creator-selected role with another character or a generic extra.
 - Show at least one imperfect or partial attempt before success. A magical mechanism may make the adventure possible but may not grant instant success.
 - Every scene after the first must list the immediately previous scene id as a prerequisite.
 - A destination cannot appear before the travel or threshold crossing that reaches it.
@@ -135,6 +136,7 @@ OUTPUT
 
 MANDATORY
 - Copy canonical names exactly.
+- Satisfy every cast_participation_contract participant. The companion shares several stages of the adventure, the guide advises without solving the climax, the ally joins an attempt or consequence, the supporter performs concrete support, and a guest receives at least one meaningful moment.
 - Copy scene_number and story_role exactly from page_plan.
 - Use only prior scene ids such as scene-1 in prerequisite_scene_ids.
 - A discover_passage event does not cross the passage and does not change location. It may be the scene transition when the whole scene is stationary, or the final character_movement event after the travelers arrive at the passage threshold.

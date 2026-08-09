@@ -111,7 +111,7 @@ function queuedRequest(project, body, safetyContract, retrying, automaticRepair 
       ...safeAnswers(body?.clarifications),
     },
     sceneEdits: safeSceneEdits(body?.sceneEdits),
-    addedCharacters: safeAddedCharacters(body?.addedCharacters),
+    addedCharacters: [],
     feedback: String(body?.feedback || "").slice(0, 2000),
     safetyContract,
   };
@@ -183,13 +183,21 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
       throw error;
     }
     const priorRequest = retrying ? generationSnapshot(project)?.request : null;
+    const requestedAddedCharacters = safeAddedCharacters(
+      retrying ? priorRequest?.addedCharacters : req.body?.addedCharacters,
+    );
+    if (requestedAddedCharacters.length) {
+      return res.status(422).json({
+        error: "Personalized characters must come from the project's reference photos",
+        code: "scenario_character_photo_required",
+      });
+    }
     const safety = await guardChildSafety({
       text: [
         childSafetyTextFromQuestionnaire(project.questionnaire),
         retrying ? priorRequest?.feedback : req.body?.feedback,
         JSON.stringify(retrying ? priorRequest?.creatorClarifications || {} : req.body?.clarifications || {}),
         JSON.stringify(retrying ? priorRequest?.sceneEdits || [] : req.body?.sceneEdits || []),
-        JSON.stringify(retrying ? priorRequest?.addedCharacters || [] : req.body?.addedCharacters || []),
       ].filter(Boolean).join("\n"),
       childAge: Number(project.questionnaire?.age),
       locale: project.locale,

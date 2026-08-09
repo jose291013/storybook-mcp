@@ -7,6 +7,7 @@ import {
   validateCharacterMovementLedger,
 } from "./characterMovementLedger.js";
 import { findUniverse } from "../config/bookOptions.js";
+import { validateStoryCastParticipation } from "./storyCastParticipation.js";
 import {
   applyCausalGraph,
   normalizeCausalGraph,
@@ -187,6 +188,7 @@ export function scenarioCharacterRegistry(normalized = {}) {
     outfitPreference: photos.find((photo) => photo.role === "child")?.outfit_preference || "auto_universe",
     outfitId: photos.find((photo) => photo.role === "child")?.outfit_id || "",
     outfitContract: photos.find((photo) => photo.role === "child")?.outfit_contract || "",
+    source: "creator_cast",
   }, ...photos.filter((photo) => photo.role !== "child").map((photo) => ({
     name: photo.name,
     role: photo.role,
@@ -195,6 +197,7 @@ export function scenarioCharacterRegistry(normalized = {}) {
     outfitPreference: photo.outfit_preference,
     outfitId: photo.outfit_id,
     outfitContract: photo.outfit_contract,
+    source: "creator_cast",
   }))].filter((character) => character.name);
   return registry.filter((character, index, all) => all.findIndex((candidate) => key(candidate.name) === key(character.name)) === index);
 }
@@ -206,6 +209,7 @@ export function normalizeStoryScenario(candidate = {}, {
   worldContract = {},
   language = "FR",
   requireCausalGraph = false,
+  castParticipationContract = null,
 } = {}) {
   const raw = candidate?.scenario || candidate;
   const expectedScenes = pagePlan.filter((page) => page.page_type === "image");
@@ -231,6 +235,7 @@ export function normalizeStoryScenario(candidate = {}, {
       relationship: canonical.relationship || supplied.relationship || "",
       initialLocation: text(supplied.initial_location),
       defaultPresenceMode: presenceMode,
+      source: canonical.source || supplied.source || "story_generated",
     }, language);
   });
   const objects = list(raw?.objects, 20).map((item) => {
@@ -387,6 +392,9 @@ export function normalizeStoryScenario(candidate = {}, {
     worldContract: worldContract && typeof worldContract === "object" && !Array.isArray(worldContract)
       ? structuredClone(worldContract)
       : {},
+    ...(Number(castParticipationContract?.version) === 1
+      ? { castParticipationContract: structuredClone(castParticipationContract) }
+      : {}),
     characters,
     wardrobePlan,
     objects,
@@ -1079,7 +1087,10 @@ function validateNarrativeObjectLifecycles(scenario = {}) {
 }
 
 export function validateStoryScenario(scenario = {}) {
-  const issues = [...validateCausalGraph(scenario)];
+  const issues = [
+    ...validateCausalGraph(scenario),
+    ...validateStoryCastParticipation(scenario),
+  ];
   if (scenario?.causalGraphRequired && !scenario?.causalGraph) {
     issues.push("scenario causal graph is required");
   }
@@ -1209,6 +1220,7 @@ export function summarizeStoryScenarioValidation(validation = {}) {
     else if (/moral|repeat/i.test(issue)) category = "repetition";
     else if (/age|vocabulary|abstraction/i.test(issue)) category = "age";
     else if (/object|states|quantity|worn|held/i.test(issue)) category = "object";
+    else if (/cast participant/i.test(issue)) category = "cast";
     else if (/location|transition|depart|travel|appears|physical/i.test(issue)) category = "travel";
     else if (/order|depend|prerequisite|storyrole/i.test(issue)) category = "order";
     categories.add(category);

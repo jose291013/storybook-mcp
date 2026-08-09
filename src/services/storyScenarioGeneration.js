@@ -16,6 +16,7 @@ import {
   validateStoryScenarioPassageLifecycles,
 } from "./storyScenarioRepairs.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
+import { buildStoryCastParticipationContract } from "./storyCastParticipation.js";
 
 export function scenarioGenerationRoute(previousScenario = null, automaticRepair = false) {
   if (previousScenario && automaticRepair) {
@@ -213,8 +214,13 @@ export async function generateValidatedScenario({
   automaticRepairPlan = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
+  const creatorCast = scenarioCharacterRegistry(normalized);
+  const castParticipationContract = buildStoryCastParticipationContract(
+    creatorCast,
+    pagePlan.filter((page) => page.page_type === "image").length,
+  );
   const canonicalCharacters = [
-    ...scenarioCharacterRegistry(normalized),
+    ...creatorCast,
     ...(previousScenario?.characters || []),
     ...addedCharacters.map((character) => ({
       name: character.name,
@@ -233,6 +239,7 @@ export async function generateValidatedScenario({
   const input = {
     intake: normalized.answers,
     canonical_characters: canonicalCharacters,
+    cast_participation_contract: castParticipationContract,
     page_plan: pagePlan.filter((page) => page.page_type === "image"),
     creator_clarifications: creatorClarifications,
     creator_scene_edits: sceneEdits,
@@ -275,6 +282,7 @@ export async function generateValidatedScenario({
           worldContract: normalized.answers.universe_story_contract,
           language: normalized.answers.language,
           requireCausalGraph: true,
+          castParticipationContract,
         }),
         { sceneEdits, addedCharacters },
       ),
