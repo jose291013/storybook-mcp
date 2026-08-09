@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/narration-cost-attribution`
 - Production/main checkpoint: PR #144 merged at `96b66a9`; a final semantic-audit rejection after canonical repair is preserved instead of being misreported as `scenario_contract_invalid`
 - Current focused checkpoint: include successful paid Speech generation in each book's confidential economic report
-- Pull request: pending publication
+- Pull request: PR #145, published as a draft pending explicit merge authorization
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -34,9 +34,9 @@ PR #55 through PR #144 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the narration-cost pull request after the complete test suite passes.
-2. Merge only after explicit authorization while no generation is active; Render will restart.
-3. Install Calitiki Bridge `0.7.6`, generate one paid narration and verify `narration / narration:scene:*` rows in Pilotage Calitiki.
+1. Merge PR #145 only after explicit authorization while no generation is active; Render will restart.
+2. Install Calitiki Bridge `0.7.6` after deployment.
+3. Generate one paid narration and verify `narration / narration:scene:*` rows in Pilotage Calitiki.
 
 ## Protected local state
 
