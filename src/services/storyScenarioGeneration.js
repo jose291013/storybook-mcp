@@ -159,6 +159,16 @@ export async function runCanonicalCandidateGate({
     }
     candidate = check(scenario);
   }
+  if (candidate.valid && !validation.valid && finalAuditAttempted) {
+    return {
+      scenario,
+      validation,
+      evidence: null,
+      repairAttempted,
+      finalAuditAttempted,
+      semanticAuditRejected: true,
+    };
+  }
   if (!validation.valid || !candidate.valid) {
     const error = new Error(repairAttempted
       ? "The canonical scenario candidate could not be compiled after its bounded internal repair."
