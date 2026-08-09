@@ -8,35 +8,35 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/preserve-post-canonical-audit`
-- Production/main checkpoint: PR #143 merged at `54bf175`; reference photos are authoritative for personalized cast and every selected narrative role has deterministic participation requirements
-- Current focused checkpoint: preserve a final semantic-audit rejection after a successful canonical repair instead of misreporting `scenario_contract_invalid`
-- Pull request: PR #144, published as a draft pending explicit merge authorization
-- WordPress Bridge source and installed production package: `0.7.5`
+- Current branch: `codex/narration-cost-attribution`
+- Production/main checkpoint: PR #144 merged at `96b66a9`; a final semantic-audit rejection after canonical repair is preserved instead of being misreported as `scenario_contract_invalid`
+- Current focused checkpoint: include successful paid Speech generation in each book's confidential economic report
+- Pull request: PR #145, published as a draft pending explicit merge authorization
+- WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #143 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #144 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: post-canonical semantic diagnostics
+## Current product brick: paid narration cost attribution
 
-1. A canonical compiler defect may still consume the single scenario repair and receive one fresh semantic audit.
-2. When the repaired candidate compiles but that audit rejects it, the canonical gate returns the real semantic validation instead of throwing a false compiler failure.
-3. No additional AI call or repair loop is introduced; the creator receives the reviewable scenario and its actual narrative findings.
-4. A genuinely unresolved compiler defect continues to fail privately as `scenario_contract_invalid`.
+1. Each newly generated paid narration scene runs in the originating project's private cost context.
+2. The Speech endpoint has no `usage` object, so Calitiki measures the returned MP3 duration and applies the official `gpt-4o-mini-tts` text/audio rates.
+3. The WooCommerce-only report includes the narration total and marks its rows with `~` to distinguish the duration-derived estimate from provider accounting.
+4. Checkpointed scenes and cached voice samples are not counted as new book narration calls.
 
 ## Verification
 
-- Focused scenario-generation and durable-worker tests: 20/20 passing.
-- Complete `npm test`: 401/401 passing.
+- Focused narration and cost-ledger tests: 19/19 passing.
+- Complete `npm test`: 404/404 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Merge PR #144 only after explicit authorization while no generation is active; Render will restart.
-2. After deployment, retry project `551119ae-7c9b-44f6-9048-80ed4f874311` once for free.
-3. Confirm that a repaired canonical candidate either completes validly or exposes its real narrative findings without `finalIssues: []` being reported as a compiler failure.
+1. Merge PR #145 only after explicit authorization while no generation is active; Render will restart.
+2. Install Calitiki Bridge `0.7.6` after deployment.
+3. Generate one paid narration and verify `narration / narration:scene:*` rows in Pilotage Calitiki.
 
 ## Protected local state
 

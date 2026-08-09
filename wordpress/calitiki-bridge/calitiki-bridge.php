@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.5
+ * Version: 0.7.6
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.5') {
-            update_option(self::VERSION_OPTION, '0.7.5');
+        if (get_option(self::VERSION_OPTION) !== '0.7.6') {
+            update_option(self::VERSION_OPTION, '0.7.6');
             flush_rewrite_rules(false);
         }
     }
@@ -784,6 +784,9 @@ final class Calitiki_Woo_Bridge {
                     <?php if (empty($summary['pricingComplete'])) : ?>
                         <div class="notice notice-warning inline"><p>Au moins un appel utilise un modele ou un mode tarifaire non encore chiffre. Le total est donc partiel.</p></div>
                     <?php endif; ?>
+                    <?php if (!empty($summary['hasEstimatedCosts'])) : ?>
+                        <div class="notice notice-info inline"><p>La narration IA est incluse. Le service Speech ne renvoyant pas de compteur d'usage, son cout est estime a partir de la duree reelle de chaque MP3 et des tarifs officiels du modele.</p></div>
+                    <?php endif; ?>
                     <table class="widefat striped">
                         <thead><tr><th>Etape</th><th>Modele</th><th>Nature</th><th>Appels</th><th>Cout IA (USD)</th></tr></thead>
                         <tbody>
@@ -793,7 +796,7 @@ final class Calitiki_Woo_Bridge {
                                 <td><code><?php echo esc_html($row['model'] ?? ''); ?></code></td>
                                 <td><?php echo esc_html(($row['attemptKind'] ?? '') === 'normal' ? 'Fabrication normale' : 'Reprise ou correction'); ?></td>
                                 <td><?php echo esc_html((string) ($row['requestCount'] ?? 0)); ?></td>
-                                <td><?php echo esc_html(self::format_usd_micros($row['costUsdMicros'] ?? 0)); ?><?php echo empty($row['pricingComplete']) ? ' *' : ''; ?></td>
+                                <td><?php echo esc_html(self::format_usd_micros($row['costUsdMicros'] ?? 0)); ?><?php echo empty($row['pricingComplete']) ? ' *' : ''; ?><?php echo !empty($row['usageEstimated']) ? ' ~' : ''; ?></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -823,7 +826,7 @@ final class Calitiki_Woo_Bridge {
                     <?php endforeach; ?>
                     </tbody>
                 </table>
-                <p class="description">* Total partiel : une grille tarifaire manque pour au moins un appel. Les montants sont conserves en millioniemes de dollar et arrondis seulement a l'affichage.</p>
+                <p class="description">* Total partiel : une grille tarifaire manque pour au moins un appel. ~ Narration estimee depuis la duree reelle du MP3. Les montants sont conserves en millioniemes de dollar et arrondis seulement a l'affichage.</p>
             <?php endif; ?>
         </div>
         <?php

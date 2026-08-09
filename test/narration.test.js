@@ -12,8 +12,21 @@ import {
 import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
 import { attachNarrationToManifest } from "../src/services/interactiveBookManifest.js";
 import { generateNarrationAudio } from "../src/services/narrationFulfillment.js";
+import { mp3DurationMs, narrationBillableUsage } from "../src/services/narrationCostUsage.js";
 import { narrationCheckoutAllowed, narrationNextAction } from "../src/services/narrationLifecycle.js";
 import { verifyBookOrderWebhook } from "../src/services/commerceToken.js";
+import { withOpenAICostContext } from "../src/services/openaiCostContext.js";
+import { getBookCostDetails, resetMemoryCostLedgerForTests } from "../src/services/openaiCostLedger.js";
+
+function syntheticMp3(frameCount = 10) {
+  const frameLength = Math.floor((144 * 128000) / 44100);
+  const frame = Buffer.alloc(frameLength);
+  frame[0] = 0xff;
+  frame[1] = 0xfb;
+  frame[2] = 0x90;
+  frame[3] = 0x00;
+  return Buffer.concat(Array.from({ length: frameCount }, () => frame));
+}
 
 test("narration lifecycle allows replacement but prevents duplicate generation", () => {
   assert.equal(narrationNextAction(null), "purchase");
@@ -73,6 +86,46 @@ test("Spanish narration requests Castilian delivery while preserving the exact p
   assert.equal(request.input, "Noa cruzo el cielo azul. ¿Que encontraria alli?");
   assert.match(request.instructions, /European Spanish from Spain \(es-ES\)/);
   assert.match(request.instructions, /without answering it/);
+});
+
+test("narration cost usage is derived from the real MP3 duration", () => {
+  const audio = syntheticMp3(10);
+  const duration = mp3DurationMs(audio);
+  const usage = narrationBillableUsage({ text: "Bonjour Noa", instructions: "Read exactly", audio });
+  assert.ok(duration >= 260 && duration <= 262);
+  assert.equal(usage.audioDurationMs, duration);
+  assert.equal(usage.outputAudioTokens, 6);
+  assert.equal(usage.estimated, true);
+});
+
+test("paid narration Speech usage is attributed to the current private book cost context", async () => {
+  resetMemoryCostLedgerForTests();
+  const audio = syntheticMp3(100);
+  await withOpenAICostContext({
+    projectId: "project-narration-cost",
+    runId: "narration-order:900",
+    workflow: "narration",
+    stage: "narration:scene:1",
+  }, () => generateNarrationAudio({
+    text: "Noa ouvrit doucement la porte.",
+    language: "fr-FR",
+    voiceId: "coral",
+    styleId: "gentle",
+  }, {
+    model: "gpt-4o-mini-tts",
+    openai: { audio: { speech: { create: async () => ({
+      _request_id: "req-narration-cost",
+      arrayBuffer: async () => audio.buffer.slice(audio.byteOffset, audio.byteOffset + audio.byteLength),
+    }) } } },
+  }));
+  const details = await getBookCostDetails("project-narration-cost");
+  assert.equal(details.summary.requestCount, 1);
+  assert.equal(details.summary.hasEstimatedCosts, true);
+  assert.equal(details.breakdown[0].workflow, "narration");
+  assert.equal(details.breakdown[0].stage, "narration:scene:1");
+  assert.equal(details.breakdown[0].model, "gpt-4o-mini-tts");
+  assert.equal(details.breakdown[0].usageEstimated, true);
+  assert.ok(details.breakdown[0].costUsdMicros > 0);
 });
 
 test("a paid narration order is checkpointed and attached only when ready", async () => {

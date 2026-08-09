@@ -74,6 +74,16 @@ test("GPT Image 2 calculation uses separate text, image and output-image rates",
   assert.equal(result.costUsdMicros, 127500);
 });
 
+test("GPT-4o mini TTS calculation uses text input and audio output token rates", () => {
+  const result = calculateOpenAICost({
+    model: "gpt-4o-mini-tts",
+    endpoint: "audio.speech.create",
+    usage: { inputTokens: 1000, outputAudioTokens: 1250 },
+  });
+  assert.equal(result.pricingComplete, true);
+  assert.equal(result.costUsdMicros, 15600);
+});
+
 test("unknown prices remain visible as incomplete rather than silently estimated", () => {
   const result = calculateOpenAICost({
     model: "future-model",
