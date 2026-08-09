@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/preserve-post-canonical-audit`
 - Production/main checkpoint: PR #143 merged at `54bf175`; reference photos are authoritative for personalized cast and every selected narrative role has deterministic participation requirements
 - Current focused checkpoint: preserve a final semantic-audit rejection after a successful canonical repair instead of misreporting `scenario_contract_invalid`
-- Pull request: not published yet
+- Pull request: PR #144, published as a draft pending explicit merge authorization
 - WordPress Bridge source and installed production package: `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -34,7 +34,7 @@ PR #55 through PR #143 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Run the complete test suite and publish the focused correction.
+1. Merge PR #144 only after explicit authorization while no generation is active; Render will restart.
 2. After deployment, retry project `551119ae-7c9b-44f6-9048-80ed4f874311` once for free.
 3. Confirm that a repaired canonical candidate either completes validly or exposes its real narrative findings without `finalIssues: []` being reported as a compiler failure.
 
