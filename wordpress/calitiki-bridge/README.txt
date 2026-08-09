@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.7.5
+Stable tag: 0.7.6
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -70,6 +70,8 @@ Dans Mes créations Calitiki, chaque livre personnalisé propose aussi le bouton
 Chaque bouton renouvelle la session client puis ouvre directement le bon projet. Le lien « Ouvrir mon livre » de l’e-mail de fin de génération suit le même parcours et affiche immédiatement la preview terminée.
 
 == Narration IA optionnelle ==
+
+Le cout de la narration payee est inclus dans le pilotage economique interne du livre. Comme l'endpoint Speech renvoie le MP3 sans compteur d'usage, ce montant est signale par `~` et calcule depuis la duree reelle du fichier avec la grille tarifaire officielle du modele.
 
 Créez un produit variable et virtuel avec le slug `narration-ia-calitiki` et le SKU `CAL-NARRATION`. Ajoutez les mêmes variations de pages que pour l’eBook (24, 28, 32, 36, 40 et 44 pages) et fixez librement leur prix.
 Le client choisit la voix et le style depuis « Mes créations Calitiki ». Le produit ne peut pas être ajouté directement sans cette configuration signée. La génération démarre uniquement après paiement et ne consomme jamais la remise liée aux crédits d’aperçu.

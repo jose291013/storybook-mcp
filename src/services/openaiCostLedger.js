@@ -30,10 +30,9 @@ function endpointWorkflow(endpoint, context) {
   return context.workflow || "book_generation";
 }
 
-export async function recordOpenAIResponse({ endpoint, request, response }) {
+async function recordOpenAIUsage({ endpoint, request, response, usage }) {
   const context = currentOpenAICostContext();
-  if (!context?.projectId || !response?.usage) return null;
-  const usage = extractBillableUsage(response);
+  if (!context?.projectId || !usage) return null;
   const model = modelFrom(request, response);
   const serviceTier = clean(response?.service_tier || request?.service_tier || "standard", 40);
   const pricing = calculateOpenAICost({ model, endpoint, serviceTier, usage });
@@ -84,11 +83,38 @@ export async function recordOpenAIResponse({ endpoint, request, response }) {
   return rows.length ? event : null;
 }
 
+export async function recordOpenAIResponse({ endpoint, request, response }) {
+  if (!response?.usage) return null;
+  return recordOpenAIUsage({
+    endpoint,
+    request,
+    response,
+    usage: extractBillableUsage(response),
+  });
+}
+
+export async function recordEstimatedOpenAIUsage(payload) {
+  return recordOpenAIUsage(payload);
+}
+
 export async function safelyRecordOpenAIResponse(payload) {
   try {
     return await recordOpenAIResponse(payload);
   } catch (error) {
     console.warn("[cost-ledger] usage record failed", JSON.stringify({
+      projectId: currentOpenAICostContext()?.projectId || "",
+      endpoint: clean(payload?.endpoint, 120),
+      error: clean(error?.message || error, 300),
+    }));
+    return null;
+  }
+}
+
+export async function safelyRecordEstimatedOpenAIUsage(payload) {
+  try {
+    return await recordEstimatedOpenAIUsage(payload);
+  } catch (error) {
+    console.warn("[cost-ledger] estimated usage record failed", JSON.stringify({
       projectId: currentOpenAICostContext()?.projectId || "",
       endpoint: clean(payload?.endpoint, 120),
       error: clean(error?.message || error, 300),
@@ -111,11 +137,13 @@ function memorySummary(projectId = "") {
       reworkCostUsdMicros: 0,
       requestCount: 0,
       pricingComplete: true,
+      hasEstimatedCosts: false,
       lastActivityAt: event.createdAt,
     };
     current.totalCostUsdMicros += event.costUsdMicros;
     current.requestCount += 1;
     current.pricingComplete = current.pricingComplete && event.pricingComplete;
+    current.hasEstimatedCosts = current.hasEstimatedCosts || event.usage?.estimated === true;
     current.lastActivityAt = current.lastActivityAt > event.createdAt ? current.lastActivityAt : event.createdAt;
     if (event.attemptKind === "normal") current.normalCostUsdMicros += event.costUsdMicros;
     else current.reworkCostUsdMicros += event.costUsdMicros;
@@ -135,6 +163,7 @@ function summaryRow(row) {
     reworkCostUsdMicros: Number(row.rework_cost_usd_micros || 0),
     requestCount: Number(row.request_count || 0),
     pricingComplete: row.pricing_complete === true,
+    hasEstimatedCosts: row.has_estimated_costs === true,
     lastActivityAt: row.last_activity_at?.toISOString?.() || row.last_activity_at || null,
   };
 }
@@ -158,6 +187,7 @@ export async function listBookCostSummaries({ projectId = "", limit = 100 } = {}
        SUM(CASE WHEN event.attempt_kind<>'normal' THEN event.cost_usd_micros ELSE 0 END)::bigint AS rework_cost_usd_micros,
        COUNT(*)::integer AS request_count,
        BOOL_AND(event.pricing_complete) AS pricing_complete,
+       BOOL_OR(COALESCE((event.usage->>'estimated')::boolean,false)) AS has_estimated_costs,
        MAX(event.created_at) AS last_activity_at
      FROM openai_cost_events AS event
      LEFT JOIN book_projects AS project ON project.id=event.project_id
@@ -176,14 +206,20 @@ export async function getBookCostDetails(projectId) {
   if (!database) {
     return {
       summary: summaries[0] || null,
-      breakdown: memoryEvents.filter((event) => event.projectId === projectId),
+      breakdown: memoryEvents
+        .filter((event) => event.projectId === projectId)
+        .map((event) => ({
+          ...event,
+          usageEstimated: event.usage?.estimated === true,
+        })),
     };
   }
   const { rows } = await database.query(
     `SELECT workflow,stage,attempt_kind,model,endpoint,
        SUM(cost_usd_micros)::bigint AS cost_usd_micros,
        COUNT(*)::integer AS request_count,
-       BOOL_AND(pricing_complete) AS pricing_complete
+       BOOL_AND(pricing_complete) AS pricing_complete,
+       BOOL_OR(COALESCE((usage->>'estimated')::boolean,false)) AS usage_estimated
      FROM openai_cost_events
      WHERE project_id=$1
      GROUP BY workflow,stage,attempt_kind,model,endpoint
@@ -201,6 +237,7 @@ export async function getBookCostDetails(projectId) {
       costUsdMicros: Number(row.cost_usd_micros || 0),
       requestCount: Number(row.request_count || 0),
       pricingComplete: row.pricing_complete === true,
+      usageEstimated: row.usage_estimated === true,
     })),
   };
 }

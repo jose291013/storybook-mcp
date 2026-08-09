@@ -1,4 +1,4 @@
-export const OPENAI_PRICE_VERSION = "openai-standard-2026-07-30-luna-reduction";
+export const OPENAI_PRICE_VERSION = "openai-standard-2026-08-10-tts-duration";
 
 const TEXT_PRICES = [
   { pattern: /^gpt-5\.6-sol(?:-|$)/, input: 5, cached: 0.5, cacheWrite: 6.25, output: 30, longInput: 10, longCached: 1, longCacheWrite: 12.5, longOutput: 45 },
@@ -13,6 +13,10 @@ const IMAGE_PRICES = [
   { pattern: /^gpt-image-1\.5(?:-|$)/, textInput: 5, textCached: 1.25, imageInput: 8, imageCached: 2, imageOutput: 32 },
   { pattern: /^gpt-image-1-mini(?:-|$)/, textInput: 2, textCached: 0.2, imageInput: 2.5, imageCached: 0.25, imageOutput: 8 },
   { pattern: /^gpt-image-1(?:-|$)/, textInput: 5, textCached: 1.25, imageInput: 10, imageCached: 2.5, imageOutput: 40 },
+];
+
+const SPEECH_PRICES = [
+  { pattern: /^gpt-4o-mini-tts(?:-|$)/, textInput: 0.6, audioOutput: 12 },
 ];
 
 function integer(value) {
@@ -89,9 +93,24 @@ export function calculateOpenAICost({ model, endpoint = "", serviceTier = "stand
     cachedTextTokens: integer(usage?.cachedTextTokens),
     cachedImageTokens: integer(usage?.cachedImageTokens),
     outputImageTokens: integer(usage?.outputImageTokens),
+    outputAudioTokens: integer(usage?.outputAudioTokens),
   };
   if (!normalizedModel || normalizedTier !== "standard") {
     return { costUsdMicros: 0, pricingComplete: false, priceVersion: OPENAI_PRICE_VERSION };
+  }
+
+  const speechPrice = SPEECH_PRICES.find((price) => price.pattern.test(normalizedModel));
+  if (speechPrice && /audio\.speech/.test(endpoint)) {
+    if (billable.inputTokens === 0 && billable.outputAudioTokens === 0) {
+      return { costUsdMicros: 0, pricingComplete: false, priceVersion: OPENAI_PRICE_VERSION };
+    }
+    const cost = tokenCost(billable.inputTokens, speechPrice.textInput)
+      + tokenCost(billable.outputAudioTokens, speechPrice.audioOutput);
+    return {
+      costUsdMicros: dollarsToMicros(cost),
+      pricingComplete: true,
+      priceVersion: OPENAI_PRICE_VERSION,
+    };
   }
 
   const imagePrice = IMAGE_PRICES.find((price) => price.pattern.test(normalizedModel));

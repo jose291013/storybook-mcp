@@ -6,6 +6,9 @@ import { projectStore } from "./projectStore.js";
 import { buildInteractiveBookManifest } from "./interactiveBookManifest.js";
 import { NARRATION_CATALOG_VERSION, narrationChoice, narrationInstruction } from "../config/narrationOptions.js";
 import { logMemory } from "./runtimeMemory.js";
+import { safelyRecordEstimatedOpenAIUsage } from "./openaiCostLedger.js";
+import { withOpenAICostContext } from "./openaiCostContext.js";
+import { narrationBillableUsage } from "./narrationCostUsage.js";
 
 const MODEL = () => String(process.env.NARRATION_TTS_MODEL || "gpt-4o-mini-tts");
 const FORMAT = "mp3";
@@ -18,16 +21,33 @@ function safeSceneFilename(sceneId, index) {
 export async function generateNarrationAudio({ text, language, voiceId, styleId }, dependencies = {}) {
   if (!narrationChoice(voiceId, styleId)) throw new Error("Invalid narration choice");
   const client = dependencies.openai || createOpenAIClient({ kind: "narration" });
-  const response = await client.audio.speech.create({
+  const request = {
     model: dependencies.model || MODEL(),
     voice: voiceId,
     input: String(text || "").trim(),
     instructions: narrationInstruction(styleId, language),
     response_format: FORMAT,
-  });
+  };
+  const response = await client.audio.speech.create(request);
   const encoded = await response.arrayBuffer();
   if (!encoded?.byteLength) throw new Error("The narration model returned no audio");
-  return Buffer.from(encoded);
+  const audio = Buffer.from(encoded);
+  const usage = narrationBillableUsage({
+    text: request.input,
+    instructions: request.instructions,
+    audio,
+  });
+  if (usage && !response?.usage) {
+    // Speech returns binary audio without response.usage. Record a transparent
+    // duration-based estimate without ever blocking the paid generation.
+    void safelyRecordEstimatedOpenAIUsage({
+      endpoint: "audio.speech.create",
+      request,
+      response,
+      usage,
+    });
+  }
+  return audio;
 }
 
 function orderIdentity(input) {
@@ -64,7 +84,18 @@ export async function generatePaidNarration(input, dependencies = {}) {
         await orders.updateDelivery(identity, { fulfillmentStatus: "generating", deliveryManifest: manifest });
         continue;
       }
-      const audio = await generateNarrationAudio({ text: scene.text, language: book.language, voiceId: choice.voice.id, styleId: choice.style.id }, dependencies);
+      const audio = await withOpenAICostContext({
+        projectId: project.id,
+        runId: `narration-order:${identity.orderId}`,
+        workflow: "narration",
+        stage: `narration:scene:${index + 1}`,
+        attemptKind: "normal",
+      }, () => generateNarrationAudio({
+        text: scene.text,
+        language: book.language,
+        voiceId: choice.voice.id,
+        styleId: choice.style.id,
+      }, dependencies));
       await storage.put({ key, body: audio, contentType: "audio/mpeg" });
       manifest.scenes.push({ sceneId: scene.id, filename, storageKey: key, byteSize: audio.length });
       await orders.updateDelivery(identity, { fulfillmentStatus: "generating", deliveryManifest: manifest });
