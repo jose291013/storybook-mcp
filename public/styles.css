@@ -470,7 +470,7 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .reader-pages.is-spread { grid-template-columns: 1fr 1fr; gap: 3px; padding: 12px; }.reader-pages.is-single { width: 50%; margin: auto; padding: 12px; }
 .reader-book.is-cover .reader-pages.is-single { width: 100%; }
 .reader-page { position: relative; margin: 0; aspect-ratio: 1; overflow: hidden; background: #fff8ed; border-radius: 4px; }
-.reader-page img { width: 100%; height: 100%; display: block; object-fit: cover; user-select: none; }
+.reader-page img { width: 100%; height: 100%; display: block; object-fit: contain; background: #fff8ed; user-select: none; }
 .reader-page span { position: absolute; right: 10px; bottom: 9px; padding: 4px 8px; border-radius: 99px; background: rgba(255,255,255,.86); color: #314147; font-size: 10px; font-style: normal; }
 .reader-page em { position: absolute; left: 10px; bottom: 9px; padding: 4px 8px; border-radius: 99px; background: rgba(255,255,255,.72); color: rgba(79,58,51,.48); font-family: Georgia, serif; font-size: 10px; font-style: normal; font-weight: 900; letter-spacing: .1em; pointer-events: none; }
 .reader-cover em { background: rgba(24,45,49,.58); color: rgba(255,255,255,.78); }.reader-cover span { display: none; }
