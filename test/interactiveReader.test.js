@@ -74,7 +74,7 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.equal(JSON.parse(manifest).display, "standalone");
   assert.match(app, /\/interactive-book/);
   assert.match(app, /kind === "text_only"/);
-  assert.match(worker, /calitiki-interactive-demo-v21/);
+  assert.match(worker, /calitiki-interactive-demo-v22/);
   assert.match(app, /scene\.audio/);
   assert.match(app, /Narration IA/);
   assert.doesNotMatch(html, /rel="manifest"/);
@@ -101,6 +101,8 @@ test("interactive reader is an isolated installable PWA with the approved naviga
   assert.match(styles, /@media \(min-width: 521px\) and \(max-width: 979px\)/);
   assert.match(styles, /@media \(min-width: 980px\)/);
   assert.match(styles, /\.revealed-view\.is-text-collapsed > img[^}]*width: 100%/);
+  assert.match(styles, /\.revealed-view > img[^}]*object-fit: contain[^}]*object-position: center top/);
+  assert.match(styles, /@media \(min-width: 980px\)[^]*\.revealed-view > img[^}]*object-position: center/);
   assert.match(styles, /\.text-overlay[^}]*width: calc\(42% - 56px\)/);
   assert.match(app, /classList\.toggle\("is-text-collapsed", !state\.textVisible\)/);
   assert.match(styles, /\.story-text-revealed[^}]*flex: 1 1 auto[^}]*max-height: none/);

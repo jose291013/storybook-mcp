@@ -1754,6 +1754,7 @@ test("cover titles use a compact balanced block and the reader exposes a curved 
   assert.match(cssSource, /@keyframes pageCurlForward/);
   assert.match(cssSource, /border-radius: 34%/);
   assert.match(cssSource, /pageCurlShade/);
+  assert.match(cssSource, /\.reader-page img[^}]*object-fit: contain/);
 });
 
 test("ebook PDF preserves square pages and includes cover plus interiors", async () => {

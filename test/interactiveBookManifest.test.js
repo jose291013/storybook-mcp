@@ -42,7 +42,7 @@ test("a completed 24-page project becomes a private full interactive book", () =
   assert.equal(book.scenes.length, 14);
   assert.deepEqual(book.scenes.map(({ kind }) => kind), ["cover", "text_only", ...Array(11).fill("scene"), "text_only"]);
   assert.equal(book.scenes[2].text, "Texto definitivo de la página 2");
-  assert.match(book.scenes[2].image, /^\/api\/projects\/11111111-1111-4111-8111-111111111111\/preview-assets\//);
+  assert.equal(book.scenes[2].image, "/api/projects/11111111-1111-4111-8111-111111111111/preview-assets/layout-3.png");
   assert.ok(book.scenes.filter(({ image }) => image).every(({ image }) => image.startsWith("/api/projects/")));
   assert.equal(JSON.stringify(book).includes("image_prompt"), false);
 });

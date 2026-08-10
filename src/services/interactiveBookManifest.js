@@ -90,12 +90,13 @@ export function buildInteractiveBookManifest(project) {
     const textPage = pages.find((page) => pageType(page) === "text");
     const imagePage = pages.find((page) => pageType(page) === "image");
     const text = String(textPage?.text || "").trim();
-    // Older paid previews only kept the composed illustration page in private
-    // storage. Reusing it avoids a new image generation and preserves privacy.
+    // The composed preview is the authoritative 21 x 21 cm page seen by the
+    // creator and used for print. Prefer it so the interactive reader preserves
+    // that exact square framing; the raw image remains a legacy fallback.
     const image = privateAsset(
       project.id,
-      imagePage?.imageUrl || imagePage?.previewUrl,
-      imagePage?.imageStorageKey || imagePage?.storageKey,
+      imagePage?.previewUrl || imagePage?.imageUrl,
+      imagePage?.storageKey || imagePage?.imageStorageKey,
     );
     if (!text || !image) {
       issues.push(`Spread ${spread} is missing ${!text ? "text" : "its private illustration"}`);
