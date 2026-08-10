@@ -36,6 +36,8 @@ SCENE CONTRACTS
 - Record required quantities and physical scale literally. "Several children" requires at least three visible children; a "large slide" must dominate the play area and cannot be a small toddler slide.
 - Record forbidden substitutions and contradictions explicitly.
 - Keep continuity with the previous and next scene without illustrating a different moment.
+- Treat every scene as a strict before/during/after causal frame. The previous scene's after location is this scene's before location, and this scene's after location is the next scene's inherited location. Never skip discovery, preparation, crossing or arrival.
+- Return causal_frame.visible_phase as exactly before, during or after, and causal_frame.visible_location as the location actually visible in that single instant. A before image cannot show the destination; an after image cannot show characters still at the origin; a during image may show only one readable crossing instant.
 - Make the exact visible instant express the scene's dominant emotion and emotional shift through posture, expression, distance, choice or consequence instead of an abstract explanation.
 - Copy the matching approved scene's object states into object_states. A held wearable is explicitly not worn and has quantity 1. Planted, consumed, transformed, destroyed and used-up states are literal and cannot be replaced by a new intact copy. Nonphysical thoughts, memories and voices never enter named_characters because they must not be drawn as physically present.
 - The exact physical character set from the matching approved scene is authoritative for named_characters. A thought, memory or voice may be mentioned only in reader prose and must never touch, approach, travel, stand in the setting or become the subject or target of a visible action.
@@ -61,6 +63,7 @@ OUTPUT
     "object_states": [{"name":"object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind","quantity":1,"instruction":"exact visual rule"}],
     "spatial_relationships": ["who is where relative to whom"],
     "forbidden_elements": ["specific wrong substitution or contradiction"],
+    "causal_frame": {"visible_phase":"before | during | after","visible_location":"exact visible location"},
     "continuity_from_previous": "state carried into this scene",
     "continuity_to_next": "state established for the next scene"
   }]

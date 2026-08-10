@@ -10,7 +10,7 @@ function list(value, maximum = 20) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
 }
 
-export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 1;
+export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 2;
 
 export function versionedStoryPlanAuditStep(step = "story-plan-audit") {
   const prefix = `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:`;
@@ -57,6 +57,26 @@ export function authoritativeSceneContractForAudit(contract = {}) {
     })),
     spatial_relationships: list(contract?.spatial_relationships, 12).map((relationship) => clean(relationship)),
     forbidden_elements: list(contract?.forbidden_elements, 12).map((element) => clean(element)),
+    causal_frame: contract?.causal_frame ? {
+      before: {
+        location: clean(contract.causal_frame?.before?.location),
+        inherited_from_scene: Math.max(0, Number(contract.causal_frame?.before?.inherited_from_scene || 0)),
+      },
+      during: {
+        action: clean(contract.causal_frame?.during?.action),
+        transition_kind: clean(contract.causal_frame?.during?.transition_kind),
+        transition_mechanism: clean(contract.causal_frame?.during?.transition_mechanism),
+        transition_mechanism_id: clean(contract.causal_frame?.during?.transition_mechanism_id),
+        from: clean(contract.causal_frame?.during?.from),
+        to: clean(contract.causal_frame?.during?.to),
+      },
+      after: {
+        location: clean(contract.causal_frame?.after?.location),
+        handed_to_scene: Math.max(0, Number(contract.causal_frame?.after?.handed_to_scene || 0)),
+      },
+      visible_phase: clean(contract.causal_frame?.visible_phase),
+      visible_location: clean(contract.causal_frame?.visible_location),
+    } : null,
   };
 }
 
@@ -138,10 +158,46 @@ export function deterministicStoryPlanIssues({
       || key(character?.relationship) === "hero"
     ))
     .map((character) => key(character.name)));
+  let previousContract = null;
   for (const contract of authoritativeSceneContracts) {
     const sceneNumber = Number(contract?.scene_number || 0);
     const approvedScene = approvedScenario.scenes?.find((scene) => Number(scene?.sceneNumber) === sceneNumber);
     if (!approvedScene) continue;
+    const frame = contract.causal_frame;
+    const transition = approvedScene.transition || {};
+    const supportsCausalFrame = Boolean(approvedScene.locationBefore && approvedScene.locationAfter);
+    const expectedPhaseLocations = new Set(
+      frame?.visible_phase === "before"
+        ? [key(approvedScene.locationBefore)]
+        : frame?.visible_phase === "after"
+          ? [key(approvedScene.locationAfter)]
+          : [
+            key(approvedScene.locationBefore),
+            key(approvedScene.locationAfter),
+            key(transition.mechanism),
+          ].filter(Boolean),
+    );
+    if (supportsCausalFrame && (!frame
+      || key(frame.before?.location) !== key(approvedScene.locationBefore)
+      || key(frame.after?.location) !== key(approvedScene.locationAfter)
+      || key(frame.during?.transition_kind) !== key(transition.kind || "none")
+      || key(frame.during?.transition_mechanism_id) !== key(transition.mechanismId || "")
+      || !expectedPhaseLocations.has(key(frame.visible_location)))) {
+      issues.push({
+        sceneNumber,
+        code: "causal_frame_mismatch",
+        explanation: "Restore the approved before/during/after locations, transition identity and visible instant in the scene contract.",
+      });
+    }
+    if (supportsCausalFrame
+      && previousContract?.causal_frame
+      && key(previousContract.causal_frame.after?.location) !== key(frame?.before?.location)) {
+      issues.push({
+        sceneNumber,
+        code: "adjacent_scene_discontinuity",
+        explanation: `Scene ${sceneNumber} must begin where scene ${sceneNumber - 1} ended; show the approved journey before any arrival.`,
+      });
+    }
     const text = String(pageTexts?.[contract.text_page_number] || "");
     const speechSegments = Array.isArray(speechSegmentsByPage?.[contract.text_page_number])
       ? speechSegmentsByPage[contract.text_page_number]
@@ -207,6 +263,7 @@ export function deterministicStoryPlanIssues({
         });
       }
     }
+    previousContract = contract;
   }
   return issues.slice(0, 8);
 }

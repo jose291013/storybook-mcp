@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-10
 
+## Scene causal-frame continuity checkpoint
+
+The final whole-book plan now preserves a deterministic before/during/after causal frame for every modern approved scenario scene. The frame is derived from the approved scenario rather than authored freely: it carries the incoming location, exact approved action, transition kind and stable mechanism id, outgoing location, one visible phase and one visible location. The deterministic plan audit rejects a frame that diverges from the approved scene and rejects any adjacent handoff where scene N's outgoing location is not scene N+1's incoming location. Legacy scenarios without structured before/after locations remain readable under their compatibility path.
+
+The authoritative audit contract and the compact image contract both include this causal frame. Reader prose and the single illustrated instant must therefore agree on whether the characters are before, during or after a crossing; an image prompt may not show a destination before its approved preparation or passage. These objective defects enter the existing bounded whole-book repair and fresh-audit path before any interior image generation. They are internal quality failures, not creator questions; creator review remains reserved for genuine creative ambiguity or a bounded repair that cannot determine one safe canonical result.
+
 ## Narrative V2 delivery checkpoint
 
 Before a fresh scenario is shown to the creator, its final audited candidate must compile into the deterministic NarrativeBookSpec contract. One bounded internal canonical repair and one fresh semantic audit may resolve a mechanical compiler finding. A remaining compiler defect interrupts scenario preparation as a freely retryable technical failure; it is never exposed as red scene cards asking the parent to diagnose hidden state. The successful candidate stores only bounded private compiler evidence until explicit approval. Child Safety and Story Sensitivity remain independent, immutable gates.
