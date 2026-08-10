@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `agent/scene-causal-continuity`
 - Production/main checkpoint: PR #146 merged at `9ae95ed`; complete 21 x 21 cm pages are preserved without cropping in creator previews and the interactive reader
 - Current focused checkpoint: deterministic before/during/after continuity across the whole-book scene plan
-- Pull request: pending publication
+- Pull request: #148 open and ready for merge
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
