@@ -176,6 +176,17 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
   const approvedSubjectAction = approvedPhysical.find(
     (presence) => key(presence?.name) === key(lockedSubject),
   )?.action;
+  const approvedScene = expected?.approved_scene || null;
+  const previousScene = expected?.previous_approved_scene || null;
+  const nextScene = expected?.next_approved_scene || null;
+  const visiblePhase = ["before", "during", "after"].includes(key(raw?.causal_frame?.visible_phase))
+    ? key(raw.causal_frame.visible_phase)
+    : (approvedScene?.transition?.kind && approvedScene.transition.kind !== "none" ? "during" : "after");
+  const visibleLocation = visiblePhase === "before"
+    ? approvedScene?.locationBefore
+    : visiblePhase === "after"
+      ? approvedScene?.locationAfter
+      : String(raw?.causal_frame?.visible_location || approvedScene?.locationAfter || approvedScene?.locationBefore || "").trim();
   return {
     spread_number: expected.spread_number,
     scene_number: expected.scene_number,
@@ -216,6 +227,26 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
       ...list(raw?.forbidden_elements).map(String),
       ...nonphysicalRules,
     ])],
+    causal_frame: approvedScene ? {
+      before: {
+        location: String(approvedScene.locationBefore || "").trim(),
+        inherited_from_scene: Number(previousScene?.sceneNumber || 0),
+      },
+      during: {
+        action: String(approvedScene.action || "").trim(),
+        transition_kind: String(approvedScene.transition?.kind || "none").trim(),
+        transition_mechanism: String(approvedScene.transition?.mechanism || "").trim(),
+        transition_mechanism_id: String(approvedScene.transition?.mechanismId || "").trim(),
+        from: String(approvedScene.transition?.from || approvedScene.locationBefore || "").trim(),
+        to: String(approvedScene.transition?.to || approvedScene.locationAfter || "").trim(),
+      },
+      after: {
+        location: String(approvedScene.locationAfter || "").trim(),
+        handed_to_scene: Number(nextScene?.sceneNumber || 0),
+      },
+      visible_phase: visiblePhase,
+      visible_location: String(visibleLocation || "").trim(),
+    } : null,
     continuity_from_previous: String(raw?.continuity_from_previous || "").trim(),
     continuity_to_next: String(raw?.continuity_to_next || "").trim(),
   };
@@ -245,6 +276,7 @@ export async function storyScenePlannerAgent({
   const textByPage = new Map(Object.entries(pageTexts || {}).map(([page, text]) => [Number(page), String(text || "")]));
   const spreads = (blueprint?.pages || []).filter((page) => page.page_type === "image").map((imagePage) => {
     const textPage = blueprint.pages.find((page) => page.spread_number === imagePage.spread_number && page.page_type === "text");
+    const approvedScene = approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number)) || null;
     return textPage ? {
       spread_number: imagePage.spread_number,
       scene_number: imagePage.scene_number,
@@ -254,7 +286,9 @@ export async function storyScenePlannerAgent({
       prose: textByPage.get(textPage.page_number) || "",
       planned_image: imagePage.image_prompt || "",
       planned_cast: imagePage.cast_present || [],
-      approved_scene: approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number)) || null,
+      approved_scene: approvedScene,
+      previous_approved_scene: approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number) - 1) || null,
+      next_approved_scene: approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number) + 1) || null,
     } : null;
   }).filter(Boolean);
   const response = await runAgent({
@@ -355,6 +389,7 @@ export function sceneContractImagePrompt({
     generic ? `GENERIC CHARACTERS: ${generic}` : "",
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",
     objectStates ? `AUTHORITATIVE OBJECT STATES: ${objectStates}. Each object has exactly one state. A held wearable is not also worn; never duplicate it.` : "",
+    compact.causal_frame ? `CAUSAL INSTANT: before location ${compact.causal_frame.before_location}; approved action ${compact.causal_frame.approved_action}; transition ${compact.causal_frame.transition_kind}${compact.causal_frame.transition_mechanism ? ` through ${compact.causal_frame.transition_mechanism}` : ""}; after location ${compact.causal_frame.after_location}. Illustrate ONLY the ${compact.causal_frame.visible_phase} phase at ${compact.causal_frame.visible_location}. Never show a destination before the crossing or preparation that establishes it.` : "",
     compact.spatial_relationships.length ? `SPATIAL RELATIONSHIPS: ${compact.spatial_relationships.join(" | ")}` : "",
     compact.forbidden_elements.length ? `FORBIDDEN SUBSTITUTIONS OR ELEMENTS: ${compact.forbidden_elements.join(" | ")}` : "",
     stylePrompt ? `LOCKED RENDERING STYLE: ${neutralizeImageText(stylePrompt, aliases)}` : "",

@@ -169,6 +169,134 @@ test("the plan audit sees only the contract that image generation can render", (
   assert.equal(JSON.stringify(contract).includes("holds the doll in her arms at the dock"), false);
 });
 
+test("scene contracts lock one visible instant to the approved before during after frame", () => {
+  const contract = normalizeSceneContract({
+    causal_frame: {
+      visible_phase: "before",
+      visible_location: "jardin de corail",
+    },
+  }, {
+    spread_number: 2,
+    scene_number: 2,
+    text_page_number: 4,
+    image_page_number: 5,
+    approved_scene: {
+      sceneNumber: 2,
+      locationBefore: "maison de Bastien",
+      locationAfter: "jardin de corail",
+      action: "Bastien et Maman traversent le passage aquatique.",
+      transition: {
+        kind: "cross_passage",
+        mechanism: "passage aquatique",
+        mechanismId: "passage_aquatique",
+        from: "maison de Bastien",
+        to: "jardin de corail",
+      },
+      characterPresences: [],
+      objectStates: [],
+    },
+    previous_approved_scene: { sceneNumber: 1 },
+    next_approved_scene: { sceneNumber: 3 },
+  }, canonicalCharacters);
+
+  assert.equal(contract.causal_frame.before.location, "maison de Bastien");
+  assert.equal(contract.causal_frame.during.transition_mechanism_id, "passage_aquatique");
+  assert.equal(contract.causal_frame.after.location, "jardin de corail");
+  assert.equal(contract.causal_frame.visible_phase, "before");
+  assert.equal(contract.causal_frame.visible_location, "maison de Bastien");
+});
+
+test("a crossing scene may lock its single visible instant inside the approved passage", () => {
+  const approvedScene = {
+    sceneNumber: 2,
+    locationBefore: "maison de Bastien",
+    locationAfter: "jardin de corail",
+    action: "Bastien et Maman traversent le passage aquatique.",
+    transition: {
+      kind: "cross_passage",
+      mechanism: "passage aquatique",
+      mechanismId: "passage_aquatique",
+    },
+    characterPresences: [],
+    objectStates: [],
+  };
+  const contract = normalizeSceneContract({
+    causal_frame: { visible_phase: "during", visible_location: "passage aquatique" },
+  }, {
+    spread_number: 2,
+    scene_number: 2,
+    text_page_number: 4,
+    image_page_number: 5,
+    approved_scene: approvedScene,
+  }, canonicalCharacters);
+  const issues = deterministicStoryPlanIssues({
+    approvedScenario: { scenes: [approvedScene] },
+    pageTexts: { 4: "Ils traversent le passage aquatique." },
+    sceneContracts: [contract],
+  });
+
+  assert.equal(contract.causal_frame.visible_location, "passage aquatique");
+  assert.equal(issues.some((issue) => issue.code === "causal_frame_mismatch"), false);
+});
+
+test("deterministic plan audit rejects an unexplained jump between adjacent scenes", () => {
+  const scenario = {
+    scenes: [
+      {
+        sceneNumber: 1,
+        locationBefore: "maison de Bastien",
+        locationAfter: "maison de Bastien",
+        transition: { kind: "discover_passage", mechanismId: "passage_aquatique" },
+        characterPresences: [],
+        objectStates: [],
+      },
+      {
+        sceneNumber: 2,
+        locationBefore: "maison de Bastien",
+        locationAfter: "jardin de corail",
+        transition: { kind: "cross_passage", mechanismId: "passage_aquatique" },
+        characterPresences: [],
+        objectStates: [],
+      },
+    ],
+  };
+  const contracts = [
+    {
+      scene_number: 1,
+      text_page_number: 2,
+      named_characters: [],
+      causal_frame: {
+        before: { location: "maison de Bastien" },
+        during: { transition_kind: "discover_passage", transition_mechanism_id: "passage_aquatique" },
+        after: { location: "plage" },
+        visible_phase: "after",
+        visible_location: "plage",
+      },
+    },
+    {
+      scene_number: 2,
+      text_page_number: 4,
+      named_characters: [],
+      causal_frame: {
+        before: { location: "maison de Bastien" },
+        during: { transition_kind: "cross_passage", transition_mechanism_id: "passage_aquatique" },
+        after: { location: "jardin de corail" },
+        visible_phase: "after",
+        visible_location: "jardin de corail",
+      },
+    },
+  ];
+
+  const issues = deterministicStoryPlanIssues({
+    approvedScenario: scenario,
+    pageTexts: { 2: "Le passage apparaît.", 4: "Ils arrivent dans le jardin de corail." },
+    sceneContracts: contracts,
+  });
+
+  assert.ok(issues.some((issue) => issue.code === "causal_frame_mismatch"));
+  assert.ok(issues.some((issue) => issue.code === "adjacent_scene_discontinuity"));
+});
+
 test("a new audit contract never resumes an unversioned provider response", () => {
   const legacyProviderResponses = {
     "audit:targeted:primary": {

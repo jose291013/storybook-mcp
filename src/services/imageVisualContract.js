@@ -189,6 +189,15 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
     generic_characters: genericCharacters,
     required_elements: requiredElements,
     object_states: objectStates,
+    causal_frame: contract?.causal_frame ? {
+      before_location: safe(contract.causal_frame?.before?.location),
+      approved_action: safe(contract.causal_frame?.during?.action),
+      transition_kind: safe(contract.causal_frame?.during?.transition_kind),
+      transition_mechanism: safe(contract.causal_frame?.during?.transition_mechanism),
+      after_location: safe(contract.causal_frame?.after?.location),
+      visible_phase: safe(contract.causal_frame?.visible_phase),
+      visible_location: safe(contract.causal_frame?.visible_location),
+    } : null,
     spatial_relationships: safetyFallback ? [] : list(contract.spatial_relationships, 12).map(safe),
     forbidden_elements: safetyFallback ? [] : list(contract.forbidden_elements, 12).map(safe),
   };
