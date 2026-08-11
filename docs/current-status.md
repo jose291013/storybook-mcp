@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `main`
 - Production/main checkpoint: PR #150 merged at `d80e7b8`; intention perspectives are preserved and capped at three server-authorized batches
 - Current focused checkpoint: deterministic camera-side world topology
-- Pull request: not yet published
+- Pull request: #151 (`agent/camera-side-world-topology`)
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,7 +35,7 @@ PR #55 through PR #150 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish and merge the camera-side world-topology brick under the existing authorization.
+1. Merge pull request #151 under the existing authorization.
 2. Continue with the canonical unique-landmark registry and adjacent-scene checks.
 
 ## Protected local state
