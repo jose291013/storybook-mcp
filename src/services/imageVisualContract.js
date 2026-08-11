@@ -198,6 +198,24 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       visible_phase: safe(contract.causal_frame?.visible_phase),
       visible_location: safe(contract.causal_frame?.visible_location),
     } : null,
+    render_snapshot: contract?.render_snapshot ? {
+      version: Number(contract.render_snapshot?.version || 1),
+      visible_phase: safe(contract.render_snapshot?.visible_phase),
+      location: safe(contract.render_snapshot?.location),
+      physical_medium: safe(contract.render_snapshot?.physical_medium),
+      main_action: {
+        subject: safe(contract.render_snapshot?.main_action?.subject),
+        verb: safe(contract.render_snapshot?.main_action?.verb),
+        target: safe(contract.render_snapshot?.main_action?.target),
+      },
+      equipment: list(contract.render_snapshot?.equipment, 20).map((item) => ({
+        name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state), quantity: Number(item?.quantity ?? 1),
+      })),
+      visible_object_states: list(contract.render_snapshot?.visible_object_states, 30).map((item) => ({
+        name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state), quantity: Number(item?.quantity ?? 1),
+      })),
+      forbidden: list(contract.render_snapshot?.forbidden, 30).map(safe),
+    } : null,
     spatial_relationships: safetyFallback ? [] : list(contract.spatial_relationships, 12).map(safe),
     forbidden_elements: safetyFallback ? [] : list(contract.forbidden_elements, 12).map(safe),
   };

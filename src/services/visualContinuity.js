@@ -1,5 +1,6 @@
 import path from "path";
 import { buildImageCharacterAliases, compactImageSceneContract, neutralizeImageText } from "./imageVisualContract.js";
+import { wardrobeForPhysicalSnapshot } from "./physicalRenderSnapshot.js";
 
 const UPLOAD_DIR = path.resolve("data/uploads");
 
@@ -80,9 +81,14 @@ export function buildSceneContinuity({
     const photoCanon = findPhotoCanon(characterCanons, character.name, role);
     const traits = [photoCanon?.character_fingerprint, character.canon_short].filter(Boolean).join(" ");
     const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
-    const outfit = sceneWardrobe || (role === "child"
+    const rawOutfit = sceneWardrobe || (role === "child"
       ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
       : (character.outfit_lock || photoCanon?.outfit_lock || ""));
+    const outfit = wardrobeForPhysicalSnapshot(
+      rawOutfit,
+      character.name,
+      structuredSceneContract?.render_snapshot,
+    );
     const visualAlias = aliasFor(character.name);
     const visualIdentity = identityFor(character.name);
     const rules = [
@@ -132,6 +138,14 @@ export function buildSceneContinuity({
       "A generic character id is a distinct one-scene person and must never be replaced by a recurring named character or photo reference.",
       "Respect every required quantity and scale literally, and show none of the forbidden substitutions."
     );
+    if (structuredSceneContract.render_snapshot) {
+      sceneRules.push(
+        "The physical render snapshot overrides prose inference, wardrobe wording and generic universe styling for environment and conditional equipment.",
+        `VISIBLE PHYSICAL MEDIUM: ${safe(structuredSceneContract.render_snapshot.physical_medium)}.`,
+        `VISIBLE LOCATION: ${safe(structuredSceneContract.render_snapshot.location)}.`,
+        ...structuredSceneContract.render_snapshot.forbidden.map((rule) => safe(rule)),
+      );
+    }
   }
   if (castNames.length) {
     sceneRules.push(
@@ -152,7 +166,9 @@ export function buildSceneContinuity({
     );
   }
   if (visualState?.directive) sceneRules.push(safe(visualState.directive));
-  const underwaterScene = isFullyUnderwaterScene(`${pairedText} ${scenePrompt}`);
+  const underwaterScene = structuredSceneContract?.render_snapshot
+    ? structuredSceneContract.render_snapshot.physical_medium === "fully_underwater"
+    : isFullyUnderwaterScene(`${pairedText} ${scenePrompt}`);
   const underwaterPeople = selected.filter((character) => !["animal", "plush_toy"].includes(identityFor(character.name)?.entity_type));
   if (underwaterScene && underwaterPeople.length) {
     const names = underwaterPeople.map((character) => aliasFor(character.name)).filter(Boolean);

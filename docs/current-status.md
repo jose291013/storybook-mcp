@@ -8,34 +8,34 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/scene-causal-continuity`
-- Production/main checkpoint: PR #146 merged at `9ae95ed`; complete 21 x 21 cm pages are preserved without cropping in creator previews and the interactive reader
-- Current focused checkpoint: deterministic before/during/after continuity across the whole-book scene plan
-- Pull request: #148 open and ready for merge
+- Current branch: `main`
+- Production/main checkpoint: PR #148 merged at `aeaa526`; deterministic before/during/after continuity now reaches the whole-book scene plan
+- Current focused checkpoint: single physical render snapshot and conditional-equipment authority
+- Pull request: #149 (merge authorized; production verification pending)
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #146 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #148 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: causal scene-frame continuity
+## Current product brick: physical render snapshot
 
-1. Every modern scene contract derives immutable before/during/after locations and transition identity from the approved scenario.
-2. The deterministic whole-book audit rejects a wrong visible phase, wrong visible location or broken handoff between adjacent scenes.
-3. The compact image prompt receives the same causal frame and must depict only one approved instant.
-4. Legacy scenarios without structured locations remain compatible.
+1. Image generation receives only one compiled visible phase, location, physical medium and main action rather than the complete causal frame.
+2. Conditional safety equipment overrides persistent wardrobe and is stripped from the scene outfit whenever stored or absent.
+3. Structured medium replaces prose keyword inference for underwater safety and breathable rooms.
+4. Wrong medium, equipment-state conflicts, equipment duplication and multi-phase composites enter bounded automatic targeted repair.
+5. NarrativeBookSpec and compatibility planning share the versioned snapshot and invalidate older cached plans.
 
 ## Verification
 
-- Focused scene-plan tests: 14/14 passing.
-- Complete `npm test`: 407/407 passing.
+- Focused physical-snapshot and illustration-plan tests: 108/108 passing.
+- Complete `npm test`: 413/413 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Publish and merge the focused PR with explicit authorization while no generation is active; Render will restart.
-2. After deployment, generate a fresh coral-ocean preview and verify discovery, preparation, crossing, arrival and underwater breathing continuity.
+1. After deployment, generate a fresh coral-ocean preview and verify that the return workshop is breathable, each bubble exists once and stored equipment is not worn.
 
 ## Protected local state
 

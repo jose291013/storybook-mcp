@@ -3,6 +3,7 @@ import { loadPrompt } from "../services/loadPrompt.js";
 import { aliasesFromSceneContract, compactImageSceneContract, neutralizeImageText } from "../services/imageVisualContract.js";
 import { enrichFamilyAddress } from "../services/characterRelationships.js";
 import { compileStoryPlan } from "../services/storyPlanCompiler.js";
+import { compilePhysicalRenderSnapshot } from "../services/physicalRenderSnapshot.js";
 import { canonicalizeWrittenNames } from "./blueprintFiller.js";
 
 function key(value) {
@@ -187,7 +188,7 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
     : visiblePhase === "after"
       ? approvedScene?.locationAfter
       : String(raw?.causal_frame?.visible_location || approvedScene?.locationAfter || approvedScene?.locationBefore || "").trim();
-  return {
+  const contract = {
     spread_number: expected.spread_number,
     scene_number: expected.scene_number,
     text_page_number: expected.text_page_number,
@@ -250,6 +251,13 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
     continuity_from_previous: String(raw?.continuity_from_previous || "").trim(),
     continuity_to_next: String(raw?.continuity_to_next || "").trim(),
   };
+  contract.render_snapshot = compilePhysicalRenderSnapshot({
+    contract,
+    approvedScene,
+    previousScene,
+    worldContract: expected?.world_contract || {},
+  });
+  return contract;
 }
 
 export async function storyScenePlannerAgent({
@@ -289,6 +297,7 @@ export async function storyScenePlannerAgent({
       approved_scene: approvedScene,
       previous_approved_scene: approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number) - 1) || null,
       next_approved_scene: approvedScenario?.scenes?.find((scene) => Number(scene.sceneNumber) === Number(imagePage.scene_number) + 1) || null,
+      world_contract: approvedScenario?.worldContract || {},
     } : null;
   }).filter(Boolean);
   const response = await runAgent({
@@ -376,8 +385,8 @@ export function sceneContractImagePrompt({
   const elements = list(compact.required_elements, 15)
     .map((item) => `${item.description}${item.quantity ? `; quantity: ${item.quantity}` : ""}${item.scale ? `; scale: ${item.scale}` : ""}`)
     .join(" | ");
-  const objectStates = list(compact.object_states, 20)
-    .map((item) => `${item.name}: state ${item.state}; owner ${item.owner || "none"}; quantity ${item.quantity || 1}; ${item.instruction || "keep exactly this state"}`)
+  const objectStates = list(compact.render_snapshot?.visible_object_states || compact.object_states, 20)
+    .map((item) => `${item.name}: state ${item.state}; owner ${item.owner || "none"}; quantity ${item.quantity ?? 1}; ${item.instruction || "keep exactly this state"}`)
     .join(" | ");
   return [
     safetyFallback
@@ -389,7 +398,9 @@ export function sceneContractImagePrompt({
     generic ? `GENERIC CHARACTERS: ${generic}` : "",
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",
     objectStates ? `AUTHORITATIVE OBJECT STATES: ${objectStates}. Each object has exactly one state. A held wearable is not also worn; never duplicate it.` : "",
-    compact.causal_frame ? `CAUSAL INSTANT: before location ${compact.causal_frame.before_location}; approved action ${compact.causal_frame.approved_action}; transition ${compact.causal_frame.transition_kind}${compact.causal_frame.transition_mechanism ? ` through ${compact.causal_frame.transition_mechanism}` : ""}; after location ${compact.causal_frame.after_location}. Illustrate ONLY the ${compact.causal_frame.visible_phase} phase at ${compact.causal_frame.visible_location}. Never show a destination before the crossing or preparation that establishes it.` : "",
+    compact.render_snapshot ? `ONLY VISIBLE PHYSICAL SNAPSHOT: phase ${compact.render_snapshot.visible_phase}; location ${compact.render_snapshot.location}; physical medium ${compact.render_snapshot.physical_medium}; action ${compact.render_snapshot.main_action.subject} ${compact.render_snapshot.main_action.verb} ${compact.render_snapshot.main_action.target}. Depict only this instant. Do not combine preparation, crossing, arrival, removal or storage from another phase.` : "",
+    compact.render_snapshot?.equipment?.length ? `CONDITIONAL EQUIPMENT: ${compact.render_snapshot.equipment.map((item) => `${item.owner}: ${item.name} is ${item.state}, exact quantity ${item.quantity}`).join(" | ")}. Equipment state overrides every wardrobe description.` : "",
+    compact.render_snapshot?.forbidden?.length ? `PHYSICAL SNAPSHOT FORBIDS: ${compact.render_snapshot.forbidden.join(" | ")}` : "",
     compact.spatial_relationships.length ? `SPATIAL RELATIONSHIPS: ${compact.spatial_relationships.join(" | ")}` : "",
     compact.forbidden_elements.length ? `FORBIDDEN SUBSTITUTIONS OR ELEMENTS: ${compact.forbidden_elements.join(" | ")}` : "",
     stylePrompt ? `LOCKED RENDERING STYLE: ${neutralizeImageText(stylePrompt, aliases)}` : "",

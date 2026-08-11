@@ -1,6 +1,7 @@
 import { runAgent } from "../services/agentRunner.js";
 import { loadPrompt } from "../services/loadPrompt.js";
 import { enrichFamilyAddress } from "../services/characterRelationships.js";
+import { compilePhysicalRenderSnapshot } from "../services/physicalRenderSnapshot.js";
 
 function clean(value, maximum = 700) {
   return String(value || "").trim().slice(0, maximum);
@@ -10,7 +11,7 @@ function list(value, maximum = 20) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
 }
 
-export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 2;
+export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 3;
 
 export function versionedStoryPlanAuditStep(step = "story-plan-audit") {
   const prefix = `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:`;
@@ -76,6 +77,22 @@ export function authoritativeSceneContractForAudit(contract = {}) {
       },
       visible_phase: clean(contract.causal_frame?.visible_phase),
       visible_location: clean(contract.causal_frame?.visible_location),
+    } : null,
+    render_snapshot: contract?.render_snapshot ? {
+      version: Math.max(1, Number(contract.render_snapshot?.version || 1)),
+      visible_phase: clean(contract.render_snapshot?.visible_phase),
+      location: clean(contract.render_snapshot?.location),
+      physical_medium: clean(contract.render_snapshot?.physical_medium),
+      main_action: {
+        subject: clean(contract.render_snapshot?.main_action?.subject),
+        verb: clean(contract.render_snapshot?.main_action?.verb),
+        target: clean(contract.render_snapshot?.main_action?.target),
+      },
+      equipment: list(contract.render_snapshot?.equipment, 20).map((item) => ({
+        id: clean(item?.id), name: clean(item?.name), owner: clean(item?.owner),
+        state: clean(item?.state), quantity: Math.max(0, Number(item?.quantity ?? 1)),
+      })),
+      forbidden: list(contract.render_snapshot?.forbidden, 30).map((item) => clean(item)),
     } : null,
   };
 }
@@ -187,6 +204,23 @@ export function deterministicStoryPlanIssues({
         sceneNumber,
         code: "causal_frame_mismatch",
         explanation: "Restore the approved before/during/after locations, transition identity and visible instant in the scene contract.",
+      });
+    }
+    const expectedSnapshot = compilePhysicalRenderSnapshot({
+      contract,
+      approvedScene,
+      previousScene: approvedScenario?.scenes?.find((item) => Number(item?.sceneNumber) === sceneNumber - 1) || null,
+      worldContract: approvedScenario?.worldContract || {},
+    });
+    if (supportsCausalFrame && (!contract.render_snapshot
+      || key(contract.render_snapshot.visible_phase) !== key(expectedSnapshot.visible_phase)
+      || key(contract.render_snapshot.location) !== key(expectedSnapshot.location)
+      || key(contract.render_snapshot.physical_medium) !== key(expectedSnapshot.physical_medium)
+      || JSON.stringify(contract.render_snapshot.equipment || []) !== JSON.stringify(expectedSnapshot.equipment))) {
+      issues.push({
+        sceneNumber,
+        code: "physical_render_snapshot_mismatch",
+        explanation: "Recompile the single visible physical instant from the approved location, medium and conditional-equipment states.",
       });
     }
     if (supportsCausalFrame
