@@ -9,15 +9,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: PR #151 merged at `52b3a33`; camera-side medium is compiled from the canonical entry-passage topology
-- Current focused checkpoint: canonical fixed-landmark continuity
-- Pull request: #152 (`agent/canonical-landmark-continuity`)
+- Production/main checkpoint: PR #152 merged at `7139a67`; canonical fixed landmarks are locked across camera sides and adjacent scenes
+- Current focused checkpoint: the three approved journey/continuity bricks are delivered
+- Pull requests: #150, #151 and #152 merged
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #151 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #152 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: canonical fixed-landmark continuity
 
@@ -35,8 +35,8 @@ PR #55 through PR #151 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Merge pull request #152 under the existing authorization.
-2. Verify `main` and production availability after the Render restart.
+1. Generate one fresh coral-ocean test book and inspect the preparation, crossing, return and lighthouse scenes in sequence.
+2. Record any remaining defect with its exact scene triplet and current structured contract before adding another product brick.
 
 ## Protected local state
 
