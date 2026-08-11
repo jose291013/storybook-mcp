@@ -8,35 +8,35 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Production/main checkpoint: PR #152 merged at `7139a67`; canonical fixed landmarks are locked across camera sides and adjacent scenes
-- Current focused checkpoint: the three approved journey/continuity bricks are delivered
-- Pull requests: #150, #151 and #152 merged
+- Current branch: `agent/visible-adventure-choice-state`
+- Production/main checkpoint: PR #153 merged at `8c8fdc2`; the approved intention-perspective limit and continuity bricks are live on `main`
+- Current focused checkpoint: selected intentions remain visibly confirmed while the three adventure proposals load or fail
+- Pull requests: #150 through #153 merged; PR #154 is the delivery checkpoint for the visible adventure-choice-state fix
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #152 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #153 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: canonical fixed-landmark continuity
+## Current product brick: visible adventure-choice handoff
 
-1. Every recurring fixed landmark has one stable id, one canonical home and global quantity 1.
-2. Each scene compiles whether it is visible once, absent, elsewhere, or only beyond the established passage.
-3. The same registry records previous/current/next visibility so adjacent contract drift is rejected before image generation.
-4. The image prompt forbids twins, miniatures, background copies and relocation to a nearby setting.
-5. Duplicate or wrongly located landmarks receive stable objective codes eligible for the existing bounded targeted repair.
+1. Choosing an intention remains authoritative when the creator reaches the universe and adventure step.
+2. The adventure-proposal area is visible immediately and shows its loading state instead of presenting an empty step.
+3. `Continuer` is disabled while three adventures are being prepared.
+4. A request failure remains visible and retryable instead of being overwritten by the final render.
+5. Validation copy distinguishes a missing intention from a missing adventure and confirms that the intention was saved.
 
 ## Verification
 
-- Focused landmark, topology, scenario, illustration-plan and QA tests: 180/180 passing.
+- Focused creator-funnel tests: 7/7 passing.
 - Complete `npm test`: 423/423 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Generate one fresh coral-ocean test book and inspect the preparation, crossing, return and lighthouse scenes in sequence.
-2. Record any remaining defect with its exact scene triplet and current structured contract before adding another product brick.
+1. Verify the merged PR #154 deployment and Render health.
+2. Select an intention on the live creator and verify the loading, successful suggestion and retryable failure states.
 
 ## Protected local state
 

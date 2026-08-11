@@ -45,7 +45,7 @@ test("parent situation is normalized into exactly three intention approaches", (
 
 test("the intention-first creator is fully localized in French, Spanish and English", () => {
   for (const locale of ["FR", "ES", "EN"]) {
-    for (const key of ["stepIntention", "stepAdventure", "intentionAgeTitle", "intentionAgeLead", "intentionNeedsAge", "intentionQuestion", "interpretIntention", "moreIntentionPerspectives", "intentionPerspectiveLimit", "intentionPerspectivePage", "previousPerspectives", "nextPerspectives", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
+    for (const key of ["stepIntention", "stepAdventure", "intentionAgeTitle", "intentionAgeLead", "intentionNeedsAge", "intentionQuestion", "interpretIntention", "moreIntentionPerspectives", "intentionPerspectiveLimit", "intentionPerspectivePage", "previousPerspectives", "nextPerspectives", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort", "intentionSelectionRequired", "adventureSuggestionsLoading", "adventureSuggestionRequired"]) {
       assert.ok(UI_TEXT[locale][key], `${locale}.${key}`);
     }
   }
@@ -112,6 +112,12 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
   assert.match(app, /message\.value = suggestion\.message \|\| suggestion\.transformation/);
   assert.match(app, /readingGuidanceProfiles/);
   assert.match(app, /suggestionApproach_/);
+  assert.match(app, /selectedStoryIntention\(\)[\s\S]*state\.storySuggestions\.length/);
+  assert.match(app, /elements\.nextButton\.disabled = state\.step === 2 && state\.storySuggestionsBusy/);
+  assert.match(app, /state\.storySuggestionsError = activeSafetyIntervention\(\)/);
+  assert.match(app, /tr\("intentionSelectionRequired"\)/);
+  assert.match(app, /tr\("adventureSuggestionsLoading"\)/);
+  assert.match(app, /tr\("adventureSuggestionRequired"\)/);
   assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
   assert.match(intentionRoute, /claimIntentionIdeationRound/);
   assert.match(intentionRoute, /intention_ideation_limit_reached/);
