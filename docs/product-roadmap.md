@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-11
 
+## Camera-side world topology checkpoint
+
+The coral-ocean contract defines a deterministic physical topology: the origin side is breathable air, the adventure side is fully underwater and the established entry passage is the first approved `cross_passage`. Every later scene inherits its side from the ordered approved scenario; crossing that same stable passage id toggles sides and returning through it restores the origin. A visible crossing uses one transition medium. Equipment state is no longer allowed to infer or change the ambient medium.
+
+Each physical render snapshot carries the camera side, ambient medium, medium beyond the entry boundary and a precise boundary rule. A dry preparation scene may show the reef only beyond a clearly bounded portal or sealed opening; water, fish, coral, buoyancy and underwater lighting cannot surround the characters or dry furniture. Conversely, a fully underwater scene cannot expose beach, sky or ordinary air around the cast. Conditional equipment remains an independently validated object state: wearing breathing equipment before entry is valid preparation, while missing worn equipment on the underwater side is an objective repairable contradiction.
+
 ## Bounded intention perspectives checkpoint
 
 The no-credit intention assistant may generate at most three batches of three perspectives for one normalized age, situation and interface language. The first action explicitly asks for three ways to clarify the intention; later actions announce another batch and their position within the three-batch allowance. Every successful batch remains available in a three-card pager, so requesting alternatives never erases an earlier choice. After nine perspectives, generation is disabled and the parent chooses one perspective or keeps their own idea.

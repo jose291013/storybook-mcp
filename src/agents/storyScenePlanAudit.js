@@ -11,7 +11,7 @@ function list(value, maximum = 20) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
 }
 
-export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 3;
+export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 4;
 
 export function versionedStoryPlanAuditStep(step = "story-plan-audit") {
   const prefix = `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:`;
@@ -83,6 +83,14 @@ export function authoritativeSceneContractForAudit(contract = {}) {
       visible_phase: clean(contract.render_snapshot?.visible_phase),
       location: clean(contract.render_snapshot?.location),
       physical_medium: clean(contract.render_snapshot?.physical_medium),
+      camera_environment: contract.render_snapshot?.camera_environment ? {
+        camera_side: clean(contract.render_snapshot.camera_environment?.camera_side),
+        ambient_medium: clean(contract.render_snapshot.camera_environment?.ambient_medium),
+        other_side_medium: clean(contract.render_snapshot.camera_environment?.other_side_medium),
+        entry_passage_id: clean(contract.render_snapshot.camera_environment?.entry_passage_id),
+        boundary_crossing: contract.render_snapshot.camera_environment?.boundary_crossing === true,
+        boundary_rule: clean(contract.render_snapshot.camera_environment?.boundary_rule),
+      } : null,
       main_action: {
         subject: clean(contract.render_snapshot?.main_action?.subject),
         verb: clean(contract.render_snapshot?.main_action?.verb),
@@ -210,12 +218,14 @@ export function deterministicStoryPlanIssues({
       contract,
       approvedScene,
       previousScene: approvedScenario?.scenes?.find((item) => Number(item?.sceneNumber) === sceneNumber - 1) || null,
+      approvedScenario,
       worldContract: approvedScenario?.worldContract || {},
     });
     if (supportsCausalFrame && (!contract.render_snapshot
       || key(contract.render_snapshot.visible_phase) !== key(expectedSnapshot.visible_phase)
       || key(contract.render_snapshot.location) !== key(expectedSnapshot.location)
       || key(contract.render_snapshot.physical_medium) !== key(expectedSnapshot.physical_medium)
+      || key(contract.render_snapshot.camera_environment?.camera_side) !== key(expectedSnapshot.camera_environment?.camera_side)
       || JSON.stringify(contract.render_snapshot.equipment || []) !== JSON.stringify(expectedSnapshot.equipment))) {
       issues.push({
         sceneNumber,
