@@ -206,6 +206,19 @@ test("objective identity defects skip a second full regeneration and enter targe
   assert.match(qualityGate, /issueScope: qualityReviewScope/);
 });
 
+test("physical snapshot contradictions are blocking and automatically repairable", () => {
+  for (const [issue, code] of [
+    ["Physical environment is wrong. The people are still submerged.", "wrong_physical_environment"],
+    ["Conditional equipment state conflicts. Bastien still wears the stored bubble.", "conditional_equipment_state"],
+    ["Conditional equipment is duplicated. Marie wears one bubble and stores another.", "conditional_equipment_duplicate"],
+    ["Multiple causal phases are combined. Arrival and storage appear together.", "multi_phase_composite"],
+  ]) {
+    const policy = targetedVisualRepairPolicy([issue]);
+    assert.equal(policy.automaticRepair, true);
+    assert.deepEqual(policy.targetCodes, [code]);
+  }
+});
+
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {
   const sanitized = sanitizeBrandSensitiveText('FIXED OUTFIT: t-shirt gris à l’effigie de Sonic bleu, short rouge, sandales rouges type Crocs, casquette avec inscription "NYC" blanche.');
   assert.doesNotMatch(sanitized, /Sonic|Crocs|NYC/iu);

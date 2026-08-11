@@ -3,7 +3,10 @@ import fs from "node:fs";
 import test from "node:test";
 
 import { visualQualityDisposition } from "../src/services/imageQualityGate.js";
-import { compileSpecDrivenIllustrationPlan } from "../src/services/specDrivenIllustrationPlan.js";
+import {
+  compileSpecDrivenIllustrationPlan,
+  SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+} from "../src/services/specDrivenIllustrationPlan.js";
 
 const spec = JSON.parse(fs.readFileSync(
   new URL("../src/contracts/narrativeBookSpec.v1.example.json", import.meta.url),
@@ -35,7 +38,7 @@ test("illustration contracts are compiled without a second narrative model", () 
     blueprint: blueprintFromSpec(),
     pageTexts: { 2: "Bastien et Maman observent l'arche." },
   });
-  assert.equal(plan.contractSource, "narrative_book_spec_v1");
+  assert.equal(plan.contractSource, SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE);
   assert.equal(plan.artifactDigest, spec.validation.artifactDigest);
   assert.equal(plan.compiler.source, "deterministic");
   assert.equal(plan.sceneContracts.length, spec.scenes.length);
@@ -44,6 +47,8 @@ test("illustration contracts are compiled without a second narrative model", () 
   assert.ok(first.forbidden_elements.some((entry) => /Fleur du lien/u.test(entry)));
   assert.ok(first.forbidden_elements.some((entry) => /For.t Fairy|F.e de la For.t/u.test(entry)));
   assert.equal(first.quality_policy.blocking.includes("identity_fusion_or_duplication"), true);
+  assert.equal(first.render_snapshot.visible_phase, "after");
+  assert.equal(first.render_snapshot.location, "le jardin");
 });
 
 test("visual severity blocks mechanics but keeps preferences repairable", () => {

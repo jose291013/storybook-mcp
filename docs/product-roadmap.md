@@ -1,6 +1,12 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-10
+Last updated: 2026-08-11
+
+## Physical render snapshot checkpoint
+
+Every modern interior illustration contract now compiles one deterministic physical render snapshot after the full before/during/after causal frame is known. The full frame remains available to planning and audit, but image generation receives only the selected visible phase, canonical location, physical medium, main action, physical cast, exact conditional-equipment states and explicit forbidden alternatives. This prevents one illustration from combining preparation, crossing, arrival, removal and storage into a multi-instant montage.
+
+Conditional safety equipment is separate from persistent wardrobe. Its canonical per-character object state overrides an outfit description: equipment marked stored or absent is stripped from the current wardrobe prompt, while fully underwater people retain exactly one worn breathing mechanism each. Structured physical medium overrides keyword inference from prose, so a breathable room below water may show fish outside sealed windows without re-equipping people merely because the text mentions water. The visual quality gate treats a wrong physical medium, conflicting or duplicated conditional equipment and a multi-phase composite as high-confidence objective defects eligible for the existing bounded automatic targeted repair before creator review. Both the NarrativeBookSpec illustration compiler and the compatibility planner emit the same versioned snapshot, and older cached story plans are invalidated by the new contract versions.
 
 ## Scene causal-frame continuity checkpoint
 

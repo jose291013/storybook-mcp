@@ -1391,6 +1391,37 @@ test("every submerged person receives their own complete breathing mechanism", (
   assert.match(continuity.sceneContract, /No listed person may appear bare-headed/i);
 });
 
+test("a breathable render snapshot overrides underwater prose and removes stored breathing gear from wardrobe", () => {
+  const continuity = buildSceneContinuity({
+    blueprint: {
+      hero: {
+        name: "Bastien",
+        outfit_lock: "a turquoise wetsuit with reef shoes and the story-established breathing mechanism",
+      },
+      cast: [],
+    },
+    castPresent: ["Bastien"],
+    scenePrompt: "L'eau chante autour de la combinaison avant le retour à l'atelier.",
+    pairedText: "Bastien revient de l'océan et range sa bulle dans l'atelier.",
+    structuredSceneContract: {
+      named_characters: [{ name: "Bastien", action: "regarde son dessin" }],
+      main_action: { subject: "Bastien", verb: "regarde", target: "son dessin" },
+      required_elements: [], object_states: [], spatial_relationships: [], forbidden_elements: [],
+      render_snapshot: {
+        physical_medium: "breathable_air",
+        location: "atelier de dessin",
+        equipment: [{ name: "breathing_and_voice_bubble", owner: "Bastien", state: "stored", quantity: 1 }],
+        forbidden: ["Bastien's bubble is stored and not worn."],
+      },
+    },
+  });
+
+  assert.doesNotMatch(continuity.characterFingerprints.join(" "), /breathing mechanism/u);
+  assert.doesNotMatch(continuity.sceneContract, /MANDATORY INDIVIDUAL UNDERWATER SAFETY/u);
+  assert.match(continuity.sceneContract, /VISIBLE PHYSICAL MEDIUM: breathable_air/u);
+  assert.match(continuity.sceneContract, /stored and not worn/u);
+});
+
 test("lost quest objects stay invisible until the paired discovery scene", () => {
   const blueprint = {
     language: "FR",

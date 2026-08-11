@@ -1,4 +1,7 @@
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 1;
+import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
+
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 2;
+export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_physical_snapshot_v1";
 
 function byId(entries = []) {
   return new Map(entries.map((entry) => [entry.id, entry]));
@@ -23,6 +26,7 @@ export function compileSpecDrivenIllustrationPlan({
   spec,
   blueprint,
   pageTexts = {},
+  approvedScenario = null,
 } = {}) {
   if (!spec) return null;
   const characters = byId(spec.registries.characters);
@@ -60,8 +64,10 @@ export function compileSpecDrivenIllustrationPlan({
       .map((id) => `${nameFor(characters, id)} must not appear physically`);
     const locationAfter = locations.get(scene.timeline.locationAfterId)?.name
       || scene.timeline.locationAfterId;
-    return {
-      contract_source: "narrative_book_spec_v1",
+    const locationBefore = locations.get(scene.timeline.locationBeforeId)?.name || scene.timeline.locationBeforeId;
+    const transitionMechanism = passages.get(scene.transition?.passageId)?.name || scene.transition?.passageId || "";
+    const contract = {
+      contract_source: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
       artifact_digest: spec.validation.artifactDigest,
       spread_number: Number(imagePage?.spread_number || scene.sceneNumber),
       scene_number: scene.sceneNumber,
@@ -83,7 +89,6 @@ export function compileSpecDrivenIllustrationPlan({
         scale: "",
       })),
       object_states: scene.objectStates
-        .filter((state) => state.state !== "absent" && state.quantity > 0)
         .map((state) => objectStateContract(state, objects, characters)),
       spatial_relationships: [
         `The visible moment takes place at ${locationAfter}.`,
@@ -94,6 +99,22 @@ export function compileSpecDrivenIllustrationPlan({
         ...absentObjects,
         ...forbiddenCharacters,
       ],
+      causal_frame: {
+        before: { location: locationBefore },
+        during: {
+          action: scene.narrative.approvedAction,
+          transition_kind: scene.transition?.kind || "none",
+          transition_mechanism: transitionMechanism,
+          transition_mechanism_id: scene.transition?.passageId || "",
+          from: locationBefore,
+          to: locationAfter,
+        },
+        after: { location: locationAfter },
+        visible_phase: scene.timeline.visiblePhase === "start"
+          ? "before"
+          : scene.timeline.visiblePhase === "end" ? "after" : "during",
+        visible_location: scene.timeline.visiblePhase === "start" ? locationBefore : locationAfter,
+      },
       continuity_from_previous: scene.timeline.prerequisiteSceneIds.length
         ? `Continue only after ${scene.timeline.prerequisiteSceneIds.join(", ")}.`
         : "Opening canonical scene.",
@@ -115,11 +136,20 @@ export function compileSpecDrivenIllustrationPlan({
         ],
       },
     };
+    const approvedScene = approvedScenario?.scenes?.find((item) => Number(item?.sceneNumber) === Number(scene.sceneNumber)) || null;
+    const previousScene = approvedScenario?.scenes?.find((item) => Number(item?.sceneNumber) === Number(scene.sceneNumber) - 1) || null;
+    contract.render_snapshot = compilePhysicalRenderSnapshot({
+      contract,
+      approvedScene,
+      previousScene,
+      worldContract: approvedScenario?.worldContract || {},
+    });
+    return contract;
   });
 
   return {
     version: SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION,
-    contractSource: "narrative_book_spec_v1",
+    contractSource: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
     artifactDigest: spec.validation.artifactDigest,
     pageTexts: { ...pageTexts },
     speechSegmentsByPage: {},

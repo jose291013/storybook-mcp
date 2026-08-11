@@ -44,6 +44,8 @@ const EXPLICIT_SCENE_CONTRADICTION_PATTERN = /(?:\babsent\b|\bmissing\b|\bomitte
 const BLOCKING_SCENE_CONTRADICTION_PATTERN = /(?:wrong (?:subject|target|central action)|required (?:named )?(?:character|person|animal|creature)[^.]{0,100}(?:absent|missing|omitted)|mandatory (?:visible )?cast[^.]{0,100}(?:absent|missing|omitted)|substitut|replac|transform|merge|fuse|hybrid|forbidden[^.]{0,80}(?:present|visible|shown)|mauvais(?:e)? (?:sujet|cible|action principale)|(?:personnage|personne|animal|cr[ée]ature) (?:nomm[ée]e? )?requis(?:e)?[^.]{0,100}(?:absent|manquant|omis)|distribution obligatoire[^.]{0,100}(?:absent|manquant|omis)|remplac|transform|fusion|hybride|interdit[^.]{0,80}(?:pr[ée]sent|visible|montr[ée])|(?:sujeto|objetivo|acci[oó]n principal) incorrect[oa]|(?:personaje|persona|animal|criatura) requerid[oa][^.]{0,100}(?:ausente|falta|omitid[oa])|reparto obligatorio[^.]{0,100}(?:ausente|falta|omitid[oa])|sustitu|reemplaz|transform|fusion|h[ií]brid|prohibid[oa][^.]{0,80}(?:presente|visible|mostrad[oa]))/iu;
 const DUPLICATE_IDENTITY_PATTERN = /(?:required named identity is duplicated|same (?:named )?(?:character|identity|person|child|animal)[^.]{0,100}(?:appears|is shown|is depicted|rendered)[^.]{0,80}(?:twice|two times|two positions|multiple positions|two copies)|(?:character|identity|person|child|animal)[^.]{0,80}(?:appears|is shown|is depicted|rendered) twice|m[êe]me (?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,100}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]|est dessin[ée])[^.]{0,80}(?:deux fois|deux positions|plusieurs positions|deux exemplaires)|(?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,80}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]) deux fois|mis[mt]o (?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,100}(?:aparece|se muestra|se representa)[^.]{0,80}(?:dos veces|dos posiciones|varias posiciones|dos copias)|(?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,80}(?:aparece|se muestra|se representa) dos veces)/iu;
 
+const PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN = /(?:physical environment is wrong|conditional equipment (?:state conflicts|is duplicated)|multiple causal phases are combined|wrong physical (?:environment|medium)|milieu physique incorrect|equipement conditionnel[^.]{0,60}(?:incorrect|dupliqu)|plusieurs (?:phases|instants)[^.]{0,60}(?:fusionn|combin)|entorno fisico incorrecto|equipo condicional[^.]{0,60}(?:incorrect|duplic)|varias (?:fases|instantes)[^.]{0,60}(?:combin|fusion))/iu;
+
 const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
   "identity_duplicate",
   "identity_fusion",
@@ -59,6 +61,10 @@ const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "forbidden_element",
   "object_state",
   "main_action",
+  "wrong_physical_environment",
+  "conditional_equipment_state",
+  "conditional_equipment_duplicate",
+  "multi_phase_composite",
 ]);
 
 function normalizedIssueText(issue) {
@@ -96,6 +102,22 @@ export function classifyVisualIssue(issue, { source = "scene" } = {}) {
     confidence = "high";
   } else if (/forbidden.{0,80}(?:present|visible|shown)|interdit.{0,80}(?:present|visible|montre)|prohibid.{0,80}(?:presente|visible|mostrad)/u.test(text)) {
     code = "forbidden_element";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/physical environment is wrong|wrong physical (?:environment|medium)|milieu physique incorrect|entorno fisico incorrecto/u.test(text)) {
+    code = "wrong_physical_environment";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/conditional equipment is duplicated|equipement conditionnel[^.]{0,60}dupliqu|equipo condicional[^.]{0,60}duplic/u.test(text)) {
+    code = "conditional_equipment_duplicate";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/conditional equipment state conflicts|equipement conditionnel[^.]{0,60}incorrect|equipo condicional[^.]{0,60}incorrect/u.test(text)) {
+    code = "conditional_equipment_state";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/multiple causal phases are combined|plusieurs (?:phases|instants)[^.]{0,60}(?:fusionn|combin)|varias (?:fases|instantes)[^.]{0,60}(?:combin|fusion)/u.test(text)) {
+    code = "multi_phase_composite";
     severity = "blocking";
     confidence = "high";
   } else if (OBJECT_STATE_CONTRADICTION_PATTERN.test(String(issue || ""))) {
@@ -174,7 +196,8 @@ export function objectiveSceneContractIssues(issues = []) {
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
       || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
-      || DUPLICATE_IDENTITY_PATTERN.test(issue))
+      || DUPLICATE_IDENTITY_PATTERN.test(issue)
+      || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue))
     .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
@@ -186,6 +209,7 @@ export function blockingSceneContractIssues(issues = []) {
     BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
     || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
     || DUPLICATE_IDENTITY_PATTERN.test(issue)
+    || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
   ));
 }
 
@@ -385,6 +409,10 @@ Judge only objective, clearly visible contradictions:
 - the same recurring named identity is visibly rendered twice in the same scene, or simultaneously in two different positions, even if both copies otherwise look correct. Allow a visible reflection, portrait, memory, vision or deliberate time montage only when the structured scene contract explicitly requires that representation;
 - a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
 - an explicitly forbidden substitution is present.
+- the depicted physical environment contradicts render_snapshot.physical_medium. Begin with "Physical environment is wrong." A breathable-air room may be below water with fish outside sealed windows; do not reject it when people are visibly inside dry air.
+- conditional equipment differs from render_snapshot.equipment. Begin with "Conditional equipment state conflicts."
+- one character's conditional equipment appears more than once or simultaneously in two states. Begin with "Conditional equipment is duplicated."
+- preparation, crossing, arrival, equipment removal or storage from multiple phases appear together. Begin with "Multiple causal phases are combined."
 Tiny jewelry and small personal accessories may be partly hidden by pose, hair, framing or clothing. A missing tiny necklace, pendant, bracelet, earring or charm alone is advisory and MUST NOT cause rejection. Object duplication or a held-versus-worn contradiction remains rejectable.
 For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused." When the same named identity is rendered more than once without an explicit reflection, portrait, memory, vision or montage contract, begin the issue with "Required named identity is duplicated."
 Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.

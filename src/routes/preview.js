@@ -69,12 +69,15 @@ import { generationCostPolicy } from "../services/generationCostPolicy.js";
 import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { assertManuscriptLanguage } from "../services/bookLanguage.js";
 import { narrativeBookSpecForPreview } from "../services/narrativeBookSpecLifecycle.js";
-import { compileSpecDrivenIllustrationPlan } from "../services/specDrivenIllustrationPlan.js";
+import {
+  compileSpecDrivenIllustrationPlan,
+  SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+} from "../services/specDrivenIllustrationPlan.js";
 import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGovernor.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
-const STORY_PLAN_FIDELITY_VERSION = 4;
+const STORY_PLAN_FIDELITY_VERSION = 5;
 const STORY_PLAN_TARGETED_REPAIR_VERSION = 2;
 const STORY_PLAN_TEXT_REPAIR_VERSION = 3;
 const MANUSCRIPT_REVIEW_VERSION = 1;
@@ -850,7 +853,7 @@ router.post("/preview", async (req, res) => {
       const hasCurrentStoryScenePlan = narrativeBookSpec
         ? Boolean(checkpoint.storyScenePlan)
           && checkpoint.storyScenePlan?.artifactDigest === narrativeBookSpec.validation.artifactDigest
-          && checkpoint.storyScenePlan?.contractSource === "narrative_book_spec_v1"
+          && checkpoint.storyScenePlan?.contractSource === SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE
         : Boolean(checkpoint.storyScenePlan)
           && Number(checkpoint.storyScenePlanFidelityVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
       let storyScenePlan = hasCurrentStoryScenePlan
@@ -861,6 +864,7 @@ router.post("/preview", async (req, res) => {
           spec: narrativeBookSpec,
           blueprint: final_blueprint,
           pageTexts: Object.fromEntries(draftTextByPage),
+          approvedScenario,
         });
         console.info("[preview] spec-driven illustration plan compiled", JSON.stringify({
           jobId: job.id,
