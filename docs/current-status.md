@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `main`
 - Production/main checkpoint: PR #151 merged at `52b3a33`; camera-side medium is compiled from the canonical entry-passage topology
 - Current focused checkpoint: canonical fixed-landmark continuity
-- Pull request: not yet published (`agent/canonical-landmark-continuity`)
+- Pull request: #152 (`agent/canonical-landmark-continuity`)
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,8 +35,8 @@ PR #55 through PR #151 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Run the complete test suite and publish the fixed-landmark brick.
-2. Merge it under the existing authorization, then verify `main` and production availability.
+1. Merge pull request #152 under the existing authorization.
+2. Verify `main` and production availability after the Render restart.
 
 ## Protected local state
 
