@@ -38,6 +38,14 @@ export async function createStoryIntentions(input = {}) {
       language,
       child_age: Number(input.childAge),
       creator_situation: clean(input.creatorSituation, 1600),
+      ideation_round: Math.max(1, Math.min(3, Number(input.roundNumber || 1))),
+      previous_interpretations: (Array.isArray(input.previousInterpretations)
+        ? input.previousInterpretations
+        : []).slice(0, 6).map((item) => ({
+        title: clean(item?.title, 140),
+        understanding: clean(item?.understanding, 700),
+        first_step: clean(item?.first_step, 400),
+      })),
       sensitivity_contract: input.sensitivityContract || null,
     },
   });

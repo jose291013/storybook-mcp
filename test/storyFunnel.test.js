@@ -45,7 +45,7 @@ test("parent situation is normalized into exactly three intention approaches", (
 
 test("the intention-first creator is fully localized in French, Spanish and English", () => {
   for (const locale of ["FR", "ES", "EN"]) {
-    for (const key of ["stepIntention", "stepAdventure", "intentionAgeTitle", "intentionAgeLead", "intentionNeedsAge", "intentionQuestion", "interpretIntention", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
+    for (const key of ["stepIntention", "stepAdventure", "intentionAgeTitle", "intentionAgeLead", "intentionNeedsAge", "intentionQuestion", "interpretIntention", "moreIntentionPerspectives", "intentionPerspectiveLimit", "intentionPerspectivePage", "previousPerspectives", "nextPerspectives", "chooseIntention", "intentionFirstStep", "intentionMotivation", "intentionReward", "adventureProposalTitle", "suggestionEffort"]) {
       assert.ok(UI_TEXT[locale][key], `${locale}.${key}`);
     }
   }
@@ -100,9 +100,12 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
   assert.match(html, /data-panel="2"[\s\S]*id="universeGrid"[\s\S]*id="storySuggestionGrid"/);
   assert.match(html, /id="scenarioWorldContract"/);
   assert.match(app, /const STEP_COUNT = 7/);
-  assert.match(app, /const FLOW_VERSION = 5/);
+  assert.match(app, /const FLOW_VERSION = 6/);
   assert.match(app, /Number\(saved\.flowVersion \|\| 0\) >= 2 \? saved\.step/);
   assert.match(app, /requestStoryIntentions/);
+  assert.match(app, /storyIntentionBatches/);
+  assert.match(app, /previousIntentionPerspectives/);
+  assert.match(app, /previousInterpretations: state\.storyIntentions/);
   assert.match(app, /childAge,/);
   assert.match(app, /selectedIntention: intention/);
   assert.match(app, /universe_story_contract/);
@@ -110,6 +113,8 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
   assert.match(app, /readingGuidanceProfiles/);
   assert.match(app, /suggestionApproach_/);
   assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
+  assert.match(intentionRoute, /claimIntentionIdeationRound/);
+  assert.match(intentionRoute, /intention_ideation_limit_reached/);
   assert.match(intentionRoute, /childAge/);
   assert.doesNotMatch(intentionRoute, /findUniverse|heroName|favoriteActivities/);
   assert.match(intentionPrompt, /first step of the creator journey/i);

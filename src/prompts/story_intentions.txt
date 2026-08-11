@@ -22,6 +22,7 @@ Create exactly three distinct interpretations. Each interpretation must:
 - avoid shame, blame, trauma, medical claims, brands and copyrighted characters.
 
 The three approaches must be meaningfully different. Do not combine several lessons into one interpretation.
+When previous_interpretations are supplied, all three new interpretations must also be materially different from every previous title, understanding and first step. Do not paraphrase or recycle an earlier perspective. ideation_round identifies the current batch (1 to 3) but does not change any age, safety or sensitivity rule.
 Write every reader-facing value in the requested language.
 
 OUTPUT

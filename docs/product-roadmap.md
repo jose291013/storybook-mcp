@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-11
 
+## Bounded intention perspectives checkpoint
+
+The no-credit intention assistant may generate at most three batches of three perspectives for one normalized age, situation and interface language. The first action explicitly asks for three ways to clarify the intention; later actions announce another batch and their position within the three-batch allowance. Every successful batch remains available in a three-card pager, so requesting alternatives never erases an earlier choice. After nine perspectives, generation is disabled and the parent chooses one perspective or keeps their own idea.
+
+The ceiling is enforced before the intention model call by a private numeric server ledger keyed by the anonymous HTTP-only draft owner and a one-way input fingerprint. The ledger stores no parent wording and no generated text. Browser state is not authoritative for cost control, and the existing IP window remains a secondary abuse ceiling. Changing the normalized age, situation or language creates a new allowance; whitespace and casing changes do not. Later batches receive bounded summaries of earlier generated perspectives and must be materially different rather than paraphrases.
+
 ## Physical render snapshot checkpoint
 
 Every modern interior illustration contract now compiles one deterministic physical render snapshot after the full before/during/after causal frame is known. The full frame remains available to planning and audit, but image generation receives only the selected visible phase, canonical location, physical medium, main action, physical cast, exact conditional-equipment states and explicit forbidden alternatives. This prevents one illustration from combining preparation, crossing, arrival, removal and storage into a multi-instant montage.

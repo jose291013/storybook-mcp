@@ -1,5 +1,10 @@
 import express from "express";
 import { createStoryIntentions } from "../services/storyIntentions.js";
+import { ensureDraftOwner } from "../services/draftIdentity.js";
+import {
+  claimIntentionIdeationRound,
+  intentionIdeationFingerprint,
+} from "../services/intentionIdeationBudget.js";
 import {
   guideStorySensitivity,
   observeStorySensitivity,
@@ -100,6 +105,16 @@ router.post("/story-intentions", async (req, res) => {
   const creatorSituation = String(body.creatorSituation || "").trim().slice(0, 1600);
   const childAge = Number(body.childAge);
   const locale = ["FR", "ES", "EN"].includes(body.locale) ? body.locale : "FR";
+  const previousInterpretations = (Array.isArray(body.previousInterpretations)
+    ? body.previousInterpretations
+    : [])
+    .slice(0, 6)
+    .map((item) => ({
+      title: String(item?.title || "").trim().slice(0, 140),
+      understanding: String(item?.understanding || "").trim().slice(0, 700),
+      first_step: String(item?.first_step || "").trim().slice(0, 400),
+    }))
+    .filter((item) => item.title && item.understanding);
 
   if (!Number.isInteger(childAge) || childAge < 1 || childAge > 14) {
     return res.status(400).json({ error: "Enter a valid child age before requesting help" });
@@ -109,7 +124,9 @@ router.post("/story-intentions", async (req, res) => {
   }
   if (!consumeAttempt(req.ip || "unknown")) return res.status(429).json({ error: "Too many intention requests" });
 
+  let ideationBudget = null;
   try {
+    const owner = ensureDraftOwner(req, res);
     const input = {
       creatorSituation,
       childAge,
@@ -146,11 +163,25 @@ router.post("/story-intentions", async (req, res) => {
       res.set("Cache-Control", "no-store");
       return res.status(guided.guidance.status).json(storySensitivityResponse(guided.guidance, locale));
     }
+    ideationBudget = await claimIntentionIdeationRound({
+      ownerHash: owner.ownerHash,
+      inputFingerprint: intentionIdeationFingerprint(input),
+    });
+    if (!ideationBudget.allowed) {
+      res.set("Cache-Control", "no-store");
+      return res.status(409).json({
+        code: "intention_ideation_limit_reached",
+        error: "The three intention perspective rounds have already been generated",
+        ...ideationBudget,
+      });
+    }
     const sensitivityPromise = sensitivityMode === "observe"
       ? observeStorySensitivity(input, sensitivityDependencies)
       : Promise.resolve(guided?.profile || null);
     const intentions = await createStoryIntentions({
       ...input,
+      roundNumber: ideationBudget.roundNumber,
+      previousInterpretations,
       sensitivityContract: guided?.contract || null,
     });
     const sensitivityProfile = await sensitivityPromise;
@@ -170,13 +201,21 @@ router.post("/story-intentions", async (req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({
       intentions,
+      ...ideationBudget,
       ...(sensitivityProfile ? { sensitivityProfile } : {}),
       ...(guided?.guidance ? { sensitivityGuidance: guided.guidance } : {}),
       ...(childSafetyProfile ? { childSafetyProfile } : {}),
     });
   } catch (error) {
     console.error("story-intentions failed", error);
-    res.status(502).json({ error: "Story intentions are temporarily unavailable" });
+    res.status(502).json({
+      error: "Story intentions are temporarily unavailable",
+      ...(ideationBudget ? {
+        roundNumber: ideationBudget.roundNumber,
+        roundsRemaining: ideationBudget.roundsRemaining,
+        maximumRounds: ideationBudget.maximumRounds,
+      } : {}),
+    });
   }
 });
 
