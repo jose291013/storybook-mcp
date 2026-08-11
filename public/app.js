@@ -22,7 +22,7 @@ const requestedUiLanguage = initialCreatorLanguage({
 
 const STOREFRONT_RETURN_KEY = "calitiki-storefront-return-v1";
 const CREATIONS_RETURN_KEY = "calitiki-creations-return-v1";
-const FLOW_VERSION = 5;
+const FLOW_VERSION = 6;
 const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
 
@@ -88,6 +88,10 @@ const state = {
   selectedStyle: "",
   selectedUniverse: "",
   storyIntentions: [],
+  storyIntentionBatches: [],
+  storyIntentionPage: 0,
+  storyIntentionRoundsUsed: 0,
+  selectedStoryIntentionKey: "",
   storySensitivityProfile: null,
   storySensitivityGuidance: null,
   storySensitivityAcknowledged: false,
@@ -149,7 +153,7 @@ const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams
 
 const elements = {
   form: document.querySelector("#bookForm"), intentionAgeQuestion: document.querySelector("#intentionAgeQuestion"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), safetyResourcePanel: document.querySelector("#safetyResourcePanel"), safetyCountryLabel: document.querySelector("#safetyCountryLabel"), safetyCountry: document.querySelector("#safetyCountry"), safetyImmediateDanger: document.querySelector("#safetyImmediateDanger"), safetyResourceFallback: document.querySelector("#safetyResourceFallback"), safetyResourceList: document.querySelector("#safetyResourceList"), intentionSensitivityGuidance: document.querySelector("#intentionSensitivityGuidance"), sensitivityGuidanceAcknowledgement: document.querySelector("#sensitivityGuidanceAcknowledgement"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), safetyResourcePanel: document.querySelector("#safetyResourcePanel"), safetyCountryLabel: document.querySelector("#safetyCountryLabel"), safetyCountry: document.querySelector("#safetyCountry"), safetyImmediateDanger: document.querySelector("#safetyImmediateDanger"), safetyResourceFallback: document.querySelector("#safetyResourceFallback"), safetyResourceList: document.querySelector("#safetyResourceList"), intentionSensitivityGuidance: document.querySelector("#intentionSensitivityGuidance"), sensitivityGuidanceAcknowledgement: document.querySelector("#sensitivityGuidanceAcknowledgement"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionPerspectiveNav: document.querySelector("#intentionPerspectiveNav"), intentionPerspectivePage: document.querySelector("#intentionPerspectivePage"), previousIntentionPerspectives: document.querySelector("#previousIntentionPerspectives"), nextIntentionPerspectives: document.querySelector("#nextIntentionPerspectives"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationCreationJourney: document.querySelector("#generationCreationJourney"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
@@ -513,6 +517,9 @@ function persistLocalDraft() {
     flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
     productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions,
+    storyIntentionBatches: state.storyIntentionBatches, storyIntentionPage: state.storyIntentionPage,
+    storyIntentionRoundsUsed: state.storyIntentionRoundsUsed,
+    selectedStoryIntentionKey: state.selectedStoryIntentionKey,
     storySensitivityProfile: state.storySensitivityProfile, storySensitivityGuidance: state.storySensitivityGuidance,
     storySensitivityAcknowledged: state.storySensitivityAcknowledged, childSafetyProfile: state.childSafetyProfile,
     safetyCountry: state.safetyCountry, storySuggestions: state.storySuggestions,
@@ -1516,7 +1523,10 @@ async function beginReferenceRecovery() {
     state.selectedUniverse = questionnaire.universe_id || project.productConfiguration?.universe_id || state.selectedUniverse;
     state.fontStyle = questionnaire.font_style || project.productConfiguration?.font_style || state.fontStyle;
     state.productType = availableProductType(questionnaire.product_type || project.productConfiguration?.product_type || state.productType);
-    state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
+    state.storyIntentionPage = 0;
+    state.storyIntentionRoundsUsed = Number(questionnaire.story_intention_rounds_used || 0);
+    state.selectedStoryIntentionKey = "";
+    setStoryIntentionBatches(questionnaire.story_intention_batches, questionnaire.story_intentions);
     state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
     state.storySensitivityGuidance = sensitivityGuidanceFromProfile(state.storySensitivityProfile);
     state.storySensitivityAcknowledged = questionnaire.story_sensitivity_acknowledged === true;
@@ -1717,9 +1727,44 @@ const STORY_SEED_FIELD_IDS = [
   "story_seed_transformation",
 ];
 
+function intentionSelectionKey(intention, roundNumber = 1) {
+  return String(intention?.selectionKey || `round_${roundNumber}_${intention?.id || "approach"}`);
+}
+
+function setStoryIntentionBatches(rawBatches = [], legacyIntentions = []) {
+  const supplied = Array.isArray(rawBatches) ? rawBatches : [];
+  const source = supplied.length
+    ? supplied
+    : (Array.isArray(legacyIntentions) && legacyIntentions.length ? [legacyIntentions] : []);
+  state.storyIntentionBatches = source.slice(0, 3).map((batch, batchIndex) => {
+    const items = (Array.isArray(batch) ? batch : []).slice(0, 3);
+    const roundNumber = Math.max(1, Math.min(3, Number(items[0]?.roundNumber || batchIndex + 1)));
+    return items.map((intention) => ({
+      ...intention,
+      selectionKey: intentionSelectionKey(intention, roundNumber),
+      roundNumber,
+    }));
+  }).filter((batch) => batch.length);
+  state.storyIntentions = state.storyIntentionBatches.flat();
+  state.storyIntentionRoundsUsed = Math.max(
+    Number(state.storyIntentionRoundsUsed || 0),
+    ...state.storyIntentions.map((item) => Number(item.roundNumber || 0)),
+  );
+  state.storyIntentionPage = Math.max(0, Math.min(
+    Number(state.storyIntentionPage || 0),
+    Math.max(0, state.storyIntentionBatches.length - 1),
+  ));
+  if (state.selectedStoryIntentionKey
+    && !state.storyIntentions.some((item) => item.selectionKey === state.selectedStoryIntentionKey)) {
+    state.selectedStoryIntentionKey = "";
+  }
+}
+
 function selectedStoryIntention() {
   const selectedId = document.querySelector("#story_intent_id")?.value || "";
-  return state.storyIntentions.find((intention) => intention.id === selectedId) || null;
+  return state.storyIntentions.find((intention) => (
+    intention.selectionKey === state.selectedStoryIntentionKey
+  )) || state.storyIntentions.find((intention) => intention.id === selectedId) || null;
 }
 
 function clearIntentionChoice({ preserveSituation = true } = {}) {
@@ -1728,6 +1773,10 @@ function clearIntentionChoice({ preserveSituation = true } = {}) {
     if (input) input.value = "";
   });
   state.storyIntentions = [];
+  state.storyIntentionBatches = [];
+  state.storyIntentionPage = 0;
+  state.storyIntentionRoundsUsed = 0;
+  state.selectedStoryIntentionKey = "";
   state.storySensitivityProfile = null;
   state.storySensitivityGuidance = null;
   state.storySensitivityAcknowledged = false;
@@ -1820,9 +1869,18 @@ function revealIntentionSafetyNotice() {
 }
 
 function renderStoryIntentions() {
-  const selectedId = document.querySelector("#story_intent_id")?.value || "";
+  const selected = selectedStoryIntention();
+  const selectedKey = selected?.selectionKey || "";
   const examples = INTENTION_EXAMPLES[state.locale] || INTENTION_EXAMPLES.FR;
   const intentionBusy = state.storyIntentionsBusy || state.storySuggestionsBusy;
+  const availableBatches = state.storyIntentionBatches.length;
+  const generatedRounds = Math.max(state.storyIntentionBatches.length, state.storyIntentionRoundsUsed);
+  const limitReached = generatedRounds >= 3;
+  elements.interpretIntentionButton.textContent = limitReached
+    ? tr("intentionPerspectiveLimitButton")
+    : generatedRounds
+      ? tr("moreIntentionPerspectives", { round: generatedRounds + 1 })
+      : tr("interpretIntention");
   elements.intentionExampleList.innerHTML = examples.map((example) => `<button type="button" class="intention-example" data-intention-example="${escapeHtml(example)}" ${intentionBusy ? "disabled" : ""}>${escapeHtml(example)}</button>`).join("");
   elements.intentionExampleList.querySelectorAll("[data-intention-example]").forEach((button) => button.addEventListener("click", () => {
     document.querySelector("#creator_situation").value = button.dataset.intentionExample;
@@ -1834,7 +1892,7 @@ function renderStoryIntentions() {
     persistLocalDraft();
   }));
   elements.intentionLoading.hidden = !state.storyIntentionsBusy;
-  elements.interpretIntentionButton.disabled = intentionBusy;
+  elements.interpretIntentionButton.disabled = intentionBusy || limitReached;
   elements.customStoryChoice.disabled = intentionBusy || Boolean(activeSafetyIntervention());
   document.querySelector("#creator_situation").readOnly = intentionBusy;
   const blocked = state.childSafetyIntervention === "child_safety_blocked";
@@ -1862,8 +1920,9 @@ function renderStoryIntentions() {
   elements.intentionSensitivityGuidance.hidden = !guidanceRequired || Boolean(activeSafetyIntervention());
   elements.sensitivityGuidanceAcknowledgement.checked = state.storySensitivityAcknowledged;
   elements.storyIntentionGrid.hidden = guidanceRequired && !state.storySensitivityAcknowledged;
-  elements.storyIntentionGrid.innerHTML = state.storyIntentions.map((intention) => `
-    <article class="story-intention-card ${intention.id === selectedId ? "is-selected" : ""}">
+  const visibleIntentions = state.storyIntentionBatches[state.storyIntentionPage] || [];
+  elements.storyIntentionGrid.innerHTML = visibleIntentions.map((intention) => `
+    <article class="story-intention-card ${intention.selectionKey === selectedKey ? "is-selected" : ""}">
       <h3>${escapeHtml(intention.title)}</h3>
       <p>${escapeHtml(intention.understanding)}</p>
       <dl>
@@ -1871,16 +1930,26 @@ function renderStoryIntentions() {
         <div><dt>${escapeHtml(tr("intentionMotivation"))}</dt><dd>${escapeHtml(intention.motivation)}</dd></div>
         <div><dt>${escapeHtml(tr("intentionReward"))}</dt><dd>${escapeHtml(intention.reward)}</dd></div>
       </dl>
-      <button type="button" class="primary-button" data-story-intention="${escapeHtml(intention.id)}" ${intentionBusy || (guidanceRequired && !state.storySensitivityAcknowledged) ? "disabled" : ""}>${escapeHtml(intention.id === selectedId ? tr("intentionChosen") : tr("chooseIntention"))}</button>
+      <button type="button" class="primary-button" data-story-intention="${escapeHtml(intention.selectionKey)}" ${intentionBusy || (guidanceRequired && !state.storySensitivityAcknowledged) ? "disabled" : ""}>${escapeHtml(intention.selectionKey === selectedKey ? tr("intentionChosen") : tr("chooseIntention"))}</button>
     </article>`).join("");
   elements.storyIntentionGrid.querySelectorAll("[data-story-intention]").forEach((button) => button.addEventListener("click", () => chooseStoryIntention(button.dataset.storyIntention)));
-  elements.intentionChoiceStatus.textContent = selectedId ? tr("intentionConfirmed") : "";
+  elements.intentionPerspectiveNav.hidden = availableBatches < 2;
+  elements.intentionPerspectivePage.textContent = availableBatches
+    ? tr("intentionPerspectivePage", { current: state.storyIntentionPage + 1, total: availableBatches })
+    : "";
+  elements.previousIntentionPerspectives.disabled = intentionBusy || state.storyIntentionPage <= 0;
+  elements.nextIntentionPerspectives.disabled = intentionBusy || state.storyIntentionPage >= availableBatches - 1;
+  elements.intentionChoiceStatus.textContent = selected ? tr("intentionConfirmed") : (limitReached ? tr("intentionPerspectiveLimit") : "");
   elements.customStoryChoice.classList.toggle("is-selected", state.storySuggestionMode === "custom");
   elements.adventureProposals.hidden = !(state.selectedUniverse && (selectedId || state.storySuggestions.length || state.storySuggestionMode === "suggestion"));
 }
 
 async function requestStoryIntentions() {
   if (state.storyIntentionsBusy) return;
+  if (state.storyIntentionRoundsUsed >= 3) {
+    elements.intentionChoiceStatus.textContent = tr("intentionPerspectiveLimit");
+    return;
+  }
   const values = formValues();
   const childAge = Number(values.age);
   if (!Number.isInteger(childAge) || childAge < 1 || childAge > 14) {
@@ -1894,17 +1963,12 @@ async function requestStoryIntentions() {
     return;
   }
   state.storyIntentionsBusy = true;
-  state.storyIntentions = [];
-  state.storySensitivityProfile = null;
-  state.storySensitivityGuidance = null;
-  state.storySensitivityAcknowledged = false;
   state.storySensitivityIntervention = "";
-  state.childSafetyProfile = null;
   state.childSafetyIntervention = "";
-  resetStorySuggestionChoice({ preserveAnswers: true });
   elements.intentionChoiceStatus.textContent = "";
   renderStoryIntentions();
   renderStorySuggestions();
+  let requestFeedback = "";
   try {
     const response = await fetch("/api/story-intentions", {
       method: "POST",
@@ -1913,32 +1977,58 @@ async function requestStoryIntentions() {
         creatorSituation: values.creator_situation,
         childAge,
         locale: state.locale,
+        previousInterpretations: state.storyIntentions.map((intention) => ({
+          title: intention.title,
+          understanding: intention.understanding,
+          first_step: intention.first_step,
+        })),
       }),
     });
     const payload = await response.json();
+    if (Number(payload.roundNumber)) {
+      state.storyIntentionRoundsUsed = Math.max(state.storyIntentionRoundsUsed, Number(payload.roundNumber));
+    }
     if (applySafetyInterventionPayload(payload)) return;
+    if (payload.code === "intention_ideation_limit_reached") {
+      throw new Error(tr("intentionPerspectiveLimit"));
+    }
     if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
-    state.storyIntentions = payload.intentions;
+    const roundNumber = Math.max(1, Math.min(3, Number(payload.roundNumber || state.storyIntentionBatches.length + 1)));
+    const batch = payload.intentions.map((intention) => ({
+      ...intention,
+      roundNumber,
+      selectionKey: intentionSelectionKey(intention, roundNumber),
+    }));
+    const existingBatch = state.storyIntentionBatches.findIndex((items) => (
+      Number(items?.[0]?.roundNumber) === roundNumber
+    ));
+    if (existingBatch >= 0) state.storyIntentionBatches[existingBatch] = batch;
+    else state.storyIntentionBatches.push(batch);
+    setStoryIntentionBatches(state.storyIntentionBatches);
+    state.storyIntentionPage = state.storyIntentionBatches.length - 1;
     state.storySensitivityProfile = payload.sensitivityProfile || null;
     state.storySensitivityGuidance = payload.sensitivityGuidance || sensitivityGuidanceFromProfile(payload.sensitivityProfile);
     state.storySensitivityAcknowledged = !state.storySensitivityGuidance?.requiresAcknowledgement;
     state.childSafetyProfile = payload.childSafetyProfile || null;
     persistLocalDraft();
   } catch (error) {
-    elements.intentionChoiceStatus.textContent = activeSafetyIntervention() ? "" : (error.message || tr("intentionError"));
+    requestFeedback = activeSafetyIntervention() ? "" : (error.message || tr("intentionError"));
   } finally {
     state.storyIntentionsBusy = false;
     renderStoryIntentions();
+    if (requestFeedback) elements.intentionChoiceStatus.textContent = requestFeedback;
     revealIntentionSafetyNotice();
+    persistLocalDraft();
   }
 }
 
 function chooseStoryIntention(id) {
-  const intention = state.storyIntentions.find((item) => item.id === id);
+  const intention = state.storyIntentions.find((item) => item.selectionKey === id);
   if (!intention) return;
   Object.entries(INTENTION_FIELD_MAP).forEach(([key, fieldId]) => {
     document.querySelector(`#${fieldId}`).value = intention[key] || "";
   });
+  state.selectedStoryIntentionKey = intention.selectionKey;
   state.storySuggestions = [];
   state.storySuggestionMode = "";
   resetStorySuggestionChoice({ preserveAnswers: true });
@@ -2413,6 +2503,8 @@ function questionnaireFromState() {
     universe_details: document.querySelector("#universe_details").value,
     universe_story_contract: universe?.storyContract || {},
     story_intentions: state.storyIntentions,
+    story_intention_batches: state.storyIntentionBatches,
+    story_intention_rounds_used: state.storyIntentionRoundsUsed,
     story_sensitivity_profile: state.storySensitivityProfile,
     story_sensitivity_acknowledged: state.storySensitivityAcknowledged,
     child_safety_profile: state.childSafetyProfile,
@@ -3344,7 +3436,10 @@ function loadSeriesDraft(project) {
   state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
   state.productType = availableProductType(questionnaire.product_type || configuration.product_type || state.productType);
-  state.storyIntentions = Array.isArray(questionnaire.story_intentions) ? questionnaire.story_intentions : [];
+  state.storyIntentionPage = 0;
+  state.storyIntentionRoundsUsed = Number(questionnaire.story_intention_rounds_used || 0);
+  state.selectedStoryIntentionKey = "";
+  setStoryIntentionBatches(questionnaire.story_intention_batches, questionnaire.story_intentions);
   state.storySensitivityProfile = questionnaire.story_sensitivity_profile || null;
   state.storySensitivityGuidance = sensitivityGuidanceFromProfile(state.storySensitivityProfile);
   state.storySensitivityAcknowledged = questionnaire.story_sensitivity_acknowledged === true;
@@ -3469,7 +3564,10 @@ async function init() {
     state.fontStyle = saved?.fontStyle || state.fontStyle;
     state.productType = availableProductType(saved?.productType || requestedProductType || state.productType);
     state.projectId = saved?.projectId || "";
-    state.storyIntentions = Array.isArray(saved?.storyIntentions) ? saved.storyIntentions : [];
+    state.storyIntentionPage = Math.max(0, Number(saved?.storyIntentionPage || 0));
+    state.storyIntentionRoundsUsed = Math.max(0, Number(saved?.storyIntentionRoundsUsed || 0));
+    state.selectedStoryIntentionKey = String(saved?.selectedStoryIntentionKey || "");
+    setStoryIntentionBatches(saved?.storyIntentionBatches, saved?.storyIntentions);
     state.storySensitivityProfile = saved?.storySensitivityProfile || null;
     state.storySensitivityGuidance = saved?.storySensitivityGuidance || sensitivityGuidanceFromProfile(state.storySensitivityProfile);
     state.storySensitivityAcknowledged = saved?.storySensitivityAcknowledged === true;
@@ -3512,6 +3610,16 @@ elements.form.addEventListener("change", scheduleLocalDraft);
 elements.form.addEventListener("click", (event) => { if (event.target.closest("[data-style-id],[data-universe-id],[data-font-id],[data-product-type],[data-page-count]")) window.setTimeout(persistLocalDraft, 0); });
 elements.refreshStorySuggestions.addEventListener("click", () => requestStorySuggestions({ refresh: true }));
 elements.interpretIntentionButton.addEventListener("click", () => requestStoryIntentions());
+elements.previousIntentionPerspectives.addEventListener("click", () => {
+  state.storyIntentionPage = Math.max(0, state.storyIntentionPage - 1);
+  renderStoryIntentions();
+  persistLocalDraft();
+});
+elements.nextIntentionPerspectives.addEventListener("click", () => {
+  state.storyIntentionPage = Math.min(state.storyIntentionBatches.length - 1, state.storyIntentionPage + 1);
+  renderStoryIntentions();
+  persistLocalDraft();
+});
 elements.customStoryChoice.addEventListener("click", chooseCustomStory);
 elements.safetyCountry.addEventListener("change", () => {
   state.safetyCountry = elements.safetyCountry.value;

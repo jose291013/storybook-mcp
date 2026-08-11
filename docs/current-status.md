@@ -9,33 +9,34 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: PR #148 merged at `aeaa526`; deterministic before/during/after continuity now reaches the whole-book scene plan
-- Current focused checkpoint: single physical render snapshot and conditional-equipment authority
-- Pull request: #149 (merge authorized; production verification pending)
+- Production/main checkpoint: PR #149 merged at `8b0f739`; single physical render snapshots now reach image generation and QA
+- Current focused checkpoint: bounded intention-perspective history and server-side cost ceiling
+- Pull request: not yet published
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #148 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #149 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: physical render snapshot
+## Current product brick: bounded intention perspectives
 
-1. Image generation receives only one compiled visible phase, location, physical medium and main action rather than the complete causal frame.
-2. Conditional safety equipment overrides persistent wardrobe and is stripped from the scene outfit whenever stored or absent.
-3. Structured medium replaces prose keyword inference for underwater safety and breathable rooms.
-4. Wrong medium, equipment-state conflicts, equipment duplication and multi-phase composites enter bounded automatic targeted repair.
-5. NarrativeBookSpec and compatibility planning share the versioned snapshot and invalidate older cached plans.
+1. One normalized age, situation and language may receive at most three server-authorized batches of three perspectives.
+2. The anonymous budget stores only owner and input hashes plus a numeric counter; parent wording and generated text remain outside the ledger.
+3. The creator preserves every generated batch and browses the available perspectives three at a time.
+4. Button wording announces additional batches and the final nine-perspective limit explicitly.
+5. Previous perspectives accompany later calls so the assistant must produce materially different approaches.
 
 ## Verification
 
-- Focused physical-snapshot and illustration-plan tests: 108/108 passing.
-- Complete `npm test`: 413/413 passing.
+- Focused intention-budget and funnel tests: 9/9 passing.
+- Complete `npm test`: 415/415 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. After deployment, generate a fresh coral-ocean preview and verify that the return workshop is breathable, each bubble exists once and stored equipment is not worn.
+1. Publish and merge the bounded-intention-perspectives brick under the existing authorization.
+2. Continue with the camera-side world-topology authority.
 
 ## Protected local state
 

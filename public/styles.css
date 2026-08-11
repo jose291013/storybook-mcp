@@ -224,6 +224,8 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .intention-example:hover, .intention-example:focus-visible { border-color: var(--sage); background: #e6f1eb; }
 .intention-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .story-intention-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.intention-perspective-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 16px; }
+.intention-perspective-nav strong { min-width: 120px; color: var(--muted); text-align: center; }
 .story-intention-card { display: flex; min-width: 0; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: #fffdf9; }
 .story-intention-card.is-selected { border: 2px solid var(--sage); box-shadow: 0 0 0 4px rgba(121,151,139,.14); }
 .story-intention-card h3 { margin: 0; font-family: Georgia, serif; font-size: 21px; font-weight: 500; }
