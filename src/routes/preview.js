@@ -10,6 +10,11 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
+import {
+  ADJACENT_VISUAL_CONTINUITY_VERSION,
+  adjacentApprovedIllustrationReferences,
+  adjacentContinuityPageNumbers,
+} from "../services/adjacentVisualContinuity.js";
 import { calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PRINT_PAGE_PRICE_EUR } from "../config/bookOptions.js";
 
 import { intakeAgent } from "../agents/intake.js";
@@ -1337,6 +1342,11 @@ router.post("/preview", async (req, res) => {
           && ["text", "opening_text", "closing_text"].includes(candidate.page_type)
         ));
         const pairedText = pairedTextPage ? draftTextByPage.get(pairedTextPage.page_number) || "" : "";
+        const adjacentReferenceImages = adjacentApprovedIllustrationReferences({
+          blueprintPages: final_blueprint.pages,
+          draftPages,
+          currentPageNumber: page.page_number,
+        });
         const sceneContinuity = buildSceneContinuity({
           blueprint: final_blueprint,
           characterCanons,
@@ -1349,6 +1359,7 @@ router.post("/preview", async (req, res) => {
           structuredSceneContract: page.scene_contract || null,
           wardrobeLocks: page.wardrobe_locks || [],
           referenceAssets,
+          adjacentReferenceImages,
         });
         const visualPrompt = sceneContractImagePrompt({
           contract: page.scene_contract,
@@ -1356,7 +1367,7 @@ router.post("/preview", async (req, res) => {
           fallbackPrompt: page.image_prompt,
           visualAliases: sceneContinuity.visualAliases,
         });
-        return { pairedText, sceneContinuity, visualPrompt };
+        return { pairedText, sceneContinuity, visualPrompt, adjacentReferenceImages };
       };
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
@@ -1372,11 +1383,14 @@ router.post("/preview", async (req, res) => {
         let qualityIssues = [];
         let qualityKind = "";
         let qualityRepairPolicy = null;
+        let adjacentReferenceImages = [];
 
         if (["text", "opening_text", "closing_text"].includes(page.page_type)) {
           text = draftTextByPage.get(page.page_number) || "";
         } else if (page.page_type === "image") {
-          const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
+          const visualRequest = buildPageVisualRequest(page);
+          const { sceneContinuity, visualPrompt } = visualRequest;
+          adjacentReferenceImages = visualRequest.adjacentReferenceImages;
           const remainingRequiredImageCount = final_blueprint.pages.filter((candidate) => (
             candidate.page_type === "image"
             && !completedPageNumbers.has(Number(candidate.page_number))
@@ -1478,6 +1492,8 @@ router.post("/preview", async (req, res) => {
             qualityIssues,
             qualityKind,
             qualityRepairPolicy,
+            adjacentVisualContinuityVersion: ADJACENT_VISUAL_CONTINUITY_VERSION,
+            adjacentSourcePageNumbers: adjacentContinuityPageNumbers(adjacentReferenceImages),
           } : {}),
         });
         draftPages.sort((left, right) => Number(left.page_number) - Number(right.page_number));
@@ -1562,6 +1578,7 @@ router.post("/preview", async (req, res) => {
             likenessGoal: answers.likeness_goal,
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
             qualityReviewScope: repairPolicy.targetCodes,
+            revisionInstruction: (pendingPage.qualityIssues || []).join("; "),
           });
           const persistedImage = candidateAssetCache.get(repairedLocalImageUrl)
             || await persistPreviewAsset({ projectId, assetUrl: repairedLocalImageUrl });

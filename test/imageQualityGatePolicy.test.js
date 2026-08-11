@@ -159,10 +159,11 @@ test("visual QA policy assigns stable codes and reserves automatic repair for hi
 test("a targeted repair edits the preserved candidate before continuity and identity references", () => {
   const references = prioritizeVisualReferences([
     { kind: "identity", label: "hero" },
+    { kind: "adjacent_scene", label: "previous approved scene" },
     { kind: "continuity", label: "cover" },
     { kind: "repair_source", label: "page candidate" },
   ]);
-  assert.deepEqual(references.map((item) => item.kind), ["repair_source", "continuity", "identity"]);
+  assert.deepEqual(references.map((item) => item.kind), ["repair_source", "continuity", "adjacent_scene", "identity"]);
   const prompt = buildFinalPrompt({
     prompt: "Remove only the duplicated hero.",
     referenceImages: references,
@@ -170,6 +171,22 @@ test("a targeted repair edits the preserved candidate before continuity and iden
   assert.match(prompt, /TARGET IMAGE TO EDIT/);
   assert.match(prompt, /smallest local correction/);
   assert.match(prompt, /do not redesign or regenerate the scene/);
+  assert.match(prompt, /ADJACENT APPROVED SCENE/);
+  assert.match(prompt, /never copy their prior action, pose, composition, camera/i);
+});
+
+test("a likeness or invariant regression against the preserved revision source is blocking", () => {
+  for (const [issue, code] of [
+    ["Identity likeness regressed from preserved source: the child became a different person.", "identity_regression"],
+    ["Unrequested stable visual invariant regressed from preserved source: the unique arch was duplicated.", "revision_invariant_regression"],
+  ]) {
+    assert.deepEqual(objectiveSceneContractIssues([issue]), [issue]);
+    assert.deepEqual(blockingSceneContractIssues([issue]), [issue]);
+    const classification = classifyVisualIssue(issue);
+    assert.equal(classification.code, code);
+    assert.equal(classification.severity, "blocking");
+    assert.equal(classification.automaticRepair, true);
+  }
 });
 
 test("a categorical style mismatch remains blocking after the final image attempt", () => {

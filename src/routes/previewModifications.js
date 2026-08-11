@@ -17,6 +17,7 @@ import { inspectPreviewModificationRequest } from "../services/previewModificati
 import { childSafetyResponse, guardChildSafety } from "../services/childSafety.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
+import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -97,18 +98,8 @@ function failureCode(error) {
   return "generation_failed";
 }
 
-function continuityStorageKey(project, spread) {
-  const candidates = (project.previewResult?.draftPages || [])
-    .filter((page) => page.page_type === "image" && Number(page.page_number) !== spread.imagePageNumber)
-    .map((page) => ({
-      key: page.imageStorageKey || page.storageKey || "",
-      distance: Math.abs(Number(page.page_number) - spread.imagePageNumber),
-    }))
-    .filter((item) => item.key)
-    .sort((left, right) => left.distance - right.distance);
-  return visualBibleCoverStorageKey(project)
-    || candidates[0]?.key
-    || "";
+function continuityStorageKey(project) {
+  return visualBibleCoverStorageKey(project) || "";
 }
 
 async function regenerateSpreadIllustration({ project, spread, pairedText, instruction, modificationId, onAttempt }) {
@@ -116,15 +107,24 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
   const characterCanons = Array.isArray(project.continuitySnapshot?.characterCanons)
     ? project.continuitySnapshot.characterCanons
     : [];
+  const draftPages = project.previewResult?.draftPages || [];
+  const currentPage = draftPages.find((page) => Number(page.page_number) === spread.imagePageNumber);
+  const adjacentReferenceImages = adjacentApprovedIllustrationReferences({
+    blueprintPages: project.finalBlueprint.pages,
+    draftPages,
+    currentPageNumber: spread.imagePageNumber,
+    includeNext: true,
+  });
   const continuity = buildSceneContinuity({
     blueprint: project.finalBlueprint,
     characterCanons,
     castPresent: imageBlueprint.cast_present || [],
     scenePrompt: imageBlueprint.image_prompt,
     visualState: imageBlueprint.visual_state || {},
-    continuityImageStorageKey: continuityStorageKey(project, spread),
+    continuityImageStorageKey: continuityStorageKey(project),
     pairedText,
     structuredSceneContract: imageBlueprint.scene_contract || null,
+    adjacentReferenceImages,
   });
   const style = findIllustrationStyle(project.questionnaire?.style_id || project.productConfiguration?.style_id);
   const basePrompt = sceneContractImagePrompt({
@@ -152,6 +152,14 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     castPresent: imageBlueprint.cast_present || [],
     pageLabel: `customer modification for preview page ${spread.imagePageNumber}`,
     ...continuity,
+    referenceImages: [
+      ...(currentPage?.imageStorageKey ? [{
+        kind: "repair_source",
+        storageKey: currentPage.imageStorageKey,
+        label: "current accepted page; preserve its identity likeness, composition and every unaffected detail while applying only the requested local change",
+      }] : []),
+      ...(continuity.referenceImages || []),
+    ],
     size: "1024x1024",
     quality: "low",
     renderingMode: style.renderingMode,
@@ -159,6 +167,7 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
     maximumAttempts: 2,
     onAttempt,
+    revisionInstruction: instruction,
   });
   const persisted = await persistPreviewAsset({ projectId: project.id, assetUrl: imageUrl });
   return { imageUrl, persisted };

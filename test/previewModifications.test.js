@@ -91,6 +91,14 @@ test("only complete narrative spreads can receive a targeted modification", () =
   assert.notEqual(fingerprint(project), before);
 });
 
+test("illustration revisions preserve the current image and add adjacent continuity evidence", async () => {
+  const source = await fs.readFile("src/routes/previewModifications.js", "utf8");
+  assert.match(source, /kind: "repair_source"/);
+  assert.match(source, /adjacentApprovedIllustrationReferences/);
+  assert.match(source, /includeNext: true/);
+  assert.match(source, /revisionInstruction: instruction/);
+});
+
 test("a local modification that introduces an unapproved character is blocked before credit", () => {
   const project = completedProject();
   const familyRequest = inspectPreviewModificationRequest({

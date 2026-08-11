@@ -20,6 +20,7 @@ import {
 } from "../services/qualityReviewResolution.js";
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
+import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 
@@ -394,6 +395,12 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
       updateJob(job.id, { step: `quality:illustration:page:${pageNumber}:illustrating` });
       const referencePath = await downloadContinuityReference(refreshed, temporaryDirectory);
       const characterCanons = await usableCharacterCanons(refreshed);
+      const adjacentReferenceImages = adjacentApprovedIllustrationReferences({
+        blueprintPages: refreshed.finalBlueprint.pages,
+        draftPages: refreshed.previewResult?.draftPages || [],
+        currentPageNumber: pageNumber,
+        includeNext: true,
+      });
       const continuity = buildSceneContinuity({
         blueprint: refreshed.finalBlueprint,
         characterCanons,
@@ -403,6 +410,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         continuityImagePath: referencePath,
         pairedText,
         structuredSceneContract: refreshedBlueprintPage.scene_contract || null,
+        adjacentReferenceImages,
       });
       const selectedStyle = findIllustrationStyle(
         refreshed.questionnaire?.style_id || refreshed.productConfiguration?.style_id,
@@ -433,12 +441,21 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         castPresent: refreshedBlueprintPage.cast_present || [],
         pageLabel: `creator-requested quality repair for page ${pageNumber}`,
         ...continuity,
+        referenceImages: [
+          ...(refreshedPage.imageStorageKey ? [{
+            kind: "repair_source",
+            storageKey: refreshedPage.imageStorageKey,
+            label: "current accepted page under quality review; preserve its identity likeness, composition and every unaffected detail while correcting only the confirmed mismatch",
+          }] : []),
+          ...(continuity.referenceImages || []),
+        ],
         size: "1024x1024",
         quality: "low",
         renderingMode: selectedStyle.renderingMode,
         likenessGoal: selectedStyle.likeness,
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
         maximumAttempts: 1,
+        revisionInstruction: `${priorIssues}; ${instruction}`,
       });
       const persistedImage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localImageUrl });
 

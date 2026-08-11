@@ -67,6 +67,7 @@ export function buildSceneContinuity({
   structuredSceneContract = null,
   wardrobeLocks = [],
   referenceAssets = new Map(),
+  adjacentReferenceImages = [],
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
   const visualAliases = buildImageCharacterAliases({ blueprint, characterCanons, castPresent });
@@ -125,9 +126,10 @@ export function buildSceneContinuity({
       kind: "continuity",
     }
     : null;
-  // The approved cover must be Reference 1. Raw photos are identity evidence
-  // only and must never outvote the book's already approved visual language.
-  const referenceImages = [continuityReference, ...identityReferenceImages].filter(Boolean);
+  // The approved cover must be Reference 1. Adjacent scenes provide only local
+  // continuity evidence. Raw photos remain identity evidence and must never
+  // outvote the book's approved visual language or the current scene contract.
+  const referenceImages = [continuityReference, ...adjacentReferenceImages, ...identityReferenceImages].filter(Boolean);
 
   const castNames = selected.map((character) => aliasFor(character.name)).filter(Boolean);
   const sceneRules = [];
@@ -136,8 +138,13 @@ export function buildSceneContinuity({
       "The compact visual specification is authoritative for the current scene.",
       "Its main-action subject must visibly perform the stated verb toward the stated target.",
       "A generic character id is a distinct one-scene person and must never be replaced by a recurring named character or photo reference.",
-      "Respect every required quantity and scale literally, and show none of the forbidden substitutions."
+      "Respect every required quantity and scale literally, and show none of the forbidden substitutions.",
+      "Use the paired reader text below as concrete visual evidence for this same scene, while rendering only the single visible phase declared by the render snapshot.",
+      "Never turn an abstract plan, memory, feeling, metaphor or future possibility from the prose into a physical object unless required_elements or object_states explicitly makes it visible."
     );
+    if (pairedText) {
+      sceneRules.push(`PAIRED READER TEXT EVIDENCE: ${safe(pairedText).slice(0, 1800)}`);
+    }
     if (structuredSceneContract.render_snapshot) {
       sceneRules.push(
         "The physical render snapshot overrides prose inference, wardrobe wording and generic universe styling for environment and conditional equipment.",
@@ -186,7 +193,7 @@ export function buildSceneContinuity({
     referenceImages,
     sceneContract: sceneRules.filter(Boolean).join("\n"),
     sceneFidelityContract: structuredSceneContract
-      ? compactImageSceneContract(structuredSceneContract, visualAliases)
+      ? compactImageSceneContract(structuredSceneContract, visualAliases, { pairedText })
       : null,
     visualAliases,
   };

@@ -147,7 +147,7 @@ export function neutralizeImageText(value, aliases = []) {
   return sanitizeBrandSensitiveText(result);
 }
 
-export function compactImageSceneContract(contract = {}, aliases = [], { safetyFallback = false } = {}) {
+export function compactImageSceneContract(contract = {}, aliases = [], { safetyFallback = false, pairedText = "" } = {}) {
   const safe = (value) => neutralizeImageText(value, aliases).replace(/\s+/g, " ").trim();
   const namedCharacters = list(contract.named_characters, 10).map((item) => {
     const identity = aliases.find((alias) => normalizedKey(alias?.name) === normalizedKey(item?.name));
@@ -180,6 +180,13 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       instruction: safe(item.instruction),
     }));
   return {
+    paired_text_evidence: safe(pairedText).slice(0, 1800),
+    visual_evidence: [
+      [safe(contract?.main_action?.subject), safe(contract?.main_action?.verb), safe(contract?.main_action?.target)].filter(Boolean).join(" "),
+      ...namedCharacters.map((item) => `${item.name}: ${item.action}`),
+      ...requiredElements.map((item) => [item.quantity, item.description, item.scale].filter(Boolean).join(" ")),
+      ...list(contract.spatial_relationships, 12).map(safe),
+    ].filter(Boolean).slice(0, 30),
     main_action: {
       subject: safe(contract?.main_action?.subject),
       verb: safe(contract?.main_action?.verb),

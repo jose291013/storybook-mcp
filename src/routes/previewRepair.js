@@ -14,6 +14,7 @@ import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
+import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -215,6 +216,12 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
       const pairedTextPage = refreshed.finalBlueprint.pages?.find((page) => page.spread_number === blueprintPage.spread_number && ["text", "opening_text", "closing_text"].includes(page.page_type));
       const pairedText = draftPages.find((page) => Number(page.page_number) === Number(pairedTextPage?.page_number))?.text || "";
       const characterCanons = await usableCharacterCanons(refreshed);
+      const adjacentReferenceImages = adjacentApprovedIllustrationReferences({
+        blueprintPages: refreshed.finalBlueprint.pages,
+        draftPages,
+        currentPageNumber: pageNumber,
+        includeNext: true,
+      });
       const continuity = buildSceneContinuity({
         blueprint: refreshed.finalBlueprint,
         characterCanons,
@@ -224,6 +231,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         continuityImagePath: referencePath,
         pairedText,
         structuredSceneContract: blueprintPage.scene_contract || null,
+        adjacentReferenceImages,
       });
 
       updateJob(job.id, { step: `repair:page:${pageNumber}:illustrating` });
@@ -247,12 +255,21 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         castPresent: blueprintPage.cast_present || [],
         pageLabel: `repaired interior illustration for page ${pageNumber}`,
         ...continuity,
+        referenceImages: [
+          {
+            kind: "repair_source",
+            path: existingImagePath,
+            label: "current accepted page with an objective technical defect; preserve identity likeness, composition and all unaffected content while correcting only that defect",
+          },
+          ...(continuity.referenceImages || []),
+        ],
         size: "1024x1024",
         quality: "low",
         renderingMode: selectedStyle.renderingMode,
         likenessGoal: selectedStyle.likeness,
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
         maximumAttempts: 2,
+        revisionInstruction: technicalInspection.issues.join("; "),
       });
       const persistedImage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localImageUrl });
 
