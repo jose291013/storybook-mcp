@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/cross-device-project-resume`
-- Production/main checkpoint: PR #154 merged at `2e2edca`; Render health returned `{ "ok": true }`
+- Current branch: `main`
+- Production/main checkpoint: PR #155 merged at `d015144`; Render health returned `{ "ok": true }` and the live Creator serves `projectResumePanel`
 - Current focused checkpoint: e-mail links resume the server-owned project explicitly across devices instead of exposing a blank local questionnaire
-- Pull requests: #150 through #154 merged; PR #155 is the delivery checkpoint for cross-device project resume
+- Pull requests: #150 through #155 merged
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,8 +36,8 @@ PR #55 through PR #154 are merged on `main`. Render health returned HTTP 200 wit
 
 ## Next verification target
 
-1. Verify the merged PR #155 deployment and Render health.
-2. Verify one real scenario-ready e-mail from a second device with no Creator local draft.
+1. Verify one real scenario-ready e-mail from a second device with no Creator local draft.
+2. Confirm that the authenticated phone opens the exact persisted scenario-review state.
 
 ## Protected local state
 
