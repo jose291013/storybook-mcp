@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `agent/visible-adventure-choice-state`
 - Production/main checkpoint: PR #153 merged at `8c8fdc2`; the approved intention-perspective limit and continuity bricks are live on `main`
 - Current focused checkpoint: selected intentions remain visibly confirmed while the three adventure proposals load or fail
-- Pull requests: #150 through #153 merged; draft PR #154 contains the visible adventure-choice-state fix
+- Pull requests: #150 through #153 merged; PR #154 is the delivery checkpoint for the visible adventure-choice-state fix
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,8 +35,8 @@ PR #55 through PR #153 are merged on `main`. Render health returned HTTP 200 wit
 
 ## Next verification target
 
-1. Obtain explicit approval to mark PR #154 ready and merge it; warn that Render may restart and interrupt an active preview.
-2. After deployment, select an intention and verify the loading, successful suggestion and retryable failure states on the live creator.
+1. Verify the merged PR #154 deployment and Render health.
+2. Select an intention on the live creator and verify the loading, successful suggestion and retryable failure states.
 
 ## Protected local state
 
