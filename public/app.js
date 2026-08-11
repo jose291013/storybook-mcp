@@ -27,6 +27,10 @@ const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
 const PROJECT_ID_PATTERN = /^[A-Za-z0-9_-]{6,128}$/;
 
+function newIntentionSessionId() {
+  return globalThis.crypto?.randomUUID?.() || `intent_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function projectResumeIdFromUrl(url = initialUrl) {
   const direct = String(url.searchParams.get("resumeProject") || "").trim();
   const callback = url.searchParams.get("resume") === "project"
@@ -101,6 +105,7 @@ const state = {
   storyIntentionBatches: [],
   storyIntentionPage: 0,
   storyIntentionRoundsUsed: 0,
+  intentionSessionId: newIntentionSessionId(),
   selectedStoryIntentionKey: "",
   storySensitivityProfile: null,
   storySensitivityGuidance: null,
@@ -273,6 +278,9 @@ const QUALITY_REVIEW_TEXT = {
     approving: "Validation en cours…",
     repairing: "Création d’une proposition pour la page {page}… La double-page actuelle reste inchangée.",
     choosing: "Enregistrement de votre choix…",
+    retryAlternative: "Réessayer gratuitement",
+    repairRetryAvailable: "La proposition n’a pas abouti. Votre double-page est intacte et vous pouvez réessayer gratuitement une fois.",
+    repairTechnicalExhausted: "Les deux tentatives techniques n’ont produit aucune proposition. Votre double-page est intacte ; contactez Calitiki pour poursuivre sans nouveau coût.",
     repairExhausted: "La proposition gratuite pour ce type de correction a déjà été utilisée. Vous pouvez choisir une proposition existante, conserver la double-page ou contacter Calitiki.",
     actionError: "La décision n’a pas pu être enregistrée. Votre livre reste conservé ; réessayez.",
   },
@@ -313,6 +321,9 @@ const QUALITY_REVIEW_TEXT = {
     approving: "Validando…",
     repairing: "Creando una propuesta para la página {page}… La doble página actual no cambiará.",
     choosing: "Guardando tu elección…",
+    retryAlternative: "Reintentar gratis",
+    repairRetryAvailable: "La propuesta no se ha completado. Tu doble página está intacta y puedes volver a intentarlo gratis una vez.",
+    repairTechnicalExhausted: "Los dos intentos técnicos no han producido ninguna propuesta. Tu doble página está intacta; contacta con Calitiki para continuar sin un nuevo coste.",
     repairExhausted: "Ya se ha utilizado la propuesta gratuita para este tipo de corrección. Puedes elegir una propuesta existente, conservar la doble página o contactar con Calitiki.",
     actionError: "No se ha podido guardar la decisión. Tu libro sigue guardado; inténtalo de nuevo.",
   },
@@ -353,6 +364,9 @@ const QUALITY_REVIEW_TEXT = {
     approving: "Saving approval…",
     repairing: "Creating a proposal for page {page}… The current spread remains unchanged.",
     choosing: "Saving your choice…",
+    retryAlternative: "Retry for free",
+    repairRetryAvailable: "The proposal did not complete. Your spread is intact and you may retry once for free.",
+    repairTechnicalExhausted: "Two technical attempts produced no proposal. Your spread is intact; contact Calitiki to continue without another charge.",
     repairExhausted: "The free proposal for this correction type has already been used. You can choose an existing proposal, keep the spread or contact Calitiki.",
     actionError: "The decision could not be saved. Your book remains safe; please retry.",
   },
@@ -532,6 +546,7 @@ function persistLocalDraft() {
     productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions,
     storyIntentionBatches: state.storyIntentionBatches, storyIntentionPage: state.storyIntentionPage,
     storyIntentionRoundsUsed: state.storyIntentionRoundsUsed,
+    intentionSessionId: state.intentionSessionId,
     selectedStoryIntentionKey: state.selectedStoryIntentionKey,
     storySensitivityProfile: state.storySensitivityProfile, storySensitivityGuidance: state.storySensitivityGuidance,
     storySensitivityAcknowledged: state.storySensitivityAcknowledged, childSafetyProfile: state.childSafetyProfile,
@@ -1995,6 +2010,8 @@ async function requestStoryIntentions() {
         creatorSituation: values.creator_situation,
         childAge,
         locale: state.locale,
+        intentionSessionId: state.intentionSessionId,
+        requestId: newIntentionSessionId(),
         previousInterpretations: state.storyIntentions.map((intention) => ({
           title: intention.title,
           understanding: intention.understanding,
@@ -2003,15 +2020,16 @@ async function requestStoryIntentions() {
       }),
     });
     const payload = await response.json();
-    if (Number(payload.roundNumber)) {
-      state.storyIntentionRoundsUsed = Math.max(state.storyIntentionRoundsUsed, Number(payload.roundNumber));
-    }
     if (applySafetyInterventionPayload(payload)) return;
+    if (payload.code === "intention_ideation_in_progress") {
+      throw new Error(tr("intentionPerspectiveInProgress"));
+    }
     if (payload.code === "intention_ideation_limit_reached") {
       throw new Error(tr("intentionPerspectiveLimit"));
     }
     if (!response.ok || !Array.isArray(payload.intentions) || payload.intentions.length !== 3) throw new Error(payload.error || tr("intentionError"));
     const roundNumber = Math.max(1, Math.min(3, Number(payload.roundNumber || state.storyIntentionBatches.length + 1)));
+    state.storyIntentionRoundsUsed = Math.max(state.storyIntentionRoundsUsed, roundNumber);
     const batch = payload.intentions.map((intention) => ({
       ...intention,
       roundNumber,
@@ -2954,6 +2972,28 @@ function qualityCandidateMap(page) {
   return candidates;
 }
 
+function qualityScopeAvailability(page, requestedScope) {
+  const scope = requestedScope === "text" ? "text" : "illustration";
+  const candidateReady = qualityCandidateMap(page)[scope]?.status === "ready";
+  const successCount = Number(scope === "text"
+    ? page?.qualityReviewTextRepairCount || page?.textRepairCount || 0
+    : page?.qualityReviewRepairCount || page?.repairCount || 0);
+  const attemptValue = Number(scope === "text"
+    ? page?.qualityReviewTextRepairAttemptCount || page?.textRepairAttemptCount || 0
+    : page?.qualityReviewRepairAttemptCount || page?.repairAttemptCount || 0);
+  const completedAt = scope === "text" ? page?.qualityReviewTextRepairCompletedAt : page?.qualityReviewRepairCompletedAt;
+  const failedAt = scope === "text" ? page?.qualityReviewTextRepairFailedAt : page?.qualityReviewRepairFailedAt;
+  const legacyFailureOnly = successCount > 0 && failedAt && !completedAt && !candidateReady;
+  const completedCount = candidateReady || completedAt ? Math.max(1, successCount) : legacyFailureOnly ? 0 : successCount;
+  const attemptCount = Math.max(attemptValue, failedAt ? 1 : 0, completedCount > 0 ? 1 : 0);
+  const canRequest = completedCount < 1 && attemptCount < 2;
+  return {
+    canRequest,
+    retryAvailable: Boolean(failedAt) && canRequest,
+    technicalExhausted: completedCount < 1 && !candidateReady && attemptCount >= 2,
+  };
+}
+
 function showQualityReview(job, { scroll = true } = {}) {
   const copy = QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR;
   const pages = job?.qualityReview?.pages
@@ -2980,9 +3020,13 @@ function showQualityReview(job, { scroll = true } = {}) {
         : null;
       const hasCandidate = Boolean(imageCandidate || textCandidate);
       const issueLabels = localizedQualityIssues(draftPage?.qualityIssues || page.issues, copy);
-      const imageExhausted = Number(draftPage?.qualityReviewRepairCount || page.repairCount || 0) >= 1;
-      const textExhausted = Number(draftPage?.qualityReviewTextRepairCount || page.textRepairCount || 0) >= 1;
-      const canRequestAlternative = !imageExhausted || !textExhausted;
+      const policyPage = { ...page, ...(draftPage || {}) };
+      const imageAvailability = qualityScopeAvailability(policyPage, "illustration");
+      const textAvailability = qualityScopeAvailability(policyPage, "text");
+      const canRequestAlternative = imageAvailability.canRequest || textAvailability.canRequest;
+      const technicalExhausted = !canRequestAlternative
+        && (imageAvailability.technicalExhausted || textAvailability.technicalExhausted);
+      const retryAvailable = imageAvailability.retryAvailable || textAvailability.retryAvailable;
       return `<li class="quality-review-page-card" data-quality-page="${Number(page.pageNumber)}">
         <div>
           <strong>${escapeHtml(copy.page.replace("{page}", String(page.pageNumber)))}</strong>
@@ -3018,16 +3062,20 @@ function showQualityReview(job, { scroll = true } = {}) {
             <small>${escapeHtml(copy.instructionHelp)}</small>
             </label>
             <div class="quality-review-scope-actions">
-              ${imageExhausted ? "" : `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}" data-quality-scope="illustration">${escapeHtml(copy.repairImage)}</button>`}
-              ${textExhausted ? "" : `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}" data-quality-scope="text">${escapeHtml(copy.repairText)}</button>`}
+              ${imageAvailability.canRequest ? `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}" data-quality-scope="illustration">${escapeHtml(imageAvailability.retryAvailable ? copy.retryAlternative : copy.repairImage)}</button>` : ""}
+              ${textAvailability.canRequest ? `<button type="button" class="secondary-button" data-quality-repair="${Number(page.pageNumber)}" data-quality-scope="text">${escapeHtml(textAvailability.retryAvailable ? copy.retryAlternative : copy.repairText)}</button>` : ""}
             </div>
           </div>` : ""}
           <p class="quality-review-feedback" data-quality-feedback="${Number(page.pageNumber)}">${
             hasCandidate
               ? escapeHtml(copy.candidateReady)
-              : !canRequestAlternative
-                ? escapeHtml(copy.repairExhausted)
-                : ""
+              : retryAvailable
+                ? escapeHtml(copy.repairRetryAvailable)
+                : technicalExhausted
+                  ? escapeHtml(copy.repairTechnicalExhausted)
+                  : !canRequestAlternative
+                    ? escapeHtml(copy.repairExhausted)
+                    : ""
           }</p>
         </div>
         <div class="quality-review-page-actions">
@@ -3081,6 +3129,7 @@ function showQualityReview(job, { scroll = true } = {}) {
       }
       card?.querySelectorAll("button, textarea").forEach((candidate) => { candidate.disabled = true; });
       if (feedback) feedback.textContent = copy.repairing.replace("{page}", String(pageNumber));
+      let failureMessage = copy.actionError;
       try {
         const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/quality-review/pages/${pageNumber}/repair`, {
           method: "POST",
@@ -3088,16 +3137,25 @@ function showQualityReview(job, { scroll = true } = {}) {
           body: JSON.stringify({ instruction, scope }),
         });
         const payload = await response.json();
-        if (!response.ok) throw new Error(payload.error || copy.actionError);
+        if (!response.ok) {
+          if (payload.code === "quality_review_technical_attempts_exhausted") {
+            failureMessage = copy.repairTechnicalExhausted;
+          }
+          throw new Error(payload.error || copy.actionError);
+        }
         const repairJob = await pollJob(payload.jobId);
         await refreshAfterQualityDecision(
           pageNumber,
-          repairJob.result?.candidateReady ? copy.candidateReady : copy.repairExhausted,
+          repairJob.result?.candidateReady
+            ? copy.candidateReady
+            : repairJob.result?.retryAvailable
+              ? copy.repairRetryAvailable
+              : copy.repairTechnicalExhausted,
         );
       } catch {
-        await refreshAfterQualityDecision(pageNumber, copy.actionError).catch(() => {
+        await refreshAfterQualityDecision(pageNumber, failureMessage).catch(() => {
           card?.querySelectorAll("button, textarea").forEach((candidate) => { candidate.disabled = false; });
-          if (feedback) feedback.textContent = copy.actionError;
+          if (feedback) feedback.textContent = failureMessage;
         });
       }
     });
@@ -3647,6 +3705,7 @@ async function init() {
     state.projectId = saved?.projectId || "";
     state.storyIntentionPage = Math.max(0, Number(saved?.storyIntentionPage || 0));
     state.storyIntentionRoundsUsed = Math.max(0, Number(saved?.storyIntentionRoundsUsed || 0));
+    state.intentionSessionId = String(saved?.intentionSessionId || (saved?.storyIntentionBatches?.length ? "legacy" : newIntentionSessionId()));
     state.selectedStoryIntentionKey = String(saved?.selectedStoryIntentionKey || "");
     setStoryIntentionBatches(saved?.storyIntentionBatches, saved?.storyIntentions);
     state.storySensitivityProfile = saved?.storySensitivityProfile || null;

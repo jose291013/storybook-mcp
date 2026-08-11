@@ -8,6 +8,50 @@ import {
 import { notifyPreviewReady } from "./previewNotification.js";
 import { projectStore } from "./projectStore.js";
 
+export const MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE = 2;
+
+export function qualityReviewScopePolicy(page, requestedScope = "illustration") {
+  const scope = requestedScope === "text" ? "text" : "illustration";
+  const candidates = candidateMap(page);
+  const candidateReady = candidates[scope]?.status === "ready";
+  const successCount = Number(scope === "text"
+    ? page?.qualityReviewTextRepairCount || 0
+    : page?.qualityReviewRepairCount || 0);
+  const attemptCountValue = Number(scope === "text"
+    ? page?.qualityReviewTextRepairAttemptCount || 0
+    : page?.qualityReviewRepairAttemptCount || 0);
+  const completedAt = scope === "text"
+    ? page?.qualityReviewTextRepairCompletedAt
+    : page?.qualityReviewRepairCompletedAt;
+  const failedAt = scope === "text"
+    ? page?.qualityReviewTextRepairFailedAt
+    : page?.qualityReviewRepairFailedAt;
+  // Earlier deployments incremented the success counter before generation.
+  // A page with a recorded failure, no completion and no candidate therefore
+  // receives one bounded recovery instead of being mislabeled as "used".
+  const legacyFailureOnly = successCount > 0 && failedAt && !completedAt && !candidateReady;
+  const completedCount = candidateReady || completedAt
+    ? Math.max(1, successCount)
+    : legacyFailureOnly
+      ? 0
+      : successCount;
+  const attemptCount = Math.max(
+    attemptCountValue,
+    failedAt ? 1 : 0,
+    completedCount > 0 ? 1 : 0,
+  );
+  const canRequest = completedCount < 1 && attemptCount < MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE;
+  return {
+    scope,
+    candidateReady,
+    completedCount,
+    attemptCount,
+    canRequest,
+    retryAvailable: Boolean(failedAt) && canRequest,
+    technicalExhausted: completedCount < 1 && !candidateReady && attemptCount >= MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
+  };
+}
+
 function unresolvedPages(draftPages = []) {
   return draftPages
     .filter((page) => page.page_type === "image" && page.qualityStatus === "review_required")
@@ -17,6 +61,8 @@ function unresolvedPages(draftPages = []) {
       issues: Array.isArray(page.qualityIssues) ? page.qualityIssues : [],
       repairCount: Number(page.qualityReviewRepairCount || 0),
       textRepairCount: Number(page.qualityReviewTextRepairCount || 0),
+      repairAttemptCount: qualityReviewScopePolicy(page, "illustration").attemptCount,
+      textRepairAttemptCount: qualityReviewScopePolicy(page, "text").attemptCount,
     }));
 }
 
@@ -209,10 +255,12 @@ export async function saveQualityReviewCandidate({
           qualityReviewCandidates,
           ...(scope === "text"
             ? {
+                qualityReviewTextRepairCount: Math.max(1, Number(page.qualityReviewTextRepairCount || 0)),
                 qualityReviewTextRepairCompletedAt: generatedAt,
                 qualityReviewTextRepairError: "",
               }
             : {
+                qualityReviewRepairCount: Math.max(1, Number(page.qualityReviewRepairCount || 0)),
                 qualityReviewRepairCompletedAt: generatedAt,
                 qualityReviewRepairError: "",
               }),

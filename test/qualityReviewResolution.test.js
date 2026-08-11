@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   qualityReviewCandidateSelection,
   qualityReviewCandidateReplacement,
+  qualityReviewScopePolicy,
   resolveQualityReviewPage,
   saveQualityReviewCandidate,
 } from "../src/services/qualityReviewResolution.js";
@@ -93,6 +94,33 @@ test("a free correction is stored as a separate candidate and never replaces the
   assert.equal(page.qualityReviewCandidate.original.previewUrl, originalPreviewUrl);
   assert.equal(page.qualityReviewCandidate.instruction, "Rendre la présence de Maman plus claire.");
   assert.equal(result.candidate.status, "ready");
+  assert.equal(page.qualityReviewRepairCount, 1);
+});
+
+test("a legacy failed text proposal receives one bounded recovery without pretending a candidate exists", () => {
+  const page = {
+    page_number: 15,
+    page_type: "image",
+    qualityStatus: "review_required",
+    qualityReviewTextRepairCount: 1,
+    qualityReviewTextRepairFailedAt: "2026-08-11T10:00:00.000Z",
+    qualityReviewTextRepairError: "scene_contract_mismatch",
+  };
+  const policy = qualityReviewScopePolicy(page, "text");
+  assert.equal(policy.completedCount, 0);
+  assert.equal(policy.attemptCount, 1);
+  assert.equal(policy.retryAvailable, true);
+  assert.equal(policy.canRequest, true);
+});
+
+test("two failed technical attempts stop retries without consuming a successful proposal", () => {
+  const policy = qualityReviewScopePolicy({
+    qualityReviewTextRepairAttemptCount: 2,
+    qualityReviewTextRepairFailedAt: "2026-08-11T10:00:00.000Z",
+  }, "text");
+  assert.equal(policy.completedCount, 0);
+  assert.equal(policy.canRequest, false);
+  assert.equal(policy.technicalExhausted, true);
 });
 
 test("the alternative becomes current only after the creator explicitly selects it", async () => {
@@ -326,7 +354,8 @@ test("quality-review UI requires a reason and offers private text or image alter
   assert.match(route, /quality-review\/pages\/:pageNumber\/repair/);
   assert.match(route, /quality-review\/pages\/:pageNumber\/keep-original/);
   assert.match(route, /quality-review\/pages\/:pageNumber\/use-candidate/);
-  assert.match(route, /MAX_CREATOR_REPAIRS_PER_PAGE = 1/);
+  assert.match(route, /MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE/);
+  assert.match(route, /qualityReviewScopePolicy/);
   assert.match(route, /MAX_CREATOR_INSTRUCTION_LENGTH = 500/);
   assert.match(route, /MIN_CREATOR_INSTRUCTION_LENGTH = 8/);
   assert.match(route, /maximumAttempts: 1/);
@@ -345,6 +374,8 @@ test("quality-review UI requires a reason and offers private text or image alter
   assert.match(app, /data-quality-instruction/);
   assert.match(app, /data-quality-scope="text"/);
   assert.match(app, /data-quality-scope="illustration"/);
+  assert.match(app, /repairRetryAvailable/);
+  assert.match(app, /repairTechnicalExhausted/);
   assert.match(app, /instructionRequired/);
   assert.match(app, /quality-review-text-comparison/);
   assert.match(app, /data-quality-keep-original/);

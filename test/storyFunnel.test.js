@@ -104,6 +104,8 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
   assert.match(app, /Number\(saved\.flowVersion \|\| 0\) >= 2 \? saved\.step/);
   assert.match(app, /requestStoryIntentions/);
   assert.match(app, /storyIntentionBatches/);
+  assert.match(app, /intentionSessionId/);
+  assert.match(app, /requestId: newIntentionSessionId\(\)/);
   assert.match(app, /previousIntentionPerspectives/);
   assert.match(app, /previousInterpretations: state\.storyIntentions/);
   assert.match(app, /childAge,/);
@@ -119,7 +121,10 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
   assert.match(app, /tr\("adventureSuggestionsLoading"\)/);
   assert.match(app, /tr\("adventureSuggestionRequired"\)/);
   assert.match(intentionRoute, /MAX_ATTEMPTS = 6/);
-  assert.match(intentionRoute, /claimIntentionIdeationRound/);
+  assert.match(intentionRoute, /reserveIntentionIdeationRound/);
+  assert.match(intentionRoute, /completeIntentionIdeationRound/);
+  assert.match(intentionRoute, /releaseIntentionIdeationRound/);
+  assert.match(intentionRoute, /intentions\.length !== 3/);
   assert.match(intentionRoute, /intention_ideation_limit_reached/);
   assert.match(intentionRoute, /childAge/);
   assert.doesNotMatch(intentionRoute, /findUniverse|heroName|favoriteActivities/);
