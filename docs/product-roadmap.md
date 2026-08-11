@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-11
 
+## Visible adventure-choice handoff checkpoint
+
+Selecting an intention is an authoritative completed choice before the creator reaches the universe screen. As soon as a universe is chosen, the adventure-proposal area remains visible while its three suggestions are prepared, and `Continuer` is disabled until that bounded request finishes. The interface explicitly confirms that the intention is saved instead of reusing the missing-inspiration wording for two different decisions.
+
+Suggestion request failures remain visible after rendering and expose the existing retry action; they are never replaced by a misleading request to choose an unavailable card. This browser-state correction changes no credit, ideation-limit or persistence authority and adds no model call.
+
 ## Canonical fixed-landmark continuity checkpoint
 
 Every recurring named monument or place-bound visual landmark is one `track_every_scene` location-bound entity with one stable id, one exact home and global quantity 1. The causal validator rejects duplicated fixed quantities, and the scenario contract forbids twins, miniatures, decorative copies and relocation to a nearby setting. Existing portable-object mechanics remain unchanged.

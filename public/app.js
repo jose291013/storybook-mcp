@@ -104,6 +104,7 @@ const state = {
   storySuggestions: [],
   storySuggestionMode: "",
   storySuggestionsBusy: false,
+  storySuggestionsError: "",
   fontStyle: "school_round",
   pageCount: 24,
   productType: "ebook",
@@ -1941,7 +1942,12 @@ function renderStoryIntentions() {
   elements.nextIntentionPerspectives.disabled = intentionBusy || state.storyIntentionPage >= availableBatches - 1;
   elements.intentionChoiceStatus.textContent = selected ? tr("intentionConfirmed") : (limitReached ? tr("intentionPerspectiveLimit") : "");
   elements.customStoryChoice.classList.toggle("is-selected", state.storySuggestionMode === "custom");
-  elements.adventureProposals.hidden = !(state.selectedUniverse && (selectedId || state.storySuggestions.length || state.storySuggestionMode === "suggestion"));
+  elements.adventureProposals.hidden = !(state.selectedUniverse && (
+    selectedStoryIntention()
+    || selectedId
+    || state.storySuggestions.length
+    || state.storySuggestionMode === "suggestion"
+  ));
 }
 
 async function requestStoryIntentions() {
@@ -2031,6 +2037,7 @@ function chooseStoryIntention(id) {
   state.selectedStoryIntentionKey = intention.selectionKey;
   state.storySuggestions = [];
   state.storySuggestionMode = "";
+  state.storySuggestionsError = "";
   resetStorySuggestionChoice({ preserveAnswers: true });
   const dream = document.querySelector("#dream");
   const challenge = document.querySelector("#challenge");
@@ -2168,6 +2175,7 @@ function renderStorySuggestions() {
     ? `<strong>${escapeHtml(localizedUniverseName())}</strong><span>${escapeHtml(contract?.adventure || universe.storyContract?.adventureZone || "")}</span>`
     : "";
   elements.suggestionLoading.hidden = !state.storySuggestionsBusy;
+  elements.nextButton.disabled = state.step === 2 && state.storySuggestionsBusy;
   elements.refreshStorySuggestions.disabled = state.storySuggestionsBusy || !selectedStoryIntention();
   elements.customStoryChoice.disabled = state.storyIntentionsBusy || state.storySuggestionsBusy || Boolean(activeSafetyIntervention());
   elements.storySuggestionGrid.innerHTML = state.storySuggestions.map((suggestion) => `
@@ -2192,7 +2200,9 @@ function renderStorySuggestions() {
   elements.customStoryChoice.classList.toggle("is-selected", state.storySuggestionMode === "custom");
   elements.suggestionChoiceStatus.textContent = selectedId
     ? tr("suggestionSelected")
-    : state.storySuggestionMode === "custom" ? tr("suggestionCustomSelected") : "";
+    : state.storySuggestionMode === "custom"
+      ? tr("suggestionCustomSelected")
+      : state.storySuggestionsError;
 }
 
 async function requestStorySuggestions({ refresh = false } = {}) {
@@ -2205,6 +2215,7 @@ async function requestStorySuggestions({ refresh = false } = {}) {
     return;
   }
   state.storySuggestionsBusy = true;
+  state.storySuggestionsError = "";
   elements.suggestionChoiceStatus.textContent = "";
   renderStoryIntentions();
   renderStorySuggestions();
@@ -2237,7 +2248,7 @@ async function requestStorySuggestions({ refresh = false } = {}) {
     resetStorySuggestionChoice({ preserveAnswers: true });
     persistLocalDraft();
   } catch (error) {
-    elements.suggestionChoiceStatus.textContent = activeSafetyIntervention() ? "" : (error.message || tr("suggestionError"));
+    state.storySuggestionsError = activeSafetyIntervention() ? "" : (error.message || tr("suggestionError"));
   } finally {
     state.storySuggestionsBusy = false;
     renderStoryIntentions();
@@ -2272,6 +2283,7 @@ function renderUniverses() {
       resetStorySuggestionChoice({ preserveAnswers: true });
       if (customStory) state.storySuggestionMode = "custom";
     }
+    state.storySuggestionsError = "";
     renderUniverses();
     renderStoryIntentions();
     renderStorySuggestions();
@@ -2438,7 +2450,7 @@ function validateStep() {
     return false;
   }
   if (state.step === 0 && !selectedStoryIntention() && state.storySuggestionMode !== "custom") {
-    elements.formError.textContent = tr("suggestionRequired");
+    elements.formError.textContent = tr("intentionSelectionRequired");
     return false;
   }
   if (state.step === 1 || state.step === 3) {
@@ -2451,8 +2463,19 @@ function validateStep() {
     elements.formError.textContent = tr("invalidUniverse");
     return false;
   }
+  if (state.step === 2 && state.storySuggestionsBusy) {
+    elements.formError.textContent = tr("adventureSuggestionsLoading");
+    elements.adventureProposals.scrollIntoView({ behavior: "smooth", block: "start" });
+    return false;
+  }
+  if (state.step === 2 && state.storySuggestionsError) {
+    elements.formError.textContent = state.storySuggestionsError;
+    elements.adventureProposals.scrollIntoView({ behavior: "smooth", block: "start" });
+    return false;
+  }
   if (state.step === 2 && !selectedStorySuggestion() && state.storySuggestionMode !== "custom") {
-    elements.formError.textContent = tr("suggestionRequired");
+    elements.formError.textContent = tr("adventureSuggestionRequired");
+    elements.adventureProposals.scrollIntoView({ behavior: "smooth", block: "start" });
     return false;
   }
   if (state.step === 4 && !state.selectedStyle) { elements.formError.textContent = tr("invalidStyle"); return false; }
@@ -2483,6 +2506,7 @@ function showStep(nextStep, shouldScroll = true) {
   document.querySelectorAll(".form-panel").forEach((panel) => panel.classList.toggle("is-active", Number(panel.dataset.panel) === state.step));
   document.querySelectorAll(".step").forEach((step, index) => { step.classList.toggle("is-active", index === state.step); step.classList.toggle("is-complete", index < state.step); });
   elements.prevButton.hidden = state.step === 0; elements.nextButton.hidden = state.step === REVIEW_STEP;
+  elements.nextButton.disabled = state.step === 2 && state.storySuggestionsBusy;
   elements.mobileStepLabel.textContent = tr("stepLabel", { current: state.step + 1 }); elements.mobileProgressBar.style.width = `${((state.step + 1) / STEP_COUNT) * 100}%`; elements.formError.textContent = "";
   if (state.step === 2) {
     renderUniverses();
