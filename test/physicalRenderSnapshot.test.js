@@ -11,6 +11,17 @@ const worldContract = {
   requiredMechanisms: [{ id: "breathing_and_voice_bubble" }],
 };
 
+const approvedScenario = {
+  worldContract,
+  scenes: [
+    { sceneNumber: 1, locationBefore: "atelier sec", locationAfter: "atelier sec", transition: { kind: "discover_passage", mechanismId: "arche_de_maree", mechanism: "arche de marée" } },
+    { sceneNumber: 2, locationBefore: "atelier sec", locationAfter: "atelier sec", transition: { kind: "none", mechanismId: "", mechanism: "" } },
+    { sceneNumber: 3, locationBefore: "atelier sec", locationAfter: "jardin de corail", transition: { kind: "cross_passage", mechanismId: "arche_de_maree", mechanism: "arche de marée" } },
+    { sceneNumber: 4, locationBefore: "jardin de corail", locationAfter: "jardin de corail", transition: { kind: "none", mechanismId: "", mechanism: "" } },
+    { sceneNumber: 5, locationBefore: "jardin de corail", locationAfter: "atelier sec", transition: { kind: "return_travel", mechanismId: "arche_de_maree", mechanism: "arche de marée" } },
+  ],
+};
+
 function returnContract(state = "stored") {
   return {
     main_action: { subject: "Bastien", verb: "regarde", target: "son dessin" },
@@ -93,4 +104,51 @@ test("stored conditional equipment is removed from the persistent aquatic outfit
   assert.match(outfit, /turquoise full-body wetsuit/u);
   assert.match(outfit, /reef shoes/u);
   assert.doesNotMatch(outfit, /breathing mechanism/u);
+});
+
+test("camera-side topology keeps equipment preparation dry before the ocean crossing", () => {
+  const contract = returnContract("worn");
+  contract.causal_frame.visible_location = "atelier sec";
+  contract.causal_frame.during.transition_kind = "none";
+  const snapshot = compilePhysicalRenderSnapshot({
+    contract,
+    approvedScene: approvedScenario.scenes[1],
+    approvedScenario,
+    worldContract,
+  });
+
+  assert.equal(snapshot.physical_medium, "breathable_air");
+  assert.equal(snapshot.camera_environment.camera_side, "origin");
+  assert.equal(snapshot.camera_environment.other_side_medium, "fully_underwater");
+  assert.match(snapshot.camera_environment.boundary_rule, /camera side is dry breathable air/iu);
+  assert.doesNotMatch(snapshot.forbidden.join(" "), /No character wears underwater breathing equipment/iu);
+});
+
+test("the entry passage topology determines underwater medium independently from equipment state", () => {
+  const contract = returnContract("stored");
+  contract.causal_frame.visible_location = "jardin de corail";
+  contract.causal_frame.during.transition_kind = "none";
+  const snapshot = compilePhysicalRenderSnapshot({
+    contract,
+    approvedScene: approvedScenario.scenes[3],
+    approvedScenario,
+    worldContract,
+  });
+
+  assert.equal(snapshot.physical_medium, "fully_underwater");
+  assert.equal(snapshot.camera_environment.camera_side, "adventure");
+  assert.ok(snapshot.forbidden.some((item) => /declared worn breathing equipment/iu.test(item)));
+});
+
+test("the same entry passage deterministically returns the camera to breathable air", () => {
+  const snapshot = compilePhysicalRenderSnapshot({
+    contract: returnContract("stored"),
+    approvedScene: approvedScenario.scenes[4],
+    approvedScenario,
+    worldContract,
+  });
+
+  assert.equal(snapshot.physical_medium, "breathable_air");
+  assert.equal(snapshot.camera_environment.camera_side, "origin");
+  assert.equal(snapshot.camera_environment.entry_passage_id, "arche_de_maree");
 });

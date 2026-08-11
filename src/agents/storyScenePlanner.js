@@ -255,6 +255,7 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
     contract,
     approvedScene,
     previousScene,
+    approvedScenario: expected?.approved_scenario || null,
     worldContract: expected?.world_contract || {},
   });
   return contract;
@@ -349,6 +350,7 @@ export async function storyScenePlannerAgent({
       || Number(item?.spread_number) === Number(expected.spread_number)) || {};
     return normalizeSceneContract({ ...raw }, {
       ...expected,
+      approved_scenario: approvedScenario,
       // The reader-visible prose returned by the whole-book pass is the final
       // authority, never the earlier sequential draft supplied as input.
       prose: finalPageTexts[expected.text_page_number] || expected.prose,
@@ -399,6 +401,7 @@ export function sceneContractImagePrompt({
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",
     objectStates ? `AUTHORITATIVE OBJECT STATES: ${objectStates}. Each object has exactly one state. A held wearable is not also worn; never duplicate it.` : "",
     compact.render_snapshot ? `ONLY VISIBLE PHYSICAL SNAPSHOT: phase ${compact.render_snapshot.visible_phase}; location ${compact.render_snapshot.location}; physical medium ${compact.render_snapshot.physical_medium}; action ${compact.render_snapshot.main_action.subject} ${compact.render_snapshot.main_action.verb} ${compact.render_snapshot.main_action.target}. Depict only this instant. Do not combine preparation, crossing, arrival, removal or storage from another phase.` : "",
+    compact.render_snapshot?.camera_environment ? `CAMERA-SIDE WORLD TOPOLOGY: camera side ${compact.render_snapshot.camera_environment.camera_side}; ambient medium ${compact.render_snapshot.camera_environment.ambient_medium}; other-side medium ${compact.render_snapshot.camera_environment.other_side_medium}; entry passage ${compact.render_snapshot.camera_environment.entry_passage_id || "not visible"}. ${compact.render_snapshot.camera_environment.boundary_rule}` : "",
     compact.render_snapshot?.equipment?.length ? `CONDITIONAL EQUIPMENT: ${compact.render_snapshot.equipment.map((item) => `${item.owner}: ${item.name} is ${item.state}, exact quantity ${item.quantity}`).join(" | ")}. Equipment state overrides every wardrobe description.` : "",
     compact.render_snapshot?.forbidden?.length ? `PHYSICAL SNAPSHOT FORBIDS: ${compact.render_snapshot.forbidden.join(" | ")}` : "",
     compact.spatial_relationships.length ? `SPATIAL RELATIONSHIPS: ${compact.spatial_relationships.join(" | ")}` : "",

@@ -1,7 +1,7 @@
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 2;
-export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_physical_snapshot_v1";
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 3;
+export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_world_topology_v1";
 
 function byId(entries = []) {
   return new Map(entries.map((entry) => [entry.id, entry]));
@@ -142,6 +142,7 @@ export function compileSpecDrivenIllustrationPlan({
       contract,
       approvedScene,
       previousScene,
+      approvedScenario,
       worldContract: approvedScenario?.worldContract || {},
     });
     return contract;

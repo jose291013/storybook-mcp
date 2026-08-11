@@ -121,6 +121,13 @@ export const UNIVERSE_OPTIONS = [
         "Underwater speech is possible only through the established bubble or communication mechanism.",
         "Water level, buoyancy, refraction and movement remain coherent.",
       ],
+      physicalTopology: {
+        version: 1,
+        originMedium: "breathable_air",
+        adventureMedium: "fully_underwater",
+        transitionMedium: "passage_transition",
+        entryBoundary: "first_cross_passage",
+      },
       requiredMechanisms: [
         {
           id: "breathing_and_voice_bubble",

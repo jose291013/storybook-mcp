@@ -77,7 +77,7 @@ import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGove
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
-const STORY_PLAN_FIDELITY_VERSION = 5;
+const STORY_PLAN_FIDELITY_VERSION = 6;
 const STORY_PLAN_TARGETED_REPAIR_VERSION = 2;
 const STORY_PLAN_TEXT_REPAIR_VERSION = 3;
 const MANUSCRIPT_REVIEW_VERSION = 1;

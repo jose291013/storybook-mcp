@@ -1,6 +1,7 @@
 import { findUniverse } from "../config/bookOptions.js";
+import { cameraBoundaryRule, compileWorldPhysicalTopology } from "./worldPhysicalTopology.js";
 
-export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 1;
+export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 2;
 
 function key(value) {
   return String(value || "")
@@ -44,6 +45,7 @@ export function compilePhysicalRenderSnapshot({
   contract = {},
   approvedScene = null,
   previousScene = null,
+  approvedScenario = null,
   worldContract = {},
 } = {}) {
   const frame = contract?.causal_frame || {};
@@ -77,16 +79,24 @@ export function compilePhysicalRenderSnapshot({
     }));
   const hasWornBreathingEquipment = equipment.some((item) => item.state === "worn");
   const universeId = key(worldContract?.id);
-  const physicalMedium = visiblePhase === "during"
+  const topology = compileWorldPhysicalTopology({
+    approvedScenario,
+    approvedScene,
+    worldContract,
+    visiblePhase,
+  });
+  const physicalMedium = topology?.ambient_medium || (visiblePhase === "during"
     && ["cross_passage", "ordinary_travel", "return_travel", "join_travel"].includes(transitionKind)
     ? "passage_transition"
     : universeId === "coral ocean" || universeId === "coral_ocean"
       ? (hasWornBreathingEquipment ? "fully_underwater" : "breathable_air")
       : hasWornBreathingEquipment
         ? "protected_environment"
-        : "ordinary_environment";
+        : "ordinary_environment");
   const forbidden = equipment.map(equipmentRule);
-  if (physicalMedium === "breathable_air") {
+  const boundaryRule = cameraBoundaryRule(topology);
+  if (boundaryRule) forbidden.push(boundaryRule);
+  if (physicalMedium === "breathable_air" && !hasWornBreathingEquipment) {
     forbidden.push("No character wears underwater breathing equipment in this breathable-air instant.");
   }
   if (physicalMedium === "fully_underwater") {
@@ -97,6 +107,16 @@ export function compilePhysicalRenderSnapshot({
     visible_phase: visiblePhase,
     location: visibleLocation,
     physical_medium: physicalMedium,
+    camera_environment: topology ? {
+      version: topology.version,
+      authority: topology.authority,
+      camera_side: topology.camera_side,
+      ambient_medium: topology.ambient_medium,
+      other_side_medium: topology.other_side_medium,
+      entry_passage_id: topology.entry_passage_id,
+      boundary_crossing: topology.boundary_crossing,
+      boundary_rule: boundaryRule,
+    } : null,
     main_action: {
       subject: String(contract?.main_action?.subject || "").trim(),
       verb: String(contract?.main_action?.verb || "").trim(),

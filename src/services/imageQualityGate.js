@@ -409,7 +409,7 @@ Judge only objective, clearly visible contradictions:
 - the same recurring named identity is visibly rendered twice in the same scene, or simultaneously in two different positions, even if both copies otherwise look correct. Allow a visible reflection, portrait, memory, vision or deliberate time montage only when the structured scene contract explicitly requires that representation;
 - a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
 - an explicitly forbidden substitution is present.
-- the depicted physical environment contradicts render_snapshot.physical_medium. Begin with "Physical environment is wrong." A breathable-air room may be below water with fish outside sealed windows; do not reject it when people are visibly inside dry air.
+- the depicted physical environment contradicts render_snapshot.physical_medium or render_snapshot.camera_environment. Begin with "Physical environment is wrong." Judge the characters' camera side separately from any view through a portal or sealed window. A breathable-air room may show water, fish or coral only beyond that clear boundary; it remains dry air around the people and furniture.
 - conditional equipment differs from render_snapshot.equipment. Begin with "Conditional equipment state conflicts."
 - one character's conditional equipment appears more than once or simultaneously in two states. Begin with "Conditional equipment is duplicated."
 - preparation, crossing, arrival, equipment removal or storage from multiple phases appear together. Begin with "Multiple causal phases are combined."
