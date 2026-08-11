@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/cross-device-project-resume`
 - Production/main checkpoint: PR #154 merged at `2e2edca`; Render health returned `{ "ok": true }`
 - Current focused checkpoint: e-mail links resume the server-owned project explicitly across devices instead of exposing a blank local questionnaire
-- Pull requests: #150 through #154 merged; the cross-device project-resume brick is awaiting publication
+- Pull requests: #150 through #154 merged; PR #155 is the delivery checkpoint for cross-device project resume
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -36,8 +36,8 @@ PR #55 through PR #154 are merged on `main`. Render health returned HTTP 200 wit
 
 ## Next verification target
 
-1. Publish the cross-device project-resume brick.
-2. After deployment, verify one real scenario-ready e-mail from a second device with no Creator local draft.
+1. Verify the merged PR #155 deployment and Render health.
+2. Verify one real scenario-ready e-mail from a second device with no Creator local draft.
 
 ## Protected local state
 
