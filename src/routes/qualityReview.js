@@ -14,7 +14,9 @@ import { createJob, updateJob } from "../services/jobStore.js";
 import { persistPreviewAsset, storageBodyToBuffer } from "../services/previewAssetStorage.js";
 import { projectStore } from "../services/projectStore.js";
 import {
+  MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
   qualityReviewCandidateSelection,
+  qualityReviewScopePolicy,
   resolveQualityReviewPage,
   saveQualityReviewCandidate,
 } from "../services/qualityReviewResolution.js";
@@ -26,7 +28,6 @@ import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
-const MAX_CREATOR_REPAIRS_PER_PAGE = 1;
 const MAX_CREATOR_INSTRUCTION_LENGTH = 500;
 const MIN_CREATOR_INSTRUCTION_LENGTH = 8;
 
@@ -101,12 +102,10 @@ async function recordFailedRepair(projectId, pageNumber, scope, error) {
           ...page,
           ...(scope === "text"
             ? {
-                qualityReviewTextRepairCount: Math.max(1, Number(page.qualityReviewTextRepairCount || 0)),
                 qualityReviewTextRepairFailedAt: new Date().toISOString(),
                 qualityReviewTextRepairError: String(error?.message || error || "quality_review_text_repair_failed"),
               }
             : {
-                qualityReviewRepairCount: Math.max(1, Number(page.qualityReviewRepairCount || 0)),
                 qualityReviewRepairFailedAt: new Date().toISOString(),
                 qualityReviewRepairError: String(error?.message || error || "quality_review_repair_failed"),
               }),
@@ -251,44 +250,55 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
   if (instruction.length < MIN_CREATOR_INSTRUCTION_LENGTH) {
     return res.status(400).json({ error: "Describe briefly what does not match before creating an alternative" });
   }
-  const usedCount = scope === "text"
-    ? Number(currentPage.qualityReviewTextRepairCount || 0)
-    : Number(currentPage.qualityReviewRepairCount || 0);
-  if (usedCount >= MAX_CREATOR_REPAIRS_PER_PAGE) {
+  const scopePolicy = qualityReviewScopePolicy(currentPage, scope);
+  if (scopePolicy.completedCount >= 1 || scopePolicy.candidateReady) {
     return res.status(409).json({ error: `The free ${scope} alternative has already been used for this page` });
+  }
+  if (!scopePolicy.canRequest) {
+    return res.status(409).json({
+      code: "quality_review_technical_attempts_exhausted",
+      error: `The two technical ${scope} attempts did not produce an alternative`,
+    });
   }
   if (resolvingProjects.has(project.id)) {
     return res.status(409).json({ error: "A quality-review decision is already being applied" });
   }
 
   const startedAt = new Date().toISOString();
+  const startedAttemptNumber = scopePolicy.attemptCount + 1;
   const draftPages = project.previewResult.draftPages.map((page) => (
     Number(page.page_number) === pageNumber
       ? {
           ...page,
           ...(scope === "text"
             ? {
-                qualityReviewTextRepairCount: Number(page.qualityReviewTextRepairCount || 0) + 1,
+                qualityReviewTextRepairAttemptCount: startedAttemptNumber,
                 qualityReviewTextRepairStartedAt: startedAt,
               }
             : {
-                qualityReviewRepairCount: Number(page.qualityReviewRepairCount || 0) + 1,
+                qualityReviewRepairAttemptCount: startedAttemptNumber,
                 qualityReviewRepairStartedAt: startedAt,
               }),
         }
       : page
   ));
-  await projectStore.updateForCustomer(project.id, identity, {
-    previewResult: { ...project.previewResult, draftPages },
-  });
-  const job = createJob({
-    status: "running",
-    kind: `quality_review_${scope}_alternative`,
-    projectId: project.id,
-    pageNumber,
-    step: `quality:${scope}:page:${pageNumber}:preparing`,
-  });
   resolvingProjects.add(project.id);
+  let job;
+  try {
+    await projectStore.updateForCustomer(project.id, identity, {
+      previewResult: { ...project.previewResult, draftPages },
+    });
+    job = createJob({
+      status: "running",
+      kind: `quality_review_${scope}_alternative`,
+      projectId: project.id,
+      pageNumber,
+      step: `quality:${scope}:page:${pageNumber}:preparing`,
+    });
+  } catch (error) {
+    resolvingProjects.delete(project.id);
+    return res.status(500).json({ error: String(error?.message || error) });
+  }
   res.json({ jobId: job.id, pageNumber, scope });
 
   withOpenAICostContext({
@@ -520,7 +530,8 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
           pageNumber,
           repaired: false,
           reviewRequired: true,
-          repairExhausted: true,
+          retryAvailable: startedAttemptNumber < MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
+          repairExhausted: startedAttemptNumber >= MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
           candidateScope: scope,
         },
       });

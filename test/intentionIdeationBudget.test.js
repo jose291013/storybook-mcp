@@ -2,8 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   claimIntentionIdeationRound,
+  completeIntentionIdeationRound,
   intentionIdeationFingerprint,
+  releaseIntentionIdeationRound,
   resetIntentionIdeationBudgetsForTests,
+  reserveIntentionIdeationRound,
 } from "../src/services/intentionIdeationBudget.js";
 
 test.beforeEach(() => resetIntentionIdeationBudgetsForTests());
@@ -38,4 +41,34 @@ test("the intention budget resets for a changed input fingerprint but not whites
   assert.equal((await claimIntentionIdeationRound({ ownerHash: "owner-a", inputFingerprint: first })).roundNumber, 1);
   assert.equal((await claimIntentionIdeationRound({ ownerHash: "owner-a", inputFingerprint: changed })).roundNumber, 1);
   assert.equal((await claimIntentionIdeationRound({ ownerHash: "owner-b", inputFingerprint: first })).roundNumber, 1);
+});
+
+test("the same wording receives a fresh allowance in a new creation session", () => {
+  const first = intentionIdeationFingerprint({
+    creatorSituation: "il hésite souvent", childAge: 7, locale: "FR", intentionSessionId: "creation-session-a",
+  });
+  const nextBook = intentionIdeationFingerprint({
+    creatorSituation: "il hésite souvent", childAge: 7, locale: "FR", intentionSessionId: "creation-session-b",
+  });
+  assert.notEqual(first, nextBook);
+});
+
+test("a failed or interrupted batch releases its round instead of consuming it", async () => {
+  const identity = { ownerHash: "owner-a", inputFingerprint: "session-fingerprint", requestId: "request-one" };
+  const reserved = await reserveIntentionIdeationRound(identity);
+  assert.equal(reserved.roundNumber, 1);
+  assert.equal(reserved.completedRounds, 0);
+  await releaseIntentionIdeationRound(identity);
+  const retry = await reserveIntentionIdeationRound({ ...identity, requestId: "request-two" });
+  assert.equal(retry.roundNumber, 1);
+  const completed = await completeIntentionIdeationRound({ ...identity, requestId: "request-two" });
+  assert.equal(completed.completedRounds, 1);
+});
+
+test("only one perspective batch may be reserved for one creation at a time", async () => {
+  const base = { ownerHash: "owner-a", inputFingerprint: "session-fingerprint" };
+  assert.equal((await reserveIntentionIdeationRound({ ...base, requestId: "request-one" })).allowed, true);
+  const competing = await reserveIntentionIdeationRound({ ...base, requestId: "request-two" });
+  assert.equal(competing.allowed, false);
+  assert.equal(competing.busy, true);
 });
