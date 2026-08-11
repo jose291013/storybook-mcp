@@ -219,6 +219,25 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       equipment: list(contract.render_snapshot?.equipment, 20).map((item) => ({
         name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state), quantity: Number(item?.quantity ?? 1),
       })),
+      fixed_entities: list(contract.render_snapshot?.fixed_entities, 20).map((item) => ({
+        id: safe(item?.id),
+        name: safe(item?.name),
+        home_location: safe(item?.home_location),
+        home_side: safe(item?.home_side),
+        camera_location: safe(item?.camera_location),
+        camera_side: safe(item?.camera_side),
+        status: safe(item?.status),
+        camera_quantity: Math.max(0, Number(item?.camera_quantity || 0)),
+        other_side_quantity_limit: Math.max(0, Number(item?.other_side_quantity_limit || 0)),
+        global_quantity_limit: Math.max(1, Number(item?.global_quantity_limit || 1)),
+        adjacent_visibility: list(item?.adjacent_visibility, 3).map((entry) => ({
+          scene_number: Math.max(0, Number(entry?.scene_number || 0)),
+          location: safe(entry?.location),
+          camera_side: safe(entry?.camera_side),
+          status: safe(entry?.status),
+        })),
+        rule: safe(item?.rule),
+      })),
       visible_object_states: list(contract.render_snapshot?.visible_object_states, 30).map((item) => ({
         name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state), quantity: Number(item?.quantity ?? 1),
       })),

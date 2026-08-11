@@ -219,6 +219,57 @@ test("physical snapshot contradictions are blocking and automatically repairable
   }
 });
 
+test("unique landmark defects are blocking and automatically repairable", () => {
+  for (const [issue, code] of [
+    ["Unique landmark is duplicated. The lighthouse appears twice.", "unique_landmark_duplicate"],
+    ["Landmark location is wrong. The underwater lighthouse stands on the dry beach.", "landmark_wrong_location"],
+  ]) {
+    assert.deepEqual(objectiveSceneContractIssues([issue]), [issue]);
+    const policy = targetedVisualRepairPolicy([issue]);
+    assert.equal(policy.automaticRepair, true);
+    assert.deepEqual(policy.targetCodes, [code]);
+  }
+});
+
+test("image prompts lock fixed landmarks to one canonical home and adjacent visibility", () => {
+  const prompt = sceneContractImagePrompt({
+    contract: {
+      main_action: { subject: "Bastien", verb: "dessine", target: "une pousse" },
+      render_snapshot: {
+        visible_phase: "after",
+        location: "atelier sec",
+        physical_medium: "breathable_air",
+        main_action: { subject: "Bastien", verb: "dessine", target: "une pousse" },
+        equipment: [],
+        fixed_entities: [{
+          id: "phare_jardin_corail",
+          name: "phare du jardin de corail",
+          home_location: "jardin de corail",
+          home_side: "adventure",
+          camera_location: "atelier sec",
+          camera_side: "origin",
+          status: "other_side_only",
+          camera_quantity: 0,
+          other_side_quantity_limit: 1,
+          global_quantity_limit: 1,
+          adjacent_visibility: [
+            { scene_number: 10, location: "jardin de corail", status: "visible_once" },
+            { scene_number: 11, location: "atelier sec", status: "other_side_only" },
+            { scene_number: 12, location: "atelier sec", status: "other_side_only" },
+          ],
+          rule: "Camera-side quantity is zero; only beyond the established bounded passage.",
+        }],
+        forbidden: [],
+      },
+    },
+  });
+
+  assert.match(prompt, /UNIQUE FIXED ENTITIES/iu);
+  assert.match(prompt, /whole-story limit 1/iu);
+  assert.match(prompt, /scene 10 jardin de corail = visible_once/iu);
+  assert.match(prompt, /Never invent a second instance/iu);
+});
+
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {
   const sanitized = sanitizeBrandSensitiveText('FIXED OUTFIT: t-shirt gris à l’effigie de Sonic bleu, short rouge, sandales rouges type Crocs, casquette avec inscription "NYC" blanche.');
   assert.doesNotMatch(sanitized, /Sonic|Crocs|NYC/iu);

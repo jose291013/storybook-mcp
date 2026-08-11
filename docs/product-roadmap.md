@@ -2,6 +2,14 @@
 
 Last updated: 2026-08-11
 
+## Canonical fixed-landmark continuity checkpoint
+
+Every recurring named monument or place-bound visual landmark is one `track_every_scene` location-bound entity with one stable id, one exact home and global quantity 1. The causal validator rejects duplicated fixed quantities, and the scenario contract forbids twins, miniatures, decorative copies and relocation to a nearby setting. Existing portable-object mechanics remain unchanged.
+
+The physical render snapshot compiles each fixed entity against the camera location and camera side as `visible_once`, `other_side_only`, `absent_elsewhere` or `absent`. It also carries the same entity's expected status for the previous, current and next scenes. A landmark on the opposite side may be glimpsed at most once only beyond the established bounded passage; it cannot appear on the dry beach merely because the underwater world is visible nearby. This registry is deterministic, enters the image prompt and whole-book audit, and adds no paid model call.
+
+The existing vision pass checks each current image against that registry. A clearly duplicated unique landmark or a landmark visibly placed at the wrong home/camera side receives a stable high-confidence defect code and enters the existing one-shot targeted automatic repair. Ambiguous composition remains accepted, and only an unresolved bounded repair reaches the creator.
+
 ## Camera-side world topology checkpoint
 
 The coral-ocean contract defines a deterministic physical topology: the origin side is breathable air, the adventure side is fully underwater and the established entry passage is the first approved `cross_passage`. Every later scene inherits its side from the ordered approved scenario; crossing that same stable passage id toggles sides and returning through it restores the origin. A visible crossing uses one transition medium. Equipment state is no longer allowed to infer or change the ambient medium.

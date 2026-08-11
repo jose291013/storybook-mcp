@@ -11,7 +11,7 @@ function list(value, maximum = 20) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
 }
 
-export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 4;
+export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 5;
 
 export function versionedStoryPlanAuditStep(step = "story-plan-audit") {
   const prefix = `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:`;
@@ -99,6 +99,19 @@ export function authoritativeSceneContractForAudit(contract = {}) {
       equipment: list(contract.render_snapshot?.equipment, 20).map((item) => ({
         id: clean(item?.id), name: clean(item?.name), owner: clean(item?.owner),
         state: clean(item?.state), quantity: Math.max(0, Number(item?.quantity ?? 1)),
+      })),
+      fixed_entities: list(contract.render_snapshot?.fixed_entities, 20).map((item) => ({
+        id: clean(item?.id), name: clean(item?.name), home_location: clean(item?.home_location),
+        home_side: clean(item?.home_side), camera_location: clean(item?.camera_location),
+        camera_side: clean(item?.camera_side), status: clean(item?.status),
+        camera_quantity: Math.max(0, Number(item?.camera_quantity || 0)),
+        other_side_quantity_limit: Math.max(0, Number(item?.other_side_quantity_limit || 0)),
+        global_quantity_limit: Math.max(1, Number(item?.global_quantity_limit || 1)),
+        adjacent_visibility: list(item?.adjacent_visibility, 3).map((entry) => ({
+          scene_number: Math.max(0, Number(entry?.scene_number || 0)),
+          location: clean(entry?.location), camera_side: clean(entry?.camera_side), status: clean(entry?.status),
+        })),
+        rule: clean(item?.rule),
       })),
       forbidden: list(contract.render_snapshot?.forbidden, 30).map((item) => clean(item)),
     } : null,
@@ -226,11 +239,12 @@ export function deterministicStoryPlanIssues({
       || key(contract.render_snapshot.location) !== key(expectedSnapshot.location)
       || key(contract.render_snapshot.physical_medium) !== key(expectedSnapshot.physical_medium)
       || key(contract.render_snapshot.camera_environment?.camera_side) !== key(expectedSnapshot.camera_environment?.camera_side)
-      || JSON.stringify(contract.render_snapshot.equipment || []) !== JSON.stringify(expectedSnapshot.equipment))) {
+      || JSON.stringify(contract.render_snapshot.equipment || []) !== JSON.stringify(expectedSnapshot.equipment)
+      || JSON.stringify(contract.render_snapshot.fixed_entities || []) !== JSON.stringify(expectedSnapshot.fixed_entities))) {
       issues.push({
         sceneNumber,
         code: "physical_render_snapshot_mismatch",
-        explanation: "Recompile the single visible physical instant from the approved location, medium and conditional-equipment states.",
+        explanation: "Recompile the single visible physical instant from the approved location, medium, conditional equipment and adjacent unique-landmark registry.",
       });
     }
     if (supportsCausalFrame

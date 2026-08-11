@@ -16,6 +16,7 @@ import {
   compileStoryPlan,
   STORY_PLAN_COMPILER_VERSION,
 } from "../src/services/storyPlanCompiler.js";
+import { compilePhysicalRenderSnapshot } from "../src/services/physicalRenderSnapshot.js";
 
 const canonicalCharacters = [
   { name: "Bastien", role: "child", relationship: "hero" },
@@ -295,6 +296,69 @@ test("deterministic plan audit rejects an unexplained jump between adjacent scen
 
   assert.ok(issues.some((issue) => issue.code === "causal_frame_mismatch"));
   assert.ok(issues.some((issue) => issue.code === "adjacent_scene_discontinuity"));
+});
+
+test("deterministic plan audit rejects a landmark registry that breaks adjacent topology", () => {
+  const worldContract = { id: "coral_ocean" };
+  const scenario = {
+    worldContract,
+    objects: [{
+      objectId: "unique_lighthouse",
+      name: "phare sous-marin",
+      initialState: "visible",
+      trackEveryScene: true,
+      spatialMode: "location_bound",
+      homeLocation: "jardin de corail",
+    }],
+    scenes: [
+      {
+        sceneNumber: 1, locationBefore: "atelier sec", locationAfter: "atelier sec",
+        transition: { kind: "discover_passage", mechanismId: "arche_de_maree" },
+        characterPresences: [], objectStates: [{ objectId: "unique_lighthouse", name: "phare sous-marin", state: "absent", quantity: 1 }],
+      },
+      {
+        sceneNumber: 2, locationBefore: "atelier sec", locationAfter: "jardin de corail",
+        transition: { kind: "cross_passage", mechanismId: "arche_de_maree" },
+        characterPresences: [], objectStates: [{ objectId: "unique_lighthouse", name: "phare sous-marin", state: "visible", quantity: 1 }],
+      },
+      {
+        sceneNumber: 3, locationBefore: "jardin de corail", locationAfter: "atelier sec",
+        transition: { kind: "return_travel", mechanismId: "arche_de_maree" },
+        characterPresences: [], objectStates: [{ objectId: "unique_lighthouse", name: "phare sous-marin", state: "absent", quantity: 1 }],
+      },
+    ],
+  };
+  const approvedScene = scenario.scenes[2];
+  const contract = {
+    scene_number: 3,
+    text_page_number: 6,
+    named_characters: [],
+    object_states: approvedScene.objectStates,
+    main_action: { subject: "", verb: "", target: "" },
+    causal_frame: {
+      before: { location: "jardin de corail" },
+      during: { transition_kind: "return_travel", transition_mechanism_id: "arche_de_maree" },
+      after: { location: "atelier sec" },
+      visible_phase: "after",
+      visible_location: "atelier sec",
+    },
+  };
+  contract.render_snapshot = compilePhysicalRenderSnapshot({
+    contract,
+    approvedScene,
+    previousScene: scenario.scenes[1],
+    approvedScenario: scenario,
+    worldContract,
+  });
+  contract.render_snapshot.fixed_entities[0].camera_quantity = 1;
+
+  const issues = deterministicStoryPlanIssues({
+    approvedScenario: scenario,
+    pageTexts: { 6: "Ils reviennent dans l'atelier sec." },
+    sceneContracts: [contract],
+  });
+
+  assert.ok(issues.some((issue) => issue.code === "physical_render_snapshot_mismatch"));
 });
 
 test("a new audit contract never resumes an unversioned provider response", () => {

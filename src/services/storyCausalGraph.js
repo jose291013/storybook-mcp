@@ -371,6 +371,9 @@ export function validateCausalGraph(scenario = {}) {
       if (entity.spatialMode === "location_bound" && !clean(entity.homeLocation)) {
         issues.push(`causal entity ${entity.id} requires a home location while location_bound`);
       }
+      if (entity.spatialMode === "location_bound" && Number(entity.initialQuantity) > 1) {
+        issues.push(`causal entity ${entity.id} is location_bound and must have global quantity 1`);
+      }
       if (boundedProgress(entity.initialProgress) > boundedProgress(entity.progressTotal)) {
         issues.push(`causal entity ${entity.id} initial progress exceeds its total`);
       }
@@ -416,6 +419,7 @@ export function validateCausalGraph(scenario = {}) {
     }
     if (Number(graph.version) === STORY_CAUSAL_GRAPH_VERSION) {
       const entity = values(graph.entities, 30).find((candidate) => candidate.id === event.entityId);
+      const resultEntity = values(graph.entities, 30).find((candidate) => candidate.id === event.resultEntityId);
       const previousProgress = progressByEntity.get(event.entityId) || 0;
       if (event.progressStep && !boundedProgress(entity?.progressTotal)) {
         issues.push(`scene-${event.sceneNumber}: causal event ${event.id} advances undeclared progress`);
@@ -442,6 +446,9 @@ export function validateCausalGraph(scenario = {}) {
       if (event.toState !== "absent" && !(Number.isInteger(event.toQuantity) && event.toQuantity > 0)) {
         issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a positive quantity while present`);
       }
+      if (entity?.spatialMode === "location_bound" && Number(event.toQuantity) > 1) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} cannot duplicate location-bound entity ${entity.id}`);
+      }
       if (event.resultEntityId && POSSESSION_STATES.has(event.resultState) && !event.resultOwnerCharacter) {
         issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a result character owner while ${event.resultState}`);
       }
@@ -450,6 +457,9 @@ export function validateCausalGraph(scenario = {}) {
       }
       if (event.resultEntityId && event.resultState !== "absent" && !(Number.isInteger(event.resultQuantity) && event.resultQuantity > 0)) {
         issues.push(`scene-${event.sceneNumber}: causal event ${event.id} requires a positive result quantity while present`);
+      }
+      if (resultEntity?.spatialMode === "location_bound" && Number(event.resultQuantity) > 1) {
+        issues.push(`scene-${event.sceneNumber}: causal event ${event.id} cannot duplicate location-bound result ${resultEntity.id}`);
       }
     }
     const currentState = currentStates.get(event.entityId);

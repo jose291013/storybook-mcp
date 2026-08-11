@@ -13,12 +13,20 @@ const worldContract = {
 
 const approvedScenario = {
   worldContract,
+  objects: [{
+    objectId: "phare_jardin_corail",
+    name: "phare du jardin de corail",
+    initialState: "visible",
+    trackEveryScene: true,
+    spatialMode: "location_bound",
+    homeLocation: "jardin de corail",
+  }],
   scenes: [
-    { sceneNumber: 1, locationBefore: "atelier sec", locationAfter: "atelier sec", transition: { kind: "discover_passage", mechanismId: "arche_de_maree", mechanism: "arche de marée" } },
-    { sceneNumber: 2, locationBefore: "atelier sec", locationAfter: "atelier sec", transition: { kind: "none", mechanismId: "", mechanism: "" } },
-    { sceneNumber: 3, locationBefore: "atelier sec", locationAfter: "jardin de corail", transition: { kind: "cross_passage", mechanismId: "arche_de_maree", mechanism: "arche de marée" } },
-    { sceneNumber: 4, locationBefore: "jardin de corail", locationAfter: "jardin de corail", transition: { kind: "none", mechanismId: "", mechanism: "" } },
-    { sceneNumber: 5, locationBefore: "jardin de corail", locationAfter: "atelier sec", transition: { kind: "return_travel", mechanismId: "arche_de_maree", mechanism: "arche de marée" } },
+    { sceneNumber: 1, locationBefore: "atelier sec", locationAfter: "atelier sec", transition: { kind: "discover_passage", mechanismId: "arche_de_maree", mechanism: "arche de marée" }, objectStates: [{ objectId: "phare_jardin_corail", name: "phare du jardin de corail", state: "absent", quantity: 1 }] },
+    { sceneNumber: 2, locationBefore: "atelier sec", locationAfter: "atelier sec", transition: { kind: "none", mechanismId: "", mechanism: "" }, objectStates: [{ objectId: "phare_jardin_corail", name: "phare du jardin de corail", state: "absent", quantity: 1 }] },
+    { sceneNumber: 3, locationBefore: "atelier sec", locationAfter: "jardin de corail", transition: { kind: "cross_passage", mechanismId: "arche_de_maree", mechanism: "arche de marée" }, objectStates: [{ objectId: "phare_jardin_corail", name: "phare du jardin de corail", state: "visible", quantity: 1 }] },
+    { sceneNumber: 4, locationBefore: "jardin de corail", locationAfter: "jardin de corail", transition: { kind: "none", mechanismId: "", mechanism: "" }, objectStates: [{ objectId: "phare_jardin_corail", name: "phare du jardin de corail", state: "visible", quantity: 1 }] },
+    { sceneNumber: 5, locationBefore: "jardin de corail", locationAfter: "atelier sec", transition: { kind: "return_travel", mechanismId: "arche_de_maree", mechanism: "arche de marée" }, objectStates: [{ objectId: "phare_jardin_corail", name: "phare du jardin de corail", state: "absent", quantity: 1 }] },
   ],
 };
 
@@ -151,4 +159,52 @@ test("the same entry passage deterministically returns the camera to breathable 
   assert.equal(snapshot.physical_medium, "breathable_air");
   assert.equal(snapshot.camera_environment.camera_side, "origin");
   assert.equal(snapshot.camera_environment.entry_passage_id, "arche_de_maree");
+});
+
+test("a unique underwater landmark cannot move onto the dry camera side", () => {
+  const contract = returnContract("worn");
+  contract.causal_frame.visible_location = "atelier sec";
+  contract.causal_frame.during.transition_kind = "none";
+  const snapshot = compilePhysicalRenderSnapshot({
+    contract,
+    approvedScene: approvedScenario.scenes[1],
+    approvedScenario,
+    worldContract,
+  });
+
+  const [lighthouse] = snapshot.fixed_entities;
+  assert.equal(lighthouse.home_side, "adventure");
+  assert.equal(lighthouse.camera_side, "origin");
+  assert.equal(lighthouse.status, "other_side_only");
+  assert.equal(lighthouse.camera_quantity, 0);
+  assert.equal(lighthouse.other_side_quantity_limit, 1);
+  assert.equal(lighthouse.global_quantity_limit, 1);
+  assert.match(lighthouse.rule, /only beyond the established bounded passage/iu);
+  assert.deepEqual(lighthouse.adjacent_visibility.map((item) => item.status), [
+    "other_side_only",
+    "other_side_only",
+    "visible_once",
+  ]);
+});
+
+test("a landmark is visible once at its canonical home with adjacent-scene continuity", () => {
+  const contract = returnContract("worn");
+  contract.causal_frame.visible_location = "jardin de corail";
+  contract.causal_frame.during.transition_kind = "none";
+  const snapshot = compilePhysicalRenderSnapshot({
+    contract,
+    approvedScene: approvedScenario.scenes[3],
+    approvedScenario,
+    worldContract,
+  });
+
+  const [lighthouse] = snapshot.fixed_entities;
+  assert.equal(lighthouse.status, "visible_once");
+  assert.equal(lighthouse.camera_quantity, 1);
+  assert.match(lighthouse.rule, /no duplicate, twin, miniature copy or second background version/iu);
+  assert.deepEqual(lighthouse.adjacent_visibility.map((item) => item.status), [
+    "visible_once",
+    "visible_once",
+    "other_side_only",
+  ]);
 });

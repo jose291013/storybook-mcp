@@ -9,34 +9,34 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: PR #150 merged at `d80e7b8`; intention perspectives are preserved and capped at three server-authorized batches
-- Current focused checkpoint: deterministic camera-side world topology
-- Pull request: #151 (`agent/camera-side-world-topology`)
+- Production/main checkpoint: PR #151 merged at `52b3a33`; camera-side medium is compiled from the canonical entry-passage topology
+- Current focused checkpoint: canonical fixed-landmark continuity
+- Pull request: not yet published (`agent/canonical-landmark-continuity`)
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #150 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #151 are merged on `main`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: camera-side world topology
+## Current product brick: canonical fixed-landmark continuity
 
-1. The first approved entry crossing establishes the stable boundary between breathable origin and underwater adventure.
-2. Ordered scenario transitions determine the camera side before, during and after every later scene.
-3. Ambient medium is derived from this topology and never from worn or stored equipment.
-4. The image contract states which medium may appear only beyond a portal or sealed opening.
-5. Preparation may wear equipment in dry air; underwater scenes still require each person's declared worn mechanism.
+1. Every recurring fixed landmark has one stable id, one canonical home and global quantity 1.
+2. Each scene compiles whether it is visible once, absent, elsewhere, or only beyond the established passage.
+3. The same registry records previous/current/next visibility so adjacent contract drift is rejected before image generation.
+4. The image prompt forbids twins, miniatures, background copies and relocation to a nearby setting.
+5. Duplicate or wrongly located landmarks receive stable objective codes eligible for the existing bounded targeted repair.
 
 ## Verification
 
-- Focused topology, illustration-plan and QA tests: 111/111 passing.
-- Complete `npm test`: 418/418 passing.
+- Focused landmark, topology, scenario, illustration-plan and QA tests: 180/180 passing.
+- Complete `npm test`: 423/423 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Merge pull request #151 under the existing authorization.
-2. Continue with the canonical unique-landmark registry and adjacent-scene checks.
+1. Run the complete test suite and publish the fixed-landmark brick.
+2. Merge it under the existing authorization, then verify `main` and production availability.
 
 ## Protected local state
 
