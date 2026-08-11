@@ -46,6 +46,7 @@ const DUPLICATE_IDENTITY_PATTERN = /(?:required named identity is duplicated|sam
 
 const PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN = /(?:physical environment is wrong|conditional equipment (?:state conflicts|is duplicated)|multiple causal phases are combined|wrong physical (?:environment|medium)|milieu physique incorrect|equipement conditionnel[^.]{0,60}(?:incorrect|dupliqu)|plusieurs (?:phases|instants)[^.]{0,60}(?:fusionn|combin)|entorno fisico incorrecto|equipo condicional[^.]{0,60}(?:incorrect|duplic)|varias (?:fases|instantes)[^.]{0,60}(?:combin|fusion))/iu;
 const UNIQUE_LANDMARK_CONTRADICTION_PATTERN = /(?:unique landmark is duplicated|landmark location is wrong|repere unique[^.]{0,60}dupliqu|emplacement du repere[^.]{0,60}incorrect|hito unico[^.]{0,60}duplic|ubicacion del hito[^.]{0,60}incorrect)/iu;
+const REVISION_REGRESSION_PATTERN = /(?:identity likeness regressed from preserved source|unrequested stable visual invariant regressed from preserved source)/iu;
 
 const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
   "identity_duplicate",
@@ -53,6 +54,8 @@ const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
   "identity_substitution",
   "required_cast_missing",
   "technical_integrity",
+  "identity_regression",
+  "revision_invariant_regression",
 ]);
 const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "identity_duplicate",
@@ -68,6 +71,8 @@ const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "multi_phase_composite",
   "unique_landmark_duplicate",
   "landmark_wrong_location",
+  "identity_regression",
+  "revision_invariant_regression",
 ]);
 
 function normalizedIssueText(issue) {
@@ -85,6 +90,14 @@ export function classifyVisualIssue(issue, { source = "scene" } = {}) {
 
   if (source === "technical" || /corrupt|blank|noise|band|stripe|decoder|unfinished|broken pixel|extreme blur|extra (?:arm|hand|leg|foot|head|limb|finger)/u.test(text)) {
     code = "technical_integrity";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/identity likeness regressed from preserved source/u.test(text)) {
+    code = "identity_regression";
+    severity = "blocking";
+    confidence = "high";
+  } else if (/unrequested stable visual invariant regressed from preserved source/u.test(text)) {
+    code = "revision_invariant_regression";
     severity = "blocking";
     confidence = "high";
   } else if (DUPLICATE_IDENTITY_PATTERN.test(String(issue || "")) || /identity is duplicated|personnage[^.]{0,50}deux fois|personaje[^.]{0,50}dos veces/u.test(text)) {
@@ -209,7 +222,8 @@ export function objectiveSceneContractIssues(issues = []) {
       || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
       || DUPLICATE_IDENTITY_PATTERN.test(issue)
       || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
-      || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue))
+      || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue)
+      || REVISION_REGRESSION_PATTERN.test(issue))
     .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
@@ -223,6 +237,7 @@ export function blockingSceneContractIssues(issues = []) {
     || DUPLICATE_IDENTITY_PATTERN.test(issue)
     || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
     || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue)
+    || REVISION_REGRESSION_PATTERN.test(issue)
   ));
 }
 
@@ -457,6 +472,58 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
   return { approved, issues: approved ? [] : (issues.length ? issues : ["The illustration contradicts the structured scene contract."]) };
 }
 
+export async function inspectRevisionNonRegression({
+  imagePath,
+  repairSourceReference,
+  revisionInstruction = "",
+  sceneContract = null,
+  pageLabel = "revised illustration",
+}) {
+  if (!repairSourceReference) {
+    return { approved: true, issues: [] };
+  }
+  const preservedSource = await referenceSource(repairSourceReference);
+  if (!preservedSource) return { approved: true, issues: [] };
+  const [candidate, preserved] = await Promise.all([
+    sharp(await fs.readFile(imagePath)).rotate().resize(640, 640, { fit: "inside" }).jpeg({ quality: 78 }).toBuffer(),
+    sharp(preservedSource).rotate().resize(640, 640, { fit: "inside" }).jpeg({ quality: 78 }).toBuffer(),
+  ]);
+  const instruction = `You are the non-regression controller for one personalized children's-book ${pageLabel}.
+Image 1 is the proposed revision. Image 2 is the preserved accepted source page.
+Requested local change: ${String(revisionInstruction || "correct only the confirmed defect").slice(0, 1200)}
+
+Reject only a clear regression that is unrelated to the requested local change:
+- a recurring visible person or animal has become a visibly different identity in stable face, hair, species, coat or markings;
+- a required person or animal was removed, duplicated, fused, substituted or changed species;
+- an unaffected established physical state, unique landmark, object quantity or camera-side topology was broadly redesigned despite not being requested.
+
+Allow the requested correction, necessary local pixels around it, pose or expression changes required by that correction, and small stochastic differences. Do not demand pixel identity. Do not reject artistic preference, lighting nuance or an ambiguous likeness difference. The current structured scene contract overrides the source wherever the story intentionally changes a visible fact.
+CURRENT SCENE CONTRACT:
+${JSON.stringify(sceneContract || {})}
+Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short clear regression"]}.`;
+  const response = await getClient().responses.create({
+    model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+    input: [{ role: "user", content: [
+      { type: "input_text", text: instruction },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${candidate.toString("base64")}`, detail: "low" },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${preserved.toString("base64")}`, detail: "low" },
+    ] }],
+    max_output_tokens: 300,
+  });
+  const result = parseJson(extractText(response));
+  if (result?.approved === true) return { approved: true, issues: [] };
+  const reported = (Array.isArray(result?.issues) ? result.issues : [])
+    .map(String).filter(Boolean).slice(0, 3);
+  const identityRegression = reported.some((issue) => /identity|likeness|face|facial|hair|species|coat|marking|person|child|animal/iu.test(issue));
+  const prefix = identityRegression
+    ? "Identity likeness regressed from preserved source"
+    : "Unrequested stable visual invariant regressed from preserved source";
+  return {
+    approved: false,
+    issues: [`${prefix}: ${reported.join("; ") || "the revision clearly changed protected content"}.`],
+  };
+}
+
 export async function inspectIdentityLikeness({
   imagePath,
   identityReferences = [],
@@ -512,6 +579,7 @@ export async function generateQualityCheckedImage({
   retryRepairableFindings = true,
   qualityReviewScope = [],
   targetedRepairAvailable = false,
+  revisionInstruction = "",
   ...generationOptions
 }) {
   let previousIssues = [];
@@ -561,8 +629,9 @@ export async function generateQualityCheckedImage({
         }
       };
       const identityReferences = generationOptions.referenceImages?.filter((reference) => reference?.kind === "identity") || [];
+      const repairSourceReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "repair_source") || null;
       const scopedRepairVerification = Array.isArray(qualityReviewScope) && qualityReviewScope.length > 0;
-      const [styleInspection, sceneInspection, identityInspection] = inspection.approved
+      const [styleInspection, sceneInspection, identityInspection, revisionInspection] = inspection.approved
         ? await Promise.all([
           scopedRepairVerification
             ? Promise.resolve({ approved: true, issues: [] })
@@ -580,8 +649,21 @@ export async function generateQualityCheckedImage({
             likenessGoal: generationOptions.likenessGoal,
             pageLabel,
           })),
+          repairSourceReference
+            ? advisoryCheck(inspectRevisionNonRegression({
+              imagePath: outputImagePath(imageUrl),
+              repairSourceReference,
+              revisionInstruction,
+              sceneContract: sceneFidelityContract,
+              pageLabel,
+            }))
+            : Promise.resolve({ approved: true, issues: [] }),
         ])
-        : [{ approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }];
+        : [{ approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }];
+      if (!revisionInspection.approved) {
+        sceneInspection.approved = false;
+        sceneInspection.issues = [...sceneInspection.issues, ...revisionInspection.issues];
+      }
       if (inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved) {
         await onCandidate?.({
           imageUrl,
