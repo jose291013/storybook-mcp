@@ -34,6 +34,35 @@ function mediumForSide(side, config) {
   return side === "adventure" ? config.adventureMedium : config.originMedium;
 }
 
+export function worldSideForLocation({
+  approvedScenario = null,
+  worldContract = {},
+  location = "",
+} = {}) {
+  const supplied = topologyConfig(worldContract);
+  const scenes = (Array.isArray(approvedScenario?.scenes) ? approvedScenario.scenes : [])
+    .slice()
+    .sort((left, right) => Number(left?.sceneNumber || 0) - Number(right?.sceneNumber || 0));
+  const locationKey = key(location);
+  if (!supplied || !scenes.length || !locationKey) return "";
+  const entryPassageId = transitionIdentity(scenes.find((scene) => (
+    scene?.transition?.kind === "cross_passage" && transitionIdentity(scene)
+  )));
+  let side = "origin";
+  for (const scene of scenes) {
+    if (key(scene?.locationBefore) === locationKey) return side;
+    const boundaryCrossing = Boolean(
+      entryPassageId
+      && transitionIdentity(scene) === entryPassageId
+      && isCrossing(scene),
+    );
+    const afterSide = boundaryCrossing ? oppositeSide(side) : side;
+    if (key(scene?.locationAfter) === locationKey) return afterSide;
+    side = afterSide;
+  }
+  return "";
+}
+
 export function compileWorldPhysicalTopology({
   approvedScenario = null,
   approvedScene = null,

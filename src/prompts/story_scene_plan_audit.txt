@@ -16,7 +16,8 @@ Reject only explicit contradictions:
 - a scene's prose or illustration skips, reverses or blurs its structured before/during/after causal frame;
 - the visible phase or visible location shows the destination before the approved preparation or crossing, or leaves characters at the origin after arrival;
 - the previous scene's resulting location does not become the next scene's starting location;
-- render_snapshot does not represent exactly one physical instant, camera side, medium and conditional-equipment state derived from the approved scene and its entry-passage topology;
+- render_snapshot does not represent exactly one physical instant, camera side, medium, conditional-equipment state and adjacent unique-landmark visibility derived from the approved scenario, fixed-entity registry and entry-passage topology;
+- a fixed landmark appears away from its canonical home except beyond the established bounded passage, or appears more than once in the current image;
 - persistent wardrobe wording reintroduces conditional equipment that render_snapshot marks stored or absent;
 - a child refers to a mother or father by that parent's first name inside dialogue or inner thoughts when canonical_characters supplies a preferredAddress;
 - two people or animals are fused, share or exchange anatomy, or are described as one mixed identity without an explicit approved fantasy rule.

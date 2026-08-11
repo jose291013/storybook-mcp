@@ -1098,6 +1098,12 @@ export function validateStoryScenario(scenario = {}) {
   if (!scenario.title) issues.push("scenario.title is required");
   if (!scenario.summary) issues.push("scenario.summary is required");
   if (!scenes.length) issues.push("scenario.scenes are required");
+  const fixedEntityNames = new Set();
+  for (const object of list(scenario.objects, 20).filter((item) => item.spatialMode === "location_bound")) {
+    if (!object.trackEveryScene) issues.push(`location-bound entity ${object.name} must be tracked in every scene`);
+    if (fixedEntityNames.has(key(object.name))) issues.push(`location-bound entity ${object.name} must have one globally unique identity`);
+    fixedEntityNames.add(key(object.name));
+  }
   const trackedObjects = list(scenario.objects, 20).filter((object) => object.trackEveryScene);
   const narrativeContract = scenario.narrativeContract?.version === 1 ? scenario.narrativeContract : null;
   const declaredSymbols = new Set();

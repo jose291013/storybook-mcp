@@ -1,7 +1,8 @@
 import { findUniverse } from "../config/bookOptions.js";
 import { cameraBoundaryRule, compileWorldPhysicalTopology } from "./worldPhysicalTopology.js";
+import { compileWorldFixedEntityRegistry } from "./worldFixedEntityRegistry.js";
 
-export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 2;
+export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 3;
 
 function key(value) {
   return String(value || "")
@@ -94,6 +95,14 @@ export function compilePhysicalRenderSnapshot({
         ? "protected_environment"
         : "ordinary_environment");
   const forbidden = equipment.map(equipmentRule);
+  const fixedEntities = compileWorldFixedEntityRegistry({
+    approvedScenario,
+    approvedScene,
+    worldContract,
+    visibleLocation,
+    visiblePhase,
+  });
+  forbidden.push(...fixedEntities.map((entity) => entity.rule));
   const boundaryRule = cameraBoundaryRule(topology);
   if (boundaryRule) forbidden.push(boundaryRule);
   if (physicalMedium === "breathable_air" && !hasWornBreathingEquipment) {
@@ -127,6 +136,7 @@ export function compilePhysicalRenderSnapshot({
       action: String(character?.action || "").trim(),
     })),
     equipment,
+    fixed_entities: fixedEntities,
     visible_object_states: list(visibleStates, 30).map((state) => ({
       name: String(state?.name || "").trim(),
       owner: String(state?.owner || "").trim(),
