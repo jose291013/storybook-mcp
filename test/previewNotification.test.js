@@ -66,7 +66,7 @@ test("preview emails use signed, separate ready and milestone endpoints", async 
     const milestoneBody = JSON.parse(calls[0].options.body);
     assert.equal(milestoneBody.event, "scenario_ready");
     assert.equal(milestoneBody.eventId, "job-1:scenario_ready");
-    assert.equal(milestoneBody.readyUrl, "https://creator.example/api/auth/woocommerce/project?projectId=project-1");
+    assert.equal(milestoneBody.readyUrl, "https://creator.example/?resumeProject=project-1#project-resume");
     assert.equal(JSON.parse(calls[1].options.body).event, "scenario_failed");
     assert.equal(JSON.parse(calls[1].options.body).retryAvailable, true);
     assert.equal(JSON.parse(calls[3].options.body).event, "quality_review_required");

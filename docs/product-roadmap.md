@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-11
 
+## Cross-device project-resume checkpoint
+
+Every scenario, cover, interruption and completion e-mail opens a durable project-resume entry before authentication. The entry carries only the opaque project id and displays no title, questionnaire, photo or generated content. On a device without a Creator draft or customer session, it explains that the book is saved and asks the customer to connect with the same WooCommerce account. Authentication uses the dedicated signed `project_resume` destination, then the Creator loads the customer-owned server project directly by id.
+
+Browser local storage is never an authority for e-mail resume. A successful account-bound lookup restores the exact persisted decision state, including scenario review. A missing project, wrong account or failed lookup stays on the dedicated resume screen with a path to **My creations** and never falls through to an empty new-book questionnaire. The link itself grants no access to private assets and starts no generation, credit reservation or model call.
+
 ## Visible adventure-choice handoff checkpoint
 
 Selecting an intention is an authoritative completed choice before the creator reaches the universe screen. As soon as a universe is chosen, the adventure-proposal area remains visible while its three suggestions are prepared, and `Continuer` is disabled until that bounded request finishes. The interface explicitly confirms that the intention is saved instead of reusing the missing-inspiration wording for two different decisions.

@@ -25,6 +25,16 @@ const CREATIONS_RETURN_KEY = "calitiki-creations-return-v1";
 const FLOW_VERSION = 6;
 const STEP_COUNT = 7;
 const REVIEW_STEP = 6;
+const PROJECT_ID_PATTERN = /^[A-Za-z0-9_-]{6,128}$/;
+
+function projectResumeIdFromUrl(url = initialUrl) {
+  const direct = String(url.searchParams.get("resumeProject") || "").trim();
+  const callback = url.searchParams.get("resume") === "project"
+    ? String(url.searchParams.get("project") || "").trim()
+    : "";
+  const projectId = direct || callback;
+  return PROJECT_ID_PATTERN.test(projectId) ? projectId : "";
+}
 
 function safeCalitikiReturnUrl(value) {
   try {
@@ -124,6 +134,7 @@ const state = {
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
   currentPreview: null,
+  resumeProjectId: projectResumeIdFromUrl(),
   readerGoToPage: null,
   previewModification: null,
   previewModificationQuote: null,
@@ -165,6 +176,7 @@ const elements = {
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), headerCreationsLink: document.querySelector("#headerCreationsLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
   heroStartingPrice: document.querySelector("#heroStartingPrice"), heroPageRange: document.querySelector("#heroPageRange"), resultTitle: document.querySelector("#resultTitle"),
   accountStatus: document.querySelector("#accountStatus"), logoutButton: document.querySelector("#logoutButton"), newBookButton: document.querySelector("#newBookButton"), resultNewBookButton: document.querySelector("#resultNewBookButton"), headerCreditBalance: document.querySelector("#headerCreditBalance"), headerCreditBalanceValue: document.querySelector("#headerCreditBalanceValue"),
+  projectResumePanel: document.querySelector("#projectResumePanel"), projectResumeStatus: document.querySelector("#projectResumeStatus"), projectResumeLogin: document.querySelector("#projectResumeLogin"), projectResumeCreations: document.querySelector("#projectResumeCreations"),
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
@@ -3451,6 +3463,51 @@ async function resumePreviewAfterLogin() {
   }
 }
 
+function showProjectResumePanel(statusKey, { allowLogin = false, allowCreations = false } = {}) {
+  document.querySelector(".hero").hidden = true;
+  document.querySelector("#creator").hidden = true;
+  elements.storyScenarioPanel.hidden = true;
+  elements.generationPanel.hidden = true;
+  elements.visualProofPanel.hidden = true;
+  elements.resultSection.hidden = true;
+  elements.projectResumePanel.hidden = false;
+  elements.projectResumeStatus.textContent = tr(statusKey);
+  elements.projectResumeLogin.hidden = !allowLogin;
+  elements.projectResumeLogin.disabled = false;
+  elements.projectResumeCreations.hidden = !allowCreations;
+  elements.projectResumeCreations.href = creationsReturnUrl();
+  elements.projectResumePanel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function resumeProjectFromEntry(projectId = state.resumeProjectId) {
+  if (!PROJECT_ID_PATTERN.test(String(projectId || ""))) return false;
+  state.resumeProjectId = projectId;
+  if (!state.customerSession?.authenticated) {
+    showProjectResumePanel("resumeProjectLoginStatus", { allowLogin: true, allowCreations: true });
+    return true;
+  }
+  showProjectResumePanel("resumeProjectLoading", { allowCreations: true });
+  state.projectId = projectId;
+  try {
+    const restored = await restoreCompletedPreview();
+    if (!restored) throw new Error(tr("resumeProjectAccessError"));
+    elements.projectResumePanel.hidden = true;
+    window.history.replaceState({}, "", `${window.location.pathname}#creator`);
+    return true;
+  } catch {
+    state.projectId = "";
+    showProjectResumePanel("resumeProjectAccessError", { allowCreations: true });
+    return true;
+  }
+}
+
+function authenticateProjectResume() {
+  if (!PROJECT_ID_PATTERN.test(String(state.resumeProjectId || ""))) return;
+  elements.projectResumeLogin.disabled = true;
+  elements.projectResumeStatus.textContent = tr("resumeProjectConnecting");
+  window.location.assign(`/api/auth/woocommerce/project?projectId=${encodeURIComponent(state.resumeProjectId)}`);
+}
+
 function loadSeriesDraft(project) {
   const questionnaire = project.questionnaire || {};
   const configuration = project.productConfiguration || {};
@@ -3616,7 +3673,8 @@ async function init() {
     await refreshCustomerSession();
     await refreshCreditSummary("").catch(() => null);
     const authCallback = new URLSearchParams(window.location.search).get("auth") === "connected";
-    if (authCallback) await resumePreviewAfterLogin();
+    if (state.resumeProjectId) await resumeProjectFromEntry();
+    else if (authCallback) await resumePreviewAfterLogin();
     else await restoreCompletedPreview();
   }
   catch { elements.formError.textContent = "Configuration unavailable"; elements.nextButton.disabled = true; }
@@ -3719,5 +3777,6 @@ elements.submitModification.addEventListener("click", submitPreviewModification)
 elements.approveModification.addEventListener("click", () => decidePreviewModification("approve"));
 elements.rejectModification.addEventListener("click", () => decidePreviewModification("reject"));
 elements.logoutButton.addEventListener("click", () => { logoutCustomer().catch((error) => { elements.formError.textContent = error.message; }); });
+elements.projectResumeLogin.addEventListener("click", authenticateProjectResume);
 
 init();

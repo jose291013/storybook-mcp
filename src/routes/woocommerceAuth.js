@@ -31,6 +31,10 @@ function safeReturnPath(projectId, status = "connected", destination = "creator"
     params.set("newAdventure", "1");
     return `/?${params.toString()}#creator`;
   }
+  if (destination === "project_resume") {
+    params.set("resume", "project");
+    return `/?${params.toString()}#project-resume`;
+  }
   return `/?${params.toString()}#creator`;
 }
 
@@ -62,7 +66,7 @@ router.get("/auth/woocommerce/project", (req, res) => {
   if (!process.env.WOOCOMMERCE_BRIDGE_URL || !process.env.WOOCOMMERCE_BRIDGE_SECRET) {
     return res.status(503).send("WooCommerce authentication is not configured");
   }
-  const state = createWooAuthState({ projectId, destination: "creator" });
+  const state = createWooAuthState({ projectId, destination: "project_resume" });
   const bridgeUrl = new URL(process.env.WOOCOMMERCE_BRIDGE_URL);
   bridgeUrl.searchParams.set("state", state);
   res.set("Cache-Control", "no-store");
