@@ -8,7 +8,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/record-pr155-deployment`
+- Current branch: `main`
 - Production/main checkpoint: PR #155 merged at `d015144`; Render health returned `{ "ok": true }` and the live Creator serves `projectResumePanel`
 - Current focused checkpoint: e-mail links resume the server-owned project explicitly across devices instead of exposing a blank local questionnaire
 - Pull requests: #150 through #155 merged
