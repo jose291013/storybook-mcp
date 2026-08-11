@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `main`
 - Production/main checkpoint: PR #149 merged at `8b0f739`; single physical render snapshots now reach image generation and QA
 - Current focused checkpoint: bounded intention-perspective history and server-side cost ceiling
-- Pull request: not yet published
+- Pull request: #150 (merge authorized; production verification pending)
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,8 +35,7 @@ PR #55 through PR #149 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish and merge the bounded-intention-perspectives brick under the existing authorization.
-2. Continue with the camera-side world-topology authority.
+1. Continue with the camera-side world-topology authority after PR #150 reaches `main`.
 
 ## Protected local state
 
