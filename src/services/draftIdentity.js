@@ -78,7 +78,7 @@ export function verifyWooCustomerToken(token, secret = process.env.WOOCOMMERCE_B
   return { wooCustomerId: String(data.sub), email: String(data.email || "") };
 }
 
-const WOO_AUTH_DESTINATIONS = ["interactive_reader", "family_share", "narration", "new_adventure", "credit_return"];
+const WOO_AUTH_DESTINATIONS = ["interactive_reader", "family_share", "narration", "new_adventure", "credit_return", "project_resume"];
 const CREDIT_RETURN_CONTEXTS = ["preview", "action_center", "modification"];
 const CREDIT_RETURN_STATUSES = ["paid", "syncing", "pending", "failed", "cancelled", "back"];
 

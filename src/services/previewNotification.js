@@ -52,7 +52,7 @@ function sharedPayload({ project, identity }) {
     wooCustomerId: String(identity.wooCustomerId),
     title: project.finalBlueprint?.cover?.title || project.title || "Calitiki",
     locale: project.locale || "FR",
-    readyUrl: `${baseUrl}/api/auth/woocommerce/project?projectId=${encodeURIComponent(project.id)}`,
+    readyUrl: `${baseUrl}/?resumeProject=${encodeURIComponent(project.id)}#project-resume`,
   };
 }
 

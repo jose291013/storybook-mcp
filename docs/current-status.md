@@ -8,35 +8,36 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/visible-adventure-choice-state`
-- Production/main checkpoint: PR #153 merged at `8c8fdc2`; the approved intention-perspective limit and continuity bricks are live on `main`
-- Current focused checkpoint: selected intentions remain visibly confirmed while the three adventure proposals load or fail
-- Pull requests: #150 through #153 merged; PR #154 is the delivery checkpoint for the visible adventure-choice-state fix
+- Current branch: `codex/cross-device-project-resume`
+- Production/main checkpoint: PR #154 merged at `2e2edca`; Render health returned `{ "ok": true }`
+- Current focused checkpoint: e-mail links resume the server-owned project explicitly across devices instead of exposing a blank local questionnaire
+- Pull requests: #150 through #154 merged; PR #155 is the delivery checkpoint for cross-device project resume
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through PR #153 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through PR #154 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
-## Current product brick: visible adventure-choice handoff
+## Current product brick: cross-device project resume
 
-1. Choosing an intention remains authoritative when the creator reaches the universe and adventure step.
-2. The adventure-proposal area is visible immediately and shows its loading state instead of presenting an empty step.
-3. `Continuer` is disabled while three adventures are being prepared.
-4. A request failure remains visible and retryable instead of being overwritten by the final render.
-5. Validation copy distinguishes a missing intention from a missing adventure and confirms that the intention was saved.
+1. Scenario, cover and completion e-mails link to a durable project-resume entry instead of beginning inside an authentication redirect.
+2. A fresh phone with no Calitiki local draft sees an explicit resume screen and must connect with the owning WooCommerce account.
+3. The authenticated callback is tagged `project_resume`, retains the project id and loads the server project directly.
+4. A missing, inaccessible or wrong-account project remains on the resume screen with a safe path to **My creations**; it never falls through to a blank questionnaire.
+5. The link reveals no private content before account ownership is verified and adds no generation or model call.
 
 ## Verification
 
-- Focused creator-funnel tests: 7/7 passing.
-- Complete `npm test`: 423/423 passing.
+- Focused project-resume, authentication and notification tests: 76/76 passing.
+- Complete `npm test`: 424/424 passing.
+- Browser verification: unauthenticated FR/ES desktop and iPhone-size resume screens pass; invalid project ids do not enter resume mode.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Verify the merged PR #154 deployment and Render health.
-2. Select an intention on the live creator and verify the loading, successful suggestion and retryable failure states.
+1. Verify the merged PR #155 deployment and Render health.
+2. Verify one real scenario-ready e-mail from a second device with no Creator local draft.
 
 ## Protected local state
 

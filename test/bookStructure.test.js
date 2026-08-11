@@ -209,6 +209,8 @@ test("WooCommerce login state binds the callback to one saved project", () => {
   assert.ok(verified.nonce.length >= 20);
   const readerState = createWooAuthState({ projectId: "project-291013", destination: "interactive_reader" }, secret);
   assert.equal(verifyWooAuthState(readerState, secret).destination, "interactive_reader");
+  const resumeState = createWooAuthState({ projectId: "project-291013", destination: "project_resume" }, secret);
+  assert.equal(verifyWooAuthState(resumeState, secret).destination, "project_resume");
   const creditReturnState = createWooAuthState({
     projectId: "project-291013",
     destination: "credit_return",
