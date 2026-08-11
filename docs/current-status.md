@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `main`
 - Production/main checkpoint: PR #148 merged at `aeaa526`; deterministic before/during/after continuity now reaches the whole-book scene plan
 - Current focused checkpoint: single physical render snapshot and conditional-equipment authority
-- Pull request: not yet published
+- Pull request: #149 (merge authorized; production verification pending)
 - WordPress Bridge source candidate: `0.7.6`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -35,9 +35,7 @@ PR #55 through PR #148 are merged on `main`. The last verified production modes 
 
 ## Next verification target
 
-1. Publish the focused physical-snapshot PR after explicit authorization.
-2. Merge only after explicit authorization while no generation is active; Render will restart.
-3. After deployment, generate a fresh coral-ocean preview and verify that the return workshop is breathable, each bubble exists once and stored equipment is not worn.
+1. After deployment, generate a fresh coral-ocean preview and verify that the return workshop is breathable, each bubble exists once and stored equipment is not worn.
 
 ## Protected local state
 
