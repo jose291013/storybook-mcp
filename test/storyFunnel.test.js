@@ -103,6 +103,7 @@ test("the creator exposes the seven-step intention-first adventure funnel", asyn
   assert.match(app, /const FLOW_VERSION = 6/);
   assert.match(app, /Number\(saved\.flowVersion \|\| 0\) >= 2 \? saved\.step/);
   assert.match(app, /requestStoryIntentions/);
+  assert.match(app, /photo-lightbox/);
   assert.match(app, /storyIntentionBatches/);
   assert.match(app, /intentionSessionId/);
   assert.match(app, /requestId: newIntentionSessionId\(\)/);

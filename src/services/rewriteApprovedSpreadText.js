@@ -27,6 +27,7 @@ export async function rewriteApprovedSpreadText({
   currentText,
   instruction,
   requestId,
+  strategy = "standard_scoped_edit",
 }) {
   const sourceText = String(currentText || "").replace(/\s+/g, " ").trim();
   const currentWords = sourceText.split(/\s+/).filter(Boolean).length;
@@ -48,6 +49,9 @@ export async function rewriteApprovedSpreadText({
       "Apply only the creator's local wording or minor-gesture request.",
       "A minor gesture may be reworded to match the preserved illustration only when it is not the scene's main action or causal event.",
       "Keep the same reading age, warm tone, point of view and approximate length.",
+      strategy === "contract_minimal_reformulation"
+        ? "This is the bounded second strategy: change the fewest words possible and prefer one local gesture or descriptive phrase; if the request requires a new event, location, cast or main action, preserve the approved text instead of inventing it."
+        : "",
       "Return JSON exactly as {\"text\":\"...\"}.",
     ].join("\n"),
     user: () => JSON.stringify({
