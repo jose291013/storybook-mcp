@@ -26,6 +26,12 @@ export function qualityReviewScopePolicy(page, requestedScope = "illustration") 
   const failedAt = scope === "text"
     ? page?.qualityReviewTextRepairFailedAt
     : page?.qualityReviewRepairFailedAt;
+  const failureKind = String(scope === "text"
+    ? page?.qualityReviewTextRepairFailureKind || ""
+    : page?.qualityReviewRepairFailureKind || "");
+  const failureCode = String(scope === "text"
+    ? page?.qualityReviewTextRepairFailureCode || ""
+    : page?.qualityReviewRepairFailureCode || "");
   // Earlier deployments incremented the success counter before generation.
   // A page with a recorded failure, no completion and no candidate therefore
   // receives one bounded recovery instead of being mislabeled as "used".
@@ -49,6 +55,8 @@ export function qualityReviewScopePolicy(page, requestedScope = "illustration") 
     canRequest,
     retryAvailable: Boolean(failedAt) && canRequest,
     technicalExhausted: completedCount < 1 && !candidateReady && attemptCount >= MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
+    failureKind,
+    failureCode,
   };
 }
 
@@ -63,6 +71,10 @@ function unresolvedPages(draftPages = []) {
       textRepairCount: Number(page.qualityReviewTextRepairCount || 0),
       repairAttemptCount: qualityReviewScopePolicy(page, "illustration").attemptCount,
       textRepairAttemptCount: qualityReviewScopePolicy(page, "text").attemptCount,
+      repairFailureKind: qualityReviewScopePolicy(page, "illustration").failureKind,
+      textRepairFailureKind: qualityReviewScopePolicy(page, "text").failureKind,
+      repairFailureCode: qualityReviewScopePolicy(page, "illustration").failureCode,
+      textRepairFailureCode: qualityReviewScopePolicy(page, "text").failureCode,
     }));
 }
 

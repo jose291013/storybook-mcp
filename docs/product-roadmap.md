@@ -2,6 +2,14 @@
 
 Last updated: 2026-08-12
 
+## Reader-integrated final review checkpoint
+
+Uploaded participant previews show the complete source image inside a larger portrait-aware frame instead of cropping it to a square. Selecting the preview opens an accessible browser-only lightbox with the full image; it uploads nothing new and adds no model call.
+
+Quality review is performed beside the spread being inspected. The top review area is a compact index of flagged pages, while opening a page places the reason, creator explanation, available text/image actions, candidate comparison and keep/apply decisions directly under the reader. After a decision, the reader advances to the next unresolved spread and ends with a clear completion summary. The same server endpoints and cost ceilings remain authoritative, and the original spread is never changed until explicit selection.
+
+The second technical attempt is a distinct bounded strategy rather than a blind replay. Failures are stored as private categorical codes plus a one-way fingerprint of the normalized creator instruction; no creator wording is added to diagnostics. A temporary provider or storage failure permits a source-preserving recovery strategy. A request that conflicts with approved location, cast, chronology, object state or main action is not resent unchanged: Calitiki asks for a reformulation or suggests the other correction scope without spending another attempt. Unknown technical failures retain the existing single bounded retry and then stop for manual support.
+
 ## Success-counted creator allowances checkpoint
 
 The intention assistant allowance belongs to one opaque new-book session as well as its normalized age, situation and interface language. The server first reserves exactly one batch, allows no competing batch for that session, and increments the three-batch counter only after three valid perspectives have actually been produced. A failed request releases its reservation; an interrupted reservation expires after ten minutes. The durable ledger remains numeric and one-way: it stores neither parent wording nor generated perspectives. Consequently, the first three cards of a genuinely new creation are shown as the first batch even when the parent previously used the same wording in another book.

@@ -376,6 +376,11 @@ test("quality-review UI requires a reason and offers private text or image alter
   assert.match(app, /data-quality-scope="illustration"/);
   assert.match(app, /repairRetryAvailable/);
   assert.match(app, /repairTechnicalExhausted/);
+  assert.match(app, /readerQualityReviewSync/);
+  assert.match(app, /installReaderQualityReview/);
+  assert.match(app, /repairRephraseRequired/);
+  assert.match(route, /quality_review_request_rephrase_required/);
+  assert.match(route, /qualityReviewInstructionFingerprint/);
   assert.match(app, /instructionRequired/);
   assert.match(app, /quality-review-text-comparison/);
   assert.match(app, /data-quality-keep-original/);

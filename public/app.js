@@ -141,6 +141,8 @@ const state = {
   currentPreview: null,
   resumeProjectId: projectResumeIdFromUrl(),
   readerGoToPage: null,
+  readerQualityReviewSync: null,
+  readerQualityReviewObserver: null,
   previewModification: null,
   previewModificationQuote: null,
   previewModificationPoll: null,
@@ -280,6 +282,11 @@ const QUALITY_REVIEW_TEXT = {
     choosing: "Enregistrement de votre choix…",
     retryAlternative: "Réessayer gratuitement",
     repairRetryAvailable: "La proposition n’a pas abouti. Votre double-page est intacte et vous pouvez réessayer gratuitement une fois.",
+    repairRephraseRequired: "Cette demande modifierait le contrat validé de la scène. Reformulez-la sans changer le lieu, les personnages ou l’action principale, ou essayez l’autre type de correction. Elle ne sera pas renvoyée à l’identique.",
+    repairTemporaryFailure: "Un service technique n’a pas répondu. Votre double-page est intacte ; la seconde tentative utilisera une stratégie de reprise plus conservatrice.",
+    readerReviewTitle: "Réviser cette double-page",
+    readerReviewProgress: "Double-page {current} sur {total} à vérifier",
+    reviewComplete: "Révision terminée : toutes les double-pages signalées ont maintenant une décision. Votre livre est validé.",
     repairTechnicalExhausted: "Les deux tentatives techniques n’ont produit aucune proposition. Votre double-page est intacte ; contactez Calitiki pour poursuivre sans nouveau coût.",
     repairExhausted: "La proposition gratuite pour ce type de correction a déjà été utilisée. Vous pouvez choisir une proposition existante, conserver la double-page ou contacter Calitiki.",
     actionError: "La décision n’a pas pu être enregistrée. Votre livre reste conservé ; réessayez.",
@@ -323,6 +330,11 @@ const QUALITY_REVIEW_TEXT = {
     choosing: "Guardando tu elección…",
     retryAlternative: "Reintentar gratis",
     repairRetryAvailable: "La propuesta no se ha completado. Tu doble página está intacta y puedes volver a intentarlo gratis una vez.",
+    repairRephraseRequired: "Esta solicitud cambiaría el contrato aprobado de la escena. Reformúlala sin cambiar el lugar, los personajes o la acción principal, o prueba el otro tipo de corrección. No se volverá a enviar sin cambios.",
+    repairTemporaryFailure: "Un servicio técnico no ha respondido. Tu doble página está intacta; el segundo intento utilizará una estrategia de recuperación más conservadora.",
+    readerReviewTitle: "Revisar esta doble página",
+    readerReviewProgress: "Doble página {current} de {total} por revisar",
+    reviewComplete: "Revisión terminada: todas las dobles páginas señaladas ya tienen una decisión. Tu libro está validado.",
     repairTechnicalExhausted: "Los dos intentos técnicos no han producido ninguna propuesta. Tu doble página está intacta; contacta con Calitiki para continuar sin un nuevo coste.",
     repairExhausted: "Ya se ha utilizado la propuesta gratuita para este tipo de corrección. Puedes elegir una propuesta existente, conservar la doble página o contactar con Calitiki.",
     actionError: "No se ha podido guardar la decisión. Tu libro sigue guardado; inténtalo de nuevo.",
@@ -366,6 +378,11 @@ const QUALITY_REVIEW_TEXT = {
     choosing: "Saving your choice…",
     retryAlternative: "Retry for free",
     repairRetryAvailable: "The proposal did not complete. Your spread is intact and you may retry once for free.",
+    repairRephraseRequired: "This request would change the approved scene contract. Rephrase it without changing the location, cast or main action, or try the other correction type. It will not be resent unchanged.",
+    repairTemporaryFailure: "A technical service did not respond. Your spread is intact; the second attempt will use a more conservative recovery strategy.",
+    readerReviewTitle: "Review this spread",
+    readerReviewProgress: "Spread {current} of {total} to review",
+    reviewComplete: "Review complete: every flagged spread now has a decision. Your book is validated.",
     repairTechnicalExhausted: "Two technical attempts produced no proposal. Your spread is intact; contact Calitiki to continue without another charge.",
     repairExhausted: "The free proposal for this correction type has already been used. You can choose an existing proposal, keep the spread or contact Calitiki.",
     actionError: "The decision could not be saved. Your book remains safe; please retry.",
@@ -2429,6 +2446,30 @@ function renderPhotos() {
   }).join("");
   elements.photoList.querySelectorAll(".photo-item").forEach((item) => {
     const index = Number(item.dataset.photoIndex);
+    const previewImage = item.querySelector("img");
+    previewImage.tabIndex = 0;
+    previewImage.setAttribute("role", "button");
+    previewImage.setAttribute("aria-label", previewImage.alt);
+    const openPhotoViewer = () => {
+      const photo = state.photos[index];
+      const dialog = document.createElement("dialog");
+      dialog.className = "photo-lightbox";
+      dialog.setAttribute("aria-label", previewImage.alt);
+      dialog.innerHTML = `<button type="button" class="photo-lightbox-close" aria-label="${escapeHtml(tr("modificationClose"))}">×</button><img src="${photo.url}" alt="${escapeHtml(previewImage.alt)}" />`;
+      document.body.append(dialog);
+      const close = () => { if (dialog.open) dialog.close(); };
+      dialog.querySelector("button").addEventListener("click", close);
+      dialog.addEventListener("click", (event) => { if (event.target === dialog) close(); });
+      dialog.addEventListener("close", () => dialog.remove(), { once: true });
+      dialog.showModal();
+    };
+    previewImage.addEventListener("click", openPhotoViewer);
+    previewImage.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openPhotoViewer();
+      }
+    });
     item.insertAdjacentHTML("beforeend", outfitControlsHtml(state.photos[index]));
     item.querySelector('[data-field="role"]').addEventListener("change", (event) => {
       const previous = state.photos[index].role;
@@ -2665,6 +2706,9 @@ async function pollJob(jobId) {
 }
 
 function renderBook(job, { initialPageNumber = 0 } = {}) {
+  state.readerQualityReviewObserver?.disconnect();
+  state.readerQualityReviewObserver = null;
+  state.readerQualityReviewSync = null;
   const { coverPreviewUrl, draftPages = [] } = job.result || {};
   const total = job.final_blueprint?.format?.interior_pages || state.pageCount;
   const orderedPages = draftPages.slice().sort((a, b) => a.page_number - b.page_number);
@@ -2688,6 +2732,14 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
   };
 
   elements.bookPreview.innerHTML = `<div class="reader-shell"><div class="reader-book" id="readerBook" tabindex="0" aria-label="${escapeHtml(tr("readerLabel"))}"><div class="reader-sheet" id="readerSheet"><div class="reader-pages" id="readerPages"></div><div class="reader-curl" id="readerCurl" aria-hidden="true"><div class="reader-curl-face reader-curl-front" id="readerCurlFront"></div><div class="reader-curl-face reader-curl-back" id="readerCurlBack"></div></div></div><span class="reader-hand" aria-hidden="true">›</span></div><div class="reader-controls"><button type="button" id="readerPrevious" aria-label="${escapeHtml(tr("previousPage"))}">←</button><strong id="readerCounter" aria-live="polite"></strong><button type="button" id="readerNext" aria-label="${escapeHtml(tr("nextPage"))}">→</button></div><button type="button" class="reader-repair" id="repairCurrentIllustration" hidden></button><p class="reader-repair-feedback" id="readerRepairFeedback" aria-live="polite"></p><p class="reader-help">${escapeHtml(tr("readerHelp"))}</p></div>`;
+  const readerShell = elements.bookPreview.querySelector(".reader-shell");
+  const contextualReview = document.createElement("section");
+  contextualReview.className = "reader-quality-review";
+  contextualReview.id = "readerQualityReview";
+  contextualReview.hidden = true;
+  contextualReview.setAttribute("aria-live", "polite");
+  contextualReview.innerHTML = '<div class="reader-quality-review-heading"><strong id="readerQualityReviewTitle"></strong><span id="readerQualityReviewProgress"></span></div><div id="readerQualityReviewContent"></div>';
+  readerShell.querySelector(".reader-controls").after(contextualReview);
 
   let frames = makeFrames();
   let frameIndex = initialPageNumber ? Math.max(0, frames.findIndex((frame) => frame.some((page) => Number(page.page_number) === Number(initialPageNumber)))) : 0;
@@ -2731,6 +2783,7 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     );
     repairButton.hidden = !canRepair;
     if (canRepair) repairButton.textContent = tr("repairIllustration", { page: repairPage.page_number });
+    state.readerQualityReviewSync?.(frame);
   };
   const turn = (direction) => {
     const target = frameIndex + direction;
@@ -2944,9 +2997,18 @@ async function refreshAfterQualityDecision(pageNumber, feedback = "") {
   };
   if (project.status === "preview_ready") {
     showCompletedPreview(preview, { initialPageNumber: pageNumber });
+    const completion = document.querySelector("#readerRepairFeedback");
+    if (completion) completion.textContent = (QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR).reviewComplete;
     return project;
   }
-  showQualityReview(preview, { scroll: false });
+  const unresolved = project.previewResult?.draftPages
+    ?.filter((page) => page.qualityStatus === "review_required")
+    .map((page) => Number(page.page_number))
+    .sort((a, b) => a - b) || [];
+  const nextPage = feedback
+    ? Number(pageNumber)
+    : unresolved.find((number) => number > Number(pageNumber)) || unresolved[0] || Number(pageNumber);
+  showQualityReview(preview, { scroll: false, initialPageNumber: nextPage });
   if (feedback) {
     const target = elements.qualityReviewPages.querySelector(`[data-quality-feedback="${Number(pageNumber)}"]`);
     if (target) target.textContent = feedback;
@@ -2983,6 +3045,9 @@ function qualityScopeAvailability(page, requestedScope) {
     : page?.qualityReviewRepairAttemptCount || page?.repairAttemptCount || 0);
   const completedAt = scope === "text" ? page?.qualityReviewTextRepairCompletedAt : page?.qualityReviewRepairCompletedAt;
   const failedAt = scope === "text" ? page?.qualityReviewTextRepairFailedAt : page?.qualityReviewRepairFailedAt;
+  const failureKind = String(scope === "text"
+    ? page?.qualityReviewTextRepairFailureKind || page?.textRepairFailureKind || ""
+    : page?.qualityReviewRepairFailureKind || page?.repairFailureKind || "");
   const legacyFailureOnly = successCount > 0 && failedAt && !completedAt && !candidateReady;
   const completedCount = candidateReady || completedAt ? Math.max(1, successCount) : legacyFailureOnly ? 0 : successCount;
   const attemptCount = Math.max(attemptValue, failedAt ? 1 : 0, completedCount > 0 ? 1 : 0);
@@ -2991,10 +3056,67 @@ function qualityScopeAvailability(page, requestedScope) {
     canRequest,
     retryAvailable: Boolean(failedAt) && canRequest,
     technicalExhausted: completedCount < 1 && !candidateReady && attemptCount >= 2,
+    failureKind,
   };
 }
 
-function showQualityReview(job, { scroll = true } = {}) {
+function installReaderQualityReview(pages, copy) {
+  const ordered = pages.map((page) => Number(page.pageNumber)).filter(Number.isFinite);
+  state.readerQualityReviewSync = (frame) => {
+    const panel = document.querySelector("#readerQualityReview");
+    const content = document.querySelector("#readerQualityReviewContent");
+    const title = document.querySelector("#readerQualityReviewTitle");
+    const progress = document.querySelector("#readerQualityReviewProgress");
+    if (!panel || !content) return;
+    state.readerQualityReviewObserver?.disconnect();
+    state.readerQualityReviewObserver = null;
+    const pageNumber = ordered.find((number) => frame.some((page) => Number(page.page_number) === number));
+    const source = pageNumber
+      ? elements.qualityReviewPages.querySelector(`[data-quality-page="${pageNumber}"]`)
+      : null;
+    if (!source) {
+      panel.hidden = true;
+      content.replaceChildren();
+      return;
+    }
+    panel.hidden = false;
+    title.textContent = copy.readerReviewTitle;
+    progress.textContent = copy.readerReviewProgress
+      .replace("{current}", String(ordered.indexOf(pageNumber) + 1))
+      .replace("{total}", String(ordered.length));
+    const clone = source.cloneNode(true);
+    clone.classList.add("is-reader-context");
+    clone.querySelector("[data-quality-view]")?.remove();
+    const sourceTextarea = source.querySelector("[data-quality-instruction]");
+    const cloneTextarea = clone.querySelector("[data-quality-instruction]");
+    if (sourceTextarea && cloneTextarea) {
+      cloneTextarea.value = sourceTextarea.value;
+      cloneTextarea.addEventListener("input", () => { sourceTextarea.value = cloneTextarea.value; });
+    }
+    clone.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", () => {
+        if (sourceTextarea && cloneTextarea) sourceTextarea.value = cloneTextarea.value;
+        const attributes = ["data-quality-repair", "data-quality-approve", "data-quality-keep-original", "data-quality-use-candidate"];
+        const attribute = attributes.find((name) => button.hasAttribute(name));
+        if (!attribute) return;
+        const selector = `[${attribute}="${button.getAttribute(attribute)}"]${button.dataset.qualityScope ? `[data-quality-scope="${button.dataset.qualityScope}"]` : ""}`;
+        source.querySelector(selector)?.click();
+        clone.querySelectorAll("button, textarea").forEach((control) => { control.disabled = true; });
+      });
+    });
+    const sourceFeedback = source.querySelector(".quality-review-feedback");
+    const cloneFeedback = clone.querySelector(".quality-review-feedback");
+    if (sourceFeedback && cloneFeedback) {
+      state.readerQualityReviewObserver = new MutationObserver(() => {
+        cloneFeedback.textContent = sourceFeedback.textContent;
+      });
+      state.readerQualityReviewObserver.observe(sourceFeedback, { childList: true, characterData: true, subtree: true });
+    }
+    content.replaceChildren(clone);
+  };
+}
+
+function showQualityReview(job, { scroll = true, initialPageNumber = 0 } = {}) {
   const copy = QUALITY_REVIEW_TEXT[state.locale] || QUALITY_REVIEW_TEXT.FR;
   const pages = job?.qualityReview?.pages
     || job?.continuitySnapshot?.generationCheckpoint?.qualityReview?.pages
@@ -3002,7 +3124,10 @@ function showQualityReview(job, { scroll = true } = {}) {
       ?.filter((page) => page.qualityStatus === "review_required")
       .map((page) => ({ pageNumber: page.page_number }))
     || [];
-  showCompletedPreview({ ...job, projectStatus: "preview_quality_review" }, { scroll: false });
+  showCompletedPreview(
+    { ...job, projectStatus: "preview_quality_review" },
+    { scroll: false, initialPageNumber },
+  );
   elements.qualityReviewKicker.textContent = copy.kicker;
   elements.qualityReviewTitle.textContent = copy.title;
   elements.qualityReviewMessage.textContent = copy.message;
@@ -3027,6 +3152,10 @@ function showQualityReview(job, { scroll = true } = {}) {
       const technicalExhausted = !canRequestAlternative
         && (imageAvailability.technicalExhausted || textAvailability.technicalExhausted);
       const retryAvailable = imageAvailability.retryAvailable || textAvailability.retryAvailable;
+      const rephraseRequired = imageAvailability.failureKind === "request_incompatible"
+        || textAvailability.failureKind === "request_incompatible";
+      const temporaryFailure = imageAvailability.failureKind === "temporary_failure"
+        || textAvailability.failureKind === "temporary_failure";
       return `<li class="quality-review-page-card" data-quality-page="${Number(page.pageNumber)}">
         <div>
           <strong>${escapeHtml(copy.page.replace("{page}", String(page.pageNumber)))}</strong>
@@ -3069,8 +3198,12 @@ function showQualityReview(job, { scroll = true } = {}) {
           <p class="quality-review-feedback" data-quality-feedback="${Number(page.pageNumber)}">${
             hasCandidate
               ? escapeHtml(copy.candidateReady)
-              : retryAvailable
-                ? escapeHtml(copy.repairRetryAvailable)
+              : rephraseRequired && retryAvailable
+                ? escapeHtml(copy.repairRephraseRequired)
+                : temporaryFailure && retryAvailable
+                  ? escapeHtml(copy.repairTemporaryFailure)
+                  : retryAvailable
+                    ? escapeHtml(copy.repairRetryAvailable)
                 : technicalExhausted
                   ? escapeHtml(copy.repairTechnicalExhausted)
                   : !canRequestAlternative
@@ -3092,6 +3225,7 @@ function showQualityReview(job, { scroll = true } = {}) {
     .join("");
   elements.qualityReviewSupport.textContent = copy.support;
   elements.qualityReviewNotice.hidden = false;
+  installReaderQualityReview(pages, copy);
   elements.qualityReviewPages.querySelectorAll("[data-quality-view]").forEach((button) => {
     button.addEventListener("click", () => state.readerGoToPage?.(Number(button.dataset.qualityView)));
   });
@@ -3141,6 +3275,9 @@ function showQualityReview(job, { scroll = true } = {}) {
           if (payload.code === "quality_review_technical_attempts_exhausted") {
             failureMessage = copy.repairTechnicalExhausted;
           }
+          if (payload.code === "quality_review_request_rephrase_required") {
+            failureMessage = copy.repairRephraseRequired;
+          }
           throw new Error(payload.error || copy.actionError);
         }
         const repairJob = await pollJob(payload.jobId);
@@ -3148,8 +3285,12 @@ function showQualityReview(job, { scroll = true } = {}) {
           pageNumber,
           repairJob.result?.candidateReady
             ? copy.candidateReady
+            : repairJob.result?.rephraseRequired
+              ? copy.repairRephraseRequired
             : repairJob.result?.retryAvailable
-              ? copy.repairRetryAvailable
+              ? repairJob.result?.failureCode === "quality_review_temporary_failure"
+                ? copy.repairTemporaryFailure
+                : copy.repairRetryAvailable
               : copy.repairTechnicalExhausted,
         );
       } catch {
@@ -3204,7 +3345,9 @@ function showQualityReview(job, { scroll = true } = {}) {
       }
     });
   });
-  if (scroll) elements.qualityReviewNotice.scrollIntoView({ behavior: "smooth", block: "center" });
+  const firstReviewPage = Number(initialPageNumber || pages[0]?.pageNumber || 0);
+  if (firstReviewPage) state.readerGoToPage?.(firstReviewPage);
+  else if (scroll) elements.qualityReviewNotice.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function showVisualProof(job, { scroll = true, attempts = 1 } = {}) {

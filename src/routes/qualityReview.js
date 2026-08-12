@@ -21,6 +21,11 @@ import {
   saveQualityReviewCandidate,
 } from "../services/qualityReviewResolution.js";
 import { rewriteApprovedSpreadText } from "../services/rewriteApprovedSpreadText.js";
+import {
+  classifyQualityReviewFailure,
+  qualityReviewInstructionFingerprint,
+  qualityReviewRepairStrategy,
+} from "../services/qualityReviewFailurePolicy.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
@@ -93,9 +98,11 @@ async function downloadContinuityReference(project, temporaryDirectory) {
   return target;
 }
 
-async function recordFailedRepair(projectId, pageNumber, scope, error) {
+async function recordFailedRepair(projectId, pageNumber, scope, error, instruction, strategy) {
   const latest = await projectStore.get(projectId);
   if (!latest?.previewResult?.draftPages) return;
+  const failure = classifyQualityReviewFailure(error, scope);
+  const instructionFingerprint = qualityReviewInstructionFingerprint(instruction);
   const draftPages = latest.previewResult.draftPages.map((page) => (
     Number(page.page_number) === Number(pageNumber)
       ? {
@@ -103,11 +110,19 @@ async function recordFailedRepair(projectId, pageNumber, scope, error) {
           ...(scope === "text"
             ? {
                 qualityReviewTextRepairFailedAt: new Date().toISOString(),
-                qualityReviewTextRepairError: String(error?.message || error || "quality_review_text_repair_failed"),
+                qualityReviewTextRepairError: failure.publicCode,
+                qualityReviewTextRepairFailureKind: failure.kind,
+                qualityReviewTextRepairFailureCode: failure.publicCode,
+                qualityReviewTextRepairFailureInstructionFingerprint: instructionFingerprint,
+                qualityReviewTextRepairFailureStrategy: strategy,
               }
             : {
                 qualityReviewRepairFailedAt: new Date().toISOString(),
-                qualityReviewRepairError: String(error?.message || error || "quality_review_repair_failed"),
+                qualityReviewRepairError: failure.publicCode,
+                qualityReviewRepairFailureKind: failure.kind,
+                qualityReviewRepairFailureCode: failure.publicCode,
+                qualityReviewRepairFailureInstructionFingerprint: instructionFingerprint,
+                qualityReviewRepairFailureStrategy: strategy,
               }),
         }
       : page
@@ -116,6 +131,7 @@ async function recordFailedRepair(projectId, pageNumber, scope, error) {
     status: "preview_quality_review",
     previewResult: { ...latest.previewResult, draftPages },
   });
+  return failure;
 }
 
 async function recordDurableAlternative({
@@ -260,12 +276,35 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
       error: `The two technical ${scope} attempts did not produce an alternative`,
     });
   }
+  const previousFailureKind = String(scope === "text"
+    ? currentPage.qualityReviewTextRepairFailureKind || ""
+    : currentPage.qualityReviewRepairFailureKind || "");
+  const previousInstructionFingerprint = String(scope === "text"
+    ? currentPage.qualityReviewTextRepairFailureInstructionFingerprint || ""
+    : currentPage.qualityReviewRepairFailureInstructionFingerprint || "");
+  if (
+    scopePolicy.attemptCount > 0
+    && previousFailureKind === "request_incompatible"
+    && previousInstructionFingerprint === qualityReviewInstructionFingerprint(instruction)
+  ) {
+    return res.status(422).json({
+      code: "quality_review_request_rephrase_required",
+      suggestedScope: scope === "text" ? "illustration" : "text",
+      error: "The same request conflicts with the approved scene and was not sent again",
+    });
+  }
   if (resolvingProjects.has(project.id)) {
     return res.status(409).json({ error: "A quality-review decision is already being applied" });
   }
 
   const startedAt = new Date().toISOString();
   const startedAttemptNumber = scopePolicy.attemptCount + 1;
+  const repairStrategy = startedAttemptNumber > 1 && scope === "text"
+    ? "contract_minimal_reformulation"
+    : qualityReviewRepairStrategy({
+        attemptNumber: startedAttemptNumber,
+        previousFailureKind,
+      });
   const draftPages = project.previewResult.draftPages.map((page) => (
     Number(page.page_number) === pageNumber
       ? {
@@ -274,10 +313,12 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
             ? {
                 qualityReviewTextRepairAttemptCount: startedAttemptNumber,
                 qualityReviewTextRepairStartedAt: startedAt,
+                qualityReviewTextRepairStrategy: repairStrategy,
               }
             : {
                 qualityReviewRepairAttemptCount: startedAttemptNumber,
                 qualityReviewRepairStartedAt: startedAt,
+                qualityReviewRepairStrategy: repairStrategy,
               }),
         }
       : page
@@ -334,6 +375,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
           currentText: pairedText,
           instruction,
           requestId: job.id,
+          strategy: repairStrategy,
         });
         const fidelityIssues = deterministicStoryPlanIssues({
           approvedScenario: refreshed.finalBlueprint.approved_scenario,
@@ -432,6 +474,11 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         `CREATOR-REQUESTED FREE QUALITY ALTERNATIVE: correct only these unresolved objective scene requirements: ${priorIssues || "the approved cast and main action"}.`,
         `CREATOR EXPLANATION OF THE MISMATCH: ${instruction}`,
         "The creator preference is secondary and visual only. Never change the approved chronology, location, physical cast, character identities, object state or main action. Preserve every other approved story, identity, outfit and rendering choice.",
+        repairStrategy === "resilient_source_preserving_retry"
+          ? "SECOND TECHNICAL STRATEGY: make the smallest possible localized edit to the preserved source image. Prefer retaining its pixels and composition over reinterpreting the scene."
+          : repairStrategy === "contract_minimal_reformulation"
+            ? "SECOND CONTRACT STRATEGY: apply only the portion of the request compatible with the approved scene. Ignore any requested change to location, chronology, cast, object state or main action, and make the smallest visible correction that improves fidelity."
+          : "",
       ].join("\n");
       const localImageUrl = await generateQualityCheckedImage({
         prompt: `${sceneContractImagePrompt({
@@ -522,7 +569,15 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         candidateGeneratedAt: result.candidate.generatedAt,
       }));
     } catch (error) {
-      await recordFailedRepair(project.id, pageNumber, scope, error).catch(() => null);
+      const failure = await recordFailedRepair(
+        project.id,
+        pageNumber,
+        scope,
+        error,
+        instruction,
+        repairStrategy,
+      ).catch(() => classifyQualityReviewFailure(error, scope));
+      const sameRequestBlocked = failure.retrySameInstruction === false;
       updateJob(job.id, {
         status: "done",
         step: `quality:repair:page:${pageNumber}:still-required`,
@@ -531,6 +586,9 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
           repaired: false,
           reviewRequired: true,
           retryAvailable: startedAttemptNumber < MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
+          rephraseRequired: sameRequestBlocked,
+          suggestedScope: failure.suggestedScope,
+          failureCode: failure.publicCode,
           repairExhausted: startedAttemptNumber >= MAX_QUALITY_REVIEW_ATTEMPTS_PER_SCOPE,
           candidateScope: scope,
         },
@@ -540,7 +598,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         projectId: project.id,
         pageNumber,
         scope,
-        error: String(error?.message || error),
+        failureCode: failure.publicCode,
       }));
     } finally {
       resolvingProjects.delete(project.id);
