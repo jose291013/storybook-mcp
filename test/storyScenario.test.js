@@ -1446,6 +1446,45 @@ test("creator presence choices override the generated scenario exactly", () => {
   ]);
 });
 
+test("a creator action and location correction rebuilds stale hidden travel metadata", () => {
+  const scenario = coherentPortalScenario();
+  const crossing = scenario.scenes[1];
+  crossing.characterMovements = [{
+    id: "movement-1",
+    kind: "cross_passage",
+    from: "la clairière",
+    to: "ancienne destination erronée",
+    characters: ["Nolan", "Mathéo"],
+    mechanism: crossing.transition.mechanism,
+    mechanismId: crossing.transition.mechanismId,
+  }];
+  for (const presence of crossing.characterPresences.filter((item) => item.mode === "physical")) {
+    presence.phase = "end";
+    presence.location = "ancienne destination erronée";
+  }
+
+  const edited = applyCreatorStoryScenarioEdits(scenario, {
+    sceneEdits: [{
+      scene_number: 2,
+      location: "la terrasse de Nolan",
+      action: "Le groupe franchit le passage de retour et arrive sur la terrasse.",
+    }],
+  });
+
+  assert.equal(edited.scenes[1].locationAfter, "la terrasse de Nolan");
+  assert.equal(edited.scenes[1].transition.to, "la terrasse de Nolan");
+  assert.deepEqual(edited.scenes[1].characterMovements, []);
+  assert.ok(edited.scenes[1].characterPresences
+    .filter((presence) => presence.mode === "physical")
+    .every((presence) => presence.phase === "end" && presence.location === "la terrasse de Nolan"));
+
+  const stabilized = stabilizeStoryScenario(edited);
+  assert.ok(stabilized.scenes[1].characterMovements.length > 0);
+  assert.ok(stabilized.scenes[1].characterMovements
+    .every((movement) => movement.to === "la terrasse de Nolan"));
+  assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
 test("a newly added physical character receives a causal starting location and travels", () => {
   const scenario = coherentPortalScenario();
   const edited = applyCreatorStoryScenarioEdits(scenario, {
@@ -1559,6 +1598,10 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(i18n, /scenarioDefaultsReady: "Les réponses proposées sont déjà appliquées au scénario/);
   assert.match(app, /data-presence-character/);
   assert.match(app, /storyScenarioDirty/);
+  assert.match(app, /includeEdits: state\.storyScenarioDirty \|\| !state\.storyScenarioRetryAvailable/);
+  assert.match(app, /retry: state\.storyScenarioRetryAvailable && !state\.storyScenarioDirty/);
+  assert.match(app, /scenarioUpdateWithChanges/);
+  assert.match(app, /scenarioApiMessage\(\{ code: errorCode \}, "scenarioRevisionError"\)/);
   assert.match(app, /addedCharacters: \[\]/);
   assert.match(app, /scenarioCreatorCast/);
   assert.match(app, /scenarioSystemPresences/);
