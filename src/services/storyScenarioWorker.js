@@ -16,7 +16,10 @@ import {
   canonicalGateValidation,
   compileNarrativeV2Candidate,
 } from "./narrativeV2CandidateGate.js";
-import { storyScenarioAutomaticRepairFailureSummary } from "./storyScenarioAutoRepair.js";
+import {
+  storyScenarioAutomaticRepairFailureSummary,
+} from "./storyScenarioAutoRepair.js";
+import { buildStoryScenarioRepairDirectives } from "./storyScenarioRepairs.js";
 import { seriesScenarioContract } from "./seriesService.js";
 
 const WORKER_KIND = "story_scenario";
@@ -62,6 +65,17 @@ function createBackgroundExecution({ runs, run }) {
       };
       const updated = await runs.updateRun(run.id, { metadata });
       metadata = updated?.metadata || metadata;
+    },
+  };
+}
+
+function scopedBackgroundExecution(backgroundExecution, prefix) {
+  return {
+    getCheckpoint(stepKey) {
+      return backgroundExecution.getCheckpoint(`${prefix}:${stepKey}`);
+    },
+    saveCheckpoint(stepKey, checkpoint) {
+      return backgroundExecution.saveCheckpoint(`${prefix}:${stepKey}`, checkpoint);
     },
   };
 }
@@ -344,6 +358,20 @@ async function failScenario({
           reason: "rejected_candidate_final_checks",
         }
       : null;
+    const progressiveScenario = error?.progressiveScenario && error?.repairProgress?.improved
+      ? {
+          ...error.progressiveScenario,
+          fingerprint: generation.fingerprint,
+          status: "needs_revision",
+          revision: Number(latest.continuitySnapshot?.storyScenario?.revision || 0) + 1,
+          validation: {
+            ...summarizeStoryScenarioValidation(error.scenarioValidation),
+            valid: false,
+          },
+          createdAt: failedAt,
+          approvedAt: null,
+        }
+      : null;
     await projects.update(project.id, {
       status: generation.previousProjectStatus === "scenario_review"
         || generation.previousProjectStatus === "scenario_needs_clarification"
@@ -352,6 +380,7 @@ async function failScenario({
       generationJobId: run.id,
       continuitySnapshot: {
         ...latest.continuitySnapshot,
+        ...(progressiveScenario ? { storyScenario: progressiveScenario } : {}),
         storyScenarioGeneration: {
           ...generation,
           status: "failed",
@@ -521,7 +550,68 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       }
       throw error;
     }
-    const { scenario, validation, canonicalCandidateEvidence } = generated;
+    let { scenario, validation, canonicalCandidateEvidence } = generated;
+    let repairProgress = generated.repairProgress || null;
+    if (automaticRepair && !validation.valid && repairProgress?.improved) {
+      const nextSummary = summarizeStoryScenarioValidation(validation);
+      const nextAssessment = {
+        available: nextSummary.issueCount > 0,
+        validation,
+        directives: buildStoryScenarioRepairDirectives(scenario, validation),
+        publicSummary: nextSummary,
+      };
+      if (nextAssessment.available) {
+        await onStep({ phase: "automatic-convergence", attempt: 2 });
+        try {
+          const converged = await withOpenAICostContext({
+            projectId: run.projectId,
+            runId: run.id,
+            workflow: "scenario",
+            getStage: () => "scenario:automatic-convergence:attempt:2",
+            getAttemptKind: () => "quality_repair",
+          }, () => generate({
+            normalized,
+            previousScenario: scenario,
+            creatorClarifications: request.creatorClarifications || {},
+            sceneEdits: [],
+            addedCharacters: [],
+            feedback: "",
+            safetyContract: request.safetyContract || null,
+            sensitivityContract: storySensitivityContract(project.questionnaire?.story_sensitivity_profile),
+            seriesContract,
+            automaticRepair: true,
+            automaticRepairPlan: {
+              version: 2,
+              validation: nextAssessment.validation,
+              directives: nextAssessment.directives,
+              publicSummary: nextAssessment.publicSummary,
+            },
+            onStep,
+            backgroundExecution: scopedBackgroundExecution(backgroundExecution, "convergence-2"),
+            canonicalCandidateCheck: (candidate) => {
+              const result = compileNarrativeV2Candidate({ project, scenario: candidate });
+              return {
+                ...result,
+                validation: canonicalGateValidation(result),
+                repairDirectives: canonicalGateRepairDirectives(result),
+              };
+            },
+          }));
+          if (converged.validation.valid || converged.repairProgress?.improved) {
+            scenario = converged.scenario;
+            validation = converged.validation;
+            canonicalCandidateEvidence = converged.canonicalCandidateEvidence;
+            repairProgress = converged.repairProgress;
+          }
+        } catch (convergenceError) {
+          console.warn("[story-scenario] progressive convergence stopped", JSON.stringify({
+            runId: run.id,
+            projectId: project.id,
+            error: safeTechnicalError(convergenceError).code,
+          }));
+        }
+      }
+    }
     if (!validation.valid) {
       const error = new Error("The scenario candidate did not pass its final internal audit.");
       error.code = automaticRepair
@@ -529,6 +619,10 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         : "scenario_quality_gate_unresolved";
       if (automaticRepair) error.noTechnicalRetry = true;
       error.scenarioValidation = validation;
+      if (automaticRepair && repairProgress?.improved) {
+        error.progressiveScenario = scenario;
+        error.repairProgress = repairProgress;
+      }
       throw error;
     }
     return await completeScenario({

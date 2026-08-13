@@ -15,6 +15,7 @@ import {
   precompileStoryScenarioPassageLifecycles,
   validateStoryScenarioPassageLifecycles,
 } from "./storyScenarioRepairs.js";
+import { storyScenarioRepairProgress } from "./storyScenarioAutoRepair.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
 import { buildStoryCastParticipationContract } from "./storyCastParticipation.js";
 
@@ -553,5 +554,8 @@ export async function generateValidatedScenario({
     canonicalCandidateEvidence = gated.evidence;
   }
   await onStep({ phase: "finalizing", attempt: 0 });
-  return { scenario, validation, canonicalCandidateEvidence };
+  const repairProgress = automaticRepair && automaticRepairPlan?.validation
+    ? storyScenarioRepairProgress(automaticRepairPlan.validation, validation)
+    : null;
+  return { scenario, validation, canonicalCandidateEvidence, repairProgress };
 }

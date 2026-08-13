@@ -20,6 +20,7 @@ import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration
 import {
   storyScenarioAutomaticRepairAssessment,
   storyScenarioAutomaticRepairFailureSummary,
+  storyScenarioRepairProgress,
 } from "../src/services/storyScenarioAutoRepair.js";
 import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
 import { stabilizeSceneCharacterMovements } from "../src/services/characterMovementLedger.js";
@@ -196,6 +197,52 @@ test("failed semantic automatic repair keeps its precise local diagnostics", () 
       explanation: "La función narrativa parece repetirse.",
     }],
   });
+});
+
+test("progressive repair accepts only a strictly smaller or better-localized failure set", () => {
+  const previous = {
+    valid: false,
+    issues: [
+      "scene-10: incomplete: missing consequence",
+      "scene-15: incomplete: missing family connection",
+      "scene-21: physical presence mismatch",
+      "scene-21: travel origin mismatch",
+    ],
+  };
+  const improved = storyScenarioRepairProgress(previous, {
+    valid: false,
+    issues: [
+      "scene-10: incomplete: missing consequence",
+      "scene-15: incomplete: missing family connection",
+    ],
+  });
+  assert.equal(improved.improved, true);
+  assert.equal(improved.previousIssueCount, 4);
+  assert.equal(improved.issueCount, 2);
+  assert.deepEqual(improved.resolvedSceneNumbers, [21]);
+  assert.deepEqual(improved.introducedSceneNumbers, []);
+
+  const revealedOnUnchangedScenes = storyScenarioRepairProgress({
+    valid: false,
+    issues: ["scene-21: travel origin mismatch"],
+  }, {
+    valid: false,
+    issues: ["scene-10: incomplete", "scene-15: incomplete"],
+  });
+  assert.equal(revealedOnUnchangedScenes.improved, true);
+  assert.deepEqual(revealedOnUnchangedScenes.resolvedSceneNumbers, [21]);
+  assert.deepEqual(revealedOnUnchangedScenes.remainingPreviousSceneNumbers, []);
+
+  const regression = storyScenarioRepairProgress(improved.validation, {
+    valid: false,
+    issues: [
+      "scene-10: incomplete: missing consequence",
+      "scene-15: incomplete: missing family connection",
+      "scene-18: incomplete: new contradiction",
+    ],
+  });
+  assert.equal(regression.improved, false);
+  assert.deepEqual(regression.introducedSceneNumbers, [18]);
 });
 
 test("prepare, invite and share remain three distinct causal progression stages", () => {
