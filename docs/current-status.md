@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/retry-scenario-with-visible-edits`
-- Production/main checkpoint: validated-before-presentation scenario gate
+- Current branch: `main`
+- Production/main checkpoint: creator-edited scenario retry
 - Current focused checkpoint: creator edits override technical retry; location/action corrections rebuild hidden travel metadata; worker failures stay localized
-- Pull requests: #150 through #162 merged
+- Pull requests: #150 through #163 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #162 are merged on `main`. Verify Render health after PR #162 before treating the deployment as live. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #163 are merged on `main`. Verify Render health and the new localized client marker after PR #163 before treating the deployment as live. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -44,7 +44,7 @@ PR #55 through #162 are merged on `main`. Verify Render health after PR #162 bef
 5. The architect and auditor explicitly lock family-role equivalence, communication mechanisms and post-disembark location/presence state.
 6. One versioned recovery remains available to eligible legacy automatic-repair failures created before this publication gate.
 
-## Candidate brick: retry with visible scenario corrections
+## Current product brick: retry with visible scenario corrections
 
 1. A dirty failed scenario uses a fresh revision request instead of replaying the saved failed request.
 2. The button distinguishes an unchanged technical retry from applying visible corrections.
