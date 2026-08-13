@@ -6,6 +6,7 @@ import {
   runScenarioQualityDialogue,
   scopeAutomaticRepairCandidate,
 } from "../src/services/storyScenarioGeneration.js";
+import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
 
 const policy = {
   editorCalls: 1,
@@ -23,6 +24,24 @@ test("automatic repair targets are collected from every bounded plan coordinate"
     },
     directives: [{ affectedSceneNumbers: [15, 17] }],
   }), [8, 15, 17, 21]);
+});
+
+test("a global semantic issue inherits concrete scenes from its matching directive", () => {
+  const reconciled = reconcileStoryScenarioAudit({
+    issues: [{
+      code: "missing_family_resolution",
+      sceneNumber: 0,
+      explanation: "The required family connection has no visible resolution.",
+    }],
+    repairDirectives: [{
+      code: "missing_family_resolution",
+      affectedSceneNumbers: [15, 21],
+      entityIds: [],
+      instruction: "Connect the established family action to the resolution.",
+    }],
+  }, { scenes: [] });
+
+  assert.deepEqual(reconciled.issues[0].affectedSceneNumbers, [15, 21]);
 });
 
 test("automatic repair preserves every non-target scene and global creator choice", () => {

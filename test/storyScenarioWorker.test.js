@@ -87,6 +87,8 @@ function fakeProjects(initial) {
 function fakeRuns(metadata = {}) {
   const patches = [];
   let current = { id: "run-1", metadata: structuredClone(metadata) };
+  const steps = new Map();
+  const candidates = new Map();
   return {
     async getRun(id) {
       return id === current.id ? structuredClone(current) : null;
@@ -98,6 +100,27 @@ function fakeRuns(metadata = {}) {
       patches.push({ id, ...structuredClone(patch) });
       current = { ...current, ...structuredClone(patch) };
       return structuredClone(current);
+    },
+    async upsertStep(runId, input) {
+      const key = `${runId}:${input.stepKey}`;
+      if (steps.has(key)) return { step: structuredClone(steps.get(key)), created: false };
+      const step = { id: `step-${steps.size + 1}`, runId, ...structuredClone(input) };
+      steps.set(key, step);
+      return { step: structuredClone(step), created: true };
+    },
+    async getStep(runId, stepKey) {
+      return structuredClone(steps.get(`${runId}:${stepKey}`) || null);
+    },
+    async recordCandidate(input) {
+      const key = `${input.stepId}:${input.candidateNumber}`;
+      const candidate = { id: `candidate-${candidates.size + 1}`, ...structuredClone(input) };
+      candidates.set(key, candidate);
+      return { candidate: structuredClone(candidate), created: true };
+    },
+    async listCandidates(stepId) {
+      return [...candidates.values()]
+        .filter((candidate) => candidate.stepId === stepId)
+        .map((candidate) => structuredClone(candidate));
     },
     current() {
       return structuredClone(current);
@@ -222,6 +245,55 @@ test("an unvalidated first proposal stays quarantined and exposes one free retry
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
   assert.equal(JSON.stringify(failed).includes("Private rejected candidate"), false);
   assert.equal(runs.patches.at(-1).errorCode, "scenario_quality_gate_unresolved");
+});
+
+test("a final semantic rejection checkpoints the private candidate and its actionable scenes", async () => {
+  const projects = fakeProjects(projectFixture({ technicalAttempt: 2 }));
+  const runs = fakeRuns({ requestKind: "initial" });
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:finalizing",
+    metadata: { requestKind: "initial" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => ({
+      scenario: { title: "Private checkpoint", clarifications: [], scenes: [{ sceneNumber: 15 }] },
+      validation: {
+        valid: false,
+        issues: ["missing_family_resolution: The family connection needs a visible resolution."],
+        diagnostics: [{
+          code: "missing_family_resolution",
+          sceneNumber: 0,
+          affectedSceneNumbers: [15, 21],
+          explanation: "The family connection needs a visible resolution in scenes 15 and 21.",
+        }],
+        repairDirectives: [{
+          code: "missing_family_resolution",
+          affectedSceneNumbers: [15, 21],
+          instruction: "Connect the family action to the resolution.",
+        }],
+      },
+      repairDirectives: [{
+        code: "missing_family_resolution",
+        affectedSceneNumbers: [15, 21],
+        instruction: "Connect the family action to the resolution.",
+      }],
+    }),
+  });
+
+  const checkpoint = projects.current().continuitySnapshot.storyScenarioGeneration;
+  assert.equal(checkpoint.retryAvailable, true, "the audit checkpoint opens one targeted recovery even after attempt two");
+  assert.equal(checkpoint.semanticAuditCheckpoint.version, 1);
+  assert.deepEqual(checkpoint.rejectedCandidateFailure.sceneNumbers, [15, 21]);
+  assert.deepEqual(checkpoint.rejectedCandidateFailure.categories, ["cast"]);
+  assert.equal(JSON.stringify(projects.current()).includes("Private checkpoint"), false);
+  const step = await runs.getStep("run-1", "semantic-audit-checkpoint:v1");
+  const [candidate] = await runs.listCandidates(step.id);
+  assert.equal(candidate.metadata.scenario.title, "Private checkpoint");
 });
 
 test("an unvalidated revision preserves the previous reviewable scenario", async () => {

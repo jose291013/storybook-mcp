@@ -409,10 +409,21 @@ const GENERATION_STAGE_TEXT = {
 };
 
 const SCENARIO_PREPARATION_TEXT = {
-  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Vous pouvez quitter cette page et revenir depuis Mes créations Calitiki. Aucun crédit n'est utilisé pendant cette étape.", steps: ["L'architecte organise le début, le défi et la résolution", "Le rédacteur en chef vérifie les lieux, passages et personnages", "Calitiki prépare les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Votre crédit n'a pas été utilisé et vos réponses sont conservées.", timeout: "La préparation a pris plus de temps que prévu. Votre travail est conservé et vous pouvez relancer gratuitement.", exhausted: "La seconde tentative technique n'a pas abouti. Votre travail reste conservé et aucun crédit n'a été utilisé. Calitiki doit maintenant vérifier ce projet.", retry: "Réessayer gratuitement" },
-  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara en tres actos. Puedes salir de esta página y volver desde Mis creaciones Calitiki. No se utiliza ningún crédito durante esta etapa.", steps: ["El arquitecto organiza el inicio, el reto y la resolución", "El editor comprueba los lugares, pasos y personajes", "Calitiki prepara las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. Tu crédito no se ha utilizado y tus respuestas están guardadas.", timeout: "La preparación ha tardado más de lo previsto. Tu trabajo está guardado y puedes volver a intentarlo gratis.", exhausted: "El segundo intento técnico no se ha completado. Tu trabajo sigue guardado y no se ha utilizado ningún crédito. Calitiki debe revisar ahora este proyecto.", retry: "Reintentar gratis" },
-  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. You may leave this page and return from My Calitiki creations. No credit is used during this step.", steps: ["The architect organizes the beginning, challenge and resolution", "The editor checks locations, passages and characters", "Calitiki prepares the cards you can review and edit"], error: "The first proposal could not be prepared. Your credit was not used and your answers are saved.", timeout: "Preparation took longer than expected. Your work is saved and you can retry for free.", exhausted: "The second technical attempt did not complete. Your work is still saved and no credit was used. Calitiki must now review this project.", retry: "Retry for free" },
+  FR: { kicker: "CRÉATION DU SCÉNARIO", title: "Calitiki prépare votre première proposition", lead: "Nous transformons vos réponses en un déroulement clair en trois actes. Vous pouvez quitter cette page et revenir depuis Mes créations Calitiki. Aucun crédit n'est utilisé pendant cette étape.", steps: ["L'architecte organise le début, le défi et la résolution", "Le rédacteur en chef vérifie les lieux, passages et personnages", "Calitiki prépare les cartes que vous pourrez relire et modifier"], error: "La première proposition n'a pas pu être préparée. Votre crédit n'a pas été utilisé et vos réponses sont conservées.", timeout: "La préparation a pris plus de temps que prévu. Votre travail est conservé et vous pouvez relancer gratuitement.", exhausted: "La récupération technique n'a pas abouti. Votre travail reste conservé et aucun crédit n'a été utilisé. Calitiki doit maintenant vérifier ce projet.", retry: "Réessayer gratuitement" },
+  ES: { kicker: "CREACIÓN DEL GUION", title: "Calitiki prepara tu primera propuesta", lead: "Transformamos tus respuestas en una historia clara en tres actos. Puedes salir de esta página y volver desde Mis creaciones Calitiki. No se utiliza ningún crédito durante esta etapa.", steps: ["El arquitecto organiza el inicio, el reto y la resolución", "El editor comprueba los lugares, pasos y personajes", "Calitiki prepara las tarjetas que podrás revisar y modificar"], error: "No se pudo preparar la primera propuesta. Tu crédito no se ha utilizado y tus respuestas están guardadas.", timeout: "La preparación ha tardado más de lo previsto. Tu trabajo está guardado y puedes volver a intentarlo gratis.", exhausted: "La recuperación técnica no se ha completado. Tu trabajo sigue guardado y no se ha utilizado ningún crédito. Calitiki debe revisar ahora este proyecto.", retry: "Reintentar gratis" },
+  EN: { kicker: "CREATING THE STORY PLAN", title: "Calitiki is preparing your first proposal", lead: "We are turning your answers into a clear three-act story plan. You may leave this page and return from My Calitiki creations. No credit is used during this step.", steps: ["The architect organizes the beginning, challenge and resolution", "The editor checks locations, passages and characters", "Calitiki prepares the cards you can review and edit"], error: "The first proposal could not be prepared. Your credit was not used and your answers are saved.", timeout: "Preparation took longer than expected. Your work is saved and you can retry for free.", exhausted: "The technical recovery did not complete. Your work is still saved and no credit was used. Calitiki must now review this project.", retry: "Retry for free" },
 };
+
+function scenarioPreparationFailureText(copy, error = {}) {
+  const base = error?.retryExhausted
+    ? copy.exhausted
+    : error?.code === "scenario_timeout"
+      ? copy.timeout
+      : copy.error;
+  const diagnostics = error?.rejectedCandidateFailure?.diagnostics || [];
+  const explanation = diagnostics.find((diagnostic) => diagnostic?.explanation)?.explanation;
+  return explanation ? `${base} ${explanation}` : base;
+}
 
 const CREATION_JOURNEY_TEXT = {
   FR: {
@@ -1324,11 +1335,7 @@ async function requestStoryScenario({ includeEdits = false, retry = false } = {}
     if (queuedJobId) state.storyScenarioRetryAvailable = error?.retryAvailable === true;
     if (initialRequest) {
       const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
-      elements.scenarioPreparationFeedback.textContent = error?.retryExhausted
-        ? copy.exhausted
-        : error?.code === "scenario_timeout"
-          ? copy.timeout
-          : copy.error;
+      elements.scenarioPreparationFeedback.textContent = scenarioPreparationFailureText(copy, error);
       elements.scenarioPreparationFeedback.hidden = false;
       elements.retryInitialScenarioButton.hidden = !state.storyScenarioRetryAvailable;
       return;
@@ -3602,11 +3609,7 @@ async function restoreCompletedPreview() {
         );
       } else {
         const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
-        elements.scenarioPreparationFeedback.textContent = error?.retryExhausted
-          ? copy.exhausted
-          : error?.code === "scenario_timeout"
-            ? copy.timeout
-            : copy.error;
+        elements.scenarioPreparationFeedback.textContent = scenarioPreparationFailureText(copy, error);
         elements.scenarioPreparationFeedback.hidden = false;
         elements.retryInitialScenarioButton.hidden = !state.storyScenarioRetryAvailable;
       }
@@ -3634,11 +3637,11 @@ async function restoreCompletedPreview() {
       state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       showInitialScenarioPreparation();
       const copy = SCENARIO_PREPARATION_TEXT[state.locale] || SCENARIO_PREPARATION_TEXT.FR;
-      elements.scenarioPreparationFeedback.textContent = project?.technicalStoryScenarioRetryExhausted
-        ? copy.exhausted
-        : scenarioGeneration?.errorCode === "scenario_timeout"
-          ? copy.timeout
-          : copy.error;
+      elements.scenarioPreparationFeedback.textContent = scenarioPreparationFailureText(copy, {
+        retryExhausted: project?.technicalStoryScenarioRetryExhausted,
+        code: scenarioGeneration?.errorCode,
+        rejectedCandidateFailure: scenarioGeneration?.rejectedCandidateFailure,
+      });
       elements.scenarioPreparationFeedback.hidden = false;
       elements.retryInitialScenarioButton.hidden = !state.storyScenarioRetryAvailable;
     }

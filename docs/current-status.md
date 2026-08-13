@@ -8,7 +8,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/record-canonical-passage-gate-merge`
+- Current branch: `codex/semantic-audit-checkpoint`
 - Production/main checkpoint: independent canonical passage gate and deterministic endpoint synchronization
 - Current focused checkpoint: independent canonical passage gate and deterministic endpoint synchronization
 - Pull requests: #150 through #173 merged
@@ -18,6 +18,14 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 PR #55 through #173 are merged on `main`. PR #173 adds deterministic passage-coordinate synchronization, independent repair budgets and retry policy version 3. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Current focused brick: private semantic-audit checkpoint
+
+1. A final rejected scenario candidate is stored only in the private durable generation ledger.
+2. Global audit findings inherit their concrete affected scenes from matching repair directives.
+3. One free recovery starts from the checkpoint and changes only those scenes; a coordinate-free finding receives an audit-only recovery.
+4. The visible project and series canon never receive rejected candidate prose.
+5. Retry policy version 4 opens one migration recovery, and exhausted copy no longer claims every failure was attempt two.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -99,15 +107,15 @@ PR #55 through #173 are merged on `main`. PR #173 adds deterministic passage-coo
 
 ## Verification
 
-- Focused passage, compiler, budget and retry tests: 111/111 passing.
-- Complete `npm test`: 468/468 passing.
+- Focused semantic checkpoint, audit-coordinate and retry tests: 33/33 passing.
+- Complete `npm test`: 471/471 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. After deployment, confirm one exhausted initial scenario receives its version-3 saved-request recovery.
-2. Confirm the recovered run no longer reports `repairBlockedByBudget` for a passage whose physical movement has one endpoint pair.
-3. Keep `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=observe` until its separate controlled rollout is reviewed; this passage brick does not depend on enforcement.
+1. Confirm the blocked initial project receives its version-4 migration recovery.
+2. If its final audit rejects again, confirm the safe explanation and affected scenes are visible and one checkpoint recovery remains available.
+3. Confirm that recovery uses `semantic-checkpoint` or the bounded targeted repair route rather than rerunning the architect from scratch.
 
 ## Protected local state
 

@@ -33,8 +33,17 @@ function isProgressionDuplicate(code = "") {
 }
 
 export function reconcileStoryScenarioAudit(audit = {}, scenario = {}) {
-  const issues = Array.isArray(audit.issues) ? audit.issues : [];
   const directives = Array.isArray(audit.repairDirectives) ? audit.repairDirectives : [];
+  const issues = (Array.isArray(audit.issues) ? audit.issues : []).map((issue) => ({
+    ...issue,
+    ...(Number(issue?.sceneNumber) > 0 ? {} : {
+      affectedSceneNumbers: [...new Set(directives
+        .filter((directive) => directive?.code === issue?.code)
+        .flatMap((directive) => directive?.affectedSceneNumbers || [])
+        .map(Number)
+        .filter((number) => Number.isInteger(number) && number > 0))],
+    }),
+  }));
   const affectedNumbers = new Set();
   for (const issue of issues.filter((item) => isProgressionDuplicate(item?.code))) {
     if (Number(issue?.sceneNumber) > 0) affectedNumbers.add(Number(issue.sceneNumber));

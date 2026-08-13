@@ -186,7 +186,7 @@ export async function runScenarioQualityDialogue({
     }));
   }
 
-  return { scenario, validation, beforeEditorialResult };
+  return { scenario, validation, repairDirectives, beforeEditorialResult };
 }
 
 export async function runCanonicalCandidateGate({
@@ -293,6 +293,8 @@ export async function generateValidatedScenario({
   canonicalCandidateCheck = null,
   automaticRepair = false,
   automaticRepairPlan = null,
+  semanticAuditRecovery = false,
+  semanticAuditRecoveryPlan = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const creatorCast = scenarioCharacterRegistry(normalized);
@@ -329,11 +331,11 @@ export async function generateValidatedScenario({
     sensitivity_contract: sensitivityContract,
     ...(seriesContract ? { series_continuity_contract: seriesContract } : {}),
     previous_scenario: previousScenario || null,
-    ...(automaticRepair ? {
+    ...(automaticRepair || semanticAuditRecovery ? {
       automatic_repair: true,
-      validation_issues: automaticRepairPlan?.validation?.issues || [],
-      repair_directives: automaticRepairPlan?.directives || [],
-      repair_phase: "automatic",
+      validation_issues: (automaticRepairPlan || semanticAuditRecoveryPlan)?.validation?.issues || [],
+      repair_directives: (automaticRepairPlan || semanticAuditRecoveryPlan)?.directives || [],
+      repair_phase: semanticAuditRecovery ? "semantic_checkpoint" : "automatic",
       repair_contract: {
         preserve_unrelated_creator_choices: true,
         maximum_model_repair_calls: 1,
@@ -342,7 +344,7 @@ export async function generateValidatedScenario({
     } : {}),
   };
   const configuredPolicy = generationCostPolicy().scenario;
-  const policy = automaticRepair ? {
+  const policy = automaticRepair || semanticAuditRecovery ? {
     ...configuredPolicy,
     maximumRepairCalls: 0,
     maximumEditorialRepairCalls: 0,
@@ -372,11 +374,11 @@ export async function generateValidatedScenario({
           requireCausalGraph: true,
           castParticipationContract,
         });
-    if (automaticRepair && previousScenario) {
+    if ((automaticRepair || semanticAuditRecovery) && previousScenario) {
       normalizedCandidate = scopeAutomaticRepairCandidate(
         normalizedCandidate,
         previousScenario,
-        automaticRepairPlan,
+        automaticRepairPlan || semanticAuditRecoveryPlan,
       );
     }
     let normalizedResult = precompileStoryScenarioPassageLifecycles(applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
@@ -385,11 +387,11 @@ export async function generateValidatedScenario({
         { sceneEdits, addedCharacters },
       ),
     ), directives, { language: normalized.answers.language }), { language: normalized.answers.language });
-    if (automaticRepair && previousScenario) {
+    if ((automaticRepair || semanticAuditRecovery) && previousScenario) {
       normalizedResult = scopeAutomaticRepairCandidate(
         normalizedResult,
         previousScenario,
-        automaticRepairPlan,
+        automaticRepairPlan || semanticAuditRecoveryPlan,
       );
     }
     return normalizedResult;
@@ -405,27 +407,35 @@ export async function generateValidatedScenario({
     };
   };
 
-  const generationRoute = scenarioGenerationRoute(previousScenario, automaticRepair);
+  const generationRoute = scenarioGenerationRoute(previousScenario, automaticRepair || semanticAuditRecovery);
   const architectModelRole = generationRoute.phase !== "architect"
     ? (modelRoles.repair || generationRoute.modelRole)
     : (modelRoles.architect || generationRoute.modelRole);
   const repairModelRole = modelRoles.repair || "story_repair";
   const editorModelRole = modelRoles.editor || "story_editor";
   const jsonRepairModelRole = modelRoles.jsonRepair || repairModelRole;
-  await onStep({ phase: generationRoute.phase, attempt: 1 });
-  const candidate = await storyScenarioAgent(
-    {
-      ...input,
-      structural_repair_attempt: 1,
-    },
-    {
-      backgroundExecution,
-      backgroundStep: `${generationRoute.phase}:1`,
-      modelRole: architectModelRole,
-      jsonRepairModelRole,
-    },
-  );
-  scenario = normalizeCandidate(candidate);
+  const semanticRecoveryTargets = automaticRepairTargetSceneNumbers(semanticAuditRecoveryPlan || {});
+  const auditOnlyRecovery = semanticAuditRecovery
+    && previousScenario
+    && semanticRecoveryTargets.length === 0;
+  await onStep({ phase: auditOnlyRecovery ? "semantic-checkpoint" : generationRoute.phase, attempt: 1 });
+  if (auditOnlyRecovery) {
+    scenario = normalizeCandidate(previousScenario);
+  } else {
+    const candidate = await storyScenarioAgent(
+      {
+        ...input,
+        structural_repair_attempt: 1,
+      },
+      {
+        backgroundExecution,
+        backgroundStep: `${generationRoute.phase}:1`,
+        modelRole: architectModelRole,
+        jsonRepairModelRole,
+      },
+    );
+    scenario = normalizeCandidate(candidate);
+  }
   await onStep({ phase: "validation", attempt: 1 });
   validation = validateCandidate(scenario);
 
@@ -480,13 +490,26 @@ export async function generateValidatedScenario({
         jsonRepairModelRole,
       },
     );
+    const unactionableIssues = audit.issues.filter((issue) => (
+      Number(issue.sceneNumber || 0) < 1
+      && !(issue.affectedSceneNumbers || []).some((number) => Number(number) > 0)
+    ));
     const auditedValidation = {
       valid: audit.status === "approved",
       issues: audit.issues.map((issue) => (
         `${issue.sceneNumber ? `scene-${issue.sceneNumber}: ` : ""}${issue.code}: ${issue.explanation}`
       )),
       diagnostics: audit.issues,
+      repairDirectives: audit.repairDirectives,
     };
+    if (unactionableIssues.length) {
+      const error = new Error("The final semantic audit returned a blocking finding without an actionable scene coordinate.");
+      error.code = "scenario_quality_gate_unresolved";
+      error.privateScenarioCandidate = structuredClone(currentScenario);
+      error.scenarioValidation = auditedValidation;
+      error.semanticRepairDirectives = audit.repairDirectives;
+      throw error;
+    }
     const auditedScenario = structuredClone(currentScenario);
     if (auditedValidation.valid) {
       return {
@@ -536,6 +559,7 @@ export async function generateValidatedScenario({
   });
   scenario = qualityResult.scenario;
   validation = qualityResult.validation;
+  const finalRepairDirectives = qualityResult.repairDirectives || validation.repairDirectives || [];
   if (validation.valid && typeof canonicalCandidateCheck === "function") {
     // The editor is read-only when it approves a candidate, but an editorial
     // repair may have changed causal mechanics. Recompile once without another
@@ -564,5 +588,11 @@ export async function generateValidatedScenario({
   const repairProgress = automaticRepair && automaticRepairPlan?.validation
     ? storyScenarioRepairProgress(automaticRepairPlan.validation, validation)
     : null;
-  return { scenario, validation, canonicalCandidateEvidence, repairProgress };
+  return {
+    scenario,
+    validation,
+    canonicalCandidateEvidence,
+    repairProgress,
+    repairDirectives: finalRepairDirectives,
+  };
 }
