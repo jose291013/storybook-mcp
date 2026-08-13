@@ -1561,6 +1561,43 @@ test("a travel action keeps the original departure when the visible destination 
   assert.equal(edited.scenes[2].locationAfter, "la terrasse de Nolan");
 });
 
+test("every end-phase character receives the missing final leg after an intermediate movement", () => {
+  const scenario = coherentPortalScenario();
+  const returnScene = scenario.scenes[2];
+  returnScene.locationAfter = "la terrasse de Nolan";
+  returnScene.characterPresences = [
+    { name: "Nolan", mode: "physical", phase: "end", location: "la terrasse de Nolan" },
+    { name: "Mathéo", mode: "physical", phase: "end", location: "la terrasse de Nolan" },
+  ];
+  returnScene.characterMovements = [{
+    id: "movement-1",
+    kind: "return_travel",
+    from: "la vallée des dinosaures",
+    to: "la clairière",
+    characters: ["Nolan", "Mathéo"],
+    mechanism: "le portail bleu",
+    mechanismId: "portail_bleu",
+  }];
+  returnScene.transition = { ...returnScene.characterMovements[0] };
+
+  const stabilized = stabilizeStoryScenario(scenario);
+  assert.deepEqual(stabilized.scenes[2].characterMovements.map(({ kind, from, to, characters }) => ({ kind, from, to, characters })), [
+    {
+      kind: "return_travel",
+      from: "la vallée des dinosaures",
+      to: "la clairière",
+      characters: ["Nolan", "Mathéo"],
+    },
+    {
+      kind: "ordinary_travel",
+      from: "la clairière",
+      to: "la terrasse de Nolan",
+      characters: ["Nolan", "Mathéo"],
+    },
+  ]);
+  assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
 test("a newly added physical character receives a causal starting location and travels", () => {
   const scenario = coherentPortalScenario();
   const edited = applyCreatorStoryScenarioEdits(scenario, {

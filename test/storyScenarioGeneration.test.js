@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  automaticRepairTargetSceneNumbers,
   runCanonicalCandidateGate,
   runScenarioQualityDialogue,
+  scopeAutomaticRepairCandidate,
 } from "../src/services/storyScenarioGeneration.js";
 
 const policy = {
@@ -11,6 +13,64 @@ const policy = {
   editorialRepairCalls: 1,
   finalAuditCalls: 1,
 };
+
+test("automatic repair targets are collected from every bounded plan coordinate", () => {
+  assert.deepEqual(automaticRepairTargetSceneNumbers({
+    publicSummary: { sceneNumbers: [15] },
+    validation: {
+      issues: ["scene-21: physical presence mismatch"],
+      diagnostics: [{ sceneNumber: 8 }],
+    },
+    directives: [{ affectedSceneNumbers: [15, 17] }],
+  }), [8, 15, 17, 21]);
+});
+
+test("automatic repair preserves every non-target scene and global creator choice", () => {
+  const previous = {
+    title: "Approved title",
+    summary: "Approved summary",
+    characters: [{ name: "Noa" }],
+    worldContract: { id: "space" },
+    objects: [{ objectId: "map", events: [] }],
+    scenes: [
+      { sceneNumber: 8, action: "Scene eight stays exact", locationAfter: "station" },
+      { sceneNumber: 15, action: "Scene fifteen needs repair", locationAfter: "dome" },
+      { sceneNumber: 21, action: "Scene twenty-one stays exact", locationAfter: "roof" },
+    ],
+  };
+  const candidate = {
+    title: "Model changed title",
+    summary: "Model changed summary",
+    characters: [{ name: "Different" }],
+    worldContract: { id: "changed" },
+    objects: [{ objectId: "map", events: [{ sceneNumber: 15 }] }],
+    scenes: [
+      { sceneNumber: 8, action: "Unwanted scene eight rewrite", locationAfter: "wrong" },
+      { sceneNumber: 15, action: "Repaired scene fifteen", locationAfter: "dome" },
+      { sceneNumber: 21, action: "Unwanted scene twenty-one rewrite", locationAfter: "wrong" },
+    ],
+  };
+  const scoped = scopeAutomaticRepairCandidate(candidate, previous, {
+    publicSummary: { sceneNumbers: [15] },
+  });
+
+  assert.equal(scoped.title, previous.title);
+  assert.equal(scoped.summary, previous.summary);
+  assert.deepEqual(scoped.characters, previous.characters);
+  assert.deepEqual(scoped.worldContract, previous.worldContract);
+  assert.equal(scoped.scenes[0].action, previous.scenes[0].action);
+  assert.equal(scoped.scenes[1].action, "Repaired scene fifteen");
+  assert.equal(scoped.scenes[2].action, previous.scenes[2].action);
+  assert.deepEqual(scoped.objects, candidate.objects, "targeted causal registries remain repairable");
+});
+
+test("automatic repair without a scene coordinate cannot rewrite the proposal", () => {
+  const previous = { title: "Previous", scenes: [{ sceneNumber: 1, action: "Keep me" }] };
+  const candidate = { title: "Replacement", scenes: [{ sceneNumber: 1, action: "Rewrite me" }] };
+  assert.deepEqual(scopeAutomaticRepairCandidate(candidate, previous, {
+    validation: { issues: ["global incomplete finding"] },
+  }), previous);
+});
 
 test("a structural repair never consumes the independent editorial repair", async () => {
   const calls = [];
