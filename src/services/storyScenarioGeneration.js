@@ -27,6 +27,57 @@ export function scenarioGenerationRoute(previousScenario = null, automaticRepair
     : { phase: "architect", modelRole: "story_architect" };
 }
 
+export function automaticRepairTargetSceneNumbers(plan = {}) {
+  const sceneNumbers = new Set();
+  const add = (value) => {
+    const number = Number(value);
+    if (Number.isInteger(number) && number > 0) sceneNumbers.add(number);
+  };
+  for (const number of plan?.publicSummary?.sceneNumbers || []) add(number);
+  for (const diagnostic of plan?.validation?.diagnostics || []) add(diagnostic?.sceneNumber);
+  for (const directive of plan?.directives || []) {
+    for (const number of directive?.affectedSceneNumbers || []) add(number);
+  }
+  for (const issue of plan?.validation?.issues || []) {
+    const match = String(issue || "").match(/scene[- ](\d+)/i);
+    if (match) add(match[1]);
+  }
+  return [...sceneNumbers].sort((left, right) => left - right);
+}
+
+export function scopeAutomaticRepairCandidate(candidate = {}, previousScenario = {}, plan = {}) {
+  const targetNumbers = new Set(automaticRepairTargetSceneNumbers(plan));
+  if (!targetNumbers.size) return structuredClone(previousScenario);
+  const candidateScenes = new Map((candidate?.scenes || []).map((scene) => [Number(scene?.sceneNumber), scene]));
+  const previousScenes = previousScenario?.scenes || [];
+  const scoped = structuredClone(candidate);
+  scoped.scenes = previousScenes.map((previousScene) => {
+    const number = Number(previousScene?.sceneNumber);
+    return structuredClone(
+      targetNumbers.has(number) && candidateScenes.has(number)
+        ? candidateScenes.get(number)
+        : previousScene,
+    );
+  });
+  // These creator-approved/global choices are never repair targets. Object
+  // and causal registries remain eligible because a targeted object-state
+  // repair may need to update their canonical event metadata.
+  for (const field of [
+    "title",
+    "summary",
+    "clarifications",
+    "creatorClarifications",
+    "narrativeContract",
+    "worldContract",
+    "castParticipationContract",
+    "characters",
+    "wardrobePlan",
+  ]) {
+    if (Object.hasOwn(previousScenario || {}, field)) scoped[field] = structuredClone(previousScenario[field]);
+  }
+  return scoped;
+}
+
 function consumeRepairBudget(repairBudget) {
   if (!repairBudget) return true;
   if (!Number.isFinite(repairBudget.remaining)) return true;
@@ -304,10 +355,8 @@ export async function generateValidatedScenario({
   };
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
-  const normalizeCandidate = (candidate, directives = []) => (
-    precompileStoryScenarioPassageLifecycles(applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
-      applyCreatorStoryScenarioEdits(
-        normalizeStoryScenario(candidate, {
+  const normalizeCandidate = (candidate, directives = []) => {
+    let normalizedCandidate = normalizeStoryScenario(candidate, {
           pagePlan,
           canonicalCharacters,
           creatorClarifications,
@@ -315,11 +364,29 @@ export async function generateValidatedScenario({
           language: normalized.answers.language,
           requireCausalGraph: true,
           castParticipationContract,
-        }),
+        });
+    if (automaticRepair && previousScenario) {
+      normalizedCandidate = scopeAutomaticRepairCandidate(
+        normalizedCandidate,
+        previousScenario,
+        automaticRepairPlan,
+      );
+    }
+    let normalizedResult = precompileStoryScenarioPassageLifecycles(applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
+      applyCreatorStoryScenarioEdits(
+        normalizedCandidate,
         { sceneEdits, addedCharacters },
       ),
-    ), directives, { language: normalized.answers.language }), { language: normalized.answers.language })
-  );
+    ), directives, { language: normalized.answers.language }), { language: normalized.answers.language });
+    if (automaticRepair && previousScenario) {
+      normalizedResult = scopeAutomaticRepairCandidate(
+        normalizedResult,
+        previousScenario,
+        automaticRepairPlan,
+      );
+    }
+    return normalizedResult;
+  };
   const validateCandidate = (candidate) => {
     const base = validateStoryScenario(candidate);
     const passage = validateStoryScenarioPassageLifecycles(candidate);

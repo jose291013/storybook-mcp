@@ -113,13 +113,18 @@ function appendInferredArrivals({
   const explicitlyMoved = new Set(movements
     .filter((movement) => movement.kind !== "discover_passage")
     .flatMap((movement) => movement.characters));
+  // Project the explicit ledger in order before deciding who still needs an
+  // arrival. Merely participating in an earlier movement does not prove that
+  // a character reached the scene's final location.
+  const projectedLocations = new Map(characterLocations);
+  applyMovementsToLocations(movements, projectedLocations);
   const byOrigin = new Map();
   for (const name of physicalNames) {
-    if (explicitlyMoved.has(name)) continue;
-    const origin = text(characterLocations.get(name));
+    const origin = text(projectedLocations.get(name));
     if (!origin || key(origin) === key(scene.locationAfter)) continue;
-    const originKey = key(origin);
-    const group = byOrigin.get(originKey) || { origin, characters: [] };
+    const continuing = explicitlyMoved.has(name);
+    const originKey = `${key(origin)}::${continuing ? "continuing" : "incoming"}`;
+    const group = byOrigin.get(originKey) || { origin, characters: [], continuing };
     group.characters.push(name);
     byOrigin.set(originKey, group);
   }
@@ -129,7 +134,9 @@ function appendInferredArrivals({
     const transition = scene.transition || {};
     movements.push({
       id: `movement-${movements.length + 1}`,
-      kind: isFocalTravel && MOVEMENT_KINDS.has(transition.kind)
+      kind: group.continuing
+        ? "ordinary_travel"
+        : isFocalTravel && MOVEMENT_KINDS.has(transition.kind)
         ? transition.kind
         : isFocalTravel ? "ordinary_travel" : "join_travel",
       from: group.origin,

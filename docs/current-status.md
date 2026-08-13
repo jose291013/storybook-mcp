@@ -10,14 +10,14 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
 - Production/main checkpoint: creator-edited scenario retry
-- Current focused checkpoint: ordered multi-step revision travel; rejected replacement diagnostics remain separate from the preserved scenario
-- Pull requests: #150 through #163 merged
+- Current focused checkpoint: per-character final arrivals and immutable automatic-repair scene scope
+- Pull requests: #150 through #164 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #163 are merged on `main`. Verify Render health and the new localized client marker after PR #163 before treating the deployment as live. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #164 are merged on `main`. PR #164 and its rejected-candidate marker were verified live on Render. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -60,17 +60,25 @@ PR #55 through #163 are merged on `main`. Verify Render health and the new local
 4. A rejected replacement stores no candidate prose and leaves the previous reviewable scenario untouched.
 5. Its bounded scene/category diagnostic is shown separately so the creator knows the correction was received and why the replacement stayed private.
 
+## Candidate product brick: per-character arrivals and targeted repair isolation
+
+1. Explicit movements are projected in sequence for each physical character.
+2. Every end-phase character still at an intermediate location receives exactly one final leg to the visible scene destination.
+3. An earlier passage crossing no longer hides a missing later disembark or local arrival.
+4. Automatic repair derives one immutable target-scene set from its bounded failure plan.
+5. Non-target scenes and global creator choices are restored after every normalization pass, so a targeted repair cannot introduce unrelated scene regressions.
+
 ## Verification
 
-- Focused scenario, retry, publication-gate and worker tests: 81/81 passing.
-- Complete `npm test`: 447/447 passing.
+- Focused scenario, retry, publication-gate and worker tests: 85/85 passing.
+- Complete `npm test`: 451/451 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Retry the preserved scene-21 revision after deployment and confirm the return-passage movement and rooftop disembark movement both survive finalization.
-2. If a replacement still fails, confirm the new rejected-candidate notice shows the latest bounded scene/reason while the older scenario stays visible.
-3. Trigger the unchanged free retry and confirm it reuses the exact saved correction request.
+1. Retry scene 21 after deployment and confirm Noa, Kovu, Antonio and Eva all finish at the rooftop destination after the passage and disembark steps.
+2. Run one targeted automatic repair and confirm no non-target scene such as scene 8 changes or receives a new diagnostic.
+3. Confirm any remaining rejected-candidate summary names only genuine unresolved targets while the previous proposal remains intact.
 
 ## Protected local state
 

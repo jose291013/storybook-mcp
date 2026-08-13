@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Per-character arrival and repair-scope checkpoint
+
+Ordered scenario movements are now simulated per physical character before the final scene presence is validated. Participating in an early crossing no longer implies that the same traveler completed a later disembark or local arrival. After applying every explicit movement in order, Calitiki adds one deterministic final leg only for each end-phase physical character whose projected location still differs from the creator's visible destination. Existing travelers use ordinary continuation travel from their actual intermediate location; genuinely incoming characters retain join-travel semantics.
+
+Automatic scenario repair is a targeted patch, not permission to rewrite the whole proposal. Its immutable target set is derived from the bounded plan's scene numbers, diagnostics, issues and repair directives. After every model and deterministic normalization stage, all non-target scenes and global creator choices are restored byte-for-structure from the previous proposal. Targeted causal registries may still change when required to repair an object or passage event, and the complete scenario remains subject to fresh validation. This prevents a repair aimed at scenes 15, 17 or 21 from introducing a new defect into scene 8.
+
 ## Ordered multi-step scenario revision checkpoint
 
 A creator-edited scene may contain several physical movements in one causal beat, such as crossing the established return passage, arriving in a vehicle and then disembarking at the final visible location. The visible location remains the authoritative end of the scene, but it no longer collapses a valid ordered movement ledger into one synthetic trip. The deterministic normalizer preserves a repaired movement chain when it reaches that destination, keeps the original departure when the edited action explicitly declares travel, and only discards a ledger whose coordinates remain stale.
