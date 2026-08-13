@@ -12,6 +12,7 @@ import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, hasCur
 import {
   applyStoryScenarioRepairDirectives,
   buildStoryScenarioRepairDirectives,
+  normalizeStoryScenarioPassageEndpoints,
   precompileStoryScenarioPassageLifecycles,
   validateStoryScenarioPassageLifecycles,
 } from "../src/services/storyScenarioRepairs.js";
@@ -341,6 +342,34 @@ test("a discovery after the first crossing cannot satisfy the passage lifecycle"
     issues: [],
     diagnostics: [],
   });
+});
+
+test("passage endpoint preflight separates a reused id but preserves the reverse return", () => {
+  const event = (sceneNumber, kind, from, to) => ({
+    sceneNumber,
+    locationBefore: from,
+    locationAfter: to,
+    transition: {
+      kind,
+      mechanism: "la porte de marée",
+      mechanismId: "porte_de_maree",
+      from,
+      to,
+      characters: ["Bastien"],
+    },
+    characterMovements: [],
+  });
+  const scenario = { scenes: [
+    event(1, "cross_passage", "la maison", "le récif"),
+    event(2, "return_travel", "le récif", "la maison"),
+    event(3, "cross_passage", "la plage", "le phare"),
+  ] };
+
+  const repaired = normalizeStoryScenarioPassageEndpoints(scenario);
+  assert.equal(repaired.scenes[0].transition.mechanismId, "porte_de_maree");
+  assert.equal(repaired.scenes[1].transition.mechanismId, "porte_de_maree");
+  assert.match(repaired.scenes[2].transition.mechanismId, /^porte_de_maree__/);
+  assert.equal(scenario.scenes[2].transition.mechanismId, "porte_de_maree", "the source remains immutable");
 });
 
 test("the narrative contract requires distinct progression, emotions and declared symbols", () => {
@@ -1506,8 +1535,13 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /if \(error\?\.technical\) \{\s*await showGenerationFailure\(\)/);
   assert.match(scenarioRoute, /MAX_TECHNICAL_ATTEMPTS = 2/);
   assert.match(scenarioRoute, /activeScenarioEnqueues/);
+  assert.match(scenarioRoute, /canonicalPassageRecovery/);
+  assert.match(scenarioRoute, /canonicalPassageRecoveryVersion/);
+  assert.match(app, /automaticRepairRecoveryAvailable/);
+  assert.match(scenarioGeneration, /series_continuity_contract/);
+  assert.match(scenarioWorker, /seriesScenarioContract/);
   assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
-  assert.match(bridge, /Version: 0\.7\.6/);
+  assert.match(bridge, /Version: 0\.7\.7/);
   assert.match(bridge, /scenario_generating/);
   assert.match(bridge, /Scénario à valider/);
 });

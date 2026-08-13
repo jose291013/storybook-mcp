@@ -4,13 +4,14 @@ import fs from "node:fs/promises";
 import { UI_TEXT } from "../public/i18n.js";
 
 test("email project resume is explicit, account-bound and independent from browser draft state", async () => {
-  const [html, css, app, authRoute, identity, notification] = await Promise.all([
+  const [html, css, app, authRoute, identity, notification, bridge] = await Promise.all([
     fs.readFile("public/index.html", "utf8"),
     fs.readFile("public/styles.css", "utf8"),
     fs.readFile("public/app.js", "utf8"),
     fs.readFile("src/routes/woocommerceAuth.js", "utf8"),
     fs.readFile("src/services/draftIdentity.js", "utf8"),
     fs.readFile("src/services/previewNotification.js", "utf8"),
+    fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8"),
   ]);
 
   assert.match(notification, /\?resumeProject=\$\{encodeURIComponent\(project\.id\)\}#project-resume/);
@@ -26,6 +27,8 @@ test("email project resume is explicit, account-bound and independent from brows
   assert.match(app, /window\.location\.assign\(`\/api\/auth\/woocommerce\/project\?projectId=/);
   assert.match(app, /if \(state\.resumeProjectId\) await resumeProjectFromEntry\(\)/);
   assert.doesNotMatch(app, /resumeProjectFromEntry[\s\S]{0,700}readLocalDraft/);
+  assert.match(bridge, /private static function creator_bridge_url[\s\S]*'destination' => 'project_resume'/);
+  assert.doesNotMatch(bridge, /private static function creator_bridge_url[\s\S]{0,800}'destination' => 'creator'/);
 
   for (const locale of ["FR", "ES", "EN"]) {
     for (const key of [

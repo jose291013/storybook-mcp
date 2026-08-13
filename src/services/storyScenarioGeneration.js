@@ -216,6 +216,7 @@ export async function generateValidatedScenario({
   feedback,
   safetyContract,
   sensitivityContract,
+  seriesContract = null,
   onStep = async () => {},
   backgroundExecution = null,
   modelRoles = {},
@@ -256,6 +257,7 @@ export async function generateValidatedScenario({
     creator_feedback: String(feedback || "").slice(0, 2000),
     child_safety_contract: safetyContract,
     sensitivity_contract: sensitivityContract,
+    ...(seriesContract ? { series_continuity_contract: seriesContract } : {}),
     previous_scenario: previousScenario || null,
     ...(automaticRepair ? {
       automatic_repair: true,

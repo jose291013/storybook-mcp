@@ -867,12 +867,21 @@ function automaticRepairFailureFromProject(project) {
   if (generation?.status !== "failed"
     || generation?.request?.automaticRepair !== true
     || generation?.errorCode !== "scenario_auto_repair_unresolved") return null;
-  return generation.automaticRepairFailure || {
+  const failure = generation.automaticRepairFailure || {
     version: 1,
     reason: "final_checks_failed",
     categories: ["incomplete"],
     sceneNumbers: [],
   };
+  return {
+    ...failure,
+    recoveryAvailable: failure.categories?.includes("passage")
+      && Number(generation?.request?.canonicalPassageRecoveryVersion || 0) < 1,
+  };
+}
+
+function automaticRepairRecoveryAvailable() {
+  return state.storyScenarioAutomaticRepairFailure?.recoveryAvailable === true;
 }
 
 function renderAutomaticRepairFailure() {
@@ -1117,7 +1126,7 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   elements.scenarioDiagnostics.hidden = !needsRevision;
   elements.automaticRepairScenarioButton.hidden = !needsRevision
     || clarifications.length > 0
-    || Boolean(state.storyScenarioAutomaticRepairFailure);
+    || (Boolean(state.storyScenarioAutomaticRepairFailure) && !automaticRepairRecoveryAvailable());
   renderAutomaticRepairFailure();
   const diagnosticKeys = new Set(["passage", "object", "travel", "order", "cast", "incomplete", "progression", "emotion", "privacy", "symbol", "repetition", "age"]);
   elements.scenarioDiagnosticList.innerHTML = needsRevision ? (validation.categories || ["incomplete"]).map((category) => {
