@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/canonical-candidate-checkpoint`
-- Production/main checkpoint: private semantic-audit checkpoint
+- Current branch: `main`
+- Production/main checkpoint: private canonical-candidate checkpoint (`09c6f97`)
 - Current focused checkpoint: private canonical-candidate checkpoint
-- Pull requests: #150 through #175 merged
+- Pull requests: #150 through #176 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #175 are merged on `main`. PR #175 adds the private semantic-audit checkpoint and retry policy version 4. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #176 are merged on `main`. PR #176 adds the private canonical-candidate checkpoint and retry policy version 5. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Current focused brick: private canonical-candidate checkpoint
 
