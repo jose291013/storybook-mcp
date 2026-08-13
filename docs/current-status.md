@@ -9,15 +9,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: canonical per-character movement origins before final arrival
+- Production/main checkpoint: progressive bounded automatic-repair convergence
 - Current focused checkpoint: progressive bounded automatic-repair convergence
-- Pull requests: #150 through #167 merged
+- Pull requests: #150 through #169 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #167 are merged on `main`. PR #167 is merged and the public Render health endpoint returned `200 {"ok":true}` after the merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #169 are merged on `main`. PR #169 is merged and the public Render health endpoint returned `200 {"ok":true}` after the merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -75,7 +75,7 @@ PR #55 through #167 are merged on `main`. PR #167 is merged and the public Rende
 3. A redundant movement is removed when a traveler is already at its destination.
 4. The final-arrival normalizer then completes the remaining local leg without changing the creator-visible scene.
 
-## Candidate product brick: progressive repair convergence
+## Current product brick: progressive repair convergence
 
 1. Each automatic-repair result is compared with the prior bounded validation set.
 2. Only a strictly improved candidate becomes the next private checkpoint.
