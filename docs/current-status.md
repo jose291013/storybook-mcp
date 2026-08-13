@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/quarantine-unvalidated-scenarios`
-- Production/main checkpoint: explainable scenario findings and bounded metadata recovery
-- Current focused checkpoint: validated-before-presentation scenario gate; independent mechanical and semantic repair budgets; rejected proposals stay private
-- Pull requests: #150 through #161 merged
+- Current branch: `main`
+- Production/main checkpoint: validated-before-presentation scenario gate
+- Current focused checkpoint: independent mechanical and semantic repair budgets; rejected proposals stay private; eligible legacy failures receive one clean recovery
+- Pull requests: #150 through #162 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #161 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through #162 are merged on `main`. Verify Render health after PR #162 before treating the deployment as live. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -35,7 +35,7 @@ PR #55 through #161 are merged on `main`. Render health returned HTTP 200 with `
 3. Each red scene card displays its own creator-safe reason.
 4. Passage, progression, repetition, emotion, cast, travel and incomplete failures from the former policy receive one new versioned recovery; physical object and order ambiguity remain closed.
 
-## Candidate brick: validated before presentation
+## Current product brick: validated before presentation
 
 1. Mechanical/canonical correction and post-editor semantic correction each have one independent bounded budget.
 2. A canonical repair whose mandatory audit finds a semantic defect now flows into the targeted semantic repair and a fresh final audit.
@@ -46,8 +46,8 @@ PR #55 through #161 are merged on `main`. Render health returned HTTP 200 with `
 
 ## Verification
 
-- Focused scenario, automatic-repair and worker tests: 64/64 passing before final additions.
-- Complete `npm test`: 442/442 passing.
+- Focused publication-gate, automatic-repair and worker tests: 27/27 passing.
+- Complete `npm test`: 444/444 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
