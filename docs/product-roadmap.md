@@ -2,6 +2,14 @@
 
 Last updated: 2026-08-13
 
+## Ordered multi-step scenario revision checkpoint
+
+A creator-edited scene may contain several physical movements in one causal beat, such as crossing the established return passage, arriving in a vehicle and then disembarking at the final visible location. The visible location remains the authoritative end of the scene, but it no longer collapses a valid ordered movement ledger into one synthetic trip. The deterministic normalizer preserves a repaired movement chain when it reaches that destination, keeps the original departure when the edited action explicitly declares travel, and only discards a ledger whose coordinates remain stale.
+
+The focal transition may represent one explicit movement inside that ordered chain while `locationBefore` and `locationAfter` describe the complete scene envelope. Validation still requires that the transition match an actual canonical movement and that every physical presence end at its declared location; this permits multi-step return and disembark scenes without weakening teleportation or passage checks.
+
+When a revised candidate fails the final private audit, the previously reviewable scenario still remains authoritative and no rejected candidate prose is stored. A separate bounded failure summary records only creator-safe category, scene number and explanation. The interface confirms that the correction was received, distinguishes the rejected replacement from the older visible diagnostics and explains that the exact saved request can be retried without credit use. Worker logs include only bounded category and scene coordinates, never candidate prose or customer text.
+
 ## Explainable scenario findings and bounded metadata recovery checkpoint
 
 The semantic scenario audit distinguishes an ordered causal chain such as **prepare or create -> invite or offer -> share or celebrate** from a true repeated event. A deterministic reconciliation removes only this narrow false-positive family when every cited scene advances through a distinct ordered stage; an actually repeated action, flat emotional beat or unchanged outcome remains blocking. The auditor prompt carries the same rule so new audits and deterministic reconciliation agree.

@@ -135,6 +135,7 @@ const state = {
   storyScenarioRetryAvailable: false,
   storyScenarioRevalidationAttempted: false,
   storyScenarioAutomaticRepairFailure: null,
+  storyScenarioRejectedCandidateFailure: null,
   generationStage: "cover",
   referenceRecoveryMode: false,
   referenceRecoveryAvailable: false,
@@ -187,7 +188,7 @@ const elements = {
   creditPanel: document.querySelector("#creditPanel"), previewCreditPrice: document.querySelector("#previewCreditPrice"), creditBalance: document.querySelector("#creditBalance"), creditMissing: document.querySelector("#creditMissing"), promoCodeInput: document.querySelector("#promoCodeInput"), redeemPromoButton: document.querySelector("#redeemPromoButton"), buyCreditsLink: document.querySelector("#buyCreditsLink"), creditFeedback: document.querySelector("#creditFeedback"), confirmPreviewButton: document.querySelector("#confirmPreviewButton"), previewActionCenter: document.querySelector("#previewActionCenter"), previewRebateText: document.querySelector("#previewRebateText"), actionRecoverReferences: document.querySelector("#actionRecoverReferences"), actionReadInteractive: document.querySelector("#actionReadInteractive"), actionBuyCredits: document.querySelector("#actionBuyCredits"), actionRequestChange: document.querySelector("#actionRequestChange"), actionBuyEbook: document.querySelector("#actionBuyEbook"), actionBuyPrint: document.querySelector("#actionBuyPrint"),
   previewModificationPanel: document.querySelector("#previewModificationPanel"), closeModificationPanel: document.querySelector("#closeModificationPanel"), modificationSpread: document.querySelector("#modificationSpread"), modificationInstruction: document.querySelector("#modificationInstruction"), modificationPrice: document.querySelector("#modificationPrice"), modificationBalance: document.querySelector("#modificationBalance"), modificationMissing: document.querySelector("#modificationMissing"), modificationBuyCredits: document.querySelector("#modificationBuyCredits"), submitModification: document.querySelector("#submitModification"), approveModification: document.querySelector("#approveModification"), rejectModification: document.querySelector("#rejectModification"), modificationStatus: document.querySelector("#modificationStatus"),
   seriesDraftNotice: document.querySelector("#seriesDraftNotice"),
-  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioCreationJourney: document.querySelector("#scenarioCreationJourney"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), automaticRepairScenarioButton: document.querySelector("#automaticRepairScenarioButton"), automaticRepairScenarioFailure: document.querySelector("#automaticRepairScenarioFailure"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioCastList: document.querySelector("#scenarioCastList"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
+  storyScenarioPanel: document.querySelector("#storyScenarioPanel"), storyScenarioKicker: document.querySelector("#storyScenarioKicker"), storyScenarioTitle: document.querySelector("#storyScenarioTitle"), storyScenarioSummary: document.querySelector("#storyScenarioSummary"), scenarioWorldContract: document.querySelector("#scenarioWorldContract"), scenarioPreparingState: document.querySelector("#scenarioPreparingState"), scenarioCreationJourney: document.querySelector("#scenarioCreationJourney"), scenarioPreparingLead: document.querySelector("#scenarioPreparingLead"), scenarioPreparingSteps: document.querySelector("#scenarioPreparingSteps"), scenarioPreparationFeedback: document.querySelector("#scenarioPreparationFeedback"), retryInitialScenarioButton: document.querySelector("#retryInitialScenarioButton"), scenarioReviewContent: document.querySelector("#scenarioReviewContent"), scenarioDiagnostics: document.querySelector("#scenarioDiagnostics"), scenarioDiagnosticList: document.querySelector("#scenarioDiagnosticList"), automaticRepairScenarioButton: document.querySelector("#automaticRepairScenarioButton"), automaticRepairScenarioFailure: document.querySelector("#automaticRepairScenarioFailure"), scenarioRejectedCandidate: document.querySelector("#scenarioRejectedCandidate"), scenarioClarifications: document.querySelector("#scenarioClarifications"), scenarioQuestionList: document.querySelector("#scenarioQuestionList"), scenarioCastList: document.querySelector("#scenarioCastList"), scenarioActs: document.querySelector("#scenarioActs"), scenarioFeedback: document.querySelector("#scenarioFeedback"), reviseScenarioButton: document.querySelector("#reviseScenarioButton"), approveScenarioButton: document.querySelector("#approveScenarioButton"), scenarioStatus: document.querySelector("#scenarioStatus"), scenarioFeedbackMessage: document.querySelector("#scenarioFeedbackMessage"),
 };
 
 class TechnicalGenerationError extends Error {
@@ -895,6 +896,28 @@ function automaticRepairFailureFromProject(project) {
   return result.recoveryAvailable ? null : result;
 }
 
+function rejectedCandidateFailureFromProject(project) {
+  const generation = project?.continuitySnapshot?.storyScenarioGeneration;
+  if (generation?.status !== "failed"
+    || generation?.errorCode !== "scenario_quality_gate_unresolved"
+    || !generation?.rejectedCandidateFailure) return null;
+  return generation.rejectedCandidateFailure;
+}
+
+function renderRejectedCandidateFailure() {
+  const failure = state.storyScenarioRejectedCandidateFailure;
+  elements.scenarioRejectedCandidate.hidden = !failure;
+  if (!failure) {
+    elements.scenarioRejectedCandidate.innerHTML = "";
+    return;
+  }
+  const scenes = (failure.sceneNumbers || []).join(", ");
+  const details = (failure.diagnostics || []).map((diagnostic) => (
+    `<li>${escapeHtml(`${Number(diagnostic.sceneNumber) > 0 ? `${tr("scenarioDiagnosticScene")} ${Number(diagnostic.sceneNumber)} — ` : ""}${diagnostic.explanation}`)}</li>`
+  )).join("");
+  elements.scenarioRejectedCandidate.innerHTML = `<strong>${escapeHtml(tr("scenarioRejectedCandidateTitle"))}</strong><p>${escapeHtml(tr("scenarioRejectedCandidateLead", { scenes: scenes || tr("scenarioDiagnosticSeveral") }))}</p>${details ? `<ul>${details}</ul>` : ""}<small>${escapeHtml(tr("scenarioRejectedCandidateHelp"))}</small>`;
+}
+
 function automaticRepairRecoveryAvailable() {
   return state.storyScenarioAutomaticRepairFailure?.recoveryAvailable === true;
 }
@@ -1098,6 +1121,7 @@ async function pollStoryScenarioJob(jobId) {
         error.retryAvailable = payload.project?.technicalStoryScenarioRetryAvailable === true;
         error.retryExhausted = payload.project?.technicalStoryScenarioRetryExhausted === true;
         error.automaticRepairFailure = automaticRepairFailureFromProject(payload.project);
+        error.rejectedCandidateFailure = rejectedCandidateFailureFromProject(payload.project);
       } catch {
         error.retryAvailable = false;
       }
@@ -1112,6 +1136,7 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
   state.storyScenarioUpdateFailed = false;
   state.storyScenarioRetryAvailable = false;
   state.storyScenarioDirty = false;
+  renderRejectedCandidateFailure();
   document.querySelector("#creator").hidden = true;
   elements.generationPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
@@ -1235,6 +1260,7 @@ async function automaticallyRepairStoryScenario() {
     const scenario = project.continuitySnapshot?.storyScenario;
     if (!scenario) throw new Error(tr("automaticRepairScenarioError"));
     state.storyScenarioAutomaticRepairFailure = null;
+    state.storyScenarioRejectedCandidateFailure = null;
     renderStoryScenario(scenario);
     setScenarioStatus(tr("automaticRepairScenarioSuccess"));
   } catch (error) {
@@ -1308,6 +1334,8 @@ async function requestStoryScenario({ includeEdits = false, retry = false } = {}
       return;
     }
     state.storyScenarioUpdateFailed = true;
+    state.storyScenarioRejectedCandidateFailure = error?.rejectedCandidateFailure || null;
+    renderRejectedCandidateFailure();
     setScenarioStatus(error.message || tr("scenarioRevisionError"), "error");
   } finally {
     setStoryScenarioBusy(false);
@@ -3561,6 +3589,8 @@ async function restoreCompletedPreview() {
       state.storyScenarioRetryAvailable = error?.retryAvailable === true;
       if (scenario) {
         state.storyScenarioAutomaticRepairFailure = error.automaticRepairFailure || null;
+        state.storyScenarioRejectedCandidateFailure = error.rejectedCandidateFailure || null;
+        renderRejectedCandidateFailure();
         renderAutomaticRepairFailure();
         elements.automaticRepairScenarioButton.hidden = Boolean(state.storyScenarioAutomaticRepairFailure);
         state.storyScenarioUpdateFailed = true;
@@ -3589,6 +3619,7 @@ async function restoreCompletedPreview() {
     || scenarioGeneration?.status === "failed") {
     if (scenario) {
       state.storyScenarioAutomaticRepairFailure = automaticRepairFailureFromProject(project);
+      state.storyScenarioRejectedCandidateFailure = rejectedCandidateFailureFromProject(project);
       renderStoryScenario(scenario, { scroll: false });
       state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       state.storyScenarioUpdateFailed = true;

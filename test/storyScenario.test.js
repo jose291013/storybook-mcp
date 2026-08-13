@@ -1485,6 +1485,82 @@ test("a creator action and location correction rebuilds stale hidden travel meta
   assert.equal(validateStoryScenario(stabilized).valid, true);
 });
 
+test("a creator correction preserves an ordered return and disembark sequence", () => {
+  const scenario = coherentPortalScenario();
+  const returnScene = scenario.scenes[2];
+  returnScene.action = "Nolan et Mathéo repassent par le portail, puis descendent sur la terrasse.";
+  returnScene.locationAfter = "la terrasse de Nolan";
+  returnScene.characterPresences = [
+    { name: "Nolan", mode: "physical", phase: "end", location: "la terrasse de Nolan" },
+    { name: "Mathéo", mode: "physical", phase: "end", location: "la terrasse de Nolan" },
+    { name: "Alexandra", mode: "thought", phase: "", location: "" },
+  ];
+  returnScene.characterMovements = [
+    {
+      id: "movement-1",
+      kind: "return_travel",
+      from: "la vallée des dinosaures",
+      to: "la clairière",
+      characters: ["Nolan", "Mathéo"],
+      mechanism: "le portail bleu",
+      mechanismId: "portail_bleu",
+    },
+    {
+      id: "movement-2",
+      kind: "ordinary_travel",
+      from: "la clairière",
+      to: "la terrasse de Nolan",
+      characters: ["Nolan", "Mathéo"],
+      mechanism: "",
+      mechanismId: "",
+    },
+  ];
+  returnScene.transition = {
+    kind: "return_travel",
+    mechanism: "le portail bleu",
+    mechanismId: "portail_bleu",
+    from: "la vallée des dinosaures",
+    to: "la clairière",
+    characters: ["Nolan", "Mathéo"],
+  };
+
+  const edited = applyCreatorStoryScenarioEdits(scenario, {
+    sceneEdits: [{
+      scene_number: 3,
+      location: "la terrasse de Nolan",
+      action: "Nolan et Mathéo repassent par le portail, arrivent puis descendent sur la terrasse.",
+    }],
+  });
+  assert.deepEqual(edited.scenes[2].characterMovements, returnScene.characterMovements);
+  assert.deepEqual(edited.scenes[2].transition, returnScene.transition);
+
+  const stabilized = stabilizeStoryScenario(edited);
+  assert.deepEqual(stabilized.scenes[2].characterMovements.map(({ kind, from, to }) => ({ kind, from, to })), [
+    { kind: "return_travel", from: "la vallée des dinosaures", to: "la clairière" },
+    { kind: "ordinary_travel", from: "la clairière", to: "la terrasse de Nolan" },
+  ]);
+  assert.equal(stabilized.scenes[2].transition.kind, "return_travel");
+  assert.equal(stabilized.scenes[2].transition.to, "la clairière");
+  assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
+test("a travel action keeps the original departure when the visible destination changes", () => {
+  const scenario = coherentPortalScenario();
+  const stationary = scenario.scenes[2];
+  stationary.transition = { kind: "none", mechanism: "", mechanismId: "", from: stationary.locationBefore, to: stationary.locationAfter, characters: [] };
+  stationary.characterMovements = [];
+
+  const edited = applyCreatorStoryScenarioEdits(scenario, {
+    sceneEdits: [{
+      scene_number: 3,
+      location: "la terrasse de Nolan",
+      action: "Nolan revient sur la terrasse et descend du véhicule.",
+    }],
+  });
+  assert.equal(edited.scenes[2].locationBefore, "la vallée des dinosaures");
+  assert.equal(edited.scenes[2].locationAfter, "la terrasse de Nolan");
+});
+
 test("a newly added physical character receives a causal starting location and travels", () => {
   const scenario = coherentPortalScenario();
   const edited = applyCreatorStoryScenarioEdits(scenario, {

@@ -248,7 +248,15 @@ test("an unvalidated revision preserves the previous reviewable scenario", async
     heartbeatMs: 60000,
     generate: async () => ({
       scenario: { title: "Rejected replacement", clarifications: [], scenes: [] },
-      validation: { valid: false, issues: ["semantic contradiction"] },
+      validation: {
+        valid: false,
+        issues: ["scene-21: physical_presence_location_mismatch: the group remains in the cabin"],
+        diagnostics: [{
+          code: "physical_presence_location_mismatch",
+          sceneNumber: 21,
+          explanation: "The group remains in the cabin after disembarking.",
+        }],
+      },
     }),
   });
 
@@ -257,6 +265,20 @@ test("an unvalidated revision preserves the previous reviewable scenario", async
   assert.equal(failed.continuitySnapshot.storyScenario.title, previousScenario.title);
   assert.equal(JSON.stringify(failed).includes("Rejected replacement"), false);
   assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
+  assert.deepEqual(failed.continuitySnapshot.storyScenarioGeneration.rejectedCandidateFailure, {
+    version: 1,
+    valid: false,
+    reason: "rejected_candidate_final_checks",
+    issueCount: 1,
+    categories: ["travel"],
+    sceneNumbers: [21],
+    categoryScenes: { travel: [21] },
+    diagnostics: [{
+      code: "physical_presence_location_mismatch",
+      sceneNumber: 21,
+      explanation: "The group remains in the cabin after disembarking.",
+    }],
+  });
 });
 
 test("durable scenario worker stores only provider response checkpoints in run metadata", async () => {
