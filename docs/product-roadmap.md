@@ -2,6 +2,14 @@
 
 Last updated: 2026-08-13
 
+## Explainable scenario findings and bounded metadata recovery checkpoint
+
+The semantic scenario audit distinguishes an ordered causal chain such as **prepare or create -> invite or offer -> share or celebrate** from a true repeated event. A deterministic reconciliation removes only this narrow false-positive family when every cited scene advances through a distinct ordered stage; an actually repeated action, flat emotional beat or unchanged outcome remains blocking. The auditor prompt carries the same rule so new audits and deterministic reconciliation agree.
+
+Every red scenario card now carries its own creator-safe **why this scene is flagged** block. It prefers the precise persisted audit explanation and otherwise displays the localized category reason for that scene. A failed automatic repair preserves those bounded semantic diagnostics instead of collapsing them into an unhelpful generic failure. No private compiler path, hidden object identity or customer wording is exposed.
+
+An automatic repair exhausted under the former policy receives exactly one versioned recovery when all remaining categories are safe scenario metadata or editorial categories: passage, progression, repetition, emotion, cast, travel or incomplete. Object-state and ordering ambiguities remain closed because guessing could change physical canon. The new counter is independent from the former passage-only recovery so an already-open project can benefit once, while every request remains free, bounded and incapable of opening a retry loop.
+
 ## Unified resume and deterministic series-passage checkpoint
 
 Scenario-ready e-mails and every unfinished-project action in **My creations** now use the same signed `project_resume` destination. Both paths authenticate with the WooCommerce account and restore the exact customer-owned server project; the generic creator callback is no longer used for library cards, so a second device cannot fall back to its empty browser draft.

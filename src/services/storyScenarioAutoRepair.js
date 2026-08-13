@@ -111,12 +111,17 @@ export function storyScenarioAutomaticRepairAssessment(scenario = {}) {
   };
 }
 
-export function storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics = null) {
+export function storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics = null, scenarioValidation = null) {
   const finalIssues = list(canonicalDiagnostics?.finalIssues);
   const initialIssues = list(canonicalDiagnostics?.initialIssues);
   const issues = finalIssues.length ? finalIssues : initialIssues;
-  const categories = [...new Set(issues.map((issue) => categoryFromFailureCode(issue?.code)))];
-  const sceneNumbers = [...new Set(issues
+  const semanticSummary = scenarioValidation ? summarizeStoryScenarioValidation(scenarioValidation) : null;
+  const categories = semanticSummary?.categories?.length
+    ? semanticSummary.categories
+    : [...new Set(issues.map((issue) => categoryFromFailureCode(issue?.code)))];
+  const sceneNumbers = semanticSummary?.sceneNumbers?.length
+    ? semanticSummary.sceneNumbers
+    : [...new Set(issues
     .map((issue) => Math.max(0, Number(issue?.sceneNumber || 0)))
     .filter((sceneNumber) => sceneNumber > 0))].sort((left, right) => left - right);
   return {
@@ -124,5 +129,7 @@ export function storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics 
     reason: "final_checks_failed",
     categories: categories.length ? categories : ["incomplete"],
     sceneNumbers,
+    ...(semanticSummary?.categoryScenes ? { categoryScenes: semanticSummary.categoryScenes } : {}),
+    ...(semanticSummary?.diagnostics?.length ? { diagnostics: semanticSummary.diagnostics } : {}),
   };
 }

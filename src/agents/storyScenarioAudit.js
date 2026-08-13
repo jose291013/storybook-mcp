@@ -6,6 +6,64 @@ function clean(value, maximum = 600) {
   return String(value || "").trim().slice(0, maximum);
 }
 
+function key(value) {
+  return clean(value, 1200)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function progressionStage(scene = {}) {
+  const evidence = key([
+    scene.title,
+    scene.action,
+    scene.narrativeFunction,
+    scene.storyChange,
+  ].filter(Boolean).join(" "));
+  // Intentionally ordered: a preparation may mention the future intention to
+  // share without yet performing the later invitation or shared celebration.
+  if (/prepar|crea|termin|complet|elabor|mezcl|cocin|assemble|finish|make/.test(evidence)) return 1;
+  if (/invit|propos|ofrec|conv|ask[^.]{0,30}join/.test(evidence)) return 2;
+  if (/compart|repart|partag|share|distribu|celebr/.test(evidence)) return 3;
+  return 0;
+}
+
+function isProgressionDuplicate(code = "") {
+  return /duplicate|repeat|progress|narrative.?function|story.?change/i.test(code);
+}
+
+export function reconcileStoryScenarioAudit(audit = {}, scenario = {}) {
+  const issues = Array.isArray(audit.issues) ? audit.issues : [];
+  const directives = Array.isArray(audit.repairDirectives) ? audit.repairDirectives : [];
+  const affectedNumbers = new Set();
+  for (const issue of issues.filter((item) => isProgressionDuplicate(item?.code))) {
+    if (Number(issue?.sceneNumber) > 0) affectedNumbers.add(Number(issue.sceneNumber));
+    for (const directive of directives.filter((item) => item?.code === issue?.code)) {
+      for (const number of directive.affectedSceneNumbers || []) affectedNumbers.add(Number(number));
+    }
+  }
+  const affectedScenes = (scenario?.scenes || [])
+    .filter((scene) => affectedNumbers.has(Number(scene?.sceneNumber)))
+    .sort((left, right) => Number(left.sceneNumber) - Number(right.sceneNumber));
+  const stages = affectedScenes.map(progressionStage).filter(Boolean);
+  const legitimateChain = affectedScenes.length >= 2
+    && stages.length === affectedScenes.length
+    && new Set(stages).size === stages.length
+    && stages.every((stage, index) => index === 0 || stage > stages[index - 1]);
+  if (!legitimateChain) return { issues, repairDirectives: directives };
+  const retainedIssues = issues.filter((issue) => !(
+    isProgressionDuplicate(issue?.code)
+    && affectedNumbers.has(Number(issue?.sceneNumber))
+  ));
+  const removedCodes = new Set(issues
+    .filter((issue) => !retainedIssues.includes(issue))
+    .map((issue) => issue.code));
+  return {
+    issues: retainedIssues,
+    repairDirectives: directives.filter((directive) => !removedCodes.has(directive?.code)),
+  };
+}
+
 export async function storyScenarioAuditAgent(
   { intake = {}, scenario = {} } = {},
   {
@@ -51,9 +109,10 @@ export async function storyScenarioAuditAgent(
       instruction: clean(directive?.instruction, 800),
     }))
     .filter((directive) => directive.instruction);
+  const reconciled = reconcileStoryScenarioAudit({ issues, repairDirectives }, scenario);
   return {
-    status: audit.status === "rejected" || issues.length ? "rejected" : "approved",
-    issues,
-    repairDirectives,
+    status: reconciled.issues.length ? "rejected" : "approved",
+    issues: reconciled.issues,
+    repairDirectives: reconciled.repairDirectives,
   };
 }
