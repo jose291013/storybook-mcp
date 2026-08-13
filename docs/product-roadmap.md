@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Private canonical-candidate checkpoint
+
+A scenario rejected by the canonical compiler is preserved only as a private generation candidate together with bounded compiler coordinates and repair directives. It never becomes the creator-visible scenario or series canon. When at least one concrete scene is identified, exactly one free recovery starts from that candidate, exposes only the targeted scene set to the repair agent, restores every unrelated scene and reruns the canonical compiler plus the mandatory semantic editor.
+
+Retry policy version 5 no longer reopens an exhausted project merely because its numeric policy version is old. An exhausted scenario can be resumed only from a real private semantic or canonical checkpoint; legacy failures without a checkpoint stay closed instead of silently rerunning the architect. A failed checkpoint recovery cannot open a loop, while a successful canonical recovery may still create one distinct semantic checkpoint if the subsequent editor finds an actionable narrative defect.
+
 ## Private semantic-audit checkpoint
 
 A scenario that reaches the final semantic audit but remains rejected is preserved as a private generation candidate, never as the creator-visible scenario or series canon. Its bounded validation, actionable repair directives and canonical evidence are checkpointed in the durable generation ledger. Every blocking audit issue must identify one scene or inherit a concrete scene set from its matching directive; an uncoordinated global rejection is treated as a non-actionable audit failure rather than being silently summarized as `incomplete`.

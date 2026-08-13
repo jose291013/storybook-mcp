@@ -690,3 +690,127 @@ test("canonical failure stores only private bounded diagnostics in run metadata"
   assert.equal(JSON.stringify(runs.current().metadata).includes("private story sentence"), false);
   assert.equal(projects.current().continuitySnapshot.canonicalGate, undefined);
 });
+
+test("a canonical failure checkpoints its private candidate and opens one targeted recovery", async () => {
+  const projects = fakeProjects(projectFixture({ technicalAttempt: 2 }));
+  const runs = fakeRuns({ requestKind: "initial" });
+  const privateScenario = {
+    title: "Private canonical candidate",
+    clarifications: [],
+    scenes: [{ sceneNumber: 10, action: "Ambiguous crossing" }],
+  };
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:editor:attempt:1",
+    metadata: { requestKind: "initial" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => {
+      const error = new Error("The canonical scenario candidate could not be compiled.");
+      error.code = "scenario_contract_invalid";
+      error.privateCanonicalScenarioCandidate = privateScenario;
+      error.canonicalScenarioValidation = {
+        valid: false,
+        issues: ["scene-10: ambiguous_passage_endpoints"],
+        diagnostics: [{ code: "ambiguous_passage_endpoints", sceneNumber: 10 }],
+      };
+      error.canonicalRepairDirectives = [{
+        type: "canonical_compile_repair",
+        code: "ambiguous_passage_endpoints",
+        affectedSceneNumbers: [10],
+        instruction: "Align the passage endpoints.",
+      }];
+      error.canonicalDiagnostics = {
+        version: 1,
+        repairAttempted: true,
+        finalAuditAttempted: true,
+        initialIssues: [{ code: "ambiguous_passage_endpoints", path: "scenes[9].transition", sceneNumber: 10 }],
+        finalIssues: [{ code: "ambiguous_passage_endpoints", path: "scenes[9].transition", sceneNumber: 10 }],
+      };
+      throw error;
+    },
+  });
+
+  const checkpoint = projects.current().continuitySnapshot.storyScenarioGeneration;
+  assert.equal(checkpoint.retryAvailable, true);
+  assert.equal(checkpoint.canonicalCandidateCheckpoint.version, 1);
+  assert.equal(JSON.stringify(projects.current()).includes("Private canonical candidate"), false);
+  const step = await runs.getStep("run-1", "canonical-candidate-checkpoint:v1");
+  const [candidate] = await runs.listCandidates(step.id);
+  assert.equal(candidate.rejectionKind, "canonical_gate");
+  assert.equal(candidate.metadata.scenario.title, "Private canonical candidate");
+  assert.deepEqual(candidate.metadata.affectedSceneNumbers, [10]);
+});
+
+test("canonical checkpoint recovery sends only the stored candidate and bounded repair plan", async () => {
+  const projects = fakeProjects(projectFixture());
+  const runs = fakeRuns({ requestKind: "initial" });
+  const { step } = await runs.upsertStep("run-1", {
+    stepKey: "canonical-candidate-checkpoint:v1",
+    stepType: "private_scenario_candidate",
+    status: "completed",
+  });
+  await runs.recordCandidate({
+    runId: "run-1",
+    stepId: step.id,
+    projectId: "project-1",
+    candidateNumber: 1,
+    status: "rejected",
+    rejectionKind: "canonical_gate",
+    issues: [],
+    metadata: {
+      version: 1,
+      scenario: { title: "Stored candidate", clarifications: [], scenes: [{ sceneNumber: 10 }] },
+      validation: { valid: false, issues: ["scene-10: ambiguous_passage_endpoints"] },
+      repairDirectives: [{ code: "ambiguous_passage_endpoints", affectedSceneNumbers: [10] }],
+      affectedSceneNumbers: [10],
+    },
+  });
+  const current = projects.current();
+  await projects.update("project-1", {
+    continuitySnapshot: {
+      ...current.continuitySnapshot,
+      storyScenarioGeneration: {
+        ...current.continuitySnapshot.storyScenarioGeneration,
+        request: {
+          ...current.continuitySnapshot.storyScenarioGeneration.request,
+          canonicalCheckpointRecovery: true,
+          canonicalCandidateCheckpoint: {
+            version: 1,
+            runId: "run-1",
+            stepKey: "canonical-candidate-checkpoint:v1",
+            candidateNumber: 1,
+          },
+        },
+      },
+    },
+  });
+
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:queued",
+    metadata: { requestKind: "initial" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async (input) => {
+      assert.equal(input.previousScenario.title, "Stored candidate");
+      assert.equal(input.canonicalCheckpointRecovery, true);
+      assert.deepEqual(input.canonicalCheckpointRecoveryPlan.publicSummary.sceneNumbers, [10]);
+      assert.equal(input.semanticAuditRecovery, false);
+      return {
+        scenario: { title: "Repaired candidate", clarifications: [], scenes: [{ sceneNumber: 10 }] },
+        validation: { valid: true, issues: [] },
+      };
+    },
+  });
+
+  assert.equal(projects.current().continuitySnapshot.storyScenario.title, "Repaired candidate");
+});

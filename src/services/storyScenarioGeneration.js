@@ -254,6 +254,15 @@ export async function runCanonicalCandidateGate({
       initialIssues,
       finalIssues: privateCanonicalIssues(candidate),
     };
+    if (!candidate.valid) {
+      error.privateCanonicalScenarioCandidate = structuredClone(scenario);
+      error.canonicalScenarioValidation = candidate.validation || {
+        valid: false,
+        issues: [],
+        diagnostics: [],
+      };
+      error.canonicalRepairDirectives = candidate.repairDirectives || [];
+    }
     throw error;
   }
   return {
@@ -295,6 +304,8 @@ export async function generateValidatedScenario({
   automaticRepairPlan = null,
   semanticAuditRecovery = false,
   semanticAuditRecoveryPlan = null,
+  canonicalCheckpointRecovery = false,
+  canonicalCheckpointRecoveryPlan = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
   const creatorCast = scenarioCharacterRegistry(normalized);
@@ -319,6 +330,10 @@ export async function generateValidatedScenario({
       { sensitivity: "base" },
     ) === 0) === index
   ));
+  const checkpointRecovery = semanticAuditRecovery || canonicalCheckpointRecovery;
+  const recoveryPlan = canonicalCheckpointRecovery
+    ? canonicalCheckpointRecoveryPlan
+    : semanticAuditRecoveryPlan;
   const input = {
     intake: normalized.answers,
     canonical_characters: canonicalCharacters,
@@ -331,11 +346,15 @@ export async function generateValidatedScenario({
     sensitivity_contract: sensitivityContract,
     ...(seriesContract ? { series_continuity_contract: seriesContract } : {}),
     previous_scenario: previousScenario || null,
-    ...(automaticRepair || semanticAuditRecovery ? {
+    ...(automaticRepair || checkpointRecovery ? {
       automatic_repair: true,
-      validation_issues: (automaticRepairPlan || semanticAuditRecoveryPlan)?.validation?.issues || [],
-      repair_directives: (automaticRepairPlan || semanticAuditRecoveryPlan)?.directives || [],
-      repair_phase: semanticAuditRecovery ? "semantic_checkpoint" : "automatic",
+      validation_issues: (automaticRepairPlan || recoveryPlan)?.validation?.issues || [],
+      repair_directives: (automaticRepairPlan || recoveryPlan)?.directives || [],
+      repair_phase: canonicalCheckpointRecovery
+        ? "canonical_checkpoint"
+        : semanticAuditRecovery
+          ? "semantic_checkpoint"
+          : "automatic",
       repair_contract: {
         preserve_unrelated_creator_choices: true,
         maximum_model_repair_calls: 1,
@@ -344,7 +363,7 @@ export async function generateValidatedScenario({
     } : {}),
   };
   const configuredPolicy = generationCostPolicy().scenario;
-  const policy = automaticRepair || semanticAuditRecovery ? {
+  const policy = automaticRepair || checkpointRecovery ? {
     ...configuredPolicy,
     maximumRepairCalls: 0,
     maximumEditorialRepairCalls: 0,
@@ -374,11 +393,11 @@ export async function generateValidatedScenario({
           requireCausalGraph: true,
           castParticipationContract,
         });
-    if ((automaticRepair || semanticAuditRecovery) && previousScenario) {
+    if ((automaticRepair || checkpointRecovery) && previousScenario) {
       normalizedCandidate = scopeAutomaticRepairCandidate(
         normalizedCandidate,
         previousScenario,
-        automaticRepairPlan || semanticAuditRecoveryPlan,
+        automaticRepairPlan || recoveryPlan,
       );
     }
     let normalizedResult = precompileStoryScenarioPassageLifecycles(applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
@@ -387,11 +406,11 @@ export async function generateValidatedScenario({
         { sceneEdits, addedCharacters },
       ),
     ), directives, { language: normalized.answers.language }), { language: normalized.answers.language });
-    if ((automaticRepair || semanticAuditRecovery) && previousScenario) {
+    if ((automaticRepair || checkpointRecovery) && previousScenario) {
       normalizedResult = scopeAutomaticRepairCandidate(
         normalizedResult,
         previousScenario,
-        automaticRepairPlan || semanticAuditRecoveryPlan,
+        automaticRepairPlan || recoveryPlan,
       );
     }
     return normalizedResult;
@@ -407,7 +426,7 @@ export async function generateValidatedScenario({
     };
   };
 
-  const generationRoute = scenarioGenerationRoute(previousScenario, automaticRepair || semanticAuditRecovery);
+  const generationRoute = scenarioGenerationRoute(previousScenario, automaticRepair || checkpointRecovery);
   const architectModelRole = generationRoute.phase !== "architect"
     ? (modelRoles.repair || generationRoute.modelRole)
     : (modelRoles.architect || generationRoute.modelRole);
@@ -418,7 +437,14 @@ export async function generateValidatedScenario({
   const auditOnlyRecovery = semanticAuditRecovery
     && previousScenario
     && semanticRecoveryTargets.length === 0;
-  await onStep({ phase: auditOnlyRecovery ? "semantic-checkpoint" : generationRoute.phase, attempt: 1 });
+  await onStep({
+    phase: canonicalCheckpointRecovery
+      ? "canonical-checkpoint"
+      : auditOnlyRecovery
+        ? "semantic-checkpoint"
+        : generationRoute.phase,
+    attempt: 1,
+  });
   if (auditOnlyRecovery) {
     scenario = normalizeCandidate(previousScenario);
   } else {

@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/semantic-audit-checkpoint`
-- Production/main checkpoint: independent canonical passage gate and deterministic endpoint synchronization
-- Current focused checkpoint: independent canonical passage gate and deterministic endpoint synchronization
-- Pull requests: #150 through #173 merged
+- Current branch: `codex/canonical-candidate-checkpoint`
+- Production/main checkpoint: private semantic-audit checkpoint
+- Current focused checkpoint: private canonical-candidate checkpoint
+- Pull requests: #150 through #175 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #173 are merged on `main`. PR #173 adds deterministic passage-coordinate synchronization, independent repair budgets and retry policy version 3. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #175 are merged on `main`. PR #175 adds the private semantic-audit checkpoint and retry policy version 4. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Current focused brick: private canonical-candidate checkpoint
+
+1. A canonical compiler rejection stores its full candidate only in the private durable generation ledger.
+2. The next free recovery starts from that exact candidate and exposes only the compiler's affected scenes to the repair agent.
+3. Unrelated scenes and creator choices remain immutable through the existing repair scope.
+4. The canonical compiler and semantic editor still have to approve the recovered candidate before creator review.
+5. Retry policy version 5 closes numeric legacy migrations: no checkpoint means no hidden full-story replay.
 
 ## Current focused brick: private semantic-audit checkpoint
 
@@ -107,15 +115,15 @@ PR #55 through #173 are merged on `main`. PR #173 adds deterministic passage-coo
 
 ## Verification
 
-- Focused semantic checkpoint, audit-coordinate and retry tests: 33/33 passing.
-- Complete `npm test`: 471/471 passing.
+- Focused canonical/semantic checkpoint, generation and retry tests: 36/36 passing.
+- Complete `npm test`: 474/474 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Confirm the blocked initial project receives its version-4 migration recovery.
-2. If its final audit rejects again, confirm the safe explanation and affected scenes are visible and one checkpoint recovery remains available.
-3. Confirm that recovery uses `semantic-checkpoint` or the bounded targeted repair route rather than rerunning the architect from scratch.
+1. Generate a new project whose canonical gate rejects one concrete passage scene and confirm a private canonical checkpoint is created.
+2. Confirm its free recovery reports the `canonical-checkpoint` phase and does not rerun the architect.
+3. Confirm an exhausted legacy project without a private checkpoint no longer exposes a misleading retry.
 
 ## Protected local state
 

@@ -491,6 +491,8 @@ test("canonical diagnostics retain only bounded technical coordinates", async ()
       sceneNumber: 5,
     }]);
     assert.equal(JSON.stringify(error.canonicalDiagnostics).includes("private sentence"), false);
+    assert.deepEqual(error.privateCanonicalScenarioCandidate, { revision: "audited" });
+    assert.deepEqual(error.canonicalRepairDirectives, []);
     return true;
   });
 });

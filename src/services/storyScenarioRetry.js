@@ -1,4 +1,4 @@
-export const STORY_SCENARIO_RETRY_POLICY_VERSION = 4;
+export const STORY_SCENARIO_RETRY_POLICY_VERSION = 5;
 
 export function technicalStoryScenarioRetryAvailable(project = {}) {
   const checkpoint = project?.continuitySnapshot?.storyScenarioGeneration;
@@ -6,8 +6,9 @@ export function technicalStoryScenarioRetryAvailable(project = {}) {
   if (checkpoint.retryAvailable === true) return true;
   if (Number(checkpoint.semanticAuditCheckpoint?.version) === 1
     && checkpoint.request?.semanticAuditRecovery !== true) return true;
-  return checkpoint.retryExhausted === true
-    && Number(checkpoint.retryPolicyVersion || 1) < STORY_SCENARIO_RETRY_POLICY_VERSION;
+  if (Number(checkpoint.canonicalCandidateCheckpoint?.version) === 1
+    && checkpoint.request?.canonicalCheckpointRecovery !== true) return true;
+  return false;
 }
 
 export function technicalStoryScenarioRetryExhausted(project = {}) {
