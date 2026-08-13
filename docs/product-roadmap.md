@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Canonical per-character movement-origin checkpoint
+
+The character location ledger is authoritative for the origin of every hidden movement. Before a scene is validated, Calitiki replays its explicit movements in order, replaces stale model-written origins with each traveler's last canonical position, removes a redundant leg when that traveler is already at its destination, and splits a shared movement when its travelers actually begin in different places. Passage semantics are retained only for the compatible focal route; unrelated incoming legs become ordinary or join travel without borrowing the passage mechanism. The creator's visible action and location remain unchanged.
+
+This closes the four-per-character travel failure seen when scene 21 visibly returned the full group to Noa's rooftop but its hidden ledger still departed from a shortened vehicle label. The deterministic final-arrival step then completes any remaining disembark or local leg, and whole-scenario validation still runs afterward.
+
 ## Per-character arrival and repair-scope checkpoint
 
 Ordered scenario movements are now simulated per physical character before the final scene presence is validated. Participating in an early crossing no longer implies that the same traveler completed a later disembark or local arrival. After applying every explicit movement in order, Calitiki adds one deterministic final leg only for each end-phase physical character whose projected location still differs from the creator's visible destination. Existing travelers use ordinary continuation travel from their actual intermediate location; genuinely incoming characters retain join-travel semantics.

@@ -155,6 +155,43 @@ function applyMovementsToLocations(movements, characterLocations) {
   }
 }
 
+function canonicalizeMovementOrigins(movements, scene, characterLocations) {
+  const projectedLocations = new Map(characterLocations);
+  const canonical = [];
+  for (const movement of movements) {
+    if (movement.kind === "discover_passage") {
+      canonical.push(movement);
+      continue;
+    }
+    const byOrigin = new Map();
+    for (const name of movement.characters) {
+      const origin = text(projectedLocations.get(name) || movement.from);
+      if (!origin || key(origin) === key(movement.to)) continue;
+      const originKey = key(origin);
+      const group = byOrigin.get(originKey) || { origin, characters: [] };
+      group.characters.push(name);
+      byOrigin.set(originKey, group);
+    }
+    for (const group of byOrigin.values()) {
+      const followsFocalRoute = key(group.origin) === key(scene.locationBefore);
+      const preservesMechanism = followsFocalRoute || key(group.origin) === key(movement.from);
+      const repaired = {
+        ...movement,
+        kind: preservesMechanism
+          ? movement.kind
+          : key(movement.to) === key(scene.locationAfter) ? "join_travel" : "ordinary_travel",
+        from: group.origin,
+        characters: [...new Set(group.characters)],
+        mechanism: preservesMechanism ? movement.mechanism : "",
+        mechanismId: preservesMechanism ? movement.mechanismId : "",
+      };
+      canonical.push(repaired);
+      for (const name of repaired.characters) projectedLocations.set(name, repaired.to);
+    }
+  }
+  return canonical;
+}
+
 export function stabilizeSceneCharacterMovements(scene, {
   characters = [],
   characterLocations = new Map(),
@@ -168,7 +205,7 @@ export function stabilizeSceneCharacterMovements(scene, {
     },
   );
   const movements = explicit.length
-    ? explicit
+    ? canonicalizeMovementOrigins(explicit, scene, characterLocations)
     : legacyTransitionMovements(scene, characters, characterLocations, { repairOrigins: true });
   appendInferredArrivals({
     movements,

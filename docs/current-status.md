@@ -10,7 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
 - Production/main checkpoint: per-character final arrivals and targeted automatic-repair isolation
-- Current focused checkpoint: per-character final arrivals and immutable automatic-repair scene scope
+- Current focused checkpoint: canonical per-character movement origins before final arrival
 - Pull requests: #150 through #165 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -68,10 +68,17 @@ PR #55 through #165 are merged on `main`. PR #165 is merged and the public Rende
 4. Automatic repair derives one immutable target-scene set from its bounded failure plan.
 5. Non-target scenes and global creator choices are restored after every normalization pass, so a targeted repair cannot introduce unrelated scene regressions.
 
+## Candidate product brick: canonical movement origins
+
+1. Every explicit movement is replayed from each character's last canonical position rather than trusting a stale model-written origin.
+2. Travelers with different actual origins are split into distinct movement groups.
+3. A redundant movement is removed when a traveler is already at its destination.
+4. The final-arrival normalizer then completes the remaining local leg without changing the creator-visible scene.
+
 ## Verification
 
-- Focused scenario, retry, publication-gate and worker tests: 85/85 passing.
-- Complete `npm test`: 451/451 passing.
+- Focused scenario, retry, publication-gate and worker tests: 86/86 passing.
+- Complete `npm test`: 452/452 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
