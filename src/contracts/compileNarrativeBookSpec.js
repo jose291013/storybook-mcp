@@ -12,6 +12,7 @@ import {
   narrativeBookSpecDigest,
   validateNarrativeBookSpec,
 } from "./narrativeBookSpec.js";
+import { canonicalizeNarrativeMovements } from "./canonicalizeNarrativeMovements.js";
 
 const OBJECT_TERMINAL_STATES = new Set([
   "consumed",
@@ -667,7 +668,9 @@ export function compileNarrativeBookSpec({
   revision = 1,
   semanticAuditPolicyVersion = 1,
   semanticValidatorVersion = 1,
+  movementCanonicalizerMode = process.env.NARRATIVE_MOVEMENT_CANONICALIZER_MODE || "off",
 } = {}) {
+  const approvedScenario = scenario;
   const issues = [];
   if (!scenario || scenario.status !== "approved") {
     addIssue(issues, "scenario_not_approved", "scenario.status", "Only an explicitly approved scenario may be compiled.");
@@ -684,6 +687,21 @@ export function compileNarrativeBookSpec({
   if (!hasCurrentStoryScenarioAuditEvidence(scenario)) {
     addIssue(issues, "stale_scenario_audit", "scenario.auditEvidence", "The final scenario audit must belong to this exact approved scenario.");
   }
+  const canonicalization = canonicalizeNarrativeMovements(scenario || {});
+  const canonicalizerMode = ["off", "observe", "enforce"].includes(movementCanonicalizerMode)
+    ? movementCanonicalizerMode
+    : "off";
+  if (canonicalizerMode === "observe" && canonicalization.report.changed) {
+    console.info("[narrative-movement-canonicalizer] observed", JSON.stringify({
+      version: canonicalization.report.version,
+      repairedOrigins: canonicalization.report.repairedOrigins,
+      splitMovements: canonicalization.report.splitMovements,
+      removedRedundantLegs: canonicalization.report.removedRedundantLegs,
+      inferredFinalLegs: canonicalization.report.inferredFinalLegs,
+      sceneNumbers: canonicalization.report.sceneNumbers,
+    }));
+  }
+  if (canonicalizerMode === "enforce") scenario = canonicalization.scenario;
   const scenarioValidation = validateStoryScenario(scenario || {});
   for (const message of scenarioValidation.issues.slice(0, MAX_ISSUES)) {
     addIssue(issues, "invalid_approved_scenario", "scenario", message);
@@ -1023,9 +1041,9 @@ export function compileNarrativeBookSpec({
       projectId: canonicalProjectId,
       scenarioVersion: Number(scenario.version),
       revision: scenarioRevision,
-      digest: storyScenarioAuditDigest(scenario),
-      auditEvidenceDigest: clean(scenario.auditEvidence.digest),
-      approvedAt: clean(scenario.approvedAt),
+      digest: storyScenarioAuditDigest(approvedScenario),
+      auditEvidenceDigest: clean(approvedScenario.auditEvidence.digest),
+      approvedAt: clean(approvedScenario.approvedAt),
     },
     book: {
       language,

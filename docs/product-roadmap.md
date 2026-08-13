@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Deterministic movement-compiler extension checkpoint
+
+The existing NarrativeBookSpec compiler gains a pure pre-compilation canonicalizer for hidden character movements. It replays the physical ledger from canonical character positions, splits one movement when travelers actually begin in different places, removes legs for travelers already at the destination, infers only an unambiguous final leg to an end-phase physical presence, and resynchronizes the focal transition. The approved narrative text and its source digest remain authoritative and unchanged; only the in-memory mechanical clone may be normalized.
+
+`NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce` controls rollout and defaults to `off`. `off` preserves current compilation exactly. `observe` computes the same private bounded report without changing the compiled candidate. `enforce` compiles the canonicalized mechanical clone and remains unavailable in production until synthetic property tests and controlled new-book comparisons are satisfactory. Historical projects are not migrated automatically.
+
 ## Progressive bounded scenario-repair checkpoint
 
 Automatic scenario repair now converges monotonically instead of restarting from the last creator-visible failure. The orchestrator compares bounded validation coordinates after each targeted pass. A candidate becomes the new private checkpoint when it strictly reduces the issue count or resolves at least one previously flagged scene. Findings newly revealed on structurally unchanged non-target scenes are treated as the next audit frontier, not as a rewrite regression. A second and final targeted pass receives only those current findings and uses distinct provider checkpoint keys. If it succeeds, the scenario is published normally; if it fails or regresses on the current targets, no third model call is allowed.
@@ -476,6 +482,8 @@ quality-review and private cost metrics reviewed at each step.
 - Permanent deletion of an unpaid creation is intentionally a separate product brick. It must remove the project and its private assets idempotently, preserve purchased books and commerce records, and require explicit confirmation in the customer library.
 
 ## New environment variables
+
+- `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.
 
 - `DATABASE_URL`: PostgreSQL connection string. When absent, local draft JSON is used for development.
 - `DATABASE_SSL=true`: enable PostgreSQL TLS with Render-compatible certificate handling.

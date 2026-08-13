@@ -433,6 +433,47 @@ test("compiler deterministically produces a mechanically valid pending contract"
   assert.equal(validateSchema(first), true, JSON.stringify(validateSchema.errors, null, 2));
 });
 
+test("movement canonicalizer defaults off and observe leaves the compiled contract unchanged", () => {
+  const baseline = compile({ movementCanonicalizerMode: "off" });
+  const observed = compile({ movementCanonicalizerMode: "observe" });
+  assert.deepEqual(observed, baseline);
+});
+
+test("movement canonicalizer enforce repairs a stale hidden origin without changing source evidence", () => {
+  const scenario = structuredClone(approvedScenario());
+  scenario.scenes[1].characterMovements[0].from = "ancien jardin";
+  scenario.scenes[1].transition.from = "ancien jardin";
+  const approved = approveAgain(scenario);
+  assert.throws(() => compile({ scenario: approved, movementCanonicalizerMode: "off" }), (error) => (
+    error instanceof NarrativeBookSpecCompileError
+  ));
+
+  const contract = compile({ scenario: approved, movementCanonicalizerMode: "enforce" });
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+  assert.equal(contract.scenes[1].movements[0].fromLocationId, contract.scenes[1].timeline.locationBeforeId);
+  assert.equal(contract.sourceScenario.digest, approved.auditEvidence.digest);
+  assert.equal(approved.scenes[1].characterMovements[0].from, "ancien jardin");
+});
+
+test("movement canonicalizer observe emits only bounded counters and scene coordinates", () => {
+  const scenario = structuredClone(approvedScenario());
+  scenario.scenes[1].characterMovements[0].from = "ancien jardin";
+  scenario.scenes[1].transition.from = "ancien jardin";
+  const approved = approveAgain(scenario);
+  const messages = [];
+  const original = console.info;
+  console.info = (...parts) => messages.push(parts.join(" "));
+  try {
+    assert.throws(() => compile({ scenario: approved, movementCanonicalizerMode: "observe" }));
+  } finally {
+    console.info = original;
+  }
+  assert.equal(messages.length, 1);
+  assert.match(messages[0], /narrative-movement-canonicalizer/);
+  assert.match(messages[0], /"repairedOrigins":2/);
+  assert.doesNotMatch(messages[0], /Bastien|Marie|ancien jardin/);
+});
+
 test("compiler binds the approved passage discovery, crossing and return without AI", () => {
   const contract = compile();
 
