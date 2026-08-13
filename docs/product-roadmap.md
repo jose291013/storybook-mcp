@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Independent canonical passage-gate checkpoint
+
+Passage coordinates are synchronized deterministically before passage ids are registered or any model repair budget is consumed. When one focal passage transition conflicts with the scene's single matching physical crossing, the physical movement ledger supplies the canonical endpoint pair; missing movement coordinates may conversely inherit the synchronized transition pair. The source candidate remains immutable, genuinely distinct endpoint pairs still receive distinct stable passage ids, and ambiguous multi-route scenes remain blocking rather than guessed.
+
+Structural, editorial and canonical model repairs now have three independent single-call ceilings. Deterministic passage synchronization normally avoids the canonical call entirely; if a genuinely undecidable compiler defect remains after a structural repair, it may use its one separate canonical repair instead of failing with `repairBlockedByBudget`. Retry policy version 3 grants one saved-request recovery to projects whose two technical attempts were exhausted under the shared-budget policy.
+
 ## Deterministic movement-compiler extension checkpoint
 
 The existing NarrativeBookSpec compiler gains a pure pre-compilation canonicalizer for hidden character movements. It replays the physical ledger from canonical character positions, splits one movement when travelers actually begin in different places, removes legs for travelers already at the destination, infers only an unambiguous final leg to an end-phase physical presence, and resynchronizes the focal transition. The approved narrative text and its source digest remain authoritative and unchanged; only the in-memory mechanical clone may be normalized.

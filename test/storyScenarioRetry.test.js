@@ -34,3 +34,16 @@ test("the current scenario retry policy does not reopen an exhausted failure", (
   assert.equal(technicalStoryScenarioRetryAvailable(current), false);
   assert.equal(technicalStoryScenarioRetryExhausted(current), true);
 });
+
+test("the passage-budget checkpoint reopens one version-two exhausted failure", () => {
+  const exhausted = project({
+    status: "failed",
+    request: { feedback: "" },
+    retryAvailable: false,
+    retryExhausted: true,
+    retryPolicyVersion: 2,
+    errorCode: "scenario_contract_invalid",
+  });
+  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 3);
+  assert.equal(technicalStoryScenarioRetryAvailable(exhausted), true);
+});

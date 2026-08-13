@@ -97,6 +97,7 @@ export async function runScenarioQualityDialogue({
   beforeEditorial = null,
   repairBudget = null,
   editorialRepairBudget = null,
+  canonicalRepairBudget = null,
 }) {
   let scenario = initialScenario;
   let validation = initialValidation;
@@ -127,6 +128,7 @@ export async function runScenarioQualityDialogue({
       scenario,
       validation,
       repairBudget,
+      canonicalRepairBudget,
     });
     scenario = beforeEditorialResult?.scenario || scenario;
     validation = beforeEditorialResult?.validation || validation;
@@ -344,6 +346,7 @@ export async function generateValidatedScenario({
     ...configuredPolicy,
     maximumRepairCalls: 0,
     maximumEditorialRepairCalls: 0,
+    maximumCanonicalRepairCalls: 0,
     structuralRepairCalls: 0,
     editorialRepairCalls: 0,
     finalAuditCalls: 0,
@@ -353,6 +356,9 @@ export async function generateValidatedScenario({
   const repairBudget = { remaining: Number(policy.maximumRepairCalls) };
   const editorialRepairBudget = {
     remaining: Number(policy.maximumEditorialRepairCalls),
+  };
+  const canonicalRepairBudget = {
+    remaining: Number(policy.maximumCanonicalRepairCalls),
   };
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
@@ -507,7 +513,7 @@ export async function generateValidatedScenario({
     auditEditorial: auditScenario,
     repairEditorial: (state) => repairScenario({ ...state, kind: "editorial" }),
     beforeEditorial: typeof canonicalCandidateCheck === "function"
-      ? async ({ scenario: currentScenario, validation: currentValidation }) => {
+      ? async ({ scenario: currentScenario, validation: currentValidation, canonicalRepairBudget: availableCanonicalBudget }) => {
         const gated = await runCanonicalCandidateGate({
           scenario: currentScenario,
           validation: currentValidation,
@@ -515,7 +521,7 @@ export async function generateValidatedScenario({
           check: canonicalCandidateCheck,
           repair: (state) => repairScenario({ ...state, kind: "canonical" }),
           finalAudit: (state) => auditScenario({ ...state, attempt: 2, final: true }),
-          repairBudget,
+          repairBudget: availableCanonicalBudget,
         });
         canonicalCandidateEvidence = gated.evidence;
         return {
@@ -526,6 +532,7 @@ export async function generateValidatedScenario({
       : null,
     repairBudget,
     editorialRepairBudget,
+    canonicalRepairBudget,
   });
   scenario = qualityResult.scenario;
   validation = qualityResult.validation;

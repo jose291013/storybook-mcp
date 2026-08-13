@@ -18,6 +18,7 @@ test("the internal cost governor defaults to one premium narrative pass and thre
     editorCalls: 1,
       maximumRepairCalls: 1,
       maximumEditorialRepairCalls: 1,
+      maximumCanonicalRepairCalls: 1,
       structuralRepairCalls: 1,
       editorialRepairCalls: 1,
       finalAuditCalls: 1,

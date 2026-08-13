@@ -116,6 +116,51 @@ function endpointPair(from, to) {
   };
 }
 
+function passageMechanismKey(event = {}) {
+  return key(event.mechanismId || event.mechanism);
+}
+
+function sameEndpointPair(left, right) {
+  return Boolean(left && right && left.key === right.key);
+}
+
+export function synchronizeStoryScenarioPassageCoordinates(input = {}) {
+  const scenario = structuredClone(input);
+  for (const scene of list(scenario?.scenes)) {
+    const transition = scene?.transition;
+    if (!transition || !["cross_passage", "return_travel"].includes(transition.kind)) continue;
+    const mechanism = passageMechanismKey(transition);
+    if (!mechanism) continue;
+    const matchingMovements = list(scene.characterMovements).filter((movement) => (
+      movement
+      && movement.kind === transition.kind
+      && passageMechanismKey(movement) === mechanism
+    ));
+    const movementPairs = matchingMovements
+      .map((movement) => ({ movement, pair: endpointPair(movement.from, movement.to) }))
+      .filter((entry) => entry.pair);
+    const distinctMovementPairs = [...new Map(movementPairs.map((entry) => [entry.pair.key, entry.pair])).values()];
+    const transitionPair = endpointPair(transition.from, transition.to);
+
+    // One physical ledger route is more precise than a stale scene-level
+    // transition. Align the focal transition before passage ids are split.
+    if (distinctMovementPairs.length === 1 && !sameEndpointPair(transitionPair, distinctMovementPairs[0])) {
+      transition.from = distinctMovementPairs[0].from;
+      transition.to = distinctMovementPairs[0].to;
+    }
+
+    const synchronizedTransitionPair = endpointPair(transition.from, transition.to);
+    if (!synchronizedTransitionPair) continue;
+    for (const movement of matchingMovements) {
+      if (!endpointPair(movement.from, movement.to)) {
+        movement.from = synchronizedTransitionPair.from;
+        movement.to = synchronizedTransitionPair.to;
+      }
+    }
+  }
+  return scenario;
+}
+
 function splitPassageId(baseId, pair, ordinal) {
   if (ordinal === 0) return baseId;
   const endpoints = [passageId(pair.from), passageId(pair.to)].filter(Boolean).sort();
@@ -405,7 +450,9 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
 }
 
 export function precompileStoryScenarioPassageLifecycles(input = {}, { language = "FR" } = {}) {
-  const scenario = normalizeStoryScenarioPassageEndpoints(input);
+  const scenario = normalizeStoryScenarioPassageEndpoints(
+    synchronizeStoryScenarioPassageCoordinates(input),
+  );
   const scenes = list(scenario?.scenes);
   const directives = undiscoveredPassageCrossings(scenes)
     .map((crossing) => passageRepairDirective({
