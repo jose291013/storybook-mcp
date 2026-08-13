@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `agent/retry-scenario-with-visible-edits`
 - Production/main checkpoint: validated-before-presentation scenario gate
-- Current focused checkpoint: independent mechanical and semantic repair budgets; rejected proposals stay private; eligible legacy failures receive one clean recovery
+- Current focused checkpoint: creator edits override technical retry; location/action corrections rebuild hidden travel metadata; worker failures stay localized
 - Pull requests: #150 through #162 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -44,17 +44,25 @@ PR #55 through #162 are merged on `main`. Verify Render health after PR #162 bef
 5. The architect and auditor explicitly lock family-role equivalence, communication mechanisms and post-disembark location/presence state.
 6. One versioned recovery remains available to eligible legacy automatic-repair failures created before this publication gate.
 
+## Candidate brick: retry with visible scenario corrections
+
+1. A dirty failed scenario uses a fresh revision request instead of replaying the saved failed request.
+2. The button distinguishes an unchanged technical retry from applying visible corrections.
+3. Editing action or location sends the visible focal location as part of the same physical correction.
+4. Stale transition destinations, movements and end-phase presences are rebuilt deterministically from the creator's location.
+5. Scenario worker failures are localized through stable error codes; raw English server messages are no longer displayed.
+
 ## Verification
 
-- Focused publication-gate, automatic-repair and worker tests: 27/27 passing.
-- Complete `npm test`: 444/444 passing.
+- Focused scenario, retry, publication-gate and worker tests: 79/79 passing.
+- Complete `npm test`: 445/445 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Generate a fresh 44-page series scenario and confirm no red provisional cards can be presented.
-2. Confirm a deliberately rejected candidate remains on preparation with one free retry and no private scene diagnostics.
-3. Reopen an eligible legacy invalid scenario and confirm its publication-gate recovery repairs or preserves it without mixing findings from different candidates.
+1. On an existing failed scenario, edit scene 21's action and destination, confirm the button changes to the localized apply-corrections label, and submit once.
+2. Confirm its transition, movement and physical presence metadata all end at the visible destination.
+3. Trigger an unchanged technical retry separately and confirm it still reuses the exact saved request.
 
 ## Protected local state
 

@@ -445,6 +445,29 @@ export function applyCreatorStoryScenarioEdits(input = {}, { sceneEdits = [], ad
       if (location) {
         scene.locationAfter = location;
         if (scene.transition?.kind === "none" && key(scene.locationBefore) === key(previousLocation)) scene.locationBefore = location;
+        scene.transition ||= { kind: "none", mechanism: "", mechanismId: "", characters: [] };
+        if (scene.transition.kind === "join_travel" && key(scene.locationBefore) !== key(location)) {
+          scene.transition.kind = "ordinary_travel";
+        }
+        scene.transition.from = scene.locationBefore;
+        scene.transition.to = location;
+        const physicalCharacters = list(scene.characterPresences, 30)
+          .filter((presence) => presence.mode === "physical")
+          .map((presence) => presence.name);
+        if (key(scene.locationBefore) !== key(location)) {
+          scene.transition.characters = [...new Set([
+            ...list(scene.transition.characters, 30),
+            ...physicalCharacters,
+          ])];
+          // The visible creator correction is authoritative. Rebuild stale
+          // hidden movement coordinates from the edited before/after frame.
+          scene.characterMovements = [];
+          for (const presence of list(scene.characterPresences, 30)) {
+            if (presence.mode !== "physical") continue;
+            presence.phase = "end";
+            presence.location = location;
+          }
+        }
       }
     }
     if (Array.isArray(edit.character_presences)) {

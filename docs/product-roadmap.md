@@ -10,6 +10,12 @@ Every red scenario card now carries its own creator-safe **why this scene is fla
 
 An automatic repair exhausted under the former policy receives exactly one versioned recovery when all remaining categories are safe scenario metadata or editorial categories: passage, progression, repetition, emotion, cast, travel or incomplete. Object-state and ordering ambiguities remain closed because guessing could change physical canon. The new counter is independent from the former passage-only recovery so an already-open project can benefit once, while every request remains free, bounded and incapable of opening a retry loop.
 
+## Creator-edited scenario retry checkpoint
+
+A failed scenario update preserves both the prior server proposal and the creator's unsent visible edits. The retry action has two explicit modes: an unchanged technical retry reuses the exact saved request, while any edited title, action, location, presence or general instruction changes the button to **Apply my corrections** and creates a fresh revision request from the currently visible fields. Dirty creator input always takes priority over technical retry state.
+
+Scene action and focal location form one physical correction contract. Editing either sends the displayed location; the server treats the selected final location as authoritative, discards stale hidden movement coordinates, aligns the transition destination and end-phase physical presences, then rebuilds the movement ledger before validation. This lets a creator correct an arrival or return without needing to understand hidden transition metadata. Scenario job failures are mapped to localized creator messages instead of exposing internal English worker text.
+
 ## Unified resume and deterministic series-passage checkpoint
 
 Scenario-ready e-mails and every unfinished-project action in **My creations** now use the same signed `project_resume` destination. Both paths authenticate with the WooCommerce account and restore the exact customer-owned server project; the generic creator callback is no longer used for library cards, so a second device cannot fall back to its empty browser draft.

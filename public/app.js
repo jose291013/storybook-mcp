@@ -807,11 +807,16 @@ function scenarioSceneEdits() {
     const title = card.querySelector("[data-scene-title]");
     const location = card.querySelector("[data-scene-location]");
     const action = card.querySelector("[data-scene-action]");
+    const locationEdited = location?.dataset.creatorEdited === "true";
+    const actionEdited = action?.dataset.creatorEdited === "true";
     return {
       scene_number: Number(card.dataset.scenarioScene),
       ...(title?.dataset.creatorEdited === "true" ? { title: title.value } : {}),
-      ...(location?.dataset.creatorEdited === "true" ? { location: location.value } : {}),
-      ...(action?.dataset.creatorEdited === "true" ? { action: action.value } : {}),
+      // Location and action form one physical scene contract. Sending the
+      // visible location with an action correction lets the server rebuild
+      // stale hidden transition, movement and presence metadata together.
+      ...(locationEdited || actionEdited ? { location: location.value } : {}),
+      ...(actionEdited ? { action: action.value } : {}),
       ...(card.dataset.presencesEdited === "true" ? { character_presences: [
         ...scenarioSystemPresences((state.storyScenario?.scenes || []).find((scene) => Number(scene.sceneNumber) === Number(card.dataset.scenarioScene))),
         ...[...card.querySelectorAll("[data-presence-character]")].map((select) => ({
@@ -848,6 +853,9 @@ function markStoryScenarioDirty() {
   if (!state.storyScenario || state.storyScenarioBusy) return;
   state.storyScenarioDirty = true;
   elements.approveScenarioButton.disabled = true;
+  elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed
+    ? tr("scenarioUpdateWithChanges")
+    : tr("reviseScenario");
   setScenarioStatus(tr("scenarioUnsavedChanges"));
 }
 
@@ -955,7 +963,9 @@ function setStoryScenarioBusy(busy, action = "update") {
   elements.automaticRepairScenarioButton.disabled = busy;
   elements.reviseScenarioButton.disabled = busy;
   elements.approveScenarioButton.disabled = busy || !state.storyScenario || state.storyScenarioDirty || scenarioHasUnansweredClarifications() || scenarioNeedsRevision();
-  elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed ? tr("scenarioRetryUpdate") : tr("reviseScenario");
+  elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed
+    ? tr(state.storyScenarioDirty ? "scenarioUpdateWithChanges" : "scenarioRetryUpdate")
+    : tr("reviseScenario");
   elements.approveScenarioButton.textContent = tr("approveScenario");
   elements.automaticRepairScenarioButton.textContent = tr("automaticRepairScenario");
   if (busy && action === "update") elements.reviseScenarioButton.innerHTML = `<span class="button-spinner" aria-hidden="true"></span>${escapeHtml(tr("scenarioUpdatingAction"))}`;
@@ -1076,8 +1086,9 @@ async function pollStoryScenarioJob(jobId) {
       return payload.project;
     }
     if (job.status === "failed") {
-      const error = new Error(job.error || "Scenario generation failed");
-      error.code = job.errorCode || "scenario_generation_failed";
+      const errorCode = job.errorCode || "scenario_generation_failed";
+      const error = new Error(scenarioApiMessage({ code: errorCode }, "scenarioRevisionError"));
+      error.code = errorCode;
       try {
         const projectResponse = await fetch(
           `/api/projects/${encodeURIComponent(state.projectId)}`,
@@ -1240,7 +1251,7 @@ async function automaticallyRepairStoryScenario() {
 async function requestStoryScenario({ includeEdits = false, retry = false } = {}) {
   if (!state.projectId || state.storyScenarioBusy) return;
   const initialRequest = !state.storyScenario && !includeEdits;
-  const retrying = retry || state.storyScenarioRetryAvailable;
+  const retrying = retry === true;
   let queuedJobId = "";
   if (initialRequest) showInitialScenarioPreparation();
   else {
@@ -3964,8 +3975,8 @@ elements.confirmPreviewButton.addEventListener("click", confirmPreviewAuthorizat
 elements.retryInitialScenarioButton.addEventListener("click", () => requestStoryScenario({ retry: true }));
 elements.automaticRepairScenarioButton.addEventListener("click", automaticallyRepairStoryScenario);
 elements.reviseScenarioButton.addEventListener("click", () => requestStoryScenario({
-  includeEdits: !state.storyScenarioRetryAvailable,
-  retry: state.storyScenarioRetryAvailable,
+  includeEdits: state.storyScenarioDirty || !state.storyScenarioRetryAvailable,
+  retry: state.storyScenarioRetryAvailable && !state.storyScenarioDirty,
 }));
 elements.approveScenarioButton.addEventListener("click", approveStoryScenario);
 elements.scenarioQuestionList.addEventListener("input", markStoryScenarioDirty);
