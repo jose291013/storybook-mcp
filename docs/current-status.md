@@ -9,15 +9,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: creator-edited scenario retry
+- Production/main checkpoint: per-character final arrivals and targeted automatic-repair isolation
 - Current focused checkpoint: per-character final arrivals and immutable automatic-repair scene scope
-- Pull requests: #150 through #164 merged
+- Pull requests: #150 through #165 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #164 are merged on `main`. PR #164 and its rejected-candidate marker were verified live on Render. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #165 are merged on `main`. PR #165 is merged and the public Render health endpoint returned `200 {"ok":true}` after the merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -60,7 +60,7 @@ PR #55 through #164 are merged on `main`. PR #164 and its rejected-candidate mar
 4. A rejected replacement stores no candidate prose and leaves the previous reviewable scenario untouched.
 5. Its bounded scene/category diagnostic is shown separately so the creator knows the correction was received and why the replacement stayed private.
 
-## Candidate product brick: per-character arrivals and targeted repair isolation
+## Current product brick: per-character arrivals and targeted repair isolation
 
 1. Explicit movements are projected in sequence for each physical character.
 2. Every end-phase character still at an intermediate location receives exactly one final leg to the visible scene destination.
