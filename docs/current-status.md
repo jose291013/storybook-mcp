@@ -9,15 +9,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: per-character final arrivals and targeted automatic-repair isolation
+- Production/main checkpoint: canonical per-character movement origins before final arrival
 - Current focused checkpoint: canonical per-character movement origins before final arrival
-- Pull requests: #150 through #165 merged
+- Pull requests: #150 through #167 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #165 are merged on `main`. PR #165 is merged and the public Render health endpoint returned `200 {"ok":true}` after the merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #167 are merged on `main`. PR #167 is merged and the public Render health endpoint returned `200 {"ok":true}` after the merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -68,7 +68,7 @@ PR #55 through #165 are merged on `main`. PR #165 is merged and the public Rende
 4. Automatic repair derives one immutable target-scene set from its bounded failure plan.
 5. Non-target scenes and global creator choices are restored after every normalization pass, so a targeted repair cannot introduce unrelated scene regressions.
 
-## Candidate product brick: canonical movement origins
+## Current product brick: canonical movement origins
 
 1. Every explicit movement is replayed from each character's last canonical position rather than trusting a stale model-written origin.
 2. Travelers with different actual origins are split into distinct movement groups.
