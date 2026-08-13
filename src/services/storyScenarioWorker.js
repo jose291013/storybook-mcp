@@ -7,6 +7,7 @@ import { notifyPreviewMilestone } from "./previewNotification.js";
 import { generateValidatedScenario } from "./storyScenarioGeneration.js";
 import {
   storyScenarioSnapshot,
+  summarizeStoryScenarioValidation,
 } from "./storyScenario.js";
 import { storySensitivityContract } from "./storySensitivity.js";
 import { withOpenAICostContext } from "./openaiCostContext.js";
@@ -335,6 +336,14 @@ async function failScenario({
     const automaticRepairFailure = generation?.request?.automaticRepair === true
       ? storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics, error?.scenarioValidation)
       : null;
+    const rejectedCandidateFailure = generation?.request?.automaticRepair !== true
+      && error?.scenarioValidation
+      ? {
+          ...summarizeStoryScenarioValidation(error.scenarioValidation),
+          version: 1,
+          reason: "rejected_candidate_final_checks",
+        }
+      : null;
     await projects.update(project.id, {
       status: generation.previousProjectStatus === "scenario_review"
         || generation.previousProjectStatus === "scenario_needs_clarification"
@@ -349,6 +358,7 @@ async function failScenario({
           phase: "failed",
           errorCode: technical.code,
           ...(automaticRepairFailure ? { automaticRepairFailure } : {}),
+          ...(rejectedCandidateFailure ? { rejectedCandidateFailure } : {}),
           retryAvailable,
           retryExhausted: !retryAvailable,
           failedAt,
@@ -393,6 +403,12 @@ async function failScenario({
     elapsedMs: Date.now() - startedAt,
     requestId: error?.request_id || error?.requestId || null,
     error: String(error?.message || error),
+    ...(error?.scenarioValidation ? {
+      rejectedCandidate: {
+        ...summarizeStoryScenarioValidation(error.scenarioValidation),
+        diagnostics: undefined,
+      },
+    } : {}),
     ...(canonicalDiagnostics ? { canonicalGate: canonicalDiagnostics } : {}),
   }));
 }

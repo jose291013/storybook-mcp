@@ -418,6 +418,10 @@ export function clarificationAnswersForApproval(scenario = {}) {
   return answers;
 }
 
+function actionDeclaresPhysicalTravel(value = "") {
+  return /\b(arriv(?:e|es|ed|ent)?|cross(?:es|ed|ing)?|descend(?:s|ed|ing)?|disembark(?:s|ed|ing)?|enter(?:s|ed|ing)?|exit(?:s|ed|ing)?|leave|leaves|left|return(?:s|ed|ing)?|travel(?:s|ed|ing)?|arriv(?:e|a|an|o|ó)|atrav(?:iesa|iesan|esar)|baj(?:a|an|ar)|cruz(?:a|an|ar)|desembarc(?:a|an|ar)|entr(?:a|an|ar)|regres(?:a|an|ar)|sal(?:e|en|ir)|vuelv(?:e|en)|voyage|voyagent|arriv(?:e|ent)|descend(?:ent|re)|débarqu(?:e|ent|er)|entre(?:nt|r)|franchi(?:t|ssent|r)|quitt(?:e|ent|er)|revien(?:t|nent)|retourn(?:e|ent|er)|sort(?:ent|ir)|travers(?:e|ent|er))\b/iu.test(text(value));
+}
+
 export function applyCreatorStoryScenarioEdits(input = {}, { sceneEdits = [], addedCharacters = [] } = {}) {
   const scenario = structuredClone(input);
   scenario.characters ||= [];
@@ -444,29 +448,53 @@ export function applyCreatorStoryScenarioEdits(input = {}, { sceneEdits = [], ad
       const location = text(edit.location);
       if (location) {
         scene.locationAfter = location;
-        if (scene.transition?.kind === "none" && key(scene.locationBefore) === key(previousLocation)) scene.locationBefore = location;
+        const suppliedMovements = list(scene.characterMovements, 30)
+          .filter((movement) => movement?.kind !== "discover_passage");
+        if (
+          scene.transition?.kind === "none"
+          && key(scene.locationBefore) === key(previousLocation)
+          && !suppliedMovements.length
+          && !actionDeclaresPhysicalTravel(scene.action)
+        ) scene.locationBefore = location;
         scene.transition ||= { kind: "none", mechanism: "", mechanismId: "", characters: [] };
-        if (scene.transition.kind === "join_travel" && key(scene.locationBefore) !== key(location)) {
-          scene.transition.kind = "ordinary_travel";
-        }
-        scene.transition.from = scene.locationBefore;
-        scene.transition.to = location;
         const physicalCharacters = list(scene.characterPresences, 30)
           .filter((presence) => presence.mode === "physical")
           .map((presence) => presence.name);
         if (key(scene.locationBefore) !== key(location)) {
-          scene.transition.characters = [...new Set([
-            ...list(scene.transition.characters, 30),
-            ...physicalCharacters,
-          ])];
-          // The visible creator correction is authoritative. Rebuild stale
-          // hidden movement coordinates from the edited before/after frame.
-          scene.characterMovements = [];
+          // Keep a repaired ordered ledger when it already reaches the
+          // creator's authoritative destination. Earlier behavior erased the
+          // repair agent's valid return/arrival/disembark movements and then
+          // reconstructed one lossy synthetic trip. Only stale ledgers whose
+          // travelers never reach the visible destination are discarded.
+          const movements = list(scene.characterMovements, 30);
+          const reachesDestination = movements.some((movement) => (
+            movement?.kind !== "discover_passage"
+            && key(movement?.to) === key(location)
+            && list(movement?.characters, 30).some((name) => physicalCharacters.some((physical) => key(physical) === key(name)))
+          ));
+          const transitionBackedByMovement = movements.some((movement) => (
+            movement?.kind === scene.transition.kind
+            && key(movement?.from) === key(scene.transition.from)
+            && key(movement?.to) === key(scene.transition.to)
+          ));
+          if (!reachesDestination) scene.characterMovements = [];
+          if (!reachesDestination || !transitionBackedByMovement) {
+            if (scene.transition.kind === "join_travel") scene.transition.kind = "ordinary_travel";
+            scene.transition.from = scene.locationBefore;
+            scene.transition.to = location;
+            scene.transition.characters = [...new Set([
+              ...list(scene.transition.characters, 30),
+              ...physicalCharacters,
+            ])];
+          }
           for (const presence of list(scene.characterPresences, 30)) {
             if (presence.mode !== "physical") continue;
             presence.phase = "end";
             presence.location = location;
           }
+        } else {
+          scene.transition.from = scene.locationBefore;
+          scene.transition.to = location;
         }
       }
     }
@@ -959,8 +987,15 @@ export function stabilizeStoryScenario(input = {}) {
         ? scene.locationBefore
         : scene.locationAfter;
     }
-    scene.transition.from = scene.locationBefore;
-    scene.transition.to = scene.locationAfter;
+    const suppliedTransitionBackedByMovement = list(scene.characterMovements, 30).some((movement) => (
+      movement?.kind === scene.transition.kind
+      && key(movement?.from) === key(scene.transition.from)
+      && key(movement?.to) === key(scene.transition.to)
+    ));
+    if (!suppliedTransitionBackedByMovement) {
+      scene.transition.from = scene.locationBefore;
+      scene.transition.to = scene.locationAfter;
+    }
     if (scene.transition.kind === "discover_passage" && scene.transition.mechanismId) {
       availablePassages.set(scene.transition.mechanismId, {
         mechanismId: scene.transition.mechanismId,
@@ -986,12 +1021,25 @@ export function stabilizeStoryScenario(input = {}) {
       key(movement.from) === key(scene.locationBefore)
       && key(movement.to) === key(scene.locationAfter)
     ));
-    if (changesLocation && focalMovements.length) {
-      const primaryMovement = focalMovements[0];
+    const transitionMovement = scene.characterMovements.find((movement) => (
+      movement.kind === scene.transition.kind
+      && key(movement.from) === key(scene.transition.from)
+      && key(movement.to) === key(scene.transition.to)
+    ));
+    if (changesLocation && (transitionMovement || focalMovements.length)) {
+      const primaryMovement = transitionMovement || focalMovements[0];
       scene.transition.kind = primaryMovement.kind;
       scene.transition.mechanism = primaryMovement.mechanism;
       scene.transition.mechanismId = primaryMovement.mechanismId;
-      scene.transition.characters = [...new Set(focalMovements.flatMap((movement) => movement.characters))];
+      scene.transition.from = primaryMovement.from;
+      scene.transition.to = primaryMovement.to;
+      const transitionSpansScene = key(primaryMovement.from) === key(scene.locationBefore)
+        && key(primaryMovement.to) === key(scene.locationAfter);
+      scene.transition.characters = [...new Set(
+        transitionSpansScene
+          ? focalMovements.flatMap((movement) => movement.characters)
+          : primaryMovement.characters,
+      )];
     } else if (!changesLocation && scene.transition.kind !== "discover_passage") {
       if (
         scene.characterMovements.length === 1
@@ -1179,8 +1227,18 @@ export function validateStoryScenario(scenario = {}) {
     const transition = scene.transition || { kind: "none", characters: [] };
     const changesLocation = key(scene.locationBefore) !== key(scene.locationAfter);
     if (changesLocation && transition.kind === "none") issues.push(`${scene.id} changes location without a transition`);
-    if (transition.kind !== "none" && transition.kind !== "join_travel" && (key(transition.from) !== key(scene.locationBefore) || key(transition.to) !== key(scene.locationAfter))) {
-      issues.push(`${scene.id} transition must match its before/after locations`);
+    const transitionBackedByMovement = list(scene.characterMovements, 30).some((movement) => (
+      movement?.kind === transition.kind
+      && key(movement?.from) === key(transition.from)
+      && key(movement?.to) === key(transition.to)
+    ));
+    if (
+      transition.kind !== "none"
+      && transition.kind !== "join_travel"
+      && !transitionBackedByMovement
+      && (key(transition.from) !== key(scene.locationBefore) || key(transition.to) !== key(scene.locationAfter))
+    ) {
+      issues.push(`${scene.id} transition must match its before/after locations or one ordered movement`);
     }
     if (!changesLocation && ["ordinary_travel", "return_travel"].includes(transition.kind)) {
       issues.push(`${scene.id} incoming traveler requires a join_travel transition`);

@@ -10,7 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
 - Production/main checkpoint: creator-edited scenario retry
-- Current focused checkpoint: creator edits override technical retry; location/action corrections rebuild hidden travel metadata; worker failures stay localized
+- Current focused checkpoint: ordered multi-step revision travel; rejected replacement diagnostics remain separate from the preserved scenario
 - Pull requests: #150 through #163 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -52,17 +52,25 @@ PR #55 through #163 are merged on `main`. Verify Render health and the new local
 4. Stale transition destinations, movements and end-phase presences are rebuilt deterministically from the creator's location.
 5. Scenario worker failures are localized through stable error codes; raw English server messages are no longer displayed.
 
+## Candidate product brick: ordered multi-step scenario revisions
+
+1. A repaired return, arrival and disembark chain is preserved when it reaches the creator's visible final location.
+2. Travel wording keeps the original departure instead of silently turning the entire scene into the new location.
+3. One focal transition may represent one actual step in an ordered movement chain; physical end presences still have to match the scene destination.
+4. A rejected replacement stores no candidate prose and leaves the previous reviewable scenario untouched.
+5. Its bounded scene/category diagnostic is shown separately so the creator knows the correction was received and why the replacement stayed private.
+
 ## Verification
 
-- Focused scenario, retry, publication-gate and worker tests: 79/79 passing.
-- Complete `npm test`: 445/445 passing.
+- Focused scenario, retry, publication-gate and worker tests: 81/81 passing.
+- Complete `npm test`: 447/447 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. On an existing failed scenario, edit scene 21's action and destination, confirm the button changes to the localized apply-corrections label, and submit once.
-2. Confirm its transition, movement and physical presence metadata all end at the visible destination.
-3. Trigger an unchanged technical retry separately and confirm it still reuses the exact saved request.
+1. Retry the preserved scene-21 revision after deployment and confirm the return-passage movement and rooftop disembark movement both survive finalization.
+2. If a replacement still fails, confirm the new rejected-candidate notice shows the latest bounded scene/reason while the older scenario stays visible.
+3. Trigger the unchanged free retry and confirm it reuses the exact saved correction request.
 
 ## Protected local state
 

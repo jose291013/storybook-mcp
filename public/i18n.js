@@ -40,6 +40,9 @@ const fr = {
 };
 
 fr.scenarioWhyFlagged = "Pourquoi cette scène est signalée";
+fr.scenarioRejectedCandidateTitle = "Votre correction a bien été reçue";
+fr.scenarioRejectedCandidateLead = "La nouvelle proposition a encore échoué au contrôle final (scènes {scenes}). L’ancien scénario reste affiché pour ne rien perdre.";
+fr.scenarioRejectedCandidateHelp = "Le prochain essai réutilisera exactement votre demande. Aucun crédit n’a été utilisé.";
 fr.automaticRepairScenarioExhausted_progression = "Le contrôle final distingue encore mal les étapes de progression dans les scènes {scenes}.";
 fr.automaticRepairScenarioExhausted_repetition = "Le contrôle final détecte encore une répétition narrative dans les scènes {scenes}.";
 fr.automaticRepairScenarioExhausted_emotion = "Le contrôle final demande encore une évolution émotionnelle plus précise dans les scènes {scenes}.";
@@ -85,6 +88,9 @@ const es = {
 };
 
 es.scenarioWhyFlagged = "Por qué está marcada esta escena";
+es.scenarioRejectedCandidateTitle = "Tu corrección se ha recibido correctamente";
+es.scenarioRejectedCandidateLead = "La nueva propuesta todavía no superó el control final (escenas {scenes}). El guion anterior sigue visible para no perder nada.";
+es.scenarioRejectedCandidateHelp = "El próximo intento reutilizará exactamente tu solicitud. No se ha utilizado ningún crédito.";
 es.automaticRepairScenarioExhausted_progression = "El control final todavía no distingue bien las etapas de progresión de las escenas {scenes}.";
 es.automaticRepairScenarioExhausted_repetition = "El control final todavía detecta una repetición narrativa en las escenas {scenes}.";
 es.automaticRepairScenarioExhausted_emotion = "El control final todavía pide una evolución emocional más precisa en las escenas {scenes}.";
@@ -152,6 +158,9 @@ Object.assign(en, {
 });
 
 en.scenarioWhyFlagged = "Why this scene is flagged";
+en.scenarioRejectedCandidateTitle = "Your correction was received";
+en.scenarioRejectedCandidateLead = "The new proposal still failed the final check (scenes {scenes}). The previous story plan remains visible so nothing is lost.";
+en.scenarioRejectedCandidateHelp = "The next attempt will reuse your exact request. No credit was used.";
 en.automaticRepairScenarioExhausted_progression = "The final check still cannot distinguish the progression stages in scenes {scenes}.";
 en.automaticRepairScenarioExhausted_repetition = "The final check still detects narrative repetition in scenes {scenes}.";
 en.automaticRepairScenarioExhausted_emotion = "The final check still requires a clearer emotional shift in scenes {scenes}.";
