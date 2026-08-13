@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `agent/deterministic-movement-compiler-rules`
 - Production/main checkpoint: progressive bounded automatic-repair convergence
-- Current focused checkpoint: progressive bounded automatic-repair convergence
-- Pull requests: #150 through #169 merged
+- Current focused checkpoint: isolated deterministic movement-compiler rules, disabled by default
+- Pull requests: #150 through #170 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -83,10 +83,17 @@ PR #55 through #169 are merged on `main`. PR #169 is merged and the public Rende
 4. A failed second pass preserves the best intermediate scenario with its newest diagnostics instead of restoring stale red cards.
 5. Recovery policy version 3 opens this bounded convergence once for eligible existing projects.
 
+## Candidate product brick: deterministic compiler movement rules
+
+1. A pure canonicalizer replays hidden movements from the last canonical character position.
+2. It splits incompatible traveler origins, removes redundant legs and adds only an unambiguous final leg.
+3. The approved scenario text and digest are never mutated.
+4. Rollout is isolated behind `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`, default `off`; historical projects are excluded from automatic migration.
+
 ## Verification
 
-- Focused scenario, retry, publication-gate and worker tests: 88/88 passing.
-- Complete `npm test`: 454/454 passing.
+- Focused compiler and canonicalizer tests: 29/29 passing.
+- Complete `npm test`: 463/463 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
