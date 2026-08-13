@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Private semantic-audit checkpoint
+
+A scenario that reaches the final semantic audit but remains rejected is preserved as a private generation candidate, never as the creator-visible scenario or series canon. Its bounded validation, actionable repair directives and canonical evidence are checkpointed in the durable generation ledger. Every blocking audit issue must identify one scene or inherit a concrete scene set from its matching directive; an uncoordinated global rejection is treated as a non-actionable audit failure rather than being silently summarized as `incomplete`.
+
+Retry policy version 4 grants one migration recovery to older exhausted scenario failures. Once a private semantic checkpoint exists, the next free recovery starts from that exact candidate and edits only its affected scenes; if no safe scene coordinate exists, it re-audits the checkpoint without rerunning the architect. The checkpoint remains private and may open this targeted path only once. Creator-facing failure copy exposes the bounded safe explanation and no longer assumes that every exhausted recovery was the second technical attempt.
+
 ## Independent canonical passage-gate checkpoint
 
 Passage coordinates are synchronized deterministically before passage ids are registered or any model repair budget is consumed. When one focal passage transition conflicts with the scene's single matching physical crossing, the physical movement ledger supplies the canonical endpoint pair; missing movement coordinates may conversely inherit the synchronized transition pair. The source candidate remains immutable, genuinely distinct endpoint pairs still receive distinct stable passage ids, and ambiguous multi-route scenes remain blocking rather than guessed.

@@ -80,6 +80,56 @@ function scopedBackgroundExecution(backgroundExecution, prefix) {
   };
 }
 
+async function persistSemanticAuditCheckpoint({ runs, run, project, error }) {
+  if (error?.code !== "scenario_quality_gate_unresolved"
+    || !error?.privateScenarioCandidate
+    || !error?.scenarioValidation) return null;
+  if (typeof runs.upsertStep !== "function" || typeof runs.recordCandidate !== "function") return null;
+  const stepKey = "semantic-audit-checkpoint:v1";
+  const { step } = await runs.upsertStep(run.id, {
+    stepKey,
+    stepType: "private_scenario_candidate",
+    status: "completed",
+    maxAttempts: 1,
+    inputFingerprint: scenarioGenerationSnapshot(project)?.fingerprint || "",
+    output: { version: 1, status: "rejected" },
+    diagnostics: summarizeStoryScenarioValidation(error.scenarioValidation),
+  });
+  await runs.recordCandidate({
+    runId: run.id,
+    stepId: step.id,
+    projectId: project.id,
+    candidateNumber: 1,
+    status: "rejected",
+    rejectionKind: "semantic_audit",
+    issues: summarizeStoryScenarioValidation(error.scenarioValidation).diagnostics,
+    metadata: {
+      version: 1,
+      scenario: error.privateScenarioCandidate,
+      validation: error.scenarioValidation,
+      repairDirectives: error.semanticRepairDirectives || error.scenarioValidation?.repairDirectives || [],
+      canonicalCandidateEvidence: error.privateCanonicalCandidateEvidence || null,
+    },
+  });
+  return { version: 1, runId: run.id, stepKey, candidateNumber: 1 };
+}
+
+async function loadSemanticAuditCheckpoint(runs, reference = {}) {
+  if (Number(reference?.version) !== 1
+    || !reference?.runId
+    || !reference?.stepKey
+    || typeof runs.getStep !== "function"
+    || typeof runs.listCandidates !== "function") return null;
+  const step = await runs.getStep(reference.runId, reference.stepKey);
+  if (!step) return null;
+  const candidates = await runs.listCandidates(step.id);
+  const candidate = candidates.find((item) => (
+    Number(item.candidateNumber) === Number(reference.candidateNumber || 1)
+    && item.rejectionKind === "semantic_audit"
+  ));
+  return candidate?.metadata?.scenario ? candidate.metadata : null;
+}
+
 function safeTechnicalError(error) {
   const message = String(error?.message || error || "");
   if (error?.code === "scenario_auto_repair_unresolved") {
@@ -343,9 +393,24 @@ async function failScenario({
     1,
     Number(generation?.maxTechnicalAttempts || 2),
   );
-  const retryAvailable = error?.noTechnicalRetry === true
+  let retryAvailable = error?.noTechnicalRetry === true
     ? false
     : technicalAttempt < maxTechnicalAttempts;
+  const semanticAuditCheckpoint = await persistSemanticAuditCheckpoint({
+    runs,
+    run,
+    project: latest,
+    error,
+  }).catch((checkpointError) => {
+    console.warn("[story-scenario] semantic checkpoint failed", JSON.stringify({
+      runId: run.id,
+      error: safeTechnicalError(checkpointError).code,
+    }));
+    return null;
+  });
+  if (semanticAuditCheckpoint && generation?.request?.semanticAuditRecovery !== true) {
+    retryAvailable = true;
+  }
   if (generation?.runId === run.id) {
     const automaticRepairFailure = generation?.request?.automaticRepair === true
       ? storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics, error?.scenarioValidation)
@@ -388,6 +453,7 @@ async function failScenario({
           errorCode: technical.code,
           ...(automaticRepairFailure ? { automaticRepairFailure } : {}),
           ...(rejectedCandidateFailure ? { rejectedCandidateFailure } : {}),
+          ...(semanticAuditCheckpoint ? { semanticAuditCheckpoint } : {}),
           retryAvailable,
           retryExhausted: !retryAvailable,
           failedAt,
@@ -486,6 +552,14 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
     }
     const previous = storyScenarioSnapshot(project);
     const request = generation.request;
+    const semanticAuditCheckpoint = request.semanticAuditRecovery === true
+      ? await loadSemanticAuditCheckpoint(runs, request.semanticAuditCheckpoint)
+      : null;
+    if (request.semanticAuditRecovery === true && !semanticAuditCheckpoint) {
+      const error = new Error("The private semantic audit checkpoint is unavailable.");
+      error.code = "scenario_checkpoint_unavailable";
+      throw error;
+    }
     const backgroundExecution = createBackgroundExecution({ runs, run });
     let costStage = "scenario:architect:attempt:1";
     let costAttemptKind = Number(generation.technicalAttempt || 1) > 1
@@ -520,7 +594,8 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         getAttemptKind: () => costAttemptKind,
       }, () => generate({
         normalized,
-        previousScenario: previous?.fingerprint === generation.fingerprint ? previous : null,
+        previousScenario: semanticAuditCheckpoint?.scenario
+          || (previous?.fingerprint === generation.fingerprint ? previous : null),
         creatorClarifications: request.creatorClarifications || {},
         sceneEdits: request.sceneEdits || [],
         addedCharacters: request.addedCharacters || [],
@@ -532,6 +607,13 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         seriesContract,
         automaticRepair,
         automaticRepairPlan: request.automaticRepairPlan || null,
+        semanticAuditRecovery: Boolean(semanticAuditCheckpoint),
+        semanticAuditRecoveryPlan: semanticAuditCheckpoint ? {
+          version: 1,
+          validation: semanticAuditCheckpoint.validation,
+          directives: semanticAuditCheckpoint.repairDirectives,
+          publicSummary: summarizeStoryScenarioValidation(semanticAuditCheckpoint.validation),
+        } : null,
         onStep,
         backgroundExecution,
         canonicalCandidateCheck: (candidate) => {
@@ -619,6 +701,9 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         : "scenario_quality_gate_unresolved";
       if (automaticRepair) error.noTechnicalRetry = true;
       error.scenarioValidation = validation;
+      error.privateScenarioCandidate = scenario;
+      error.privateCanonicalCandidateEvidence = canonicalCandidateEvidence;
+      error.semanticRepairDirectives = generated.repairDirectives || validation.repairDirectives || [];
       if (automaticRepair && repairProgress?.improved) {
         error.progressiveScenario = scenario;
         error.repairProgress = repairProgress;

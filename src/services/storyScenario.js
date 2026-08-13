@@ -1326,8 +1326,37 @@ export function summarizeStoryScenarioValidation(validation = {}) {
   const diagnostics = list(validation.diagnostics, 12).map((diagnostic) => ({
     code: text(diagnostic?.code).replace(/[^a-z0-9_-]+/gi, "_").slice(0, 80) || "semantic_contradiction",
     sceneNumber: Math.max(0, Number(diagnostic?.sceneNumber || 0)),
+    affectedSceneNumbers: list(diagnostic?.affectedSceneNumbers, 12)
+      .map(Number)
+      .filter((number) => Number.isInteger(number) && number > 0),
     explanation: text(diagnostic?.explanation).slice(0, 600),
   })).filter((diagnostic) => diagnostic.explanation);
+  for (const diagnostic of diagnostics) {
+    const numbers = [...new Set([
+      diagnostic.sceneNumber,
+      ...diagnostic.affectedSceneNumbers,
+    ].filter((number) => Number.isInteger(number) && number > 0))];
+    const evidence = `${diagnostic.code} ${diagnostic.explanation}`;
+    let category = "incomplete";
+    if (/passage|crosses/i.test(evidence)) category = "passage";
+    else if (/privacy/i.test(evidence)) category = "privacy";
+    else if (/symbol/i.test(evidence)) category = "symbol";
+    else if (/emotion/i.test(evidence)) category = "emotion";
+    else if (/narrativefunction|storychange|progression|duplicate|repeat/i.test(evidence)) category = "progression";
+    else if (/age|vocabulary|abstraction/i.test(evidence)) category = "age";
+    else if (/object|states|quantity|worn|held/i.test(evidence)) category = "object";
+    else if (/cast|participant|family[ _-]connection|family[ _-]resolution/i.test(evidence)) category = "cast";
+    else if (/location|transition|depart|travel|appears|physical/i.test(evidence)) category = "travel";
+    else if (/order|depend|prerequisite|storyrole/i.test(evidence)) category = "order";
+    categories.add(category);
+    for (const number of numbers) {
+      sceneNumbers.add(number);
+      const categoryNumbers = categoryScenes.get(category) || new Set();
+      categoryNumbers.add(number);
+      categoryScenes.set(category, categoryNumbers);
+    }
+  }
+  if (diagnostics.length && categories.size > 1) categories.delete("incomplete");
   return {
     version: STORY_SCENARIO_VALIDATION_VERSION,
     valid: validation.valid === true,
@@ -1335,7 +1364,10 @@ export function summarizeStoryScenarioValidation(validation = {}) {
     categories: [...categories],
     sceneNumbers: [...sceneNumbers].sort((left, right) => left - right),
     categoryScenes: Object.fromEntries([...categoryScenes].map(([category, numbers]) => [category, [...numbers].sort((left, right) => left - right)])),
-    diagnostics,
+    diagnostics: diagnostics.map(({ affectedSceneNumbers, ...diagnostic }) => ({
+      ...diagnostic,
+      ...(affectedSceneNumbers.length ? { affectedSceneNumbers } : {}),
+    })),
   };
 }
 

@@ -85,7 +85,17 @@ function generationSnapshot(project) {
 function queuedRequest(project, body, safetyContract, retrying, automaticRepair = null) {
   const prior = generationSnapshot(project);
   if (retrying) {
-    return { ...prior.request, safetyContract };
+    return {
+      ...prior.request,
+      safetyContract,
+      ...(Number(prior.semanticAuditCheckpoint?.version) === 1
+        && prior.request?.semanticAuditRecovery !== true
+        ? {
+            semanticAuditRecovery: true,
+            semanticAuditCheckpoint: prior.semanticAuditCheckpoint,
+          }
+        : {}),
+    };
   }
   const previous = storyScenarioSnapshot(project);
   if (automaticRepair?.available) {
