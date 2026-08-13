@@ -11,7 +11,7 @@ function project(checkpoint) {
   return { continuitySnapshot: { storyScenarioGeneration: checkpoint } };
 }
 
-test("the new scenario retry policy restores one recovery to an exhausted older failure", () => {
+test("an exhausted older failure without a private candidate stays closed", () => {
   const legacy = project({
     status: "failed",
     request: { feedback: "" },
@@ -19,8 +19,8 @@ test("the new scenario retry policy restores one recovery to an exhausted older 
     retryExhausted: true,
     retryPolicyVersion: STORY_SCENARIO_RETRY_POLICY_VERSION - 1,
   });
-  assert.equal(technicalStoryScenarioRetryAvailable(legacy), true);
-  assert.equal(technicalStoryScenarioRetryExhausted(legacy), false);
+  assert.equal(technicalStoryScenarioRetryAvailable(legacy), false);
+  assert.equal(technicalStoryScenarioRetryExhausted(legacy), true);
 });
 
 test("the current scenario retry policy does not reopen an exhausted failure", () => {
@@ -54,7 +54,26 @@ test("a private semantic checkpoint opens exactly one targeted recovery", () => 
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
 });
 
-test("the passage-budget checkpoint reopens one version-two exhausted failure", () => {
+test("a private canonical checkpoint opens exactly one targeted recovery", () => {
+  const recoverable = project({
+    status: "failed",
+    retryAvailable: false,
+    retryExhausted: true,
+    retryPolicyVersion: STORY_SCENARIO_RETRY_POLICY_VERSION,
+    request: { feedback: "" },
+    canonicalCandidateCheckpoint: {
+      version: 1,
+      runId: "run-1",
+      stepKey: "canonical-candidate-checkpoint:v1",
+      candidateNumber: 1,
+    },
+  });
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
+  recoverable.continuitySnapshot.storyScenarioGeneration.request.canonicalCheckpointRecovery = true;
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
+});
+
+test("a version-two exhausted failure without a candidate is not replayed", () => {
   const exhausted = project({
     status: "failed",
     request: { feedback: "" },
@@ -63,6 +82,6 @@ test("the passage-budget checkpoint reopens one version-two exhausted failure", 
     retryPolicyVersion: 2,
     errorCode: "scenario_contract_invalid",
   });
-  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 4);
-  assert.equal(technicalStoryScenarioRetryAvailable(exhausted), true);
+  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 5);
+  assert.equal(technicalStoryScenarioRetryAvailable(exhausted), false);
 });

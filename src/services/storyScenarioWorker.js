@@ -130,6 +130,65 @@ async function loadSemanticAuditCheckpoint(runs, reference = {}) {
   return candidate?.metadata?.scenario ? candidate.metadata : null;
 }
 
+async function persistCanonicalCandidateCheckpoint({ runs, run, project, error }) {
+  if (error?.code !== "scenario_contract_invalid"
+    || !error?.canonicalDiagnostics
+    || !error?.privateCanonicalScenarioCandidate
+    || !error?.canonicalScenarioValidation) return null;
+  if (typeof runs.upsertStep !== "function" || typeof runs.recordCandidate !== "function") return null;
+  const repairDirectives = Array.isArray(error.canonicalRepairDirectives)
+    ? error.canonicalRepairDirectives
+    : [];
+  const affectedSceneNumbers = [...new Set([
+    ...repairDirectives.flatMap((directive) => directive?.affectedSceneNumbers || []),
+    ...(error.canonicalDiagnostics?.finalIssues || []).map((issue) => issue?.sceneNumber),
+  ].map(Number).filter((number) => Number.isInteger(number) && number > 0))].sort((a, b) => a - b);
+  if (!affectedSceneNumbers.length) return null;
+  const stepKey = "canonical-candidate-checkpoint:v1";
+  const { step } = await runs.upsertStep(run.id, {
+    stepKey,
+    stepType: "private_scenario_candidate",
+    status: "completed",
+    maxAttempts: 1,
+    inputFingerprint: scenarioGenerationSnapshot(project)?.fingerprint || "",
+    output: { version: 1, status: "rejected" },
+    diagnostics: error.canonicalDiagnostics,
+  });
+  await runs.recordCandidate({
+    runId: run.id,
+    stepId: step.id,
+    projectId: project.id,
+    candidateNumber: 1,
+    status: "rejected",
+    rejectionKind: "canonical_gate",
+    issues: error.canonicalDiagnostics.finalIssues || [],
+    metadata: {
+      version: 1,
+      scenario: error.privateCanonicalScenarioCandidate,
+      validation: error.canonicalScenarioValidation,
+      repairDirectives,
+      affectedSceneNumbers,
+    },
+  });
+  return { version: 1, runId: run.id, stepKey, candidateNumber: 1 };
+}
+
+async function loadCanonicalCandidateCheckpoint(runs, reference = {}) {
+  if (Number(reference?.version) !== 1
+    || !reference?.runId
+    || !reference?.stepKey
+    || typeof runs.getStep !== "function"
+    || typeof runs.listCandidates !== "function") return null;
+  const step = await runs.getStep(reference.runId, reference.stepKey);
+  if (!step) return null;
+  const candidates = await runs.listCandidates(step.id);
+  const candidate = candidates.find((item) => (
+    Number(item.candidateNumber) === Number(reference.candidateNumber || 1)
+    && item.rejectionKind === "canonical_gate"
+  ));
+  return candidate?.metadata?.scenario ? candidate.metadata : null;
+}
+
 function safeTechnicalError(error) {
   const message = String(error?.message || error || "");
   if (error?.code === "scenario_auto_repair_unresolved") {
@@ -408,7 +467,20 @@ async function failScenario({
     }));
     return null;
   });
-  if (semanticAuditCheckpoint && generation?.request?.semanticAuditRecovery !== true) {
+  const canonicalCandidateCheckpoint = await persistCanonicalCandidateCheckpoint({
+    runs,
+    run,
+    project: latest,
+    error,
+  }).catch((checkpointError) => {
+    console.warn("[story-scenario] canonical checkpoint failed", JSON.stringify({
+      runId: run.id,
+      error: safeTechnicalError(checkpointError).code,
+    }));
+    return null;
+  });
+  if ((semanticAuditCheckpoint && generation?.request?.semanticAuditRecovery !== true)
+    || (canonicalCandidateCheckpoint && generation?.request?.canonicalCheckpointRecovery !== true)) {
     retryAvailable = true;
   }
   if (generation?.runId === run.id) {
@@ -454,6 +526,7 @@ async function failScenario({
           ...(automaticRepairFailure ? { automaticRepairFailure } : {}),
           ...(rejectedCandidateFailure ? { rejectedCandidateFailure } : {}),
           ...(semanticAuditCheckpoint ? { semanticAuditCheckpoint } : {}),
+          ...(canonicalCandidateCheckpoint ? { canonicalCandidateCheckpoint } : {}),
           retryAvailable,
           retryExhausted: !retryAvailable,
           failedAt,
@@ -555,8 +628,16 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
     const semanticAuditCheckpoint = request.semanticAuditRecovery === true
       ? await loadSemanticAuditCheckpoint(runs, request.semanticAuditCheckpoint)
       : null;
+    const canonicalCandidateCheckpoint = request.canonicalCheckpointRecovery === true
+      ? await loadCanonicalCandidateCheckpoint(runs, request.canonicalCandidateCheckpoint)
+      : null;
     if (request.semanticAuditRecovery === true && !semanticAuditCheckpoint) {
       const error = new Error("The private semantic audit checkpoint is unavailable.");
+      error.code = "scenario_checkpoint_unavailable";
+      throw error;
+    }
+    if (request.canonicalCheckpointRecovery === true && !canonicalCandidateCheckpoint) {
+      const error = new Error("The private canonical candidate checkpoint is unavailable.");
       error.code = "scenario_checkpoint_unavailable";
       throw error;
     }
@@ -594,7 +675,8 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         getAttemptKind: () => costAttemptKind,
       }, () => generate({
         normalized,
-        previousScenario: semanticAuditCheckpoint?.scenario
+        previousScenario: canonicalCandidateCheckpoint?.scenario
+          || semanticAuditCheckpoint?.scenario
           || (previous?.fingerprint === generation.fingerprint ? previous : null),
         creatorClarifications: request.creatorClarifications || {},
         sceneEdits: request.sceneEdits || [],
@@ -613,6 +695,17 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
           validation: semanticAuditCheckpoint.validation,
           directives: semanticAuditCheckpoint.repairDirectives,
           publicSummary: summarizeStoryScenarioValidation(semanticAuditCheckpoint.validation),
+        } : null,
+        canonicalCheckpointRecovery: Boolean(canonicalCandidateCheckpoint),
+        canonicalCheckpointRecoveryPlan: canonicalCandidateCheckpoint ? {
+          version: 1,
+          validation: canonicalCandidateCheckpoint.validation,
+          directives: canonicalCandidateCheckpoint.repairDirectives,
+          publicSummary: {
+            valid: false,
+            issueCount: canonicalCandidateCheckpoint.repairDirectives?.length || 0,
+            sceneNumbers: canonicalCandidateCheckpoint.affectedSceneNumbers || [],
+          },
         } : null,
         onStep,
         backgroundExecution,

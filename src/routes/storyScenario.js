@@ -95,6 +95,13 @@ function queuedRequest(project, body, safetyContract, retrying, automaticRepair 
             semanticAuditCheckpoint: prior.semanticAuditCheckpoint,
           }
         : {}),
+      ...(Number(prior.canonicalCandidateCheckpoint?.version) === 1
+        && prior.request?.canonicalCheckpointRecovery !== true
+        ? {
+            canonicalCheckpointRecovery: true,
+            canonicalCandidateCheckpoint: prior.canonicalCandidateCheckpoint,
+          }
+        : {}),
     };
   }
   const previous = storyScenarioSnapshot(project);
