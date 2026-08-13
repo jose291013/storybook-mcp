@@ -875,8 +875,11 @@ function automaticRepairFailureFromProject(project) {
   };
   return {
     ...failure,
-    recoveryAvailable: failure.categories?.includes("passage")
-      && Number(generation?.request?.canonicalPassageRecoveryVersion || 0) < 1,
+    recoveryAvailable: (failure.categories || []).length > 0
+      && failure.categories.every((category) => [
+        "passage", "progression", "repetition", "emotion", "cast", "travel", "incomplete",
+      ].includes(category))
+      && Number(generation?.request?.automaticRepairRecoveryVersion || 0) < 1,
   };
 }
 
@@ -891,7 +894,7 @@ function renderAutomaticRepairFailure() {
     elements.automaticRepairScenarioFailure.innerHTML = "";
     return;
   }
-  const category = ["passage", "object", "travel", "order", "cast"].includes(failure.categories?.[0])
+  const category = ["passage", "object", "travel", "order", "cast", "progression", "repetition", "emotion"].includes(failure.categories?.[0])
     ? failure.categories[0]
     : "incomplete";
   const scenes = (failure.sceneNumbers || []).join(", ");
@@ -905,6 +908,19 @@ function setScenarioStatus(message, kind = "") {
   elements.scenarioFeedbackMessage.textContent = message;
   elements.scenarioStatus.classList.toggle("is-loading", kind === "loading");
   elements.scenarioStatus.classList.toggle("is-error", kind === "error");
+}
+
+function scenarioCardDiagnostics(validation = {}, sceneNumber = 0) {
+  const precise = (validation.diagnostics || [])
+    .filter((diagnostic) => Number(diagnostic.sceneNumber) === Number(sceneNumber))
+    .map((diagnostic) => diagnostic.explanation)
+    .filter(Boolean);
+  if (precise.length) return [...new Set(precise)];
+  return (validation.categories || []).filter((category) => (
+    (validation.categoryScenes?.[category] || validation.sceneNumbers || [])
+      .map(Number)
+      .includes(Number(sceneNumber))
+  )).map((category) => tr(`scenarioDiagnostic_${category}`, { scenes: sceneNumber }));
 }
 
 function scenarioApiMessage(payload, fallbackKey) {
@@ -1166,7 +1182,8 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
       [tr("scenarioEmotion"), [scene.dominantEmotion, scene.emotionalShift].filter(Boolean).join(" → ")],
       [tr("scenarioChange"), scene.storyChange],
     ].filter(([, value]) => String(value || "").trim());
-    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields"><input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label>${narrativeMeta.length ? `<dl class="scenario-narrative-meta">${narrativeMeta.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}<div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${creatorCast.map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
+    const cardDiagnostics = scenarioCardDiagnostics(validation, scene.sceneNumber);
+    return `<article class="scenario-scene" data-scenario-scene="${scene.sceneNumber}"><span class="scenario-scene-number">${scene.sceneNumber}</span><div class="scenario-scene-fields">${cardDiagnostics.length ? `<aside class="scenario-card-diagnostics"><strong>${escapeHtml(tr("scenarioWhyFlagged"))}</strong><ul>${cardDiagnostics.map((detail) => `<li>${escapeHtml(detail)}</li>`).join("")}</ul></aside>` : ""}<input data-scene-title value="${escapeHtml(scene.title)}" aria-label="${escapeHtml(scene.title)}" /><label><span>${escapeHtml(tr("scenarioLocation"))}</span><input data-scene-location value="${escapeHtml(scene.locationAfter)}" /></label><label><span>${escapeHtml(tr("scenarioAction"))}</span><textarea data-scene-action>${escapeHtml(scene.action)}</textarea></label>${narrativeMeta.length ? `<dl class="scenario-narrative-meta">${narrativeMeta.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}</dl>` : ""}<div class="scenario-presences"><div><strong>${escapeHtml(tr("scenarioPhysical"))} :</strong> <span data-physical-summary>${escapeHtml(physical.length ? physical.join(", ") : tr("scenarioNone"))}</span></div><div><strong>${escapeHtml(tr("scenarioNonphysical"))} :</strong> <span data-evoked-summary>${escapeHtml(nonphysical.length ? nonphysical.join(", ") : tr("scenarioNone"))}</span></div></div><button type="button" class="text-button scenario-presence-toggle" data-toggle-presences aria-expanded="false">${escapeHtml(tr("scenarioEditPresences"))}</button><div class="scenario-presence-editor" data-presence-editor hidden>${creatorCast.map((character) => scenarioPresenceControl(character.name, presenceByName.get(character.name) || "absent")).join("")}</div></div></article>`;
   }).join("")}</section>`).join("");
   const invalidScenes = new Set(validation.sceneNumbers || []);
   elements.scenarioActs.querySelectorAll("[data-scenario-scene]").forEach((card) => {

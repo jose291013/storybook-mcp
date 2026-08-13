@@ -326,7 +326,7 @@ async function failScenario({
     : technicalAttempt < maxTechnicalAttempts;
   if (generation?.runId === run.id) {
     const automaticRepairFailure = generation?.request?.automaticRepair === true
-      ? storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics)
+      ? storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics, error?.scenarioValidation)
       : null;
     await projects.update(project.id, {
       status: generation.previousProjectStatus === "scenario_review"
@@ -503,6 +503,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       const error = new Error("The automatic scenario repair did not pass its final audit.");
       error.code = "scenario_auto_repair_unresolved";
       error.noTechnicalRetry = true;
+      error.scenarioValidation = validation;
       throw error;
     }
     return await completeScenario({

@@ -21,6 +21,7 @@ import {
   storyScenarioAutomaticRepairAssessment,
   storyScenarioAutomaticRepairFailureSummary,
 } from "../src/services/storyScenarioAutoRepair.js";
+import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
 
 function coherentPortalScenario() {
   return {
@@ -171,6 +172,62 @@ test("automatic scenario repair exposes only bounded final failure details", () 
     categories: ["incomplete"],
     sceneNumbers: [],
   });
+});
+
+test("failed semantic automatic repair keeps its precise local diagnostics", () => {
+  assert.deepEqual(storyScenarioAutomaticRepairFailureSummary(null, {
+    valid: false,
+    issues: ["scene-15: duplicate_narrative_progression: Preparar y compartir son etapas distintas."],
+    diagnostics: [{
+      code: "duplicate_narrative_progression",
+      sceneNumber: 15,
+      explanation: "La función narrativa parece repetirse.",
+    }],
+  }), {
+    version: 1,
+    reason: "final_checks_failed",
+    categories: ["progression"],
+    sceneNumbers: [15],
+    categoryScenes: { progression: [15] },
+    diagnostics: [{
+      code: "duplicate_narrative_progression",
+      sceneNumber: 15,
+      explanation: "La función narrativa parece repetirse.",
+    }],
+  });
+});
+
+test("prepare, invite and share remain three distinct causal progression stages", () => {
+  const scenario = {
+    scenes: [
+      { sceneNumber: 15, title: "La merienda de cometa", action: "Noa prepara y termina una merienda que quiere compartir." },
+      { sceneNumber: 17, title: "La señal", action: "Noa invita a sus amigos a acercarse a la mesa." },
+      { sceneNumber: 21, title: "Juntos", action: "Noa comparte la merienda y todos celebran el momento." },
+    ],
+  };
+  const audit = reconcileStoryScenarioAudit({
+    issues: [15, 17, 21].map((sceneNumber) => ({
+      code: "duplicate_narrative_progression",
+      sceneNumber,
+      explanation: "La función parece repetirse.",
+    })),
+    repairDirectives: [{
+      code: "duplicate_narrative_progression",
+      affectedSceneNumbers: [15, 17, 21],
+      instruction: "Differentiate the progression.",
+    }],
+  }, scenario);
+  assert.deepEqual(audit, { issues: [], repairDirectives: [] });
+});
+
+test("a true repeated action remains rejected by the semantic reconciliation", () => {
+  const audit = reconcileStoryScenarioAudit({
+    issues: [{ code: "duplicate_narrative_progression", sceneNumber: 8, explanation: "Repeated." }],
+    repairDirectives: [],
+  }, {
+    scenes: [{ sceneNumber: 8, action: "Noa prepara la misma merienda otra vez." }],
+  });
+  assert.equal(audit.issues.length, 1);
 });
 
 test("the narrative controller turns an undiscovered crossing into a targeted scenarist repair", () => {

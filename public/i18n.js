@@ -39,6 +39,11 @@ const fr = {
   progressPhoto: "Nous observons les traits des personnages", progressStory: "Nous construisons l'arc narratif StoryBrand", progressBlueprint: "Nous organisons les doubles-pages", progressManuscript: "Nous rédigeons le manuscrit complet", progressCoherence: "Nous harmonisons le texte et les scènes", progressFidelityCheck: "Nous vérifions le livre avec votre scénario validé", progressFidelityRepair: "Nous corrigeons une incohérence avant la couverture", progressQualityRepair: "Nous préparons la correction d’illustration que vous avez demandée", progressAutomaticQualityRepair: "Calitiki corrige automatiquement une illustration qui n’a pas passé le contrôle qualité", progressCover: "Nous illustrons la couverture", progressPreparing: "Préparation de l'histoire",
 };
 
+fr.scenarioWhyFlagged = "Pourquoi cette scène est signalée";
+fr.automaticRepairScenarioExhausted_progression = "Le contrôle final distingue encore mal les étapes de progression dans les scènes {scenes}.";
+fr.automaticRepairScenarioExhausted_repetition = "Le contrôle final détecte encore une répétition narrative dans les scènes {scenes}.";
+fr.automaticRepairScenarioExhausted_emotion = "Le contrôle final demande encore une évolution émotionnelle plus précise dans les scènes {scenes}.";
+
 const es = {
   ...fr,
   childSafetyBlockedTitle: "Esta solicitud no puede convertirse en una historia Calitiki", childSafetyBlockedMessage: "Calitiki nunca crea contenido que normalice el contacto sexualizado, los secretos sobre el cuerpo, la coacción o una relación inapropiada entre un adulto y un menor. No se ha reservado ningún crédito.", childSafetySupportTitle: "La seguridad del menor es prioritaria", childSafetySupportMessage: "Esta situación puede requerir ayuda profesional o de protección. Calitiki no la convertirá directamente en una aventura personalizada. Puedes empezar de nuevo con una petición general sobre el respeto del cuerpo, los límites y los adultos de confianza.", childSafetyResource: "Mostrar servicios según el país actual", childSafetyStepBlocked: "Modifica la situación descrita antes de continuar.", modificationChildSafetyBlocked: "Este cambio no respeta las reglas de protección de menores. No se ha generado y no se ha reservado ningún crédito.", sensitivitySupportTitle: "Esta situación necesita apoyo humano", sensitivitySupportMessage: "Calitiki no convertirá una situación de peligro inmediato, autolesión o crisis suicida en una aventura personalizada. Elige el país donde se encuentra el menor para ver ayuda verificada.", sensitivityGuidanceTitle: "Un tema importante, tratado con especial cuidado", sensitivityGuidanceMessage: "Calitiki utilizará una aventura simbólica y delicada, sin prometer curación ni una resolución definitiva. El libro puede abrir un diálogo, pero no sustituye un apoyo humano adecuado.", sensitivityGuidanceAcknowledge: "Lo he entendido y quiero ver las propuestas adaptadas.", sensitivityGuidanceRequired: "Confirma que has entendido el enfoque prudente antes de continuar.",
@@ -78,6 +83,11 @@ const es = {
   repairIllustrationRetry: "Reintentar gratis la página {page}", repairIllustrationRetryError: "La reparación no se completó, pero conservas tu derecho gratuito. Puedes volver a intentarlo sin créditos adicionales.", repairIllustrationExhausted: "Los dos intentos técnicos gratuitos no se completaron. No se utilizó ningún crédito; contacta con Calitiki para una intervención manual.",
   photoName: "Nombre", photoRelationshipLabel: "Relación con el niño", photoRoleChoice: "Elige la relación", photoStoryRoleLabel: "Papel en la historia", photoStoryRoleChoice: "Elige su papel", relationship: "Precisa: hermano, hermana, madre...", invalidPhotoRole: "Elige la relación de cada personaje con el niño.", invalidPhotoStoryRole: "Elige el papel de cada personaje en la historia.", invalidPhotoRelationship: "Precisa la relación cuando eliges Familia u Otro personaje.", removePhoto: "Eliminar esta foto", photoPreview: "Vista previa de {name}", progressPhoto: "Observamos los rasgos de los personajes", progressStory: "Construimos el arco narrativo StoryBrand", progressBlueprint: "Organizamos las dobles páginas", progressManuscript: "Redactamos el manuscrito completo", progressCoherence: "Armonizamos el texto y las escenas", progressFidelityCheck: "Comprobamos el libro con el guion que has validado", progressFidelityRepair: "Corregimos una incoherencia antes de la portada", progressQualityRepair: "Preparamos la corrección de ilustración que has solicitado", progressAutomaticQualityRepair: "Calitiki corrige automáticamente una ilustración que no ha superado el control de calidad", progressCover: "Ilustramos la portada", progressPreparing: "Preparando la historia",
 };
+
+es.scenarioWhyFlagged = "Por qué está marcada esta escena";
+es.automaticRepairScenarioExhausted_progression = "El control final todavía no distingue bien las etapas de progresión de las escenas {scenes}.";
+es.automaticRepairScenarioExhausted_repetition = "El control final todavía detecta una repetición narrativa en las escenas {scenes}.";
+es.automaticRepairScenarioExhausted_emotion = "El control final todavía pide una evolución emocional más precisa en las escenas {scenes}.";
 
 const en = {
   ...fr,
@@ -140,6 +150,11 @@ Object.assign(en, {
   previousPerspectives: "Previous",
   nextPerspectives: "Next",
 });
+
+en.scenarioWhyFlagged = "Why this scene is flagged";
+en.automaticRepairScenarioExhausted_progression = "The final check still cannot distinguish the progression stages in scenes {scenes}.";
+en.automaticRepairScenarioExhausted_repetition = "The final check still detects narrative repetition in scenes {scenes}.";
+en.automaticRepairScenarioExhausted_emotion = "The final check still requires a clearer emotional shift in scenes {scenes}.";
 
 export const UI_TEXT = { FR: fr, ES: es, EN: en };
 

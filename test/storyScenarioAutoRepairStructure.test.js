@@ -15,9 +15,14 @@ test("automatic scenario repair has a dedicated non-commerce endpoint and creato
   assert.doesNotMatch(route, /reservePreview|capturePreview|credits\/reserve/);
   assert.match(app, /automaticallyRepairStoryScenario/);
   assert.match(app, /automaticRepairFailureFromProject/);
+  assert.match(app, /scenarioCardDiagnostics/);
+  assert.match(app, /scenarioWhyFlagged/);
+  assert.match(app, /automaticRepairRecoveryVersion/);
   assert.match(app, /story-scenario\/auto-repair/);
   assert.match(html, /id="automaticRepairScenarioButton"/);
   assert.match(html, /id="automaticRepairScenarioFailure"/);
   assert.match(worker, /scenario_auto_repair_unresolved/);
   assert.match(worker, /noTechnicalRetry = true/);
+  assert.match(worker, /error\.scenarioValidation = validation/);
+  assert.match(route, /boundedMetadataRecovery/);
 });
