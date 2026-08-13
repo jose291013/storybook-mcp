@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-13
+Last updated: 2026-08-14
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/independent-canonical-passage-gate`
-- Production/main checkpoint: isolated deterministic movement-compiler rules, disabled by default
+- Current branch: `codex/record-canonical-passage-gate-merge`
+- Production/main checkpoint: independent canonical passage gate and deterministic endpoint synchronization
 - Current focused checkpoint: independent canonical passage gate and deterministic endpoint synchronization
-- Pull requests: #150 through #172 merged
+- Pull requests: #150 through #173 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #171 are merged on `main`. PR #171 adds the isolated deterministic movement canonicalizer; its production mode remains `off` by default. The last verified public Render health response before this merge was `200 {"ok":true}`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #173 are merged on `main`. PR #173 adds deterministic passage-coordinate synchronization, independent repair budgets and retry policy version 3. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -90,7 +90,7 @@ PR #55 through #171 are merged on `main`. PR #171 adds the isolated deterministi
 3. The approved scenario text and digest are never mutated.
 4. Rollout is isolated behind `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`, default `off`; historical projects are excluded from automatic migration.
 
-## Candidate product brick: independent canonical passage gate
+## Current product brick: independent canonical passage gate
 
 1. A focal passage transition is aligned with its single matching physical movement before passage ids are registered.
 2. Distinct real endpoint pairs remain split; ambiguous multi-route scenes are never guessed.
