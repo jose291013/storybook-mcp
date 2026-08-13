@@ -12,6 +12,7 @@ import {
   stabilizeStoryScenario,
   withStoryScenarioAuditEvidence,
 } from "../src/services/storyScenario.js";
+import { precompileStoryScenarioPassageLifecycles } from "../src/services/storyScenarioRepairs.js";
 import { validateNarrativeBookSpec } from "../src/contracts/narrativeBookSpec.js";
 
 const schema = JSON.parse(fs.readFileSync(
@@ -551,6 +552,20 @@ test("a missing passage discovery points to the first crossing scene", () => {
   assert.ok(failure instanceof NarrativeBookSpecCompileError);
   const issue = failure.issues.find((candidate) => candidate.code === "passage_discovery_missing");
   assert.equal(issue?.path, "scenes[1].transition");
+});
+
+test("passage precompilation removes a stale transition endpoint before canonical compilation", () => {
+  const scenario = approvedScenario();
+  scenario.scenes[1].transition.to = "ancienne plage erronée";
+  assert.throws(() => compile({ scenario: approveAgain(scenario) }), (error) => (
+    error instanceof NarrativeBookSpecCompileError
+    && error.issues.some((issue) => issue.code === "ambiguous_passage_endpoints")
+  ));
+
+  const precompiled = precompileStoryScenarioPassageLifecycles(scenario, { language: "FR" });
+  const contract = compile({ scenario: approveAgain(precompiled) });
+  assert.equal(contract.registries.passages.length, 1);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
 });
 
 test("compiler derives a start-only illustration phase without asking the model to rewrite it", () => {

@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/record-deterministic-movement-compiler-merge`
+- Current branch: `codex/independent-canonical-passage-gate`
 - Production/main checkpoint: isolated deterministic movement-compiler rules, disabled by default
-- Current focused checkpoint: isolated deterministic movement-compiler rules, disabled by default
-- Pull requests: #150 through #171 merged
+- Current focused checkpoint: independent canonical passage gate and deterministic endpoint synchronization
+- Pull requests: #150 through #172 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -90,17 +90,24 @@ PR #55 through #171 are merged on `main`. PR #171 adds the isolated deterministi
 3. The approved scenario text and digest are never mutated.
 4. Rollout is isolated behind `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`, default `off`; historical projects are excluded from automatic migration.
 
+## Candidate product brick: independent canonical passage gate
+
+1. A focal passage transition is aligned with its single matching physical movement before passage ids are registered.
+2. Distinct real endpoint pairs remain split; ambiguous multi-route scenes are never guessed.
+3. Structural and canonical repairs each retain one independent bounded model budget.
+4. Retry policy version 3 reopens one exact saved-request attempt for projects exhausted under the former shared-budget gate.
+
 ## Verification
 
-- Focused compiler and canonicalizer tests: 29/29 passing.
-- Complete `npm test`: 463/463 passing.
+- Focused passage, compiler, budget and retry tests: 111/111 passing.
+- Complete `npm test`: 468/468 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
 
-1. Keep `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off` until controlled synthetic and new-book comparisons are reviewed.
-2. Enable `observe` first and confirm its bounded counters contain no private narrative content and do not change compiled contracts.
-3. Test `enforce` only on controlled new books before considering any production activation; do not migrate historical projects automatically.
+1. After deployment, confirm one exhausted initial scenario receives its version-3 saved-request recovery.
+2. Confirm the recovered run no longer reports `repairBlockedByBudget` for a passage whose physical movement has one endpoint pair.
+3. Keep `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=observe` until its separate controlled rollout is reviewed; this passage brick does not depend on enforcement.
 
 ## Protected local state
 

@@ -14,6 +14,7 @@ import {
   buildStoryScenarioRepairDirectives,
   normalizeStoryScenarioPassageEndpoints,
   precompileStoryScenarioPassageLifecycles,
+  synchronizeStoryScenarioPassageCoordinates,
   validateStoryScenarioPassageLifecycles,
 } from "../src/services/storyScenarioRepairs.js";
 import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
@@ -475,6 +476,63 @@ test("passage endpoint preflight separates a reused id but preserves the reverse
   assert.equal(repaired.scenes[1].transition.mechanismId, "porte_de_maree");
   assert.match(repaired.scenes[2].transition.mechanismId, /^porte_de_maree__/);
   assert.equal(scenario.scenes[2].transition.mechanismId, "porte_de_maree", "the source remains immutable");
+});
+
+test("passage preflight aligns a stale focal transition with its one physical crossing", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 10,
+    locationBefore: "atelier",
+    locationAfter: "jardin",
+    transition: {
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "atelier",
+      to: "plage erronée",
+      characters: ["Noa"],
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "atelier",
+      to: "jardin",
+      characters: ["Noa"],
+    }],
+  }] };
+
+  const synchronized = synchronizeStoryScenarioPassageCoordinates(scenario);
+  assert.equal(synchronized.scenes[0].transition.to, "jardin");
+  assert.equal(scenario.scenes[0].transition.to, "plage erronée", "the source remains immutable");
+
+  const precompiled = precompileStoryScenarioPassageLifecycles(scenario, { language: "ES" });
+  assert.equal(precompiled.scenes[0].transition.to, "jardin");
+  assert.equal(precompiled.scenes[0].characterMovements[0].to, "jardin");
+});
+
+test("passage preflight never guesses between several physical crossing routes", () => {
+  const transition = {
+    kind: "cross_passage",
+    mechanism: "porte lumineuse",
+    mechanismId: "porte_lumineuse",
+    from: "atelier",
+    to: "destination visible",
+    characters: ["Noa"],
+  };
+  const scenario = { scenes: [{
+    sceneNumber: 10,
+    locationBefore: "atelier",
+    locationAfter: "destination visible",
+    transition,
+    characterMovements: [
+      { ...transition, id: "movement-1", to: "jardin" },
+      { ...transition, id: "movement-2", to: "phare" },
+    ],
+  }] };
+
+  const synchronized = synchronizeStoryScenarioPassageCoordinates(scenario);
+  assert.equal(synchronized.scenes[0].transition.to, "destination visible");
 });
 
 test("the narrative contract requires distinct progression, emotions and declared symbols", () => {
