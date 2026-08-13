@@ -1021,10 +1021,16 @@ export function stabilizeStoryScenario(input = {}) {
       key(movement.from) === key(scene.locationBefore)
       && key(movement.to) === key(scene.locationAfter)
     ));
-    const transitionMovement = scene.characterMovements.find((movement) => (
+    const exactTransitionMovement = scene.characterMovements.find((movement) => (
       movement.kind === scene.transition.kind
       && key(movement.from) === key(scene.transition.from)
       && key(movement.to) === key(scene.transition.to)
+    ));
+    const transitionMovement = exactTransitionMovement || scene.characterMovements.find((movement) => (
+      movement.kind === scene.transition.kind
+      && key(movement.to) === key(scene.transition.to)
+      && key(movement.mechanismId) === key(scene.transition.mechanismId)
+      && key(movement.from) === key(scene.locationBefore)
     ));
     if (changesLocation && (transitionMovement || focalMovements.length)) {
       const primaryMovement = transitionMovement || focalMovements[0];

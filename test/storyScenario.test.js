@@ -22,6 +22,7 @@ import {
   storyScenarioAutomaticRepairFailureSummary,
 } from "../src/services/storyScenarioAutoRepair.js";
 import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
+import { stabilizeSceneCharacterMovements } from "../src/services/characterMovementLedger.js";
 
 function coherentPortalScenario() {
   return {
@@ -1572,7 +1573,7 @@ test("every end-phase character receives the missing final leg after an intermed
   returnScene.characterMovements = [{
     id: "movement-1",
     kind: "return_travel",
-    from: "la vallée des dinosaures",
+    from: "la vallée",
     to: "la clairière",
     characters: ["Nolan", "Mathéo"],
     mechanism: "le portail bleu",
@@ -1595,7 +1596,60 @@ test("every end-phase character receives the missing final leg after an intermed
       characters: ["Nolan", "Mathéo"],
     },
   ]);
+  assert.equal(stabilized.scenes[2].transition.from, "la vallée des dinosaures");
   assert.equal(validateStoryScenario(stabilized).valid, true);
+});
+
+test("stale shared movement origins are rebuilt from each character's canonical position", () => {
+  const names = ["Noa", "Kovu", "Antonio", "Eva"];
+  const characters = names.map((name) => ({ name }));
+  const canonicalOrigin = "Cabine protégée de la Nave Brújula";
+  const characterLocations = new Map(names.map((name) => [name, canonicalOrigin]));
+  const scene = {
+    locationBefore: canonicalOrigin,
+    locationAfter: "Azotea del edificio de Noa",
+    characterPresences: names.map((name) => ({
+      name,
+      mode: "physical",
+      phase: "end",
+      location: "Azotea del edificio de Noa",
+    })),
+    transition: {
+      kind: "return_travel",
+      from: "Nave Brújula",
+      to: "corredor de regreso",
+      characters: names,
+      mechanism: "corredor de regreso",
+      mechanismId: "corredor_de_regreso",
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "return_travel",
+      from: "Nave Brújula",
+      to: "corredor de regreso",
+      characters: names,
+      mechanism: "corredor de regreso",
+      mechanismId: "corredor_de_regreso",
+    }],
+  };
+
+  const movements = stabilizeSceneCharacterMovements(scene, { characters, characterLocations });
+
+  assert.deepEqual(movements.map(({ kind, from, to, characters: travelers }) => ({ kind, from, to, travelers })), [
+    {
+      kind: "return_travel",
+      from: canonicalOrigin,
+      to: "corredor de regreso",
+      travelers: names,
+    },
+    {
+      kind: "ordinary_travel",
+      from: "corredor de regreso",
+      to: "Azotea del edificio de Noa",
+      travelers: names,
+    },
+  ]);
+  for (const name of names) assert.equal(characterLocations.get(name), "Azotea del edificio de Noa");
 });
 
 test("a newly added physical character receives a causal starting location and travels", () => {
