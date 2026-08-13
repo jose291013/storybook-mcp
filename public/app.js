@@ -873,14 +873,18 @@ function automaticRepairFailureFromProject(project) {
     categories: ["incomplete"],
     sceneNumbers: [],
   };
-  return {
+  const result = {
     ...failure,
     recoveryAvailable: (failure.categories || []).length > 0
       && failure.categories.every((category) => [
         "passage", "progression", "repetition", "emotion", "cast", "travel", "incomplete",
       ].includes(category))
-      && Number(generation?.request?.automaticRepairRecoveryVersion || 0) < 1,
+      && Number(generation?.request?.automaticRepairRecoveryVersion || 0) < 2,
   };
+  // A legacy red proposal may receive one recovery under the new publication
+  // gate. Do not mix the rejected replacement's findings into the preserved
+  // proposal while that clean recovery is still available.
+  return result.recoveryAvailable ? null : result;
 }
 
 function automaticRepairRecoveryAvailable() {
@@ -926,6 +930,7 @@ function scenarioCardDiagnostics(validation = {}, sceneNumber = 0) {
 function scenarioApiMessage(payload, fallbackKey) {
   const messages = {
     scenario_invalid: "scenarioCoherenceError",
+    scenario_quality_gate_unresolved: "scenarioRevisionError",
     scenario_update_in_progress: "scenarioAlreadyUpdating",
     scenario_locked: "scenarioLocked",
     scenario_stale: "scenarioStale",

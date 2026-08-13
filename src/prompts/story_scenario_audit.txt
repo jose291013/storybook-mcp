@@ -17,6 +17,9 @@ Reject only clear contradictions that would make the story causally, physically 
 - a transformable quest object is discovered and resolved without intervening observation, effort, choice or consequence when the story intention requires progression;
 - the child stops being the active hero;
 - the proposal contradicts the creator's confirmed intention, selected dream, challenge or story seed;
+- a materially required family connection is absent. A generic seed role such as mother, father or parent is satisfied by a canonical participant with the equivalent authoritative family relationship; never reject merely because that participant has a different name or gender label;
+- a passive record, drawing, map or checklist sends an invitation, message or traveler without an established character action and local delivery or communication mechanism;
+- the action says the cast leaves, disembarks, descends, enters or removes environment-specific equipment after travel while location_after, movement or end-phase physical presences still place them in the previous vehicle or protected zone;
 - a guide or magical mechanism performs the decisive action instead of the child;
 - success is immediate without any accessible attempt when the confirmed intention requires learning, courage or perseverance;
 - the stated reward or transformation is unrelated to the child's own attempts and courageous choice.

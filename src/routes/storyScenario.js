@@ -19,7 +19,6 @@ import {
   hasCurrentStoryScenarioAuditEvidence,
   recoverLegacyLifecycleValidation,
   storyScenarioSnapshot,
-  summarizeStoryScenarioValidation,
   validateStoryScenario,
   withStoryScenarioAuditEvidence,
 } from "../services/storyScenario.js";
@@ -137,11 +136,11 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
     // The general metadata recovery is a new policy generation. Older passage-
     // only recovery counters must not consume it for already-open scenarios.
     const recoveryVersion = Number(activeGeneration?.request?.automaticRepairRecoveryVersion || 0);
-    const boundedMetadataRecovery = automaticRepair
+    const boundedPublicationGateRecovery = automaticRepair
       && activeGeneration?.status === "failed"
       && activeGeneration?.request?.automaticRepair === true
       && activeGeneration?.errorCode === "scenario_auto_repair_unresolved"
-      && recoveryVersion < 1
+      && recoveryVersion < 2
       && recoveryCategories.length > 0
       && recoveryCategories.every((category) => [
         "passage", "progression", "repetition", "emotion", "cast", "travel", "incomplete",
@@ -150,7 +149,7 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
       && activeGeneration?.status === "failed"
       && activeGeneration?.request?.automaticRepair === true
       && activeGeneration?.errorCode === "scenario_auto_repair_unresolved"
-      && !boundedMetadataRecovery) {
+      && !boundedPublicationGateRecovery) {
       return res.status(409).json({
         error: "The bounded automatic repair has already been attempted",
         code: "scenario_auto_repair_exhausted",
@@ -236,7 +235,7 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
       safety.contract,
       retrying,
       automaticRepairAssessment
-        ? { ...automaticRepairAssessment, recoveryVersion: boundedMetadataRecovery ? 1 : 0 }
+        ? { ...automaticRepairAssessment, recoveryVersion: boundedPublicationGateRecovery ? 2 : 0 }
         : null,
     );
     const technicalAttempt = retrying
@@ -427,20 +426,10 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
     }
     if (!validation.valid) {
       console.warn("[story-scenario] approval validation failed", { projectId: project.id, issueCount: validation.issues.length });
-      const rejected = {
-        ...scenario,
-        status: "needs_revision",
-        validation: summarizeStoryScenarioValidation(validation),
-      };
-      await projectStore.updateForCustomer(project.id, identity, {
-        status: "scenario_review",
-        continuitySnapshot: { ...project.continuitySnapshot, storyScenario: rejected },
-      });
       return res.status(422).json({
-        error: "The scenario needs another update before approval",
-        code: "scenario_invalid",
+        error: "The scenario did not pass Calitiki's internal publication gate",
+        code: "scenario_quality_gate_unresolved",
         retryable: true,
-        scenario: rejected,
       });
     }
     const clarificationAnswers = clarificationAnswersForApproval(scenario);
