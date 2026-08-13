@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/deterministic-movement-compiler-rules`
-- Production/main checkpoint: progressive bounded automatic-repair convergence
+- Current branch: `agent/record-deterministic-movement-compiler-merge`
+- Production/main checkpoint: isolated deterministic movement-compiler rules, disabled by default
 - Current focused checkpoint: isolated deterministic movement-compiler rules, disabled by default
-- Pull requests: #150 through #170 merged
+- Pull requests: #150 through #171 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #169 are merged on `main`. PR #169 is merged and the public Render health endpoint returned `200 {"ok":true}` after the merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
+PR #55 through #171 are merged on `main`. PR #171 adds the isolated deterministic movement canonicalizer; its production mode remains `off` by default. The last verified public Render health response before this merge was `200 {"ok":true}`. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`.
 
 ## Current product brick: unified resume and deterministic series passages
 
@@ -83,7 +83,7 @@ PR #55 through #169 are merged on `main`. PR #169 is merged and the public Rende
 4. A failed second pass preserves the best intermediate scenario with its newest diagnostics instead of restoring stale red cards.
 5. Recovery policy version 3 opens this bounded convergence once for eligible existing projects.
 
-## Candidate product brick: deterministic compiler movement rules
+## Current product brick: deterministic compiler movement rules
 
 1. A pure canonicalizer replays hidden movements from the last canonical character position.
 2. It splits incompatible traveler origins, removes redundant legs and adds only an unambiguous final leg.
@@ -98,9 +98,9 @@ PR #55 through #169 are merged on `main`. PR #169 is merged and the public Rende
 
 ## Next verification target
 
-1. Retry scene 21 after deployment and confirm Noa, Kovu, Antonio and Eva all finish at the rooftop destination after the passage and disembark steps.
-2. Run one targeted automatic repair and confirm no non-target scene such as scene 8 changes or receives a new diagnostic.
-3. Confirm any remaining rejected-candidate summary names only genuine unresolved targets while the previous proposal remains intact.
+1. Keep `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off` until controlled synthetic and new-book comparisons are reviewed.
+2. Enable `observe` first and confirm its bounded counters contain no private narrative content and do not change compiled contracts.
+3. Test `enforce` only on controlled new books before considering any production activation; do not migrate historical projects automatically.
 
 ## Protected local state
 
