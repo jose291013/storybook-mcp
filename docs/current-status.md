@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `agent/unified-project-resume-series-passages`
-- Production/main checkpoint: locked adjacent visual continuity and non-destructive illustration retouching
+- Current branch: `main`
+- Production/main checkpoint: unified cross-device project resume and deterministic series passage continuity
 - Current focused checkpoint: e-mail and My creations share the same project-resume handoff; passage endpoint collisions are normalized in code; series scenarios receive the source episode canon
-- Pull requests: #150 through the current product brick merged
+- Pull requests: #150 through #160 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through the current product brick are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
+PR #55 through #160 are merged on `main`. Render health returned HTTP 200 with `{ "ok": true }` after the final product merge. The last verified production modes were `CHILD_SAFETY_MODE=enforce` and `STORY_SENSITIVITY_MODE=observe`; verify Render before changing this operational checkpoint.
 
 ## Current product brick: unified resume and deterministic series passages
 
