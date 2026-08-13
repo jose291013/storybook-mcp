@@ -492,6 +492,70 @@ test("failed automatic repair preserves the previous scenario without opening a 
   assert.equal(runs.patches.at(-1).errorCode, "scenario_auto_repair_unresolved");
 });
 
+test("automatic repair checkpoints a strictly improved candidate with its latest diagnostics", async () => {
+  const previousScenario = {
+    title: "Scénario ancien",
+    fingerprint: "legacy",
+    revision: 2,
+    clarifications: [],
+    scenes: [{ sceneNumber: 21, action: "Ancien trajet" }],
+  };
+  const projects = fakeProjects(projectFixture({
+    previousScenario,
+    previousProjectStatus: "scenario_review",
+    automaticRepair: true,
+  }));
+  const runs = fakeRuns({ requestKind: "automatic_repair" });
+  let calls = 0;
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:automatic-repair:attempt:1",
+    metadata: { requestKind: "automatic_repair" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => {
+      calls += 1;
+      if (calls === 1) return {
+        scenario: {
+          title: "Scénario progressivement réparé",
+          clarifications: [],
+          scenes: [
+            { sceneNumber: 10, action: "À compléter" },
+            { sceneNumber: 15, action: "À compléter" },
+            { sceneNumber: 21, action: "Trajet réparé" },
+          ],
+        },
+        validation: {
+          valid: false,
+          issues: ["scene-10: incomplete", "scene-15: incomplete"],
+          diagnostics: [
+            { code: "incomplete", sceneNumber: 10, explanation: "Missing consequence." },
+            { code: "incomplete", sceneNumber: 15, explanation: "Missing connection." },
+          ],
+        },
+        repairProgress: {
+          improved: true,
+          previousIssueCount: 4,
+          issueCount: 2,
+          summary: { issueCount: 2, sceneNumbers: [10, 15], diagnostics: [] },
+        },
+      };
+      throw Object.assign(new Error("Provider unavailable"), { status: 500 });
+    },
+  });
+
+  const failed = projects.current();
+  assert.equal(calls, 2);
+  assert.equal(failed.continuitySnapshot.storyScenario.title, "Scénario progressivement réparé");
+  assert.equal(failed.continuitySnapshot.storyScenario.scenes.at(-1).action, "Trajet réparé");
+  assert.deepEqual(failed.continuitySnapshot.storyScenario.validation.sceneNumbers, [10, 15]);
+  assert.deepEqual(failed.continuitySnapshot.storyScenarioGeneration.automaticRepairFailure.sceneNumbers, [10, 15]);
+});
+
 test("canonical failure stores only private bounded diagnostics in run metadata", async () => {
   const projects = fakeProjects(projectFixture());
   const runs = fakeRuns({

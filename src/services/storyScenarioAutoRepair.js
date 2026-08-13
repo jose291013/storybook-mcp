@@ -133,3 +133,33 @@ export function storyScenarioAutomaticRepairFailureSummary(canonicalDiagnostics 
     ...(semanticSummary?.diagnostics?.length ? { diagnostics: semanticSummary.diagnostics } : {}),
   };
 }
+
+export function storyScenarioRepairProgress(previousValidation = {}, candidateValidation = {}) {
+  const previous = summarizeStoryScenarioValidation(previousValidation);
+  const candidate = summarizeStoryScenarioValidation(candidateValidation);
+  const previousCoordinates = new Set(previous.sceneNumbers.map(Number));
+  const candidateCoordinates = new Set(candidate.sceneNumbers.map(Number));
+  const resolvedSceneNumbers = [...previousCoordinates]
+    .filter((number) => !candidateCoordinates.has(number))
+    .sort((left, right) => left - right);
+  const introducedSceneNumbers = [...candidateCoordinates]
+    .filter((number) => !previousCoordinates.has(number))
+    .sort((left, right) => left - right);
+  const remainingPreviousSceneNumbers = [...previousCoordinates]
+    .filter((number) => candidateCoordinates.has(number))
+    .sort((left, right) => left - right);
+  const improved = candidate.issueCount < previous.issueCount
+    || (resolvedSceneNumbers.length > 0
+      && remainingPreviousSceneNumbers.length < previousCoordinates.size);
+  return {
+    version: 1,
+    improved,
+    previousIssueCount: previous.issueCount,
+    issueCount: candidate.issueCount,
+    resolvedSceneNumbers,
+    introducedSceneNumbers,
+    remainingPreviousSceneNumbers,
+    validation: candidateValidation,
+    summary: candidate,
+  };
+}

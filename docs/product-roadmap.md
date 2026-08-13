@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Progressive bounded scenario-repair checkpoint
+
+Automatic scenario repair now converges monotonically instead of restarting from the last creator-visible failure. The orchestrator compares bounded validation coordinates after each targeted pass. A candidate becomes the new private checkpoint when it strictly reduces the issue count or resolves at least one previously flagged scene. Findings newly revealed on structurally unchanged non-target scenes are treated as the next audit frontier, not as a rewrite regression. A second and final targeted pass receives only those current findings and uses distinct provider checkpoint keys. If it succeeds, the scenario is published normally; if it fails or regresses on the current targets, no third model call is allowed.
+
+When the bounded convergence stops after a measurable improvement, the best intermediate scenario replaces the stale invalid proposal with `needs_revision` status and the latest creator-safe diagnostics. Thus a repaired scene 21 remains repaired while the interface moves on to genuine findings in scenes 10 and 15. The previous scenario is still retained when no measurable improvement occurred. Recovery policy version 3 grants one migration attempt to eligible open projects exhausted under the earlier non-progressive policy.
+
 ## Canonical per-character movement-origin checkpoint
 
 The character location ledger is authoritative for the origin of every hidden movement. Before a scene is validated, Calitiki replays its explicit movements in order, replaces stale model-written origins with each traveler's last canonical position, removes a redundant leg when that traveler is already at its destination, and splits a shared movement when its travelers actually begin in different places. Passage semantics are retained only for the compatible focal route; unrelated incoming legs become ordinary or join travel without borrowing the passage mechanism. The creator's visible action and location remain unchanged.

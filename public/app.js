@@ -888,7 +888,7 @@ function automaticRepairFailureFromProject(project) {
       && failure.categories.every((category) => [
         "passage", "progression", "repetition", "emotion", "cast", "travel", "incomplete",
       ].includes(category))
-      && Number(generation?.request?.automaticRepairRecoveryVersion || 0) < 2,
+      && Number(generation?.request?.automaticRepairRecoveryVersion || 0) < 3,
   };
   // A legacy red proposal may receive one recovery under the new publication
   // gate. Do not mix the rejected replacement's findings into the preserved

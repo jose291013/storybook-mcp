@@ -140,7 +140,7 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
       && activeGeneration?.status === "failed"
       && activeGeneration?.request?.automaticRepair === true
       && activeGeneration?.errorCode === "scenario_auto_repair_unresolved"
-      && recoveryVersion < 2
+      && recoveryVersion < 3
       && recoveryCategories.length > 0
       && recoveryCategories.every((category) => [
         "passage", "progression", "repetition", "emotion", "cast", "travel", "incomplete",
@@ -235,7 +235,7 @@ async function enqueueStoryScenario(req, res, { automaticRepair = false } = {}) 
       safety.contract,
       retrying,
       automaticRepairAssessment
-        ? { ...automaticRepairAssessment, recoveryVersion: boundedPublicationGateRecovery ? 2 : 0 }
+        ? { ...automaticRepairAssessment, recoveryVersion: boundedPublicationGateRecovery ? 3 : 0 }
         : null,
     );
     const technicalAttempt = retrying

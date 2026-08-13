@@ -10,7 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
 - Production/main checkpoint: canonical per-character movement origins before final arrival
-- Current focused checkpoint: canonical per-character movement origins before final arrival
+- Current focused checkpoint: progressive bounded automatic-repair convergence
 - Pull requests: #150 through #167 merged
 - WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -75,10 +75,18 @@ PR #55 through #167 are merged on `main`. PR #167 is merged and the public Rende
 3. A redundant movement is removed when a traveler is already at its destination.
 4. The final-arrival normalizer then completes the remaining local leg without changing the creator-visible scene.
 
+## Candidate product brick: progressive repair convergence
+
+1. Each automatic-repair result is compared with the prior bounded validation set.
+2. Only a strictly improved candidate becomes the next private checkpoint.
+3. One final targeted pass receives only the remaining current scenes and uses distinct provider checkpoint ids.
+4. A failed second pass preserves the best intermediate scenario with its newest diagnostics instead of restoring stale red cards.
+5. Recovery policy version 3 opens this bounded convergence once for eligible existing projects.
+
 ## Verification
 
-- Focused scenario, retry, publication-gate and worker tests: 86/86 passing.
-- Complete `npm test`: 452/452 passing.
+- Focused scenario, retry, publication-gate and worker tests: 88/88 passing.
+- Complete `npm test`: 454/454 passing.
 - `git diff --check`: passing.
 
 ## Next verification target
