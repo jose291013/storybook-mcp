@@ -6,7 +6,6 @@ import { projectStore } from "./projectStore.js";
 import { notifyPreviewMilestone } from "./previewNotification.js";
 import { generateValidatedScenario } from "./storyScenarioGeneration.js";
 import {
-  summarizeStoryScenarioValidation,
   storyScenarioSnapshot,
 } from "./storyScenario.js";
 import { storySensitivityContract } from "./storySensitivity.js";
@@ -78,6 +77,12 @@ function safeTechnicalError(error) {
     return {
       code: "scenario_contract_invalid",
       message: "The scenario contract could not be finalized internally. Retry is available.",
+    };
+  }
+  if (error?.code === "scenario_quality_gate_unresolved") {
+    return {
+      code: "scenario_quality_gate_unresolved",
+      message: "The scenario did not pass Calitiki's final internal checks. The proposal stayed private and a free retry is available.",
     };
   }
   if (error?.code === "scenario_background_timeout"
@@ -230,6 +235,12 @@ async function completeScenario({
   canonicalCandidateEvidence,
   notifyMilestone,
 }) {
+  if (!validation?.valid) {
+    const error = new Error("Only a fully validated scenario may be published for creator review.");
+    error.code = "scenario_quality_gate_unresolved";
+    error.scenarioValidation = validation;
+    throw error;
+  }
   const latest = await projects.get(project.id);
   const previous = storyScenarioSnapshot(latest);
   const generation = scenarioGenerationSnapshot(latest);
@@ -237,15 +248,11 @@ async function completeScenario({
     throw new Error("Scenario generation checkpoint changed before completion");
   }
   const createdAt = now();
-  const validationSummary = validation.valid
-    ? { ...validation, version: 2, diagnostics: [] }
-    : summarizeStoryScenarioValidation(validation);
+  const validationSummary = { ...validation, version: 2, diagnostics: [] };
   const storedScenario = {
     ...scenario,
     fingerprint: generation.fingerprint,
-    status: validation.valid
-      ? (scenario.clarifications.length ? "needs_clarification" : "proposed")
-      : "needs_revision",
+    status: scenario.clarifications.length ? "needs_clarification" : "proposed",
     revision: Number(previous?.revision || 0) + 1,
     validation: validationSummary,
     createdAt,
@@ -265,11 +272,11 @@ async function completeScenario({
         startedAt: previous?.createdAt || createdAt,
       },
       storyScenario: storedScenario,
-      narrativeV2Candidate: validation.valid ? canonicalCandidateEvidence : null,
+      narrativeV2Candidate: canonicalCandidateEvidence,
       storyScenarioGeneration: {
         ...generation,
         status: "completed",
-        phase: validation.valid ? "completed" : "needs_revision",
+        phase: "completed",
         retryAvailable: false,
         completedAt: createdAt,
         updatedAt: createdAt,
@@ -279,7 +286,7 @@ async function completeScenario({
   });
   await runs.updateRun(run.id, {
     status: "completed",
-    currentStep: validation.valid ? "scenario:completed" : "scenario:needs_revision",
+    currentStep: "scenario:completed",
     errorCode: "",
     errorMessage: "",
     completedAt: createdAt,
@@ -296,8 +303,8 @@ async function completeScenario({
   console.info("[story-scenario] completed", JSON.stringify({
     runId: run.id,
     projectId: project.id,
-    valid: validation.valid,
-    issueCount: validation.valid ? 0 : validation.issues.length,
+    valid: true,
+    issueCount: 0,
   }));
   return storedScenario;
 }
@@ -499,10 +506,12 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       throw error;
     }
     const { scenario, validation, canonicalCandidateEvidence } = generated;
-    if (automaticRepair && !validation.valid) {
-      const error = new Error("The automatic scenario repair did not pass its final audit.");
-      error.code = "scenario_auto_repair_unresolved";
-      error.noTechnicalRetry = true;
+    if (!validation.valid) {
+      const error = new Error("The scenario candidate did not pass its final internal audit.");
+      error.code = automaticRepair
+        ? "scenario_auto_repair_unresolved"
+        : "scenario_quality_gate_unresolved";
+      if (automaticRepair) error.noTechnicalRetry = true;
       error.scenarioValidation = validation;
       throw error;
     }

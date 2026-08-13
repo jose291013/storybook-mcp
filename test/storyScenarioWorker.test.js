@@ -187,6 +187,78 @@ test("completed scenario sends one requested email milestone and persists its de
   );
 });
 
+test("an unvalidated first proposal stays quarantined and exposes one free retry", async () => {
+  const projects = fakeProjects(projectFixture());
+  const runs = fakeRuns({ requestKind: "initial" });
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:editor:attempt:1",
+    metadata: { requestKind: "initial" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => ({
+      scenario: {
+        title: "Private rejected candidate",
+        summary: "Must never reach creator review.",
+        clarifications: [],
+        scenes: [{ sceneNumber: 15 }],
+      },
+      validation: {
+        valid: false,
+        issues: ["scene-15: family_connection_missing: private finding"],
+        diagnostics: [{ code: "family_connection_missing", sceneNumber: 15 }],
+      },
+    }),
+  });
+
+  const failed = projects.current();
+  assert.equal(failed.status, "scenario_generation_failed");
+  assert.equal(failed.continuitySnapshot.storyScenario, undefined);
+  assert.equal(failed.continuitySnapshot.storyScenarioGeneration.errorCode, "scenario_quality_gate_unresolved");
+  assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
+  assert.equal(JSON.stringify(failed).includes("Private rejected candidate"), false);
+  assert.equal(runs.patches.at(-1).errorCode, "scenario_quality_gate_unresolved");
+});
+
+test("an unvalidated revision preserves the previous reviewable scenario", async () => {
+  const previousScenario = {
+    title: "Validated previous scenario",
+    fingerprint: "legacy",
+    revision: 2,
+    clarifications: [],
+  };
+  const projects = fakeProjects(projectFixture({
+    previousScenario,
+    previousProjectStatus: "scenario_review",
+  }));
+  const runs = fakeRuns({ requestKind: "revision" });
+  await processStoryScenarioRun({
+    id: "run-1",
+    projectId: "project-1",
+    currentStep: "scenario:editor:attempt:1",
+    metadata: { requestKind: "revision" },
+  }, {
+    projects,
+    runs,
+    workerId: "worker-1",
+    heartbeatMs: 60000,
+    generate: async () => ({
+      scenario: { title: "Rejected replacement", clarifications: [], scenes: [] },
+      validation: { valid: false, issues: ["semantic contradiction"] },
+    }),
+  });
+
+  const failed = projects.current();
+  assert.equal(failed.status, "scenario_review");
+  assert.equal(failed.continuitySnapshot.storyScenario.title, previousScenario.title);
+  assert.equal(JSON.stringify(failed).includes("Rejected replacement"), false);
+  assert.equal(failed.continuitySnapshot.storyScenarioGeneration.retryAvailable, true);
+});
+
 test("durable scenario worker stores only provider response checkpoints in run metadata", async () => {
   const projects = fakeProjects(projectFixture());
   const runs = fakeRuns({ requestKind: "initial" });

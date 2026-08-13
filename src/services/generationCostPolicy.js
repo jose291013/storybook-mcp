@@ -13,7 +13,11 @@ export function generationCostPolicy() {
     scenario: {
       architectCalls: 1,
       editorCalls: 1,
+      // Mechanical compilation and semantic correction are separate bounded
+      // phases. A structural normalization must never consume the editor's
+      // only chance to correct a coherent but narratively inconsistent draft.
       maximumRepairCalls: 1,
+      maximumEditorialRepairCalls: 1,
       structuralRepairCalls: 1,
       editorialRepairCalls: 1,
       finalAuditCalls: 1,

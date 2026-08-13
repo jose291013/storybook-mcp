@@ -60,13 +60,14 @@ test("a structural repair never consumes the independent editorial repair", asyn
   assert.equal(result.scenario.revision, "audited");
 });
 
-test("one shared repair budget prevents structural and editorial repair cascades", async () => {
+test("the publication gate reserves an editorial repair after mechanical repair", async () => {
   const calls = [];
   const result = await runScenarioQualityDialogue({
     initialScenario: { revision: "architect" },
     initialValidation: { valid: false, issues: ["mechanical contradiction"] },
     policy,
     repairBudget: { remaining: 1 },
+    editorialRepairBudget: { remaining: 1 },
     repairStructural: async () => {
       calls.push("structural-repair");
       return {
@@ -75,19 +76,33 @@ test("one shared repair budget prevents structural and editorial repair cascades
         repairDirectives: [],
       };
     },
-    auditEditorial: async ({ scenario }) => {
+    auditEditorial: async ({ scenario, final }) => {
       calls.push("editor");
+      if (final) {
+        return {
+          scenario: { revision: "audited" },
+          validation: { valid: true, issues: [] },
+          repairDirectives: [],
+        };
+      }
       return {
         scenario,
         validation: { valid: false, issues: ["semantic contradiction"] },
         repairDirectives: [{ code: "semantic_repair" }],
       };
     },
-    repairEditorial: async () => assert.fail("the shared budget is exhausted"),
+    repairEditorial: async () => {
+      calls.push("editorial-repair");
+      return {
+        scenario: { revision: "editorially-repaired" },
+        validation: { valid: true, issues: [] },
+        repairDirectives: [],
+      };
+    },
   });
 
-  assert.deepEqual(calls, ["structural-repair", "editor"]);
-  assert.equal(result.validation.valid, false);
+  assert.deepEqual(calls, ["structural-repair", "editor", "editorial-repair", "editor"]);
+  assert.equal(result.validation.valid, true);
 });
 
 test("the canonical contract receives the shared repair before editorial review", async () => {

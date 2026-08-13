@@ -44,6 +44,7 @@ export async function runScenarioQualityDialogue({
   repairEditorial,
   beforeEditorial = null,
   repairBudget = null,
+  editorialRepairBudget = null,
 }) {
   let scenario = initialScenario;
   let validation = initialValidation;
@@ -77,22 +78,32 @@ export async function runScenarioQualityDialogue({
     });
     scenario = beforeEditorialResult?.scenario || scenario;
     validation = beforeEditorialResult?.validation || validation;
+    repairDirectives = beforeEditorialResult?.semanticRepairDirectives || repairDirectives;
   }
 
-  if (!validation.valid || beforeEditorialResult?.skipEditorial || policy.editorCalls < 1) {
+  const semanticAuditAlreadyRan = beforeEditorialResult?.semanticAuditRejected === true;
+  if (!validation.valid && !semanticAuditAlreadyRan) {
     return { scenario, validation, beforeEditorialResult };
   }
-
-  editorCalls += 1;
-  ({ scenario, validation, repairDirectives = [] } = await auditEditorial({
-    scenario,
-    validation,
-    attempt: editorCalls,
-    final: false,
-  }));
+  if (!semanticAuditAlreadyRan) {
+    if (beforeEditorialResult?.skipEditorial || policy.editorCalls < 1) {
+      return { scenario, validation, beforeEditorialResult };
+    }
+    editorCalls += 1;
+    ({ scenario, validation, repairDirectives = [] } = await auditEditorial({
+      scenario,
+      validation,
+      attempt: editorCalls,
+      final: false,
+    }));
+  } else {
+    // The canonical gate's final audit is the first semantic audit. Count it
+    // so the mandatory post-repair audit receives the next stable attempt id.
+    editorCalls += 1;
+  }
 
   while (!validation.valid && editorialRepairCalls < policy.editorialRepairCalls) {
-    if (!consumeRepairBudget(repairBudget)) break;
+    if (!consumeRepairBudget(editorialRepairBudget || repairBudget)) break;
     editorialRepairCalls += 1;
     ({ scenario, validation, repairDirectives = [] } = await repairEditorial({
       scenario,
@@ -140,6 +151,7 @@ export async function runCanonicalCandidateGate({
   const initialIssues = privateCanonicalIssues(candidate);
   let repairAttempted = false;
   let finalAuditAttempted = false;
+  let semanticRepairDirectives = [];
   const repairEnabled = policy.canonicalRepairCalls > 0;
   const repairBudgetAvailable = !repairBudget
     || !Number.isFinite(repairBudget.remaining)
@@ -155,7 +167,10 @@ export async function runCanonicalCandidateGate({
     }));
     if (validation.valid && policy.canonicalFinalAuditCalls > 0) {
       finalAuditAttempted = true;
-      ({ scenario, validation } = await finalAudit({ scenario, validation }));
+      const audited = await finalAudit({ scenario, validation });
+      scenario = audited?.scenario || scenario;
+      validation = audited?.validation || validation;
+      semanticRepairDirectives = audited?.repairDirectives || [];
     }
     candidate = check(scenario);
   }
@@ -167,6 +182,7 @@ export async function runCanonicalCandidateGate({
       repairAttempted,
       finalAuditAttempted,
       semanticAuditRejected: true,
+      semanticRepairDirectives,
     };
   }
   if (!validation.valid || !candidate.valid) {
@@ -275,6 +291,7 @@ export async function generateValidatedScenario({
   const policy = automaticRepair ? {
     ...configuredPolicy,
     maximumRepairCalls: 0,
+    maximumEditorialRepairCalls: 0,
     structuralRepairCalls: 0,
     editorialRepairCalls: 0,
     finalAuditCalls: 0,
@@ -282,6 +299,9 @@ export async function generateValidatedScenario({
     canonicalFinalAuditCalls: 0,
   } : configuredPolicy;
   const repairBudget = { remaining: Number(policy.maximumRepairCalls) };
+  const editorialRepairBudget = {
+    remaining: Number(policy.maximumEditorialRepairCalls),
+  };
   let scenario = null;
   let validation = { valid: false, issues: ["scenario has not been generated"] };
   const normalizeCandidate = (candidate, directives = []) => (
@@ -437,6 +457,7 @@ export async function generateValidatedScenario({
       }
       : null,
     repairBudget,
+    editorialRepairBudget,
   });
   scenario = qualityResult.scenario;
   validation = qualityResult.validation;
