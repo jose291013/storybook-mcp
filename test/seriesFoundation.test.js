@@ -25,6 +25,17 @@ test("a purchased book creates one idempotent editable next-adventure draft", as
     questionnaire: { hero_name: "Noa", age: "6", challenge: "Oser demander de l'aide", dream: "Trouver une étoile" },
     photoRefs: [{ id: "photo-noa", storageKey: "reference-photos/noa.jpg", role: "child", story_role: "hero", name: "Noa" }],
     productConfiguration: { page_count: 32, style_id: "gentle_3d", universe_id: "starry_space" },
+    continuitySnapshot: { storyScenario: {
+      status: "approved",
+      title: "Noa et Luma",
+      characters: [{ name: "Noa", role: "child", storyRole: "hero" }],
+      scenes: [{
+        locationBefore: "la maison",
+        locationAfter: "la station orbitale",
+        transition: { kind: "cross_passage", mechanismId: "portail_stellaire" },
+        characterMovements: [],
+      }],
+    } },
     finalBlueprint: { title: "Noa et Luma" }, previewResult: { jobId: "old-preview" },
   });
   await data.orders.recordPaid({ orderId: "78", projectId: source.id, customerId: customer.id, wooCustomerId: "291013", productType: "ebook", pageCount: 32, orderTotalCents: 892 });
@@ -41,6 +52,8 @@ test("a purchased book creates one idempotent editable next-adventure draft", as
   assert.equal(first.project.finalBlueprint, null);
   assert.equal(first.project.previewResult, null);
   assert.equal(first.project.expiresAt, null);
+  assert.equal(first.project.continuitySnapshot.seriesContext.narrativeCanon.passages[0], "portail_stellaire");
+  assert.deepEqual(first.project.continuitySnapshot.seriesContext.narrativeCanon.locations, ["la maison", "la station orbitale"]);
   const canonicalSource = await data.projects.get(source.id);
   assert.equal(canonicalSource.episodeNumber, 1);
   assert.equal(canonicalSource.seriesId, first.project.seriesId);

@@ -1,6 +1,14 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-12
+Last updated: 2026-08-13
+
+## Unified resume and deterministic series-passage checkpoint
+
+Scenario-ready e-mails and every unfinished-project action in **My creations** now use the same signed `project_resume` destination. Both paths authenticate with the WooCommerce account and restore the exact customer-owned server project; the generic creator callback is no longer used for library cards, so a second device cannot fall back to its empty browser draft.
+
+Before canonical NarrativeBookSpec compilation, the deterministic passage precompiler normalizes a reused mechanism id by its unordered pair of endpoints. A true reverse crossing keeps the same id, while a mistakenly reused id for a different location pair receives a stable derived id and its nearest compatible discovery is aligned. This repair is code-only, immutable with respect to the submitted candidate and consumes no model call. Compiler diagnostics point to the first affected crossing instead of the registry root. A project whose earlier bounded automatic repair ended specifically on this passage ambiguity receives one versioned recovery attempt under the new precompiler; unrelated exhausted repairs remain closed.
+
+Every new series episode freezes a bounded narrative canon from the purchased source episode: canonical characters, universe, established locations and passage ids. The scenario worker also reconstructs this canon from the source project for episodes created before this checkpoint. The architect must preserve these identities while still creating a distinct new plot, and a genuinely new passage must use a new id. No questionnaire prose, generated scene text or private asset is copied into the canon contract.
 
 ## Reader-integrated final review checkpoint
 

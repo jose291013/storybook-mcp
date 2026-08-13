@@ -291,7 +291,7 @@ function passageRegistry(scenes, locationIds, issues, ordinaryReturns) {
       addIssue(
         issues,
         "ambiguous_passage_endpoints",
-        "registries.passages",
+        definition.crossings[0]?.path || "registries.passages",
         `${definition.name} must have exactly two locations derived from an approved crossing.`,
       );
       continue;

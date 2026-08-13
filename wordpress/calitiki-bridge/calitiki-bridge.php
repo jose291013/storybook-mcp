@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.6
+ * Version: 0.7.7
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.6') {
-            update_option(self::VERSION_OPTION, '0.7.6');
+        if (get_option(self::VERSION_OPTION) !== '0.7.7') {
+            update_option(self::VERSION_OPTION, '0.7.7');
             flush_rewrite_rules(false);
         }
     }
@@ -945,7 +945,7 @@ final class Calitiki_Woo_Bridge {
         $payload = self::base64url_encode(wp_json_encode(array(
             'type' => 'woocommerce_auth',
             'projectId' => $project_id,
-            'destination' => 'creator',
+            'destination' => 'project_resume',
             'nonce' => wp_generate_password(24, false, false),
             'exp' => time() + 10 * MINUTE_IN_SECONDS,
         )));

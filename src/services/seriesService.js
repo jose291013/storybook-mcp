@@ -30,6 +30,41 @@ function canonicalMemory(project) {
   };
 }
 
+function sourceNarrativeCanon(project) {
+  const scenario = project?.continuitySnapshot?.storyScenario;
+  if (!scenario || scenario.status !== "approved") return null;
+  const passageIds = [...new Set((scenario.scenes || []).flatMap((scene) => [
+    scene?.transition,
+    ...(scene?.characterMovements || []),
+  ]).filter((event) => ["discover_passage", "cross_passage", "return_travel"].includes(event?.kind))
+    .map((event) => String(event?.mechanismId || "").trim())
+    .filter(Boolean))];
+  return {
+    version: 1,
+    sourceProjectId: project.id,
+    episodeNumber: Number(project.episodeNumber || 1),
+    title: String(scenario.title || project.title || "").slice(0, 200),
+    universeId: project.productConfiguration?.universe_id || project.questionnaire?.universe_id || "",
+    characters: (scenario.characters || []).slice(0, 30).map((character) => ({
+      name: String(character?.name || "").slice(0, 120),
+      role: String(character?.role || "").slice(0, 80),
+      storyRole: String(character?.storyRole || character?.story_role || "").slice(0, 80),
+      relationship: String(character?.relationship || "").slice(0, 120),
+    })).filter((character) => character.name),
+    locations: [...new Set((scenario.scenes || []).flatMap((scene) => [
+      String(scene?.locationBefore || "").trim(),
+      String(scene?.locationAfter || "").trim(),
+    ]).filter(Boolean))].slice(0, 40),
+    passages: passageIds.slice(0, 20),
+  };
+}
+
+export function seriesScenarioContract(project = {}) {
+  return project?.continuitySnapshot?.seriesContext?.narrativeCanon
+    || sourceNarrativeCanon(project)
+    || null;
+}
+
 function characterCanon(photo) {
   return {
     referencePhotoId: photo.id || null,
@@ -110,6 +145,7 @@ export async function createNextAdventure({ sourceProject, stores = {} }) {
         storyRole: character.storyRole,
         relationship: character.canonData?.relationship || "",
       })),
+      narrativeCanon: sourceNarrativeCanon(sourceProject),
     },
   };
   await activeStores.series.addFact({

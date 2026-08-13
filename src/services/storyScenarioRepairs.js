@@ -106,6 +106,80 @@ function passageEventSignature(event) {
   ].join("::");
 }
 
+function endpointPair(from, to) {
+  const endpoints = [key(from), key(to)].filter(Boolean);
+  if (endpoints.length !== 2 || endpoints[0] === endpoints[1]) return null;
+  return {
+    key: [...endpoints].sort().join("::"),
+    from: text(from),
+    to: text(to),
+  };
+}
+
+function splitPassageId(baseId, pair, ordinal) {
+  if (ordinal === 0) return baseId;
+  const endpoints = [passageId(pair.from), passageId(pair.to)].filter(Boolean).sort();
+  return `${baseId}__${endpoints.join("__")}`.slice(0, 160);
+}
+
+export function normalizeStoryScenarioPassageEndpoints(input = {}) {
+  const scenario = structuredClone(input);
+  const scenes = list(scenario?.scenes);
+  const records = [];
+  const ordinaryReturns = ordinaryReturnEvents(scenes);
+  for (const scene of scenes) {
+    const events = [
+      { event: scene?.transition, source: "transition" },
+      ...list(scene?.characterMovements).map((event) => ({ event, source: "movement" })),
+    ];
+    for (const { event, source } of events) {
+      if (!event || !["discover_passage", "cross_passage", "return_travel"].includes(event.kind)) continue;
+      if (event.kind === "return_travel" && ordinaryReturns.has(passageEventSignature(event))) continue;
+      const baseId = passageId(event.mechanismId, event.mechanism);
+      if (!baseId) continue;
+      const from = text(event.from || (source === "transition" ? scene.locationBefore : ""));
+      const to = text(event.to || (source === "transition" ? scene.locationAfter : ""));
+      records.push({ scene, event, baseId, pair: endpointPair(from, to), from });
+    }
+  }
+
+  const groups = new Map();
+  for (const record of records) {
+    const group = groups.get(record.baseId) || [];
+    group.push(record);
+    groups.set(record.baseId, group);
+  }
+  for (const [baseId, group] of groups) {
+    const crossingPairs = [];
+    for (const record of group.filter((item) => item.event.kind !== "discover_passage" && item.pair)) {
+      if (!crossingPairs.some((pair) => pair.key === record.pair.key)) crossingPairs.push(record.pair);
+    }
+    if (crossingPairs.length <= 1) continue;
+    const idsByPair = new Map(crossingPairs.map((pair, index) => [
+      pair.key,
+      splitPassageId(baseId, pair, index),
+    ]));
+    for (const record of group) {
+      if (record.pair && record.event.kind !== "discover_passage") {
+        record.event.mechanismId = idsByPair.get(record.pair.key);
+        continue;
+      }
+      if (record.event.kind !== "discover_passage") continue;
+      const laterPair = group
+        .filter((candidate) => (
+          candidate.event.kind !== "discover_passage"
+          && candidate.pair
+          && Number(candidate.scene?.sceneNumber || 0) > Number(record.scene?.sceneNumber || 0)
+          && key(candidate.pair.from) === key(record.from)
+        ))
+        .sort((left, right) => Number(left.scene?.sceneNumber || 0) - Number(right.scene?.sceneNumber || 0))[0]
+        ?.pair;
+      if (laterPair) record.event.mechanismId = idsByPair.get(laterPair.key);
+    }
+  }
+  return scenario;
+}
+
 function ordinaryReturnEvents(scenes) {
   const routes = [];
   const returns = new Set();
@@ -331,7 +405,7 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
 }
 
 export function precompileStoryScenarioPassageLifecycles(input = {}, { language = "FR" } = {}) {
-  const scenario = structuredClone(input);
+  const scenario = normalizeStoryScenarioPassageEndpoints(input);
   const scenes = list(scenario?.scenes);
   const directives = undiscoveredPassageCrossings(scenes)
     .map((crossing) => passageRepairDirective({

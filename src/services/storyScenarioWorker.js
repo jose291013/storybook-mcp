@@ -17,6 +17,7 @@ import {
   compileNarrativeV2Candidate,
 } from "./narrativeV2CandidateGate.js";
 import { storyScenarioAutomaticRepairFailureSummary } from "./storyScenarioAutoRepair.js";
+import { seriesScenarioContract } from "./seriesService.js";
 
 const WORKER_KIND = "story_scenario";
 const DEFAULT_LEASE_MS = 120000;
@@ -423,6 +424,11 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       questionnaire: project.questionnaire,
       photos: project.photoRefs,
     });
+    let seriesContract = seriesScenarioContract(project);
+    if (!seriesContract && project.sourceProjectId) {
+      const sourceProject = await projects.get(project.sourceProjectId).catch(() => null);
+      seriesContract = seriesScenarioContract(sourceProject);
+    }
     if (previewRequestFingerprint(normalized) !== generation.fingerprint) {
       throw new Error("Scenario generation request no longer matches the project");
     }
@@ -471,6 +477,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         sensitivityContract: storySensitivityContract(
           project.questionnaire?.story_sensitivity_profile,
         ),
+        seriesContract,
         automaticRepair,
         automaticRepairPlan: request.automaticRepairPlan || null,
         onStep,
