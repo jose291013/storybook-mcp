@@ -77,6 +77,7 @@ router.get("/projects/:id/narration", async (req, res) => {
       freeDeviceVoice: true,
       nextAction,
       hasActiveNarration: Boolean(active),
+      readerUrl: active ? `/interactive-reader/?project=${encodeURIComponent(owned.project.id)}` : "",
       aiNarration: record ? { status: record.fulfillmentStatus, paymentStatus: record.paymentStatus, voiceId: record.configuration?.voiceId, styleId: record.configuration?.styleId, error: record.fulfillmentStatus === "failed" ? record.deliveryError : "" } : null,
       catalog: localizedNarrationCatalog(language),
       disclosure: "La voix proposée est générée par une intelligence artificielle.",

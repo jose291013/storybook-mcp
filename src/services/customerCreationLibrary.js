@@ -28,8 +28,15 @@ function pageCount(project) {
   );
 }
 
-export function customerCreationSummary(project, { paidPurchase = project?.status === "purchased" } = {}) {
+export function customerCreationSummary(project, {
+  paidPurchase = project?.status === "purchased",
+  latestNarration = null,
+  activeNarration = null,
+} = {}) {
   if (!project || !LIBRARY_STATUSES.has(project.status)) return null;
+  const narrationStatus = latestNarration?.paymentStatus === "paid"
+    ? String(latestNarration.fulfillmentStatus || "")
+    : "";
   return {
     id: String(project.id),
     title: String(project.finalBlueprint?.cover?.title || project.continuitySnapshot?.storyScenario?.title || project.title || project.questionnaire?.hero_name || "Calitiki"),
@@ -42,6 +49,9 @@ export function customerCreationSummary(project, { paidPurchase = project?.statu
     deletable: !paidPurchase,
     technicalRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalRetryExhausted: technicalPreviewRetryExhausted(project),
+    narrationStatus,
+    narrationReady: activeNarration?.paymentStatus === "paid"
+      && activeNarration?.fulfillmentStatus === "ready",
   };
 }
 
@@ -49,20 +59,30 @@ export async function listCustomerCreations(identity, store = projectStore, orde
   const projects = await store.listForCustomer(identity);
   const authoritativePaid = Array.isArray(paidProjectIds) ? new Set(paidProjectIds.map(String)) : null;
   return (await Promise.all(projects.map(async (project) => {
-    if (authoritativePaid) {
-      return customerCreationSummary(project, { paidPurchase: authoritativePaid.has(project.id) });
-    }
-    if (project.status !== "purchased") return customerCreationSummary(project, { paidPurchase: false });
+    let paidPurchase = authoritativePaid
+      ? authoritativePaid.has(project.id)
+      : project.status === "purchased";
     try {
-      const paidPurchase = await orders.hasPaidBookPurchase({
-        projectId: project.id,
-        customerId: project.customerId,
-      });
-      return customerCreationSummary(project, { paidPurchase });
+      if (!authoritativePaid && project.status === "purchased") {
+        paidPurchase = await orders.hasPaidBookPurchase({
+          projectId: project.id,
+          customerId: project.customerId,
+        });
+      }
+      const canReadNarrations = paidPurchase
+        && typeof orders.findLatestNarration === "function"
+        && typeof orders.findReadyNarration === "function";
+      const [latestNarration, activeNarration] = canReadNarrations
+        ? await Promise.all([
+          orders.findLatestNarration({ projectId: project.id, customerId: project.customerId }),
+          orders.findReadyNarration({ projectId: project.id, customerId: project.customerId }),
+        ])
+        : [null, null];
+      return customerCreationSummary(project, { paidPurchase, latestNarration, activeNarration });
     } catch {
       // A commerce lookup failure must never make a genuinely purchased book
       // deletable. Keep the historical status as the conservative fallback.
-      return customerCreationSummary(project, { paidPurchase: true });
+      return customerCreationSummary(project, { paidPurchase });
     }
   }))).filter(Boolean);
 }
