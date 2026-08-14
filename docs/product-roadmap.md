@@ -2,6 +2,12 @@
 
 Last updated: 2026-08-13
 
+## Illustrated-instant cast and mobility-role checkpoint
+
+Every illustration receives one phase-aware visible cast rather than every physical participant mentioned anywhere in the scene. Start-only departure witnesses, end-only arrivals and throughout characters are projected against the selected before/during/after instant; only declared transition or movement participants are travelers. A local departure witness or arrival greeter never inherits the travelers' universe outfit or conditional equipment merely because they share a scene.
+
+The deterministic NarrativeBookSpec illustration plan labels recurring characters as main actors, travelers or local supporters and uses the same set in image prompting and plan audit. A low-detail vision suspicion that a required character is missing is not exposed as a blocking customer correction until a separate high-detail cast-only confirmation agrees. The confirmation is invoked only for suspected missing-cast findings, fails open for that unconfirmed suspicion and never weakens fusion, duplication, substitution, action, object or physical-environment controls.
+
 ## Private canonical-candidate checkpoint
 
 A scenario rejected by the canonical compiler is preserved only as a private generation candidate together with bounded compiler coordinates and repair directives. It never becomes the creator-visible scenario or series canon. When at least one concrete scene is identified, exactly one free recovery starts from that candidate, exposes only the targeted scene set to the repair agent, restores every unrelated scene and reruns the canonical compiler plus the mandatory semantic editor.

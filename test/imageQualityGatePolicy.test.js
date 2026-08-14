@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import sharp from "sharp";
 import { sceneContractImagePrompt } from "../src/agents/storyScenePlanner.js";
 import {
   blockingSceneContractIssues,
   blockingStyleContinuityIssues,
   classifyVisualIssue,
+  inspectSceneFidelity,
   IllustrationQualityError,
   isImageSafetyRejection,
   isTransientImageGenerationError,
@@ -119,6 +123,38 @@ test("missing required cast and fused identities remain blocking after the final
     "Bastien appears once beside his reflection, which is explicitly required by the scene contract.",
     "The group contains multiple background people.",
   ]), []);
+});
+
+test("a low-detail missing-cast suspicion needs high-detail confirmation", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-cast-qa-"));
+  const imagePath = path.join(directory, "scene.png");
+  await sharp({
+    create: { width: 32, height: 32, channels: 3, background: "#d7f0ff" },
+  }).png().toFile(imagePath);
+  let calls = 0;
+  const client = {
+    responses: {
+      create: async () => {
+        calls += 1;
+        return calls === 1
+          ? { output_text: JSON.stringify({ approved: false, issues: ["Required named character Papa is missing."] }) }
+          : { output_text: JSON.stringify({ confirmed_missing: [] }) };
+      },
+    },
+  };
+  try {
+    const result = await inspectSceneFidelity({
+      imagePath,
+      client,
+      sceneContract: {
+        named_characters: [{ name: "Papa", visual_role: "local departure supporter", action: "waves goodbye" }],
+      },
+    });
+    assert.equal(calls, 2);
+    assert.deepEqual(result, { approved: true, issues: [] });
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("visual QA policy assigns stable codes and reserves automatic repair for high-confidence defects", () => {

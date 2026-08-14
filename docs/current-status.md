@@ -19,6 +19,14 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 PR #55 through #176 are merged on `main`. PR #176 adds the private canonical-candidate checkpoint and retry policy version 5. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
+## Candidate product brick: illustrated-instant cast and mobility roles
+
+1. Illustration cast is filtered by the selected before/during/after phase instead of every physical scene presence.
+2. Movement participants are travelers; departure witnesses and arrival greeters remain local supporters.
+3. Local supporters keep ordinary reference clothing and never inherit traveler outfits or equipment.
+4. A low-detail missing-cast suspicion requires a second high-detail confirmation before it can block the customer.
+5. All other objective visual and identity guardrails remain unchanged.
+
 ## Current focused brick: private canonical-candidate checkpoint
 
 1. A canonical compiler rejection stores its full candidate only in the private durable generation ledger.
@@ -115,8 +123,8 @@ PR #55 through #176 are merged on `main`. PR #176 adds the private canonical-can
 
 ## Verification
 
-- Focused canonical/semantic checkpoint, generation and retry tests: 36/36 passing.
-- Complete `npm test`: 474/474 passing.
+- Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
+- Complete `npm test`: 480/480 passing.
 - `git diff --check`: passing.
 
 ## Next verification target

@@ -419,6 +419,7 @@ export async function inspectSceneFidelity({
   sceneContract,
   pageLabel = "illustration",
   issueScope = [],
+  client = null,
 }) {
   if (!sceneContract) return { approved: true, issues: [] };
   if (process.env.IMAGE_SCENE_QA_ENABLED === "false") return { approved: true, issues: [] };
@@ -450,7 +451,8 @@ ${scopedInstruction}
 SCENE CONTRACT JSON:
 ${JSON.stringify(sceneContract)}
 Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short objective contradiction"]}.`;
-  const response = await getClient().responses.create({
+  const qaClient = client || getClient();
+  const response = await qaClient.responses.create({
     model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
     input: [{ role: "user", content: [
       { type: "input_text", text: instruction },
@@ -460,7 +462,51 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
   });
   const result = parseJson(extractText(response));
   const reportedIssues = Array.isArray(result?.issues) ? result.issues.map(String).filter(Boolean).slice(0, 4) : [];
-  const objectiveIssues = objectiveSceneContractIssues(reportedIssues);
+  let objectiveIssues = objectiveSceneContractIssues(reportedIssues);
+  const suspectedMissingCast = objectiveIssues.filter((issue) => (
+    classifyVisualIssue(issue, { source: "scene" }).code === "required_cast_missing"
+  ));
+  if (suspectedMissingCast.length) {
+    const requiredCast = (Array.isArray(sceneContract?.named_characters)
+      ? sceneContract.named_characters
+      : []).map((character) => ({
+      name: String(character?.name || "").trim(),
+      visual_role: String(character?.visual_role || "visible").trim(),
+      action: String(character?.action || "present in this instant").trim(),
+    })).filter((character) => character.name);
+    let confirmedMissing = [];
+    try {
+      const confirmationSource = await sharp(await fs.readFile(imagePath))
+        .rotate()
+        .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 82 })
+        .toBuffer();
+      const confirmation = await qaClient.responses.create({
+        model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+        input: [{ role: "user", content: [
+          { type: "input_text", text: `A low-detail pass suspected that a required person or animal was missing from one children's-book illustration. Verify only that claim against this higher-detail image.
+Required visible cast for this single illustrated instant:
+${JSON.stringify(requiredCast)}
+Count one complete visible individual for each required entry. Use the declared visual role and action to distinguish people. Do not demand a character who is merely present in another scene phase, and do not infer that a local departure witness boards or wears traveler equipment. If identity, occlusion or scale makes the evidence uncertain, confirm nobody as missing.
+Return only JSON: {"confirmed_missing":["exact required cast name"]}.` },
+          { type: "input_image", image_url: `data:image/jpeg;base64,${confirmationSource.toString("base64")}`, detail: "high" },
+        ] }],
+        max_output_tokens: 220,
+      });
+      const confirmationResult = parseJson(extractText(confirmation));
+      const requiredByKey = new Map(requiredCast.map((character) => [normalizedIssueText(character.name), character.name]));
+      confirmedMissing = (Array.isArray(confirmationResult?.confirmed_missing)
+        ? confirmationResult.confirmed_missing
+        : []).map((name) => requiredByKey.get(normalizedIssueText(name))).filter(Boolean);
+    } catch {
+      // An unconfirmed model suspicion must not become a blocking customer task.
+      confirmedMissing = [];
+    }
+    objectiveIssues = [
+      ...objectiveIssues.filter((issue) => !suspectedMissingCast.includes(issue)),
+      ...[...new Set(confirmedMissing)].map((name) => `Required named character ${name} is missing after high-detail confirmation.`),
+    ];
+  }
   const allowedCodes = new Set([...scopedCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES]);
   const issues = scopedCodes.length
     ? objectiveIssues.filter((issue) => allowedCodes.has(classifyVisualIssue(issue, { source: "scene" }).code))

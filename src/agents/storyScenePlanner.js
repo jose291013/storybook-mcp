@@ -4,6 +4,10 @@ import { aliasesFromSceneContract, compactImageSceneContract, neutralizeImageTex
 import { enrichFamilyAddress } from "../services/characterRelationships.js";
 import { compileStoryPlan } from "../services/storyPlanCompiler.js";
 import { compilePhysicalRenderSnapshot } from "../services/physicalRenderSnapshot.js";
+import {
+  canonicalSceneVisiblePhase,
+  physicalPresencesForVisibleInstant,
+} from "../services/visibleSceneCast.js";
 import { canonicalizeWrittenNames } from "./blueprintFiller.js";
 
 function key(value) {
@@ -107,8 +111,14 @@ export function storyPlanRepairEnvelope({
 
 export function normalizeSceneContract(raw, expected, canonicalCharacters) {
   const rawNamed = list(raw?.named_characters, 10);
+  const approvedScene = expected?.approved_scene || null;
+  const previousScene = expected?.previous_approved_scene || null;
+  const nextScene = expected?.next_approved_scene || null;
+  const visiblePhase = ["before", "during", "after"].includes(key(raw?.causal_frame?.visible_phase))
+    ? key(raw.causal_frame.visible_phase)
+    : canonicalSceneVisiblePhase(approvedScene);
   const approvedPresences = list(expected?.approved_scene?.characterPresences, 15);
-  const approvedPhysical = approvedPresences.filter((presence) => presence?.mode === "physical");
+  const approvedPhysical = physicalPresencesForVisibleInstant(approvedScene, visiblePhase);
   const approvedPhysicalNames = new Set(approvedPhysical.map((presence) => key(presence?.name)));
   const absentCanonicalNames = expected?.approved_scene
     ? canonicalCharacters
@@ -172,17 +182,14 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
   const nonphysicalRules = approvedPresences
     .filter((presence) => presence?.mode !== "physical")
     .map((presence) => `${presence.name} is present only as ${presence.mode}; ${presence.name} must not appear physically, touch anyone, travel or perform a visible action.`);
+  const otherPhaseRules = approvedPresences
+    .filter((presence) => presence?.mode === "physical" && !approvedPhysicalNames.has(key(presence?.name)))
+    .map((presence) => `${presence.name} is physically present only in another phase of this scene; ${presence.name} must not appear in this illustrated instant or receive traveler equipment.`);
   const lockedSubject = suppliedSubject || firstPhysicalName;
   const lockedTarget = key(suppliedTarget) === key(lockedSubject) ? "" : suppliedTarget;
   const approvedSubjectAction = approvedPhysical.find(
     (presence) => key(presence?.name) === key(lockedSubject),
   )?.action;
-  const approvedScene = expected?.approved_scene || null;
-  const previousScene = expected?.previous_approved_scene || null;
-  const nextScene = expected?.next_approved_scene || null;
-  const visiblePhase = ["before", "during", "after"].includes(key(raw?.causal_frame?.visible_phase))
-    ? key(raw.causal_frame.visible_phase)
-    : (approvedScene?.transition?.kind && approvedScene.transition.kind !== "none" ? "during" : "after");
   const visibleLocation = visiblePhase === "before"
     ? approvedScene?.locationBefore
     : visiblePhase === "after"
@@ -227,6 +234,7 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
     forbidden_elements: [...new Set([
       ...list(raw?.forbidden_elements).map(String),
       ...nonphysicalRules,
+      ...otherPhaseRules,
     ])],
     causal_frame: approvedScene ? {
       before: {
