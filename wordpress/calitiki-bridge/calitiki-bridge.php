@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.7
+ * Version: 0.7.8
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.7') {
-            update_option(self::VERSION_OPTION, '0.7.7');
+        if (get_option(self::VERSION_OPTION) !== '0.7.8') {
+            update_option(self::VERSION_OPTION, '0.7.8');
             flush_rewrite_rules(false);
         }
     }
@@ -419,11 +419,15 @@ final class Calitiki_Woo_Bridge {
         $project_payload = self::creation_projects_payload($customer_id, $paid_project_id_list);
         $projects = is_wp_error($project_payload) ? array() : (is_array($project_payload['projects'] ?? null) ? $project_payload['projects'] : array());
         $project_titles = array();
+        $project_summaries = array();
         foreach ($projects as $project) {
             $listed_project_id = sanitize_text_field((string) ($project['id'] ?? ''));
             $listed_project_title = sanitize_text_field((string) ($project['title'] ?? ''));
             if ($listed_project_id && $listed_project_title) {
                 $project_titles[$listed_project_id] = $listed_project_title;
+            }
+            if ($listed_project_id) {
+                $project_summaries[$listed_project_id] = $project;
             }
         }
         if (is_wp_error($project_payload)) {
@@ -515,8 +519,18 @@ final class Calitiki_Woo_Bridge {
                 $item_name = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($item_name, true)));
                 echo '<h3>' . esc_html($item_name) . '</h3><p>' . esc_html(sprintf(__('Commande n°%1$s · %2$d pages', 'calitiki-bridge'), $order->get_order_number(), $pages)) . '</p>';
                 $reader_url = self::interactive_reader_bridge_url($project_id);
+                $narration_summary = is_array($project_summaries[$project_id] ?? null) ? $project_summaries[$project_id] : array();
+                $narration_status = sanitize_key((string) ($narration_summary['narrationStatus'] ?? ''));
+                $narration_ready = !empty($narration_summary['narrationReady']);
+                if ($product_type === 'ebook' && $narration_ready) {
+                    echo '<p class="calitiki-narration-status calitiki-narration-ready">' . esc_html__('Narration IA prête', 'calitiki-bridge') . '</p>';
+                } elseif ($product_type === 'ebook' && in_array($narration_status, array('queued', 'generating'), true)) {
+                    echo '<p class="calitiki-narration-status">' . esc_html__('Narration IA en préparation', 'calitiki-bridge') . '</p>';
+                } elseif ($product_type === 'ebook' && $narration_status === 'failed') {
+                    echo '<p class="calitiki-narration-status calitiki-narration-failed">' . esc_html__('Narration IA à reprendre gratuitement', 'calitiki-bridge') . '</p>';
+                }
                 if ($reader_url) {
-                    echo '<a class="button calitiki-reader-button" href="' . esc_url($reader_url) . '">' . esc_html__('Lire mon livre interactif', 'calitiki-bridge') . '</a>';
+                    echo '<a class="button calitiki-reader-button" href="' . esc_url($reader_url) . '">' . esc_html($narration_ready ? __('Écouter mon livre narré', 'calitiki-bridge') : __('Lire mon livre interactif', 'calitiki-bridge')) . '</a>';
                 }
                 if ($product_type === 'ebook') {
                     $next_adventure_url = self::new_adventure_bridge_url($project_id);
@@ -525,7 +539,12 @@ final class Calitiki_Woo_Bridge {
                     }
                     $narration_url = self::narration_bridge_url($project_id);
                     if ($narration_url) {
-                        echo '<a class="button calitiki-narration-button" href="' . esc_url($narration_url) . '">' . esc_html__('Choisir une narration IA', 'calitiki-bridge') . '</a>';
+                        $narration_label = $narration_ready
+                            ? __('Changer de voix ou de style', 'calitiki-bridge')
+                            : (in_array($narration_status, array('queued', 'generating', 'failed'), true)
+                                ? __('Suivre ma narration IA', 'calitiki-bridge')
+                                : __('Choisir une narration IA', 'calitiki-bridge'));
+                        echo '<a class="button calitiki-narration-button" href="' . esc_url($narration_url) . '">' . esc_html($narration_label) . '</a>';
                     }
                 }
                 $family_share_url = ($product_type === 'ebook' && $download_url) ? self::family_share_bridge_url($project_id) : '';

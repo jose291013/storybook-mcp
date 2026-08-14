@@ -300,7 +300,13 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   assert.equal(customerCreationSummary({ id: "draft", status: "preview_failed" }).deletable, true);
   assert.equal(customerCreationSummary({ id: "paid", status: "purchased" }).deletable, false);
   assert.equal(customerCreationSummary({ id: "orphan", status: "purchased" }, { paidPurchase: false }).deletable, true);
-  assert.match(bridge, /Version: 0\.7\.7/);
+  const narrated = customerCreationSummary({ id: "narrated", status: "purchased" }, {
+    latestNarration: { paymentStatus: "paid", fulfillmentStatus: "ready" },
+    activeNarration: { paymentStatus: "paid", fulfillmentStatus: "ready" },
+  });
+  assert.equal(narrated.narrationStatus, "ready");
+  assert.equal(narrated.narrationReady, true);
+  assert.match(bridge, /Version: 0\.7\.8/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
   assert.match(bridge, /window\.confirm/);

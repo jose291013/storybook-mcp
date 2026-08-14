@@ -9,15 +9,23 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Production/main checkpoint: private canonical-candidate checkpoint (`09c6f97`)
-- Current focused checkpoint: private canonical-candidate checkpoint
-- Pull requests: #150 through #176 merged
-- WordPress Bridge source candidate: `0.7.7`; installed production package last recorded as `0.7.5`
+- Production/main checkpoint: illustrated-instant cast and mobility roles (`fa5a35d`)
+- Current focused checkpoint: narration-ready reader return
+- Pull requests: #150 through #178 merged
+- WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #176 are merged on `main`. PR #176 adds the private canonical-candidate checkpoint and retry policy version 5. The public Render health endpoint returned `200 {"ok":true}` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #178 are merged on `main`. PR #178 adds phase-aware illustrated cast roles and separates travelers from local departure or arrival supporters. The public Render health endpoint returned `200 {"ok":true}` after the preceding production checkpoint. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Candidate product brick: narration-ready reader return
+
+1. The narration-choice page polls a paid narration while it is queued or generating.
+2. A ready active narration exposes a direct authenticated return to the interactive reader.
+3. My creations distinguishes narration ready, generating and failed states on the purchased eBook card.
+4. The reader button becomes an explicit listen action when private narration audio is ready.
+5. Calitiki Bridge 0.7.8 packages this WooCommerce account journey; no new AI request is introduced.
 
 ## Candidate product brick: illustrated-instant cast and mobility roles
 
