@@ -51,6 +51,35 @@ test("illustration contracts are compiled without a second narrative model", () 
   assert.equal(first.render_snapshot.location, "le jardin");
 });
 
+test("illustration roles distinguish travelers from local supporters", () => {
+  const localSpec = structuredClone(spec);
+  localSpec.registries.characters.push({
+    id: "papa",
+    canonicalName: "Papa",
+    relationship: "father",
+    storyRole: "supporter",
+    initialLocationId: localSpec.scenes[0].timeline.locationAfterId,
+    familyAddress: "Papa",
+    visualIdentityId: "",
+    outfitContractId: "",
+  });
+  localSpec.scenes[0].presences.push({
+    characterId: "papa",
+    mode: "physical",
+    phase: localSpec.scenes[0].timeline.visiblePhase,
+    locationId: localSpec.scenes[0].timeline.locationAfterId,
+    action: "waves goodbye and remains at the launch location",
+  });
+  localSpec.scenes[0].illustration.visibleCharacterIds.push("papa");
+  const plan = compileSpecDrivenIllustrationPlan({
+    spec: localSpec,
+    blueprint: blueprintFromSpec(),
+  });
+  const papa = plan.sceneContracts[0].named_characters.find((character) => character.name === "Papa");
+  assert.match(papa.visual_role, /local supporter/);
+  assert.doesNotMatch(papa.visual_role, /traveler$/);
+});
+
 test("visual severity blocks mechanics but keeps preferences repairable", () => {
   const style = visualQualityDisposition({ styleIssues: ["The watercolor is flatter than the cover."] });
   assert.equal(style.severity, "repairable");

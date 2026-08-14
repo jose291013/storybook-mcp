@@ -207,6 +207,37 @@ test("scene contracts lock one visible instant to the approved before during aft
   assert.equal(contract.causal_frame.visible_location, "maison de Bastien");
 });
 
+test("scene normalization excludes a departure witness from the arrival instant", () => {
+  const contract = normalizeSceneContract({
+    causal_frame: { visible_phase: "after" },
+    named_characters: [
+      { name: "Bastien", action: "arrives aboard the spacecraft" },
+      { name: "Paul", action: "stands inside the spacecraft" },
+    ],
+  }, {
+    spread_number: 3,
+    scene_number: 3,
+    text_page_number: 6,
+    image_page_number: 7,
+    approved_scene: {
+      sceneNumber: 3,
+      locationBefore: "launch terrace",
+      locationAfter: "spacecraft cabin",
+      action: "Bastien boards while Paul waves goodbye from the terrace.",
+      transition: { kind: "ordinary_travel", characters: ["Bastien"] },
+      characterMovements: [{ kind: "ordinary_travel", characters: ["Bastien"] }],
+      characterPresences: [
+        { name: "Paul", mode: "physical", phase: "start", action: "waves goodbye" },
+        { name: "Bastien", mode: "physical", phase: "end", action: "arrives aboard" },
+      ],
+      objectStates: [],
+    },
+  }, canonicalCharacters);
+
+  assert.deepEqual(contract.named_characters.map((character) => character.name), ["Bastien"]);
+  assert.ok(contract.forbidden_elements.some((rule) => /Paul.*another phase/iu.test(rule)));
+});
+
 test("a crossing scene may lock its single visible instant inside the approved passage", () => {
   const approvedScene = {
     sceneNumber: 2,

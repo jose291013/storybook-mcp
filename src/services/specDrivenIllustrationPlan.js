@@ -1,7 +1,7 @@
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 4;
-export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_unique_fixed_entities_v1";
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 5;
+export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 
 function byId(entries = []) {
   return new Map(entries.map((entry) => [entry.id, entry]));
@@ -39,6 +39,10 @@ export function compileSpecDrivenIllustrationPlan({
   const textPages = new Map((blueprint?.pages || [])
     .filter((page) => ["text", "opening_text", "closing_text"].includes(page.page_type))
     .map((page) => [Number(page.scene_number), page]));
+  const travelerCharacterIds = new Set(spec.scenes.flatMap((scene) => ([
+    ...scene.movements.flatMap((movement) => movement.travelerCharacterIds || []),
+    ...(scene.transition?.travelerCharacterIds || []),
+  ])));
 
   const sceneContracts = spec.scenes.map((scene) => {
     const imagePage = imagePages.get(scene.sceneNumber);
@@ -50,7 +54,9 @@ export function compileSpecDrivenIllustrationPlan({
         name: nameFor(characters, presence.characterId),
         visual_role: presence.characterId === scene.illustration.mainAction.subjectCharacterId
           ? "main actor"
-          : "visible supporting character",
+          : travelerCharacterIds.has(presence.characterId)
+            ? "visible traveler"
+            : "visible local supporter who remains at the departure or arrival location and does not receive traveler equipment",
         action: presence.action,
       }));
     const mainTarget = objects.get(scene.illustration.mainAction.targetId)?.name

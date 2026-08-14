@@ -2,6 +2,7 @@ import { runAgent } from "../services/agentRunner.js";
 import { loadPrompt } from "../services/loadPrompt.js";
 import { enrichFamilyAddress } from "../services/characterRelationships.js";
 import { compilePhysicalRenderSnapshot } from "../services/physicalRenderSnapshot.js";
+import { physicalPresencesForVisibleInstant } from "../services/visibleSceneCast.js";
 
 function clean(value, maximum = 700) {
   return String(value || "").trim().slice(0, maximum);
@@ -261,7 +262,10 @@ export function deterministicStoryPlanIssues({
       ? speechSegmentsByPage[contract.text_page_number]
       : [];
     const presences = Array.isArray(approvedScene.characterPresences) ? approvedScene.characterPresences : [];
-    const approvedPhysical = presences.filter((presence) => presence?.mode === "physical").map((presence) => key(presence.name)).sort();
+    const approvedPhysical = physicalPresencesForVisibleInstant(
+      approvedScene,
+      contract?.causal_frame?.visible_phase,
+    ).map((presence) => key(presence.name)).sort();
     const contractPhysical = (Array.isArray(contract.named_characters) ? contract.named_characters : []).map((character) => key(character?.name)).filter(Boolean).sort();
     if (approvedPhysical.join("|") !== contractPhysical.join("|")) {
       issues.push({

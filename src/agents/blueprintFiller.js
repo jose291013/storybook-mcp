@@ -6,6 +6,7 @@ import { normalizeBookLanguage } from "../config/bookLanguages.js";
 import { normalizePageCount, normalizeTypography } from "../config/bookOptions.js";
 import { extractBlueprintCandidate } from "../services/extractBlueprintCandidate.js";
 import { normalizeWorldReality } from "../services/worldReality.js";
+import { characterTravelsInScenario } from "../services/visibleSceneCast.js";
 
 function nameKey(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -253,10 +254,13 @@ export function lockBlueprintContinuity(blueprint, {
   const childCanon = characterCanons.find((canon) => canon.role === "child");
   const wardrobePlan = Array.isArray(approvedScenario?.wardrobePlan) ? approvedScenario.wardrobePlan : [];
   const wardrobeFor = (name) => wardrobePlan.find((item) => sameName(item?.characterName, name));
+  const followsAdventureRoute = (name) => !approvedScenario?.scenes?.length
+    || characterTravelsInScenario(approvedScenario, name);
   const canonicalOutfit = (canon, fallback = "") => {
     if (canon?.role === "mascot" || canon?.canon_json?.subject_kind === "animal") return String(canon?.outfit_lock || fallback || "").trim();
     const plan = wardrobeFor(canon?.name);
     if (plan?.preference === "preserve_photo") return String(canon?.outfit_lock || fallback || "").trim();
+    if (plan && !followsAdventureRoute(canon?.name)) return String(canon?.outfit_lock || fallback || "").trim();
     return String(plan?.adventureDescription || (canon?.outfit_selection_explicit ? canon?.outfit_contract : "") || fallback || "").trim();
   };
   if (childCanon?.name) result.hero.name = childCanon.name;
@@ -355,6 +359,7 @@ export function lockBlueprintContinuity(blueprint, {
     if (!hasHumanWardrobe(character.name)) return originalOutfitFor(character.name) || character.outfit_lock;
     const plan = wardrobeFor(character.name);
     if (!plan || plan.preference === "preserve_photo") return originalOutfitFor(character.name) || character.outfit_lock;
+    if (!followsAdventureRoute(character.name)) return originalOutfitFor(character.name) || character.outfit_lock;
     return Number(sceneNumber || 0) >= Number(plan.activationSceneNumber || 1)
       ? (plan.adventureDescription || character.outfit_lock)
       : (originalOutfitFor(character.name) || character.outfit_lock);
@@ -366,7 +371,9 @@ export function lockBlueprintContinuity(blueprint, {
     const coverPlan = wardrobeFor(character.name);
     const coverOutfit = !hasHumanWardrobe(character.name) || coverPlan?.preference === "preserve_photo"
       ? character.outfit_lock
-      : (coverPlan?.adventureDescription || character.outfit_lock);
+      : !followsAdventureRoute(character.name)
+        ? (originalOutfitFor(character.name) || character.outfit_lock)
+        : (coverPlan?.adventureDescription || character.outfit_lock);
     const fixedOutfit = outfitDirective(result.language, character.name, coverOutfit);
     if (result.cover.cast_present.some((name) => sameName(name, character.name))) {
       result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);

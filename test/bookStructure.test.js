@@ -1575,6 +1575,44 @@ test("approved wardrobe changes only from its declared scenario scene", () => {
   assert.equal(preserved.cover.wardrobe_locks[0].outfit, photoOutfit);
 });
 
+test("a departure witness who never travels keeps ordinary clothing", () => {
+  const plan = createPagePlan(24);
+  const blueprint = {
+    hero: { name: "Noa", outfit_lock: "ordinary green dress" },
+    cast: [{ name: "Papa", role: "family", outfit_lock: "ordinary navy shirt" }],
+    cover: { image_prompt: "Noa and Papa at the launch pad", cast_present: ["Noa", "Papa"] },
+    pages: plan.map((page) => ({
+      ...page,
+      text_prompt: page.page_type === "image" ? "" : "text",
+      image_prompt: page.page_type === "image" ? "Noa and Papa at departure" : "",
+      cast_present: page.page_type === "image" ? ["Noa", "Papa"] : [],
+    })),
+  };
+  const result = lockBlueprintContinuity(blueprint, {
+    language: "EN",
+    pageCount: 24,
+    characterCanons: [
+      { name: "Noa", role: "child", outfit_lock: "ordinary green dress", outfit_contract: "silver space suit" },
+      { name: "Papa", role: "family", outfit_lock: "ordinary navy shirt", outfit_contract: "silver space suit" },
+    ],
+    approvedScenario: {
+      wardrobePlan: [
+        { characterName: "Noa", preference: "selected", adventureDescription: "silver space suit", activationSceneNumber: 1 },
+        { characterName: "Papa", preference: "selected", adventureDescription: "silver space suit", activationSceneNumber: 1 },
+      ],
+      scenes: [{
+        sceneNumber: 1,
+        transition: { kind: "ordinary_travel", characters: ["Noa"] },
+        characterMovements: [{ kind: "ordinary_travel", characters: ["Noa"] }],
+      }],
+    },
+  });
+  const departure = result.pages.find((page) => page.page_type === "image" && page.scene_number === 1);
+  assert.equal(departure.wardrobe_locks.find((item) => item.name === "Noa").outfit, "silver space suit");
+  assert.equal(departure.wardrobe_locks.find((item) => item.name === "Papa").outfit, "ordinary navy shirt");
+  assert.equal(result.cover.wardrobe_locks.find((item) => item.name === "Papa").outfit, "ordinary navy shirt");
+});
+
 test("blueprint normalization repairs paired cast contracts, name typos and required side alternation", () => {
   const plan = createPagePlan(24);
   const blueprint = {
