@@ -1,6 +1,22 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-13
+Last updated: 2026-08-15
+
+## Narrative stability matrix checkpoint
+
+The narrative redesign is measured first against a synthetic 108-case matrix:
+all six server-owned universes, all six sellable page counts and FR/ES/EN. The
+matrix contains no customer project, questionnaire, photo or generated book. Its
+local structural inspection performs no model or network call and verifies the
+exact universe contract, normalized language, page count and illustrated-scene
+count for every combination.
+
+Paid model evaluation remains a separate explicit operation. The stability
+benchmark accepts exactly one named matrix case and one named model variant per
+command; it has no bulk or implicit mode. This prevents a routine test or typo
+from launching 108 or 324 paid generations. The matrix establishes the baseline
+for the 99% no-customer-technical-intervention objective before deterministic
+acts, complete universe topology and storyboard-first prose are introduced.
 
 ## Illustrated-instant cast and mobility-role checkpoint
 

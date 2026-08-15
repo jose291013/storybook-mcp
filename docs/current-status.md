@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-14
+Last updated: 2026-08-15
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,7 +8,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/narrative-stability-matrix`
 - Production/main checkpoint: narration-ready reader return (`51df1e2`)
 - Current focused checkpoint: narration-ready reader return
 - Pull requests: #150 through #179 merged
@@ -18,6 +18,13 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 PR #55 through #179 are merged on `main`. PR #178 adds phase-aware illustrated cast roles and separates travelers from local departure or arrival supporters. PR #179 exposes narration completion in My creations and returns a ready customer directly to the narrated interactive reader. The public Render health endpoint returned `200 {"ok":true}` after the preceding production checkpoint. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Current focused brick: narrative stability matrix
+
+1. A synthetic matrix covers 6 universes × 6 sellable page counts × FR/ES/EN, for 108 exact combinations.
+2. Local inspection validates normalization, universe contracts, page plans and illustrated-scene counts without a model or network call.
+3. The optional paid benchmark accepts exactly one named matrix case and one named Sol, Terra or Luna variant; no bulk mode exists.
+4. This is the measurement foundation for deterministic acts, complete universe topology and storyboard-first prose. It changes no customer project or production generation path.
 
 ## Current product brick: narration-ready reader return
 
@@ -132,14 +139,15 @@ PR #55 through #179 are merged on `main`. PR #178 adds phase-aware illustrated c
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 480/480 passing.
+- Complete `npm test`: 484/484 passing.
 - `git diff --check`: passing.
+- Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Generate a new project whose canonical gate rejects one concrete passage scene and confirm a private canonical checkpoint is created.
-2. Confirm its free recovery reports the `canonical-checkpoint` phase and does not rerun the architect.
-3. Confirm an exhausted legacy project without a private checkpoint no longer exposes a misleading retry.
+1. Execute one deliberately selected paid matrix case only after explicit cost authorization.
+2. Use the measured baseline to introduce deterministic act assignment in its own product brick.
+3. Compare first-pass and internal-repair rates after each narrative brick without changing production generation implicitly.
 
 ## Protected local state
 
