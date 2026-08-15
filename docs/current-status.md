@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/whole-book-visual-rhythm`
-- Production/main checkpoint: deterministic visual variety (`564f645`)
-- Current focused checkpoint: whole-book visual rhythm
-- Pull requests: #150 through #188 merged
+- Current branch: `codex/deterministic-scene-density`
+- Production/main checkpoint: whole-book visual rhythm (`906a5a8`)
+- Current focused checkpoint: deterministic scene density
+- Pull requests: #150 through #189 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #188 are merged on `main`. PR #188 signs a deterministic, non-repeating composition into every new Narrative V2 visual beat. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #189 are merged on `main`. PR #189 validates the complete visual rhythm, including scale variety, attempt energy, one climax peak and a calm return. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: whole-book visual rhythm
+## Current focused brick: deterministic scene density
+
+1. Every beat receives an age-bounded visual hierarchy with one main action and at most two or three high-salience entities.
+2. Canonical supporting cast and required elements remain complete but visually subordinate; visible object states become low-salience context.
+3. Non-canonical decorative accents are limited from one for ages 1-3 to five for ages 12-14.
+4. The hierarchy never removes a required person, object or location and explicitly forbids decorative people, duplicate landmarks and a second focal action.
+5. The density plan is signed, validated and sent through the existing image prompt without another model call.
+
+## Product brick: whole-book visual rhythm
 
 1. Every composition carries a bounded scale family and an energy level from 1 to 5.
 2. A complete book must use at least three scale families and cannot repeat one family across four consecutive scenes.
@@ -211,14 +219,14 @@ PR #55 through #188 are merged on `main`. PR #188 signs a deterministic, non-rep
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 513/513 passing.
+- Complete `npm test`: 515/515 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge whole-book visual rhythm after its clean full-suite review.
-2. Add deterministic scene-density limits so exceptional detail never obscures the focal action.
+1. Publish and merge deterministic scene density after its clean full-suite review.
+2. Add a preflight that proves every image prompt is a lossless projection of its signed beat.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
