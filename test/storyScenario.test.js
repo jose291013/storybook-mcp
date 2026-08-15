@@ -15,6 +15,7 @@ import {
   normalizeStoryScenarioPassageEndpoints,
   precompileStoryScenarioPassageLifecycles,
   synchronizeStoryScenarioPassageCoordinates,
+  synchronizeStoryScenarioPassageLifecycleCoordinates,
   validateStoryScenarioPassageLifecycles,
 } from "../src/services/storyScenarioRepairs.js";
 import { scenarioGenerationRoute } from "../src/services/storyScenarioGeneration.js";
@@ -568,6 +569,137 @@ test("passage preflight does not infer an inner passage from a multi-step scene 
   const synchronized = synchronizeStoryScenarioPassageCoordinates(scenario);
   assert.equal(synchronized.scenes[0].transition.from, "");
   assert.equal(synchronized.scenes[0].transition.to, "");
+});
+
+test("passage lifecycle completes a multi-step focal route from one stable global pair", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 3,
+    locationBefore: "maison",
+    locationAfter: "jardin",
+    transition: {
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "",
+      to: "",
+      characters: ["Noa"],
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "ordinary_travel",
+      from: "maison",
+      to: "atelier",
+      characters: ["Noa"],
+    }, {
+      id: "movement-2",
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "",
+      to: "",
+      characters: ["Noa"],
+    }],
+  }, {
+    sceneNumber: 9,
+    locationBefore: "jardin",
+    locationAfter: "atelier",
+    transition: {
+      kind: "return_travel",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "jardin",
+      to: "atelier",
+      characters: ["Noa"],
+    },
+    characterMovements: [],
+  }] };
+
+  const repaired = synchronizeStoryScenarioPassageLifecycleCoordinates(scenario);
+  assert.equal(repaired.scenes[0].transition.from, "atelier");
+  assert.equal(repaired.scenes[0].transition.to, "jardin");
+  assert.equal(repaired.scenes[0].characterMovements[1].from, "atelier");
+  assert.equal(repaired.scenes[0].characterMovements[1].to, "jardin");
+  assert.equal(scenario.scenes[0].transition.from, "", "the source remains immutable");
+});
+
+test("passage lifecycle orients a reverse inner leg from the final scene location", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 3,
+    locationBefore: "atelier",
+    locationAfter: "jardin",
+    transition: {
+      kind: "cross_passage",
+      mechanismId: "porte_lumineuse",
+      from: "atelier",
+      to: "jardin",
+    },
+  }, {
+    sceneNumber: 10,
+    locationBefore: "jardin",
+    locationAfter: "maison",
+    transition: {
+      kind: "return_travel",
+      mechanismId: "porte_lumineuse",
+      from: "",
+      to: "",
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "ordinary_travel",
+      from: "atelier",
+      to: "maison",
+      characters: ["Noa"],
+    }],
+  }] };
+
+  const repaired = synchronizeStoryScenarioPassageLifecycleCoordinates(scenario);
+  assert.equal(repaired.scenes[1].transition.from, "jardin");
+  assert.equal(repaired.scenes[1].transition.to, "atelier");
+});
+
+test("passage lifecycle expands a collapsed crossing endpoint without guessing its direction", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 3,
+    locationBefore: "atelier",
+    locationAfter: "jardin",
+    transition: {
+      kind: "cross_passage",
+      mechanismId: "porte_lumineuse",
+      from: "atelier",
+      to: "atelier",
+    },
+  }, {
+    sceneNumber: 9,
+    transition: {
+      kind: "return_travel",
+      mechanismId: "porte_lumineuse",
+      from: "jardin",
+      to: "atelier",
+    },
+  }] };
+
+  const repaired = synchronizeStoryScenarioPassageLifecycleCoordinates(scenario);
+  assert.equal(repaired.scenes[0].transition.from, "atelier");
+  assert.equal(repaired.scenes[0].transition.to, "jardin");
+});
+
+test("passage lifecycle does not guess across competing global endpoint pairs", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 3,
+    locationBefore: "atelier",
+    locationAfter: "destination inconnue",
+    transition: { kind: "cross_passage", mechanismId: "porte", from: "", to: "" },
+  }, {
+    sceneNumber: 5,
+    transition: { kind: "cross_passage", mechanismId: "porte", from: "atelier", to: "jardin" },
+  }, {
+    sceneNumber: 7,
+    transition: { kind: "cross_passage", mechanismId: "porte", from: "atelier", to: "phare" },
+  }] };
+
+  const repaired = synchronizeStoryScenarioPassageLifecycleCoordinates(scenario);
+  assert.equal(repaired.scenes[0].transition.from, "");
+  assert.equal(repaired.scenes[0].transition.to, "");
 });
 
 test("passage preflight never guesses between several physical crossing routes", () => {

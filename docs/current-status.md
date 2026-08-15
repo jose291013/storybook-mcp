@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/deterministic-passage-envelope`
-- Production/main checkpoint: visual pipeline checkpoint (`612529a`)
-- Current focused checkpoint: deterministic passage-envelope completion
+- Current branch: `codex/global-passage-lifecycle-recovery`
+- Production/main checkpoint: deterministic passage-envelope completion (`6abda79`)
+- Current focused checkpoint: global passage-lifecycle recovery
 - Pull requests: #150 through #193 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -18,6 +18,14 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 PR #55 through #193 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint and PR #193 completes an unambiguous missing passage route from its canonical scene envelope. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: global passage-lifecycle recovery
+
+1. A missing or collapsed crossing route is resolved from the one stable endpoint pair used by the same passage throughout the complete scenario.
+2. The direction is accepted only when a known event endpoint or the scene's incoming/outgoing location establishes it; otherwise the candidate remains blocked.
+3. Multi-step scenes may therefore preserve their ordinary approach or departure leg while the inner passage receives its exact coordinates.
+4. Several distinct global endpoint pairs remain ambiguous and are never guessed or merged.
+5. Retry policy version 6 reopens one private canonical-checkpoint recovery for projects exhausted before this lifecycle resolver, without another questionnaire or a generic replay.
 
 ## Product brick: deterministic passage-envelope completion
 
@@ -235,14 +243,15 @@ PR #55 through #193 are merged on `main`. PR #191 proves that every current sign
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 518/518 passing.
+- Focused scenario lifecycle and recovery tests: 105/105 passing.
+- Complete `npm test`: 525/525 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. After deployment, use the preserved free retry on the current 32-page synthetic project; do not start a replacement project first.
-2. Confirm that scene 3 crosses the canonical gate, then verify `[narrative-v2] approved canonical contract` and `[preview] visual storyboard compiled before manuscript` before image generation.
+1. After deployment, use the newly reopened free retry on the current 32-page synthetic project; do not start a replacement project first.
+2. Confirm that scene 3 crosses the global lifecycle resolver and canonical gate, then verify `[narrative-v2] approved canonical contract` and `[preview] visual storyboard compiled before manuscript` before image generation.
 3. Compare the resulting manuscript, signed beats, illustrations and automatic QA report as one acceptance artifact.
 4. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
 
