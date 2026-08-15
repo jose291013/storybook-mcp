@@ -719,6 +719,7 @@ export async function generateQualityCheckedImage({
   sceneFidelityContract = null,
   retryRepairableFindings = true,
   qualityReviewScope = [],
+  verifyExactCast = false,
   targetedRepairAvailable = false,
   revisionInstruction = "",
   ...generationOptions
@@ -772,8 +773,8 @@ export async function generateQualityCheckedImage({
       const identityReferences = generationOptions.referenceImages?.filter((reference) => reference?.kind === "identity") || [];
       const repairSourceReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "repair_source") || null;
       const scopedRepairVerification = Array.isArray(qualityReviewScope) && qualityReviewScope.length > 0;
-      const focusedCastVerification = scopedRepairVerification
-        && requiresFocusedCastVerification(qualityReviewScope);
+      const focusedCastVerification = Boolean(verifyExactCast)
+        || (scopedRepairVerification && requiresFocusedCastVerification(qualityReviewScope));
       const [styleInspection, sceneInspection, identityInspection, revisionInspection, castCardinalityInspection] = inspection.approved
         ? await Promise.all([
           scopedRepairVerification

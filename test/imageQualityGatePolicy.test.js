@@ -278,10 +278,15 @@ test("revision comparison keeps structured cast regressions separate from stable
 test("quality-review copy uses structured defect codes before legacy text matching", async () => {
   const app = await fs.readFile("public/app.js", "utf8");
   const preview = await fs.readFile("src/routes/preview.js", "utf8");
+  const qualityReview = await fs.readFile("src/routes/qualityReview.js", "utf8");
+  const qualityGate = await fs.readFile("src/services/imageQualityGate.js", "utf8");
   assert.match(app, /codes\.has\("identity_duplicate"\)/);
   assert.match(app, /codes\.has\("identity_substitution"\).*codes\.has\("identity_regression"\)/s);
   assert.match(app, /draftPage\?\.qualityIssueCodes/);
   assert.match(preview, /qualityIssueCodes: qualityError \? error\.issueCodes : repairPolicy\.targetCodes/);
+  assert.match(qualityReview, /verifyExactCast: true/);
+  assert.match(qualityReview, /Preserve exactly one complete visible instance/);
+  assert.match(qualityGate, /Boolean\(verifyExactCast\)/);
 });
 
 test("a targeted repair edits the preserved candidate before continuity and identity references", () => {
