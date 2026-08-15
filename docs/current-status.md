@@ -11,13 +11,13 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `codex/deterministic-passage-envelope`
 - Production/main checkpoint: visual pipeline checkpoint (`612529a`)
 - Current focused checkpoint: deterministic passage-envelope completion
-- Pull requests: #150 through #192 merged before this branch
+- Pull requests: #150 through #193 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #192 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, and PR #192 records the visual pipeline checkpoint. Render health returned `ok: true` after that merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #193 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint and PR #193 completes an unambiguous missing passage route from its canonical scene envelope. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Product brick: deterministic passage-envelope completion
 
