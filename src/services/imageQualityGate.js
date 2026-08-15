@@ -64,6 +64,12 @@ const CAST_CARDINALITY_REPAIR_CODES = new Set([
   "identity_substitution",
   "identity_regression",
 ]);
+const SCENE_CAST_ASSERTION_CODES = new Set([
+  "required_cast_missing",
+  "identity_duplicate",
+  "identity_fusion",
+  "identity_substitution",
+]);
 const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "identity_duplicate",
   "identity_fusion",
@@ -212,6 +218,36 @@ export function targetedVisualRepairPolicy(issues = [], { source = "scene" } = {
 export function requiresFocusedCastVerification(issueScope = []) {
   return (Array.isArray(issueScope) ? issueScope : [])
     .some((code) => CAST_CARDINALITY_REPAIR_CODES.has(String(code || "")));
+}
+
+export function reconcileFocusedCastInspection(sceneInspection = {}, castInspection = {}) {
+  if (castInspection?.authoritative !== true) {
+    const originalIssues = (Array.isArray(sceneInspection?.issues) ? sceneInspection.issues : [])
+      .map(String)
+      .filter(Boolean);
+    return {
+      ...sceneInspection,
+      issues: originalIssues,
+      issueCodes: [...new Set(originalIssues.map((issue) => classifyVisualIssue(issue).code))],
+    };
+  }
+  const nonCastIssues = (Array.isArray(sceneInspection?.issues) ? sceneInspection.issues : [])
+    .map(String)
+    .filter(Boolean)
+    .filter((issue) => !SCENE_CAST_ASSERTION_CODES.has(classifyVisualIssue(issue).code));
+  const authoritativeCastIssues = castInspection?.approved === false
+    ? (Array.isArray(castInspection?.issues) ? castInspection.issues : []).map(String).filter(Boolean)
+    : [];
+  const issues = [...new Set([...nonCastIssues, ...authoritativeCastIssues])];
+  return {
+    ...sceneInspection,
+    approved: issues.length === 0,
+    issues,
+    issueCodes: [...new Set([
+      ...nonCastIssues.map((issue) => classifyVisualIssue(issue).code),
+      ...(Array.isArray(castInspection?.issueCodes) ? castInspection.issueCodes : []),
+    ])],
+  };
 }
 
 export function objectiveTechnicalIssues(issues = []) {
@@ -608,6 +644,7 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":[{
 export async function inspectNamedCastCardinality({
   imagePath,
   sceneContract = null,
+  identityReferences = [],
   pageLabel = "repaired illustration",
   client = null,
 }) {
@@ -626,6 +663,22 @@ export async function inspectNamedCastCardinality({
     .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: 88 })
     .toBuffer();
+  const selectedReferences = (Array.isArray(identityReferences) ? identityReferences : []).slice(0, 6);
+  const identityEvidence = (await Promise.all(selectedReferences.map(async (reference) => {
+    const referenceBuffer = await referenceSource(reference);
+    if (!referenceBuffer) return null;
+    return {
+      label: String(reference?.label || "private identity reference").trim(),
+      buffer: await sharp(referenceBuffer)
+        .rotate()
+        .resize(768, 768, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 84 })
+        .toBuffer(),
+    };
+  }))).filter(Boolean);
+  const referenceLegend = identityEvidence.length
+    ? identityEvidence.map((reference, index) => `Image ${index + 2}: ${reference.label}`).join("\n")
+    : "No private identity photograph is available; use the stable traits, visual role and action in the required cast contract.";
   const qaClient = client || getClient();
   const response = await qaClient.responses.create({
     model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
@@ -634,7 +687,11 @@ export async function inspectNamedCastCardinality({
 Required named cast for this exact illustrated instant:
 ${JSON.stringify(requiredCast)}
 
+Private identity evidence (Image 1 is always the proposed repaired illustration):
+${referenceLegend}
+
 For every required entry, report whether the illustration visibly contains zero, exactly one, or two-or-more complete instances of that same recurring identity.
+- When a private identity image is supplied, match the candidate to that specific face, hair, species, coat and markings before counting. Do not assign the same candidate person to two different required entries.
 - A reflection, portrait, memory, vision or montage counts separately only when the current scene contract explicitly requires it.
 - Two highly similar copies with the same stable face, hair, species, coat, markings and wardrobe count as a duplicated identity, even when placed on opposite sides of the scene.
 - Different named people must remain different individuals. Do not merge a local supporter or background person into a required identity.
@@ -643,21 +700,37 @@ For every required entry, report whether the illustration visibly contains zero,
 
 Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|two_or_more|uncertain"}]}.` },
       { type: "input_image", image_url: `data:image/jpeg;base64,${source.toString("base64")}`, detail: "high" },
+      ...identityEvidence.map((reference) => ({
+        type: "input_image",
+        image_url: `data:image/jpeg;base64,${reference.buffer.toString("base64")}`,
+        detail: "high",
+      })),
     ] }],
     max_output_tokens: 350,
   });
   const result = parseJson(extractText(response));
   const requiredByKey = new Map(requiredCast.map((character) => [normalizedIssueText(character.name), character.name]));
   const observations = Array.isArray(result?.cast) ? result.cast : [];
+  const observedKeys = new Set(observations
+    .map((observation) => normalizedIssueText(observation?.name))
+    .filter((name) => requiredByKey.has(name)));
+  const authoritative = [...requiredByKey.keys()].every((name) => observedKeys.has(name));
   const issues = [];
+  const issueCodes = [];
   for (const observation of observations) {
     const name = requiredByKey.get(normalizedIssueText(observation?.name));
     if (!name) continue;
     const observed = normalizedIssueText(observation?.observed);
-    if (observed === "zero") issues.push(`Required named character ${name} is missing after high-detail cardinality verification.`);
-    if (observed === "two_or_more") issues.push(`Required named identity is duplicated. ${name} appears two or more times after high-detail cardinality verification.`);
+    if (observed === "zero") {
+      issues.push(`Required named character ${name} is missing after high-detail identity-cardinality verification.`);
+      issueCodes.push("required_cast_missing");
+    }
+    if (observed === "two_or_more") {
+      issues.push(`Required named identity is duplicated. ${name} appears two or more times after high-detail identity-cardinality verification.`);
+      issueCodes.push("identity_duplicate");
+    }
   }
-  return { approved: issues.length === 0, issues };
+  return { approved: issues.length === 0, issues, issueCodes, authoritative };
 }
 
 export async function inspectIdentityLikeness({
@@ -808,6 +881,7 @@ export async function generateQualityCheckedImage({
             ? advisoryCheck(inspectNamedCastCardinality({
               imagePath: outputImagePath(imageUrl),
               sceneContract: sceneFidelityContract,
+              identityReferences,
               pageLabel,
             }))
             : Promise.resolve({ approved: true, issues: [] }),
@@ -819,16 +893,20 @@ export async function generateQualityCheckedImage({
           { approved: false, issues: [] },
           { approved: false, issues: [] },
         ];
-      if (!castCardinalityInspection.approved) {
-        sceneInspection.approved = false;
-        sceneInspection.issues = [...sceneInspection.issues, ...castCardinalityInspection.issues];
+      if (focusedCastVerification) {
+        const reconciledCastInspection = reconcileFocusedCastInspection(
+          sceneInspection,
+          castCardinalityInspection,
+        );
+        sceneInspection.approved = reconciledCastInspection.approved;
+        sceneInspection.issues = reconciledCastInspection.issues;
+        sceneInspection.issueCodes = reconciledCastInspection.issueCodes;
       }
       if (!revisionInspection.approved) {
-        const authoritativeIdentityChecksPassed = focusedCastVerification
-          && castCardinalityInspection.approved
-          && identityInspection.approved;
+        const authoritativeIdentityCardinality = focusedCastVerification
+          && castCardinalityInspection.authoritative === true;
         const remainingRevisionIssues = revisionInspection.issues.filter((issue, index) => !(
-          authoritativeIdentityChecksPassed
+          authoritativeIdentityCardinality
           && revisionInspection.issueCodes?.[index] === "identity_regression"
         ));
         if (remainingRevisionIssues.length) {

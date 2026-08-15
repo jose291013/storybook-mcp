@@ -97,6 +97,8 @@ test("illustration revisions preserve the current image and add adjacent continu
   assert.match(source, /adjacentApprovedIllustrationReferences/);
   assert.match(source, /includeNext: true/);
   assert.match(source, /revisionInstruction: instruction/);
+  assert.match(source, /verifyExactCast: true/);
+  assert.match(source, /Remove an accidental duplicate in place/);
 });
 
 test("a local modification that introduces an unapproved character is blocked before credit", () => {
@@ -241,6 +243,8 @@ test("the customer flow separates paid changes from free repairs and blocks chec
   assert.match(route, /creditStore\.reservePreview/);
   assert.match(route, /creditStore\.capturePreview/);
   assert.match(route, /creditStore\.releasePreview/);
+  assert.ok(route.indexOf("const candidateSnapshot = await buildCandidate") < route.indexOf("creditStore.capturePreview"));
+  assert.ok(route.indexOf("catch \(error\)") < route.indexOf("creditStore.releasePreview"));
   assert.match(route, /status: "awaiting_approval"/);
   assert.match(route, /sourceFingerprint/);
   assert.match(route, /PREVIEW_MODIFICATION_STALE_MINUTES/);

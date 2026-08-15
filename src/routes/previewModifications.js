@@ -138,6 +138,7 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     instruction,
     "Apply this request only when it does not change the approved plot, physical cast, location, object state or main action.",
     "The authoritative scene contract and character continuity remain higher priority.",
+    "Edit the preserved source locally. Preserve exactly one complete visible instance of every required named person or animal. Remove an accidental duplicate in place; never solve a cast problem by adding another subject or regenerating the whole scene.",
   ].join("\n");
   const imageUrl = await generateQualityCheckedImage({
     prompt: `${basePrompt}\n\n${localRequest}`,
@@ -167,6 +168,7 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
     maximumAttempts: 2,
     onAttempt,
+    verifyExactCast: true,
     revisionInstruction: instruction,
   });
   const persisted = await persistPreviewAsset({ projectId: project.id, assetUrl: imageUrl });
