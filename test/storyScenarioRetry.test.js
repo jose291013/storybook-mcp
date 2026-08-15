@@ -72,6 +72,8 @@ test("a private canonical checkpoint opens exactly one targeted recovery", () =>
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
   recoverable.continuitySnapshot.storyScenarioGeneration.request.canonicalCheckpointRecovery = true;
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
+  recoverable.continuitySnapshot.storyScenarioGeneration.request.canonicalLifecycleRecoveryVersion = 1;
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
   recoverable.continuitySnapshot.storyScenarioGeneration.request.canonicalLifecycleRecoveryVersion =
     STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION;
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
@@ -86,6 +88,6 @@ test("a version-two exhausted failure without a candidate is not replayed", () =
     retryPolicyVersion: 2,
     errorCode: "scenario_contract_invalid",
   });
-  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 6);
+  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 7);
   assert.equal(technicalStoryScenarioRetryAvailable(exhausted), false);
 });

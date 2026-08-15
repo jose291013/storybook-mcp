@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Production/main checkpoint: global passage-lifecycle recovery (`001fd52`)
-- Current focused checkpoint: production verification of the recovered 32-page scenario
-- Pull requests: #150 through #194 merged
+- Current branch: `codex/physical-chronology-compiler`
+- Production/main checkpoint: global passage-lifecycle recovery documentation (`b07eddc`); live code last verified at `001fd52`
+- Current focused checkpoint: deterministic physical-chronology compiler, ready for PR and deployment verification
+- Pull requests: #150 through #195 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #194 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope and PR #194 resolves an inner route from its complete stable passage lifecycle. Render confirmed `001fd52` live on 2026-08-15 at 13:07 GMT+2. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #195 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. Render confirmed `001fd52` live on 2026-08-15 at 13:07 GMT+2. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Candidate product brick: deterministic physical chronology
+
+1. A scene that approaches and then discovers a passage keeps the ordinary approach before the stationary discovery.
+2. The compiler reuses an explicit discovery event instead of inserting a duplicate before the travelers arrive.
+3. One stable passage return collapsed into a later final location is split into the reverse crossing plus one already established ordinary outer route.
+4. Competing passage pairs, missing outer routes or competing routes remain blocking; the deterministic pass never invents geography.
+5. Diagnostics point to the crossing that introduces the third endpoint, and retry policy version 7 opens one lifecycle-v2 recovery from the existing private candidate.
 
 ## Product brick: global passage-lifecycle recovery
 
@@ -243,15 +251,15 @@ PR #55 through #194 are merged on `main`. PR #191 proves that every current sign
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Focused scenario lifecycle and recovery tests: 105/105 passing.
-- Complete `npm test`: 525/525 passing.
+- Focused physical chronology, compiler and recovery tests: 67/67 passing.
+- Complete `npm test`: 531/531 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. After deployment, use the newly reopened free retry on the current 32-page synthetic project; do not start a replacement project first.
-2. Confirm that scene 3 crosses the global lifecycle resolver and canonical gate, then verify `[narrative-v2] approved canonical contract` and `[preview] visual storyboard compiled before manuscript` before image generation.
+1. After deployment, use the newly reopened free retry on the current 32-page project; do not start a replacement project first.
+2. Confirm `[story-physical-chronology] recovered` reports scenes 2 and 15, then verify `[narrative-v2] approved canonical contract` and `[preview] visual storyboard compiled before manuscript` before image generation.
 3. Compare the resulting manuscript, signed beats, illustrations and automatic QA report as one acceptance artifact.
 4. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
 

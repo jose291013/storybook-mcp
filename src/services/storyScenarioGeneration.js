@@ -20,6 +20,7 @@ import {
 import { storyScenarioRepairProgress } from "./storyScenarioAutoRepair.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
 import { buildStoryCastParticipationContract } from "./storyCastParticipation.js";
+import { canonicalizeStoryScenarioPhysicalChronology } from "./storyPhysicalChronology.js";
 
 export function scenarioGenerationRoute(previousScenario = null, automaticRepair = false) {
   if (previousScenario && automaticRepair) {
@@ -422,6 +423,11 @@ export async function generateValidatedScenario({
         previousScenario,
         automaticRepairPlan || recoveryPlan,
       );
+      const physicalChronology = canonicalizeStoryScenarioPhysicalChronology(normalizedResult);
+      if (physicalChronology.report.changed) {
+        console.info("[story-physical-chronology] recovered", JSON.stringify(physicalChronology.report));
+      }
+      normalizedResult = physicalChronology.scenario;
     }
     return normalizedResult;
   };

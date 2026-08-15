@@ -289,10 +289,18 @@ function passageRegistry(scenes, locationIds, issues, ordinaryReturns) {
       }
     }
     if (endpointKeys.length !== 2) {
+      const observedEndpoints = [];
+      const conflictingCrossing = definition.crossings.find((crossing) => {
+        for (const location of [crossing.from, crossing.to]) {
+          const locationKey = key(location);
+          if (locationKey && !observedEndpoints.includes(locationKey)) observedEndpoints.push(locationKey);
+        }
+        return observedEndpoints.length > 2;
+      });
       addIssue(
         issues,
         "ambiguous_passage_endpoints",
-        definition.crossings[0]?.path || "registries.passages",
+        conflictingCrossing?.path || definition.crossings[0]?.path || "registries.passages",
         `${definition.name} must have exactly two locations derived from an approved crossing.`,
       );
       continue;
@@ -918,22 +926,29 @@ export function compileNarrativeBookSpec({
         : list(scene.characterPresences)
           .filter((presence) => presence.mode === "physical" && ["end", "throughout"].includes(presence.phase))
           .map((presence) => presence.name);
-      movements.unshift({
-        id: identifier(`${scene.id}_discover_${scene.transition.mechanismId || scene.transition.mechanism}`),
-        sequence: 1,
-        kind: "discover_passage",
-        fromLocationId: resolveByName(locationIds, scene.locationAfter, issues, `${scenePath}.movements.discovery.fromLocationId`, "location"),
-        toLocationId: resolveByName(locationIds, scene.locationAfter, issues, `${scenePath}.movements.discovery.toLocationId`, "location"),
-        travelerCharacterIds: travelers.map((name) => resolveByName(
-          characterIds,
-          name,
-          issues,
-          `${scenePath}.movements.discovery.travelerCharacterIds`,
-          "character",
-        )),
-        passageId: passageIds.get(key(scene.transition.mechanismId || scene.transition.mechanism)) || null,
-      });
-      for (let index = 1; index < movements.length; index += 1) movements[index].sequence = index + 1;
+      const discoveryPassageId = passageIds.get(
+        key(scene.transition.mechanismId || scene.transition.mechanism),
+      ) || null;
+      const alreadyCompiled = movements.some((movement) => (
+        movement.kind === "discover_passage" && movement.passageId === discoveryPassageId
+      ));
+      if (!alreadyCompiled) {
+        movements.push({
+          id: identifier(`${scene.id}_discover_${scene.transition.mechanismId || scene.transition.mechanism}`),
+          sequence: movements.length + 1,
+          kind: "discover_passage",
+          fromLocationId: resolveByName(locationIds, scene.locationAfter, issues, `${scenePath}.movements.discovery.fromLocationId`, "location"),
+          toLocationId: resolveByName(locationIds, scene.locationAfter, issues, `${scenePath}.movements.discovery.toLocationId`, "location"),
+          travelerCharacterIds: travelers.map((name) => resolveByName(
+            characterIds,
+            name,
+            issues,
+            `${scenePath}.movements.discovery.travelerCharacterIds`,
+            "character",
+          )),
+          passageId: discoveryPassageId,
+        });
+      }
     }
 
     const transitionKind = canonicalMovementKind(

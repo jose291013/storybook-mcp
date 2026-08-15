@@ -1,3 +1,5 @@
+import { canonicalizeStoryScenarioPhysicalChronology } from "./storyPhysicalChronology.js";
+
 function text(value) {
   return String(value || "").trim();
 }
@@ -546,10 +548,14 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
 }
 
 export function precompileStoryScenarioPassageLifecycles(input = {}, { language = "FR" } = {}) {
+  const physicalChronology = canonicalizeStoryScenarioPhysicalChronology(input);
+  if (physicalChronology.report.changed) {
+    console.info("[story-physical-chronology] repaired", JSON.stringify(physicalChronology.report));
+  }
   const scenario = normalizeStoryScenarioPassageEndpoints(
     synchronizeStoryScenarioPassageCoordinates(
       synchronizeStoryScenarioPassageLifecycleCoordinates(
-        synchronizeStoryScenarioPassageCoordinates(input),
+        synchronizeStoryScenarioPassageCoordinates(physicalChronology.scenario),
       ),
     ),
   );

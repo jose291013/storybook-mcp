@@ -584,6 +584,86 @@ test("passage precompilation compiles a crossing whose route coordinates were om
   assert.equal(validateNarrativeBookSpec(contract).valid, true);
 });
 
+test("physical chronology precompilation compiles an approach, passage crossing and multi-leg return", () => {
+  const scenario = approvedScenario();
+  for (const character of scenario.characters.filter(({ name }) => ["Bastien", "Marie"].includes(name))) {
+    character.initialLocation = "la maison";
+  }
+  const discovery = scenario.scenes[0];
+  discovery.locationBefore = "la maison";
+  discovery.locationAfter = "le jardin";
+  discovery.characterPresences = discovery.characterPresences.map((entry) => ({
+    ...entry,
+    phase: "end",
+    location: "le jardin",
+  }));
+  discovery.characterMovements = [{
+    id: "movement-1",
+    kind: "ordinary_travel",
+    mechanism: "le chemin de la maison",
+    mechanismId: "home_path",
+    from: "la maison",
+    to: "le jardin",
+    characters: ["Bastien", "Marie"],
+  }, {
+    id: "movement-2",
+    ...discovery.transition,
+  }];
+
+  const returning = scenario.scenes.at(-1);
+  returning.locationAfter = "la maison";
+  returning.characterPresences = returning.characterPresences.map((entry) => (
+    entry.mode === "physical" ? { ...entry, location: "la maison" } : entry
+  ));
+  returning.transition.to = "la maison";
+  returning.characterMovements[0].to = "la maison";
+
+  const precompiled = precompileStoryScenarioPassageLifecycles(scenario, { language: "FR" });
+  assert.equal(precompiled.scenes[0].transition.kind, "ordinary_travel");
+  assert.deepEqual(precompiled.scenes[0].characterMovements.map(({ kind }) => kind), [
+    "ordinary_travel",
+    "discover_passage",
+  ]);
+  assert.deepEqual(precompiled.scenes.at(-1).characterMovements.map(({ kind, from, to }) => ({
+    kind,
+    from,
+    to,
+  })), [{
+    kind: "return_travel",
+    from: "la vallée",
+    to: "le jardin",
+  }, {
+    kind: "ordinary_travel",
+    from: "le jardin",
+    to: "la maison",
+  }]);
+
+  const contract = compile({ scenario: approveAgain(precompiled) });
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+  assert.deepEqual(contract.scenes[0].movements.map(({ kind }) => kind), [
+    "ordinary_travel",
+    "discover_passage",
+  ]);
+  assert.deepEqual(contract.scenes.at(-1).movements.map(({ kind }) => kind), [
+    "return_travel",
+    "ordinary_travel",
+  ]);
+});
+
+test("ambiguous passage diagnostics point to the crossing that introduces a third endpoint", () => {
+  const scenario = approvedScenario();
+  scenario.scenes.at(-1).locationAfter = "la maison";
+  scenario.scenes.at(-1).transition.to = "la maison";
+  scenario.scenes.at(-1).characterMovements[0].to = "la maison";
+
+  assert.throws(() => compile({ scenario: approveAgain(scenario) }), (error) => {
+    const issue = error instanceof NarrativeBookSpecCompileError
+      ? error.issues.find((entry) => entry.code === "ambiguous_passage_endpoints")
+      : null;
+    return issue?.path === "scenes[10].transition";
+  });
+});
+
 test("compiler derives a start-only illustration phase without asking the model to rewrite it", () => {
   const scenario = approvedScenario();
   scenario.scenes[0].characterPresences = scenario.scenes[0].characterPresences.map((entry) => ({
