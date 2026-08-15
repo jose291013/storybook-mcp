@@ -511,6 +511,65 @@ test("passage preflight aligns a stale focal transition with its one physical cr
   assert.equal(precompiled.scenes[0].characterMovements[0].to, "jardin");
 });
 
+test("passage preflight completes a missing focal route from one scene envelope", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 3,
+    locationBefore: "atelier",
+    locationAfter: "jardin",
+    transition: {
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "",
+      to: "",
+      characters: ["Noa"],
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "",
+      to: "",
+      characters: ["Noa"],
+    }],
+  }] };
+
+  const synchronized = synchronizeStoryScenarioPassageCoordinates(scenario);
+  assert.equal(synchronized.scenes[0].transition.from, "atelier");
+  assert.equal(synchronized.scenes[0].transition.to, "jardin");
+  assert.equal(synchronized.scenes[0].characterMovements[0].from, "atelier");
+  assert.equal(synchronized.scenes[0].characterMovements[0].to, "jardin");
+  assert.equal(scenario.scenes[0].transition.from, "", "the source remains immutable");
+});
+
+test("passage preflight does not infer an inner passage from a multi-step scene envelope", () => {
+  const scenario = { scenes: [{
+    sceneNumber: 3,
+    locationBefore: "maison",
+    locationAfter: "jardin",
+    transition: {
+      kind: "cross_passage",
+      mechanism: "porte lumineuse",
+      mechanismId: "porte_lumineuse",
+      from: "",
+      to: "",
+      characters: ["Noa"],
+    },
+    characterMovements: [{
+      id: "movement-1",
+      kind: "ordinary_travel",
+      from: "maison",
+      to: "atelier",
+      characters: ["Noa"],
+    }],
+  }] };
+
+  const synchronized = synchronizeStoryScenarioPassageCoordinates(scenario);
+  assert.equal(synchronized.scenes[0].transition.from, "");
+  assert.equal(synchronized.scenes[0].transition.to, "");
+});
+
 test("passage preflight never guesses between several physical crossing routes", () => {
   const transition = {
     kind: "cross_passage",

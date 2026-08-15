@@ -149,6 +149,26 @@ export function synchronizeStoryScenarioPassageCoordinates(input = {}) {
       transition.to = distinctMovementPairs[0].to;
     }
 
+    // When both the focal passage and its physical ledger lost their
+    // coordinates, the scene envelope is the only canonical route available.
+    // Complete it locally instead of spending a model repair. An ordered scene
+    // with another explicit route remains ambiguous: its focal passage may be
+    // only one inner leg and must not be guessed from the whole-scene envelope.
+    const currentTransitionPair = endpointPair(transition.from, transition.to);
+    const sceneEnvelopePair = endpointPair(scene.locationBefore, scene.locationAfter);
+    const explicitTravelPairs = list(scene.characterMovements)
+      .filter((movement) => ["ordinary_travel", "cross_passage", "return_travel", "join_travel"]
+        .includes(movement?.kind))
+      .map((movement) => endpointPair(movement.from, movement.to))
+      .filter(Boolean);
+    const envelopeIsUnambiguous = explicitTravelPairs.every((pair) => (
+      sameEndpointPair(pair, sceneEnvelopePair)
+    ));
+    if (!currentTransitionPair && sceneEnvelopePair && envelopeIsUnambiguous) {
+      transition.from = sceneEnvelopePair.from;
+      transition.to = sceneEnvelopePair.to;
+    }
+
     const synchronizedTransitionPair = endpointPair(transition.from, transition.to);
     if (!synchronizedTransitionPair) continue;
     for (const movement of matchingMovements) {

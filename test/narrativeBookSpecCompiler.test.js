@@ -568,6 +568,22 @@ test("passage precompilation removes a stale transition endpoint before canonica
   assert.equal(validateNarrativeBookSpec(contract).valid, true);
 });
 
+test("passage precompilation compiles a crossing whose route coordinates were omitted", () => {
+  const scenario = approvedScenario();
+  scenario.scenes[1].transition.from = "";
+  scenario.scenes[1].transition.to = "";
+  scenario.scenes[1].characterMovements = scenario.scenes[1].characterMovements.map((movement) => ({
+    ...movement,
+    from: "",
+    to: "",
+  }));
+
+  const precompiled = precompileStoryScenarioPassageLifecycles(scenario, { language: "FR" });
+  const contract = compile({ scenario: approveAgain(precompiled) });
+  assert.equal(contract.registries.passages.length, 1);
+  assert.equal(validateNarrativeBookSpec(contract).valid, true);
+});
+
 test("compiler derives a start-only illustration phase without asking the model to rewrite it", () => {
   const scenario = approvedScenario();
   scenario.scenes[0].characterPresences = scenario.scenes[0].characterPresences.map((entry) => ({
