@@ -4,6 +4,7 @@ import test from "node:test";
 import { createPagePlan } from "../src/config/bookStructure.js";
 import {
   compileVisualComposition,
+  wholeBookVisualRhythmIssues,
   visualCompositionPlanIssues,
   VISUAL_COMPOSITION_PLAN_VERSION,
 } from "../src/services/visualCompositionPlan.js";
@@ -32,7 +33,19 @@ test("every sellable length receives a complete non-repeating composition rhythm
     assert.ok(contracts.every((contract) => (
       contract.visual_composition.version === VISUAL_COMPOSITION_PLAN_VERSION
     )));
+    assert.deepEqual(wholeBookVisualRhythmIssues(contracts), [], `whole-book rhythm ${pageCount}`);
   }
+});
+
+test("whole-book rhythm rejects a flattened climax and four identical scales", () => {
+  const contracts = compositionsFor(44);
+  const climax = contracts.find((contract) => contract.visual_composition.story_role === "climax");
+  climax.visual_composition.energy_level = 2;
+  climax.visual_composition.composition_id = "relational_two_shot";
+  for (const contract of contracts.slice(0, 4)) contract.visual_composition.scale_family = "medium";
+  const issues = wholeBookVisualRhythmIssues(contracts);
+  assert.ok(issues.includes("whole-book visual climax does not carry the unique peak composition"));
+  assert.ok(issues.some((issue) => /repeats one scale family four times/u.test(issue)));
 });
 
 test("a real world crossing receives a spatial threshold composition", () => {

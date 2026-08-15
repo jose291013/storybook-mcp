@@ -201,6 +201,8 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       subject_placement: safe(contract.visual_composition?.subject_placement),
       depth_plan: safe(contract.visual_composition?.depth_plan),
       visual_rhythm: safe(contract.visual_composition?.visual_rhythm),
+      scale_family: safe(contract.visual_composition?.scale_family),
+      energy_level: Math.max(1, Math.min(5, Number(contract.visual_composition?.energy_level || 1))),
       cast_readability: safe(contract.visual_composition?.cast_readability),
       action_readability: safe(contract.visual_composition?.action_readability),
     } : null,

@@ -1,8 +1,12 @@
 import crypto from "node:crypto";
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
-import { compileVisualComposition, visualCompositionPlanIssues } from "./visualCompositionPlan.js";
+import {
+  compileVisualComposition,
+  visualCompositionPlanIssues,
+  wholeBookVisualRhythmIssues,
+} from "./visualCompositionPlan.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 8;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 9;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
@@ -261,7 +265,9 @@ export function storyboardBindingIssues(storyboard = {}, pageTexts = {}, expecte
   const contracts = Array.isArray(storyboard?.sceneContracts) ? storyboard.sceneContracts : [];
   if (!contracts.length) issues.push("storyboard scene contracts are required");
   if (Number(storyboard?.version || 0) >= SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION) {
-    issues.push(...visualCompositionPlanIssues(contracts));
+    issues.push(...wholeBookVisualRhythmIssues(contracts));
+  } else if (Number(storyboard?.version || 0) >= 8) {
+    issues.push(...visualCompositionPlanIssues(contracts, { minimumVersion: 1 }));
   }
   const scenes = new Set();
   const textPages = new Set();

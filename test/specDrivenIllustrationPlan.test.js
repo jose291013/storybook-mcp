@@ -3,7 +3,10 @@ import fs from "node:fs";
 import test from "node:test";
 
 import { visualQualityDisposition } from "../src/services/imageQualityGate.js";
-import { visualCompositionPlanIssues } from "../src/services/visualCompositionPlan.js";
+import {
+  visualCompositionPlanIssues,
+  VISUAL_COMPOSITION_PLAN_VERSION,
+} from "../src/services/visualCompositionPlan.js";
 import {
   bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
@@ -55,7 +58,7 @@ test("illustration contracts are compiled without a second narrative model", () 
   assert.equal(first.quality_policy.blocking.includes("identity_fusion_or_duplication"), true);
   assert.equal(first.render_snapshot.visible_phase, "after");
   assert.equal(first.render_snapshot.location, "le jardin");
-  assert.equal(first.visual_composition.version, 1);
+  assert.equal(first.visual_composition.version, VISUAL_COMPOSITION_PLAN_VERSION);
   assert.ok(first.visual_composition.composition_id);
   assert.deepEqual(visualCompositionPlanIssues(plan.sceneContracts), []);
 });
