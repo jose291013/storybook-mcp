@@ -8,18 +8,18 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/lossless-image-contract-preflight`
-- Production/main checkpoint: deterministic scene density (`512de61`)
-- Current focused checkpoint: lossless image-contract preflight
-- Pull requests: #150 through #190 merged
+- Current branch: `codex/visual-pipeline-checkpoint`
+- Production/main checkpoint: lossless image-contract preflight (`937187c`)
+- Current focused checkpoint: visual-first deterministic foundation complete
+- Pull requests: #150 through #191 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #190 are merged on `main`. PR #190 adds an age-bounded, signed scene hierarchy that preserves every canonical element while limiting visual competition and decorative invention. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #191 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts. Render health returned `ok: true` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: lossless image-contract preflight
+## Product brick: lossless image-contract preflight
 
 1. Every current signed beat is independently projected into the exact compact contract used by the image prompt before any image request.
 2. The preflight compares action, named and generic cast, required elements, object states, causal frame, topology, equipment, fixed entities, prohibitions, composition and density.
@@ -233,9 +233,9 @@ PR #55 through #190 are merged on `main`. PR #190 adds an age-bounded, signed sc
 
 ## Next verification target
 
-1. Publish and merge the lossless image-contract preflight after its clean full-suite review.
-2. Run the first deliberately selected end-to-end synthetic book only after explicit image-cost authorization.
-3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
+1. Run one deliberately selected end-to-end synthetic book only after explicit image-cost authorization.
+2. Compare its full manuscript, signed beats, generated illustrations and automatic QA report as one acceptance artifact.
+3. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
 
 ## Protected local state
 
