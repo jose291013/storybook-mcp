@@ -8,18 +8,18 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/cast-cardinality-quality-gate`
-- Production/main checkpoint: settled final-return storyboard composition and deployment record (`6b4f0f7`)
-- Current focused checkpoint: targeted cast-cardinality and canonical-identity repair gate
-- Pull requests: #150 through #199 merged
+- Current branch: `codex/record-cast-cardinality-deployment`
+- Production/main checkpoint: exact cast cardinality after targeted visual repair (`ec71fa2`)
+- Current focused checkpoint: production verification on the preserved pages 3, 12 and 20
+- Pull requests: #150 through #200 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #199 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. Render confirmed `6b4f0f7` live on 2026-08-15. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #200 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. PR #200 adds exact named-cast cardinality, canonical identity rechecks and structured creator messages after a targeted visual repair. Render confirmed `ec71fa2` live on 2026-08-15. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Candidate product brick: exact cast cardinality after targeted repair
+## Product brick: exact cast cardinality after targeted repair
 
 1. A targeted cast or identity repair receives one focused high-detail count for every named person and animal.
 2. Zero occurrences remain missing, one is valid and two-or-more become the objective `identity_duplicate` defect.
