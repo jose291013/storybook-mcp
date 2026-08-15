@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/global-passage-lifecycle-recovery`
-- Production/main checkpoint: deterministic passage-envelope completion (`6abda79`)
-- Current focused checkpoint: global passage-lifecycle recovery
-- Pull requests: #150 through #193 merged
+- Current branch: `main`
+- Production/main checkpoint: global passage-lifecycle recovery (`001fd52`)
+- Current focused checkpoint: production verification of the recovered 32-page scenario
+- Pull requests: #150 through #194 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #193 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint and PR #193 completes an unambiguous missing passage route from its canonical scene envelope. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #194 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope and PR #194 resolves an inner route from its complete stable passage lifecycle. Render confirmed `001fd52` live on 2026-08-15 at 13:07 GMT+2. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Product brick: global passage-lifecycle recovery
 
