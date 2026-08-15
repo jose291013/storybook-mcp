@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/deterministic-scene-density`
-- Production/main checkpoint: whole-book visual rhythm (`906a5a8`)
-- Current focused checkpoint: deterministic scene density
-- Pull requests: #150 through #189 merged
+- Current branch: `codex/lossless-image-contract-preflight`
+- Production/main checkpoint: deterministic scene density (`512de61`)
+- Current focused checkpoint: lossless image-contract preflight
+- Pull requests: #150 through #190 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #189 are merged on `main`. PR #189 validates the complete visual rhythm, including scale variety, attempt energy, one climax peak and a calm return. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #190 are merged on `main`. PR #190 adds an age-bounded, signed scene hierarchy that preserves every canonical element while limiting visual competition and decorative invention. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: deterministic scene density
+## Current focused brick: lossless image-contract preflight
+
+1. Every current signed beat is independently projected into the exact compact contract used by the image prompt before any image request.
+2. The preflight compares action, named and generic cast, required elements, object states, causal frame, topology, equipment, fixed entities, prohibitions, composition and density.
+3. Any array truncation, missing field or changed quantity stops privately before the cover or interior image path.
+4. Zero-quantity absent objects remain zero instead of being silently converted to quantity one.
+5. Names remain safely neutralized for image generation while the full canonical meaning is proven equivalent locally, with no model call.
+
+## Product brick: deterministic scene density
 
 1. Every beat receives an age-bounded visual hierarchy with one main action and at most two or three high-salience entities.
 2. Canonical supporting cast and required elements remain complete but visually subordinate; visible object states become low-salience context.
@@ -219,14 +227,14 @@ PR #55 through #189 are merged on `main`. PR #189 validates the complete visual 
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 515/515 passing.
+- Complete `npm test`: 518/518 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge deterministic scene density after its clean full-suite review.
-2. Add a preflight that proves every image prompt is a lossless projection of its signed beat.
+1. Publish and merge the lossless image-contract preflight after its clean full-suite review.
+2. Run the first deliberately selected end-to-end synthetic book only after explicit image-cost authorization.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
