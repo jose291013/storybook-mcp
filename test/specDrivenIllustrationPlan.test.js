@@ -8,6 +8,7 @@ import {
   compileSpecDrivenIllustrationPlan,
   manuscriptVisualBeatForScene,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  storyboardAdjacentHandoffIssues,
   storyboardBindingIssues,
   STORYBOARD_FIRST_CONTRACT_VERSION,
 } from "../src/services/specDrivenIllustrationPlan.js";
@@ -99,6 +100,20 @@ test("binding integrity rejects visual mutation, stale artifacts and mismatched 
   assert.ok(issues.includes("storyboard artifact digest is stale"));
   assert.ok(issues.includes("scene 1 visual beat integrity failed"));
   assert.ok(issues.includes("scene 2 manuscript binding does not match its text page"));
+});
+
+test("adjacent beats hand off exact locations, registries and non-overlapping pages", () => {
+  const storyboard = compileSpecDrivenIllustrationPlan({ spec, blueprint: blueprintFromSpec() });
+  assert.deepEqual(storyboardAdjacentHandoffIssues(storyboard), []);
+
+  const broken = structuredClone(storyboard);
+  broken.sceneContracts[1].causal_frame.before.location = "an unrelated place";
+  broken.sceneContracts[1].object_states.pop();
+  broken.sceneContracts[1].text_page_number = broken.sceneContracts[0].image_page_number;
+  const issues = storyboardAdjacentHandoffIssues(broken);
+  assert.ok(issues.includes("scene 1 location does not hand off to scene 2"));
+  assert.ok(issues.includes("scene 1 object registry does not hand off to scene 2"));
+  assert.ok(issues.includes("scene 1 page binding overlaps scene 2"));
 });
 
 test("preview compiles and checkpoints visual beats before manuscript batches", () => {

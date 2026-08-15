@@ -78,6 +78,7 @@ import {
   bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  storyboardAdjacentHandoffIssues,
   storyboardBindingIssues,
   STORYBOARD_FIRST_CONTRACT_VERSION,
 } from "../services/specDrivenIllustrationPlan.js";
@@ -1213,11 +1214,14 @@ router.post("/preview", async (req, res) => {
       });
       if (narrativeBookSpec
         && Number(storyScenePlan?.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION) {
-        const bindingIssues = storyboardBindingIssues(
-          storyScenePlan,
-          Object.fromEntries(draftTextByPage),
-          narrativeBookSpec.validation.artifactDigest,
-        );
+        const bindingIssues = [
+          ...storyboardBindingIssues(
+            storyScenePlan,
+            Object.fromEntries(draftTextByPage),
+            narrativeBookSpec.validation.artifactDigest,
+          ),
+          ...storyboardAdjacentHandoffIssues(storyScenePlan),
+        ];
         if (bindingIssues.length) {
           const bindingError = new Error(`Storyboard binding failed: ${bindingIssues.join(" | ")}`);
           bindingError.code = "storyboard_binding_invalid";

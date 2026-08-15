@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/storyboard-binding-integrity`
-- Production/main checkpoint: storyboard-first visual beat contract (`853ff89`)
-- Current focused checkpoint: signed storyboard-to-manuscript binding
-- Pull requests: #150 through #184 merged
+- Current branch: `codex/adjacent-storyboard-handoffs`
+- Production/main checkpoint: signed storyboard-to-manuscript binding (`44f3f55`)
+- Current focused checkpoint: adjacent storyboard handoffs
+- Pull requests: #150 through #185 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #184 are merged on `main`. PR #184 compiles a sealed visual beat before prose and makes the writer and language editor consume that same instant. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #185 are merged on `main`. PR #185 signs every visual beat and rejects stale, incomplete or mutated text bindings before image generation. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: signed storyboard-to-manuscript binding
+## Current focused brick: adjacent storyboard handoffs
+
+1. Scene numbers must be contiguous and each scene's final location must equal the next scene's initial location.
+2. When world topology is active, the outgoing physical zone must equal the next incoming zone.
+3. Every beat carries the same complete object registry even while individual states change causally.
+4. Text/image page pairs cannot overlap the following spread.
+5. A fixed landmark's declared next-scene visibility must match its actual next-scene registry state.
+
+## Product brick: signed storyboard-to-manuscript binding
 
 1. Every visual beat receives a SHA-256 digest over its immutable scene, cast, action, objects, causal frame, physical snapshot and forbidden elements.
 2. Text binding may add only the paired source prose; it cannot change the signed visual payload.
@@ -179,14 +187,14 @@ PR #55 through #184 are merged on `main`. PR #184 compiles a sealed visual beat 
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 500/500 passing.
+- Complete `npm test`: 501/501 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the signed storyboard binding after its clean diff review.
-2. Add deterministic adjacent-beat handoff checks before illustration generation.
+1. Publish and merge the adjacent storyboard handoff gate after its clean diff review.
+2. Add a bounded semantic manuscript-to-beat audit through the existing editor call.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
