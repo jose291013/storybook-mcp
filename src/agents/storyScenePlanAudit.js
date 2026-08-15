@@ -86,8 +86,12 @@ export function authoritativeSceneContractForAudit(contract = {}) {
       physical_medium: clean(contract.render_snapshot?.physical_medium),
       camera_environment: contract.render_snapshot?.camera_environment ? {
         camera_side: clean(contract.render_snapshot.camera_environment?.camera_side),
+        camera_zone: clean(contract.render_snapshot.camera_environment?.camera_zone),
         ambient_medium: clean(contract.render_snapshot.camera_environment?.ambient_medium),
+        other_side_zone: clean(contract.render_snapshot.camera_environment?.other_side_zone),
         other_side_medium: clean(contract.render_snapshot.camera_environment?.other_side_medium),
+        before_zone: clean(contract.render_snapshot.camera_environment?.before_zone),
+        after_zone: clean(contract.render_snapshot.camera_environment?.after_zone),
         entry_passage_id: clean(contract.render_snapshot.camera_environment?.entry_passage_id),
         boundary_crossing: contract.render_snapshot.camera_environment?.boundary_crossing === true,
         boundary_rule: clean(contract.render_snapshot.camera_environment?.boundary_rule),
@@ -240,6 +244,8 @@ export function deterministicStoryPlanIssues({
       || key(contract.render_snapshot.location) !== key(expectedSnapshot.location)
       || key(contract.render_snapshot.physical_medium) !== key(expectedSnapshot.physical_medium)
       || key(contract.render_snapshot.camera_environment?.camera_side) !== key(expectedSnapshot.camera_environment?.camera_side)
+      || key(contract.render_snapshot.camera_environment?.camera_zone) !== key(expectedSnapshot.camera_environment?.camera_zone)
+      || key(contract.render_snapshot.camera_environment?.other_side_zone) !== key(expectedSnapshot.camera_environment?.other_side_zone)
       || JSON.stringify(contract.render_snapshot.equipment || []) !== JSON.stringify(expectedSnapshot.equipment)
       || JSON.stringify(contract.render_snapshot.fixed_entities || []) !== JSON.stringify(expectedSnapshot.fixed_entities))) {
       issues.push({

@@ -151,7 +151,7 @@ export function buildSceneContinuity({
         `VISIBLE PHYSICAL MEDIUM: ${safe(structuredSceneContract.render_snapshot.physical_medium)}.`,
         `VISIBLE LOCATION: ${safe(structuredSceneContract.render_snapshot.location)}.`,
         structuredSceneContract.render_snapshot.camera_environment
-          ? `CAMERA-SIDE TOPOLOGY: ${safe(structuredSceneContract.render_snapshot.camera_environment.camera_side)} side in ${safe(structuredSceneContract.render_snapshot.camera_environment.ambient_medium)}; ${safe(structuredSceneContract.render_snapshot.camera_environment.boundary_rule)}`
+          ? `CAMERA-SIDE TOPOLOGY: ${safe(structuredSceneContract.render_snapshot.camera_environment.camera_side)} side, zone ${safe(structuredSceneContract.render_snapshot.camera_environment.camera_zone)}, in ${safe(structuredSceneContract.render_snapshot.camera_environment.ambient_medium)}; opposite zone ${safe(structuredSceneContract.render_snapshot.camera_environment.other_side_zone)}; ${safe(structuredSceneContract.render_snapshot.camera_environment.boundary_rule)}`
           : "",
         ...structuredSceneContract.render_snapshot.forbidden.map((rule) => safe(rule)),
       );

@@ -12,6 +12,7 @@ import {
   AGE_INTENTION_CONTRACT_VERSION,
   ageIntentionContractStructuralIssues,
 } from "./ageIntentionContract.js";
+import { worldPhysicalTopologyContractIssues } from "./worldPhysicalTopology.js";
 import { validateStoryCastParticipation } from "./storyCastParticipation.js";
 import {
   applyCausalGraph,
@@ -1188,6 +1189,9 @@ export function validateStoryScenario(scenario = {}) {
   const scenes = list(scenario.scenes, 30);
   if (scenario.ageIntentionContract) {
     issues.push(...ageIntentionContractStructuralIssues(scenario.ageIntentionContract, scenes));
+  }
+  if (scenario.worldContract?.physicalTopology) {
+    issues.push(...worldPhysicalTopologyContractIssues(scenario.worldContract));
   }
   if (!scenario.title) issues.push("scenario.title is required");
   if (!scenario.summary) issues.push("scenario.summary is required");

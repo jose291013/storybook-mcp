@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/age-intention-contract`
-- Production/main checkpoint: deterministic act allocation (`aa54a66`)
-- Current focused checkpoint: age × intention narrative contract
-- Pull requests: #150 through #181 merged
+- Current branch: `codex/universe-physical-topology`
+- Production/main checkpoint: age × intention narrative contract (`4630ff6`)
+- Current focused checkpoint: six-universe physical topology
+- Pull requests: #150 through #182 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #181 are merged on `main`. PR #181 locks every new scenario to three server-owned contiguous acts and keeps legacy act values compatible. The public Render health endpoint returned `200 {"ok":true}` after that merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #182 are merged on `main`. PR #182 binds each new scenario to the exact child-age profile and adult intention milestones without copying private answer text. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: age × intention narrative contract
+## Current focused brick: six-universe physical topology
+
+1. Every universe defines an origin zone, adventure zone, transition zone and physical medium for each side.
+2. The first stable `cross_passage` fixes the boundary; the same id returns to the origin and cannot be replaced by ordinary travel.
+3. A universe-native story without a boundary stays wholly on its declared adventure side.
+4. Scene planning, image prompts and final audit receive exact camera/opposite zones as well as physical media.
+5. Legacy non-ocean contracts do not acquire this topology during regeneration; the prior coral-ocean compatibility fallback remains.
+
+## Product brick: age × intention narrative contract
 
 1. Five deterministic age profiles bound conceptual complexity, metaphor and emotional reasoning from ages 1 through 14.
 2. Eight fixed milestones map the adult's selected intention and seed fields to exact narrative roles without copying private answer text into the contract.
@@ -155,14 +163,14 @@ PR #55 through #181 are merged on `main`. PR #181 locks every new scenario to th
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 493/493 passing.
+- Complete `npm test`: 497/497 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the age × intention contract after its clean diff review.
-2. Expand deterministic physical topology to all six universes in its own product brick.
+1. Publish and merge the six-universe topology after its clean diff review.
+2. Build the storyboard-first visual beat contract in its own product brick.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state

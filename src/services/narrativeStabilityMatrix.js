@@ -2,6 +2,7 @@ import { ALLOWED_PAGE_COUNTS, UNIVERSE_OPTIONS } from "../config/bookOptions.js"
 import { createPagePlan } from "../config/bookStructure.js";
 import { createStoryActContract, storyActContractIssues } from "../config/storyActs.js";
 import { ageIntentionContractIssues, createAgeIntentionContract } from "./ageIntentionContract.js";
+import { worldPhysicalTopologyContractIssues } from "./worldPhysicalTopology.js";
 import { normalizeBookRequest } from "./normalizeBookRequest.js";
 
 export const NARRATIVE_STABILITY_MATRIX_VERSION = 1;
@@ -136,6 +137,9 @@ export function inspectNarrativeStabilityMatrix(fixtures = buildNarrativeStabili
     }
     if (normalized.answers.universe_story_contract?.id !== universeId) {
       issues.push(`${fixture.id}: universe contract missing`);
+    }
+    for (const issue of worldPhysicalTopologyContractIssues(normalized.answers.universe_story_contract)) {
+      issues.push(`${fixture.id}: ${issue}`);
     }
     const plan = createPagePlan(pageCount);
     if (plan.length !== pageCount) issues.push(`${fixture.id}: incomplete page plan`);

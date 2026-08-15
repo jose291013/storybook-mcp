@@ -6,6 +6,7 @@ import { normalizeStorySuggestions } from "../src/services/storySuggestions.js";
 import { normalizeStoryIntentions } from "../src/services/storyIntentions.js";
 import { normalizeBookRequest } from "../src/services/normalizeBookRequest.js";
 import { UI_TEXT } from "../public/i18n.js";
+import { worldPhysicalTopologyContractIssues } from "../src/services/worldPhysicalTopology.js";
 
 test("every universe has a likeness example and a causal story contract", async () => {
   assert.equal(UNIVERSE_OPTIONS.length, 6);
@@ -16,6 +17,7 @@ test("every universe has a likeness example and a causal story contract", async 
     assert.ok(universe.storyContract?.entryRule);
     assert.ok(Array.isArray(universe.storyContract?.physicalRules));
     assert.ok(Array.isArray(universe.storyContract?.requiredMechanisms));
+    assert.deepEqual(worldPhysicalTopologyContractIssues(universe.storyContract), []);
     await fs.access(`public${universe.previewImage}`);
     await fs.access(`public${universe.referenceImage}`);
   }

@@ -124,6 +124,10 @@ export function compilePhysicalRenderSnapshot({
       other_side_medium: topology.other_side_medium,
       entry_passage_id: topology.entry_passage_id,
       boundary_crossing: topology.boundary_crossing,
+      camera_zone: topology.camera_zone,
+      other_side_zone: topology.other_side_zone,
+      before_zone: topology.before_zone,
+      after_zone: topology.after_zone,
       boundary_rule: boundaryRule,
     } : null,
     main_action: {
