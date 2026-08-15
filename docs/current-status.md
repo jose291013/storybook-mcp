@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-stability-matrix`
-- Production/main checkpoint: narration-ready reader return (`51df1e2`)
-- Current focused checkpoint: narration-ready reader return
-- Pull requests: #150 through #179 merged
+- Current branch: `codex/deterministic-act-allocation`
+- Production/main checkpoint: narrative stability matrix (`e4d21c3`)
+- Current focused checkpoint: deterministic act allocation
+- Pull requests: #150 through #180 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #179 are merged on `main`. PR #178 adds phase-aware illustrated cast roles and separates travelers from local departure or arrival supporters. PR #179 exposes narration completion in My creations and returns a ready customer directly to the narrated interactive reader. The public Render health endpoint returned `200 {"ok":true}` after the preceding production checkpoint. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #180 are merged on `main`. PR #180 adds the synthetic 108-case narrative stability matrix with a zero-model local guard and a deliberately single-case paid benchmark. The public Render health endpoint returned `200 {"ok":true}` after that merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: narrative stability matrix
+## Current focused brick: deterministic act allocation
+
+1. Every sellable length receives three contiguous acts from a server-owned story-role mapping.
+2. New scenario page plans carry the exact act; model-authored act values are ignored during normalization.
+3. New scenarios persist `actPlanVersion: 1`, and deterministic validation rejects later boundary tampering.
+4. Manuscript batches consume the deterministic page plan while legacy scenarios retain their saved act compatibility.
+5. The 108-case local stability guard now validates each act contract without a model call.
+
+## Product brick: narrative stability matrix
 
 1. A synthetic matrix covers 6 universes × 6 sellable page counts × FR/ES/EN, for 108 exact combinations.
 2. Local inspection validates normalization, universe contracts, page plans and illustrated-scene counts without a model or network call.
@@ -139,15 +147,15 @@ PR #55 through #179 are merged on `main`. PR #178 adds phase-aware illustrated c
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 484/484 passing.
+- Complete `npm test`: 488/488 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Execute one deliberately selected paid matrix case only after explicit cost authorization.
-2. Use the measured baseline to introduce deterministic act assignment in its own product brick.
-3. Compare first-pass and internal-repair rates after each narrative brick without changing production generation implicitly.
+1. Publish and merge the deterministic act allocation after its clean diff review.
+2. Introduce the age-and-intention narrative contract in its own product brick.
+3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
 

@@ -142,6 +142,7 @@ MANDATORY
 - Copy canonical names exactly.
 - Satisfy every cast_participation_contract participant. The companion shares several stages of the adventure, the guide advises without solving the climax, the ally joins an attempt or consequence, the supporter performs concrete support, and a guest receives at least one meaningful moment.
 - Copy scene_number and story_role exactly from page_plan.
+- Copy act exactly from page_plan. Act boundaries are server-owned and deterministic: never choose, move or reinterpret them. Use act_contract only to understand the required progression inside those fixed boundaries.
 - Use only prior scene ids such as scene-1 in prerequisite_scene_ids.
 - A discover_passage event does not cross the passage and does not change location. It may be the scene transition when the whole scene is stationary, or the final character_movement event after the travelers arrive at the passage threshold.
 - A cross_passage scene copies the exact mechanism_id from its earlier discovery, names every traveler and changes location from the established origin to the destination.

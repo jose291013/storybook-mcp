@@ -7,6 +7,7 @@ import {
   validateCharacterMovementLedger,
 } from "./characterMovementLedger.js";
 import { findUniverse } from "../config/bookOptions.js";
+import { STORY_ACT_CONTRACT_VERSION, storyActForRole } from "../config/storyActs.js";
 import { validateStoryCastParticipation } from "./storyCastParticipation.js";
 import {
   applyCausalGraph,
@@ -293,7 +294,11 @@ export function normalizeStoryScenario(candidate = {}, {
       id: sceneId(expected.scene_number),
       sceneNumber: Number(expected.scene_number),
       storyRole: expected.story_role,
-      act: Math.max(1, Math.min(3, Number(supplied?.act || (index < expectedScenes.length / 3 ? 1 : index < expectedScenes.length * 2 / 3 ? 2 : 3)))),
+      act: storyActForRole(expected.story_role, {
+        index,
+        total: expectedScenes.length,
+        fallbackAct: expected.act,
+      }),
       title: text(supplied?.title),
       locationBefore,
       locationAfter,
@@ -382,6 +387,7 @@ export function normalizeStoryScenario(candidate = {}, {
   );
   return {
     version: STORY_SCENARIO_VERSION,
+    actPlanVersion: STORY_ACT_CONTRACT_VERSION,
     movementLedgerVersion: CHARACTER_MOVEMENT_LEDGER_VERSION,
     language: text(language || "FR").toUpperCase(),
     title: text(raw?.title),
@@ -1201,6 +1207,13 @@ export function validateStoryScenario(scenario = {}) {
   for (const [index, scene] of scenes.entries()) {
     if (scene.sceneNumber !== index + 1 || scene.id !== sceneId(index + 1)) issues.push(`scene ${index + 1} is out of order`);
     if (!scene.storyRole) issues.push(`${scene.id}.storyRole is required`);
+    if (
+      Number(scenario.actPlanVersion) === STORY_ACT_CONTRACT_VERSION
+      && Number(scene.act) !== storyActForRole(scene.storyRole, {
+        index,
+        total: scenes.length,
+      })
+    ) issues.push(`${scene.id}.act must match the deterministic story-role boundary`);
     if (!scene.title) issues.push(`${scene.id}.title is required`);
     if (!scene.action) issues.push(`${scene.id}.action is required`);
     if (narrativeContract) {

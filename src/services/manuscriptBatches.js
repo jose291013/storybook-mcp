@@ -1,12 +1,16 @@
 import { getWordsTargetByAge } from "../config/readingGuidance.js";
+import { STORY_ACT_CONTRACT_VERSION, storyActForRole } from "../config/storyActs.js";
 import { manuscriptSceneContract } from "./narrativeBookSpecLifecycle.js";
 
 const TEXT_PAGE_TYPES = new Set(["text", "opening_text", "closing_text"]);
 
 function sceneActByNumber(approvedScenario) {
-  return new Map((approvedScenario?.scenes || []).map((scene) => [
+  const scenes = approvedScenario?.scenes || [];
+  return new Map(scenes.map((scene, index) => [
     Number(scene.sceneNumber),
-    Math.min(3, Math.max(1, Number(scene.act || 0))),
+    Number(approvedScenario?.actPlanVersion) === STORY_ACT_CONTRACT_VERSION
+      ? storyActForRole(scene.storyRole, { index, total: scenes.length })
+      : Math.min(3, Math.max(1, Number(scene.act || 0))),
   ]).filter(([sceneNumber, act]) => sceneNumber > 0 && act > 0));
 }
 
@@ -23,9 +27,13 @@ export function manuscriptBatches({
 } = {}) {
   const textPages = pages.filter((page) => TEXT_PAGE_TYPES.has(page.page_type));
   const acts = sceneActByNumber(approvedScenario);
+  const deterministicActs = Number(approvedScenario?.actPlanVersion) === STORY_ACT_CONTRACT_VERSION;
   const grouped = new Map();
   textPages.forEach((page, index) => {
-    let act = acts.get(Number(page.scene_number));
+    let act = deterministicActs
+      ? Math.min(3, Math.max(0, Number(page.act || 0)))
+      : 0;
+    if (!act) act = acts.get(Number(page.scene_number));
     if (page.page_type === "opening_text") act = 1;
     if (page.page_type === "closing_text") act = 3;
     if (!act) act = fallbackAct(index, textPages.length);

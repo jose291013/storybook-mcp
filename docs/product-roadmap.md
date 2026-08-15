@@ -2,6 +2,21 @@
 
 Last updated: 2026-08-15
 
+## Deterministic three-act allocation checkpoint
+
+New scenarios no longer let a narrative model choose or move act boundaries.
+The server maps every fixed story role to one of three contiguous acts: setup and
+guide relationship; plan, attempts and consequential choice; then climax,
+earned transformation and resolution. The exact act travels with the page plan,
+and scenario normalization ignores a conflicting model value.
+
+The versioned act contract records exact scene ranges for every sellable length.
+New scenarios persist the contract version, deterministic validation rejects
+later boundary tampering, and manuscript batching uses the server-owned page
+plan. Legacy approved scenarios keep their existing act values when no versioned
+contract is present. All 108 local stability cases now verify the act contract
+without adding a model call or changing a customer project.
+
 ## Narrative stability matrix checkpoint
 
 The narrative redesign is measured first against a synthetic 108-case matrix:
