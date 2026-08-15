@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/record-physical-chronology-deployment`
-- Production/main checkpoint: deterministic physical-chronology compiler (`a8999c0`)
-- Current focused checkpoint: production verification of the reopened 32-page private candidate
-- Pull requests: #150 through #196 merged
+- Current branch: `codex/settle-return-storyboard-composition`
+- Production/main checkpoint: physical-chronology deployment record (`70e8522`)
+- Current focused checkpoint: settled final-return storyboard composition and versioned deterministic recompilation
+- Pull requests: #150 through #197 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #196 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate. Render confirmed `a8999c0` live on 2026-08-15 at 16:35 GMT+2. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #197 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. Render confirmed `70e8522` live on 2026-08-15. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Candidate product brick: settled final-return composition
+
+1. The exact illustrated phase outranks a scene-wide travel event when the final `return_home_and_moral` beat is already at its end location.
+2. A return shown during the crossing keeps the reverse threshold profile; a return shown after arrival receives the quiet moral composition at energy 1 or 2.
+3. Visual-composition plan version 3 and illustration-plan version 12 invalidate the contradictory saved composition deterministically.
+4. An interrupted project rebuilds only its signed storyboard from the approved scenario, blueprint and saved manuscript; it does not request another narrative model call.
+5. The whole-book rhythm still blocks a genuinely energetic unresolved return before any illustration request.
 
 ## Product brick: deterministic physical chronology
 

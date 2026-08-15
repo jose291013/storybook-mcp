@@ -8,7 +8,7 @@ import {
   wholeBookVisualRhythmIssues,
 } from "./visualCompositionPlan.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 11;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 12;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
@@ -126,6 +126,7 @@ export function compileSpecDrivenIllustrationPlan({
       sceneNumber: scene.sceneNumber,
       storyRole: imagePage?.story_role,
       transitionKind: scene.transition?.kind,
+      visiblePhase: scene.timeline.visiblePhase,
       visibleCharacterCount: namedCharacters.length,
       previousCompositionId,
     });
@@ -251,6 +252,14 @@ export function bindStoryboardPageTexts(storyboard = {}, pageTexts = {}) {
     source_prose: String(bound.pageTexts[String(Number(contract?.text_page_number))] || ""),
   }));
   return bound;
+}
+
+export function isCurrentSpecDrivenIllustrationPlan(plan = null, expectedArtifactDigest = "") {
+  return Boolean(plan)
+    && Number(plan.version || 0) >= SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION
+    && Number(plan.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION
+    && (!expectedArtifactDigest || plan.artifactDigest === expectedArtifactDigest)
+    && plan.contractSource === SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE;
 }
 
 export function manuscriptVisualBeatForScene(storyboard = null, sceneNumber = 0) {

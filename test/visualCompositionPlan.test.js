@@ -63,11 +63,49 @@ test("a real world crossing receives a spatial threshold composition", () => {
     sceneNumber: 6,
     storyRole: "return_home_and_moral",
     transitionKind: "return_travel",
+    visiblePhase: "during",
     visibleCharacterCount: 3,
     previousCompositionId: composition.composition_id,
   });
   assert.equal(adjacentReturn.composition_id, "threshold_reverse_profile");
   assert.match(adjacentReturn.depth_plan, /departure side.*passage.*destination side/iu);
+});
+
+test("a completed final return illustrates the settled moral rather than the crossing", () => {
+  const settledReturn = compileVisualComposition({
+    sceneNumber: 15,
+    storyRole: "return_home_and_moral",
+    transitionKind: "return_travel",
+    visiblePhase: "end",
+    visibleCharacterCount: 2,
+  });
+  assert.equal(settledReturn.composition_id, "intimate_reflection");
+  assert.ok(settledReturn.energy_level <= 2);
+  assert.deepEqual(wholeBookVisualRhythmIssues([{
+    scene_number: 15,
+    visual_composition: settledReturn,
+  }]), []);
+
+  const crossingReturn = compileVisualComposition({
+    sceneNumber: 15,
+    storyRole: "return_home_and_moral",
+    transitionKind: "return_travel",
+    visiblePhase: "during",
+    visibleCharacterCount: 2,
+  });
+  assert.equal(crossingReturn.composition_id, "threshold_reverse_profile");
+  assert.equal(crossingReturn.energy_level, 3);
+
+  const settledAfterReflection = compileVisualComposition({
+    sceneNumber: 15,
+    storyRole: "return_home_and_moral",
+    transitionKind: "return_travel",
+    visiblePhase: "end",
+    visibleCharacterCount: 2,
+    previousCompositionId: "intimate_reflection",
+  });
+  assert.equal(settledAfterReflection.composition_id, "layered_resolution");
+  assert.ok(settledAfterReflection.energy_level <= 2);
 });
 
 test("adjacent repeated roles still receive different deterministic layouts", () => {
