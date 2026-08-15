@@ -119,6 +119,7 @@ function resolvedPage(page, resolution, replacement = {}, selectedScope = "") {
       : "accepted_after_creator_repair",
     qualityOriginalIssues: Array.isArray(page.qualityIssues) ? page.qualityIssues : [],
     qualityIssues: [],
+    qualityIssueCodes: [],
     qualityKind: "",
     qualityResolution: {
       type: resolution,
