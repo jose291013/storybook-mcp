@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
+import { compileVisualComposition, visualCompositionPlanIssues } from "./visualCompositionPlan.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 7;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 8;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
@@ -31,7 +32,7 @@ function stableValue(value) {
 }
 
 function visualBeatCore(contract = {}) {
-  return {
+  const core = {
     version: STORYBOARD_FIRST_CONTRACT_VERSION,
     artifact_digest: String(contract.artifact_digest || ""),
     spread_number: Number(contract.spread_number || 0),
@@ -49,6 +50,10 @@ function visualBeatCore(contract = {}) {
       forbidden_elements: structuredClone(contract.forbidden_elements || []),
     },
   };
+  if (contract.visual_composition) {
+    core.visible_instant.visual_composition = structuredClone(contract.visual_composition);
+  }
+  return core;
 }
 
 function visualBeatDigest(contract = {}) {
@@ -79,6 +84,7 @@ export function compileSpecDrivenIllustrationPlan({
     ...(scene.transition?.travelerCharacterIds || []),
   ])));
 
+  let previousCompositionId = "";
   const sceneContracts = spec.scenes.map((scene) => {
     const imagePage = imagePages.get(scene.sceneNumber);
     const textPage = textPages.get(scene.sceneNumber);
@@ -107,6 +113,14 @@ export function compileSpecDrivenIllustrationPlan({
       || scene.timeline.locationAfterId;
     const locationBefore = locations.get(scene.timeline.locationBeforeId)?.name || scene.timeline.locationBeforeId;
     const transitionMechanism = passages.get(scene.transition?.passageId)?.name || scene.transition?.passageId || "";
+    const visualComposition = compileVisualComposition({
+      sceneNumber: scene.sceneNumber,
+      storyRole: imagePage?.story_role,
+      transitionKind: scene.transition?.kind,
+      visibleCharacterCount: namedCharacters.length,
+      previousCompositionId,
+    });
+    previousCompositionId = visualComposition.composition_id;
     const contract = {
       contract_source: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
       storyboard_first_version: STORYBOARD_FIRST_CONTRACT_VERSION,
@@ -141,6 +155,7 @@ export function compileSpecDrivenIllustrationPlan({
         ...absentObjects,
         ...forbiddenCharacters,
       ],
+      visual_composition: visualComposition,
       causal_frame: {
         before: { location: locationBefore },
         during: {
@@ -245,6 +260,9 @@ export function storyboardBindingIssues(storyboard = {}, pageTexts = {}, expecte
   }
   const contracts = Array.isArray(storyboard?.sceneContracts) ? storyboard.sceneContracts : [];
   if (!contracts.length) issues.push("storyboard scene contracts are required");
+  if (Number(storyboard?.version || 0) >= SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION) {
+    issues.push(...visualCompositionPlanIssues(contracts));
+  }
   const scenes = new Set();
   const textPages = new Set();
   const imagePages = new Set();

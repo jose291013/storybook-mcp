@@ -3,6 +3,7 @@ import fs from "node:fs";
 import test from "node:test";
 
 import { visualQualityDisposition } from "../src/services/imageQualityGate.js";
+import { visualCompositionPlanIssues } from "../src/services/visualCompositionPlan.js";
 import {
   bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
@@ -54,6 +55,22 @@ test("illustration contracts are compiled without a second narrative model", () 
   assert.equal(first.quality_policy.blocking.includes("identity_fusion_or_duplication"), true);
   assert.equal(first.render_snapshot.visible_phase, "after");
   assert.equal(first.render_snapshot.location, "le jardin");
+  assert.equal(first.visual_composition.version, 1);
+  assert.ok(first.visual_composition.composition_id);
+  assert.deepEqual(visualCompositionPlanIssues(plan.sceneContracts), []);
+});
+
+test("deterministic compositions vary adjacent scenes without changing their canonical action", () => {
+  const plan = compileSpecDrivenIllustrationPlan({ spec, blueprint: blueprintFromSpec() });
+  assert.notEqual(
+    plan.sceneContracts[0].visual_composition.composition_id,
+    plan.sceneContracts[1].visual_composition.composition_id,
+  );
+  assert.deepEqual(
+    plan.sceneContracts.map((contract) => contract.main_action),
+    compileSpecDrivenIllustrationPlan({ spec, blueprint: blueprintFromSpec() })
+      .sceneContracts.map((contract) => contract.main_action),
+  );
 });
 
 test("visual beats are sealed before prose and text binding cannot change them", () => {
@@ -100,6 +117,19 @@ test("binding integrity rejects visual mutation, stale artifacts and mismatched 
   assert.ok(issues.includes("storyboard artifact digest is stale"));
   assert.ok(issues.includes("scene 1 visual beat integrity failed"));
   assert.ok(issues.includes("scene 2 manuscript binding does not match its text page"));
+});
+
+test("current storyboard binding rejects a missing or repeated composition plan", () => {
+  const storyboard = compileSpecDrivenIllustrationPlan({ spec, blueprint: blueprintFromSpec() });
+  const texts = Object.fromEntries(storyboard.sceneContracts.map((contract) => ([
+    contract.text_page_number,
+    `Canonical text for scene ${contract.scene_number}`,
+  ])));
+  const bound = bindStoryboardPageTexts(storyboard, texts);
+  bound.sceneContracts[1].visual_composition = structuredClone(bound.sceneContracts[0].visual_composition);
+  const issues = storyboardBindingIssues(bound, texts, spec.validation.artifactDigest);
+  assert.ok(issues.includes("scene 2 repeats the previous visual composition"));
+  assert.ok(issues.includes("scene 2 visual beat integrity failed"));
 });
 
 test("adjacent beats hand off exact locations, registries and non-overlapping pages", () => {

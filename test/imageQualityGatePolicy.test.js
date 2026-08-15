@@ -323,6 +323,31 @@ test("image prompts lock fixed landmarks to one canonical home and adjacent visi
   assert.match(prompt, /Never invent a second instance/iu);
 });
 
+test("image prompts carry the signed deterministic composition without weakening scene facts", () => {
+  const prompt = sceneContractImagePrompt({
+    contract: {
+      artifact_digest: "artifact-1",
+      main_action: { subject: "Bastien", verb: "place", target: "the pearl" },
+      visual_composition: {
+        version: 1,
+        composition_id: "choice_triangle",
+        framing: "single square illustration",
+        shot_scale: "medium decision view",
+        viewpoint: "eye-level three-quarter view",
+        subject_placement: "hero, choice and consequence form a clean visual triangle",
+        depth_plan: "choice foreground, deciding hero middle ground and supporting cast behind",
+        visual_rhythm: "held decision",
+        cast_readability: "keep every required character complete, separate and readable",
+        action_readability: "composition may vary, but the signed main action may not change",
+      },
+    },
+  });
+  assert.match(prompt, /LOCKED VISUAL COMPOSITION/iu);
+  assert.match(prompt, /medium decision view/iu);
+  assert.match(prompt, /MAIN ACTION: hero child place recurring story companion 1/iu);
+  assert.match(prompt, /signed main action may not change/iu);
+});
+
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {
   const sanitized = sanitizeBrandSensitiveText('FIXED OUTFIT: t-shirt gris à l’effigie de Sonic bleu, short rouge, sandales rouges type Crocs, casquette avec inscription "NYC" blanche.');
   assert.doesNotMatch(sanitized, /Sonic|Crocs|NYC/iu);
