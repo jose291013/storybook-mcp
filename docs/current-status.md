@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/record-creator-repair-exact-cast`
-- Production/main checkpoint: exact cast cardinality for automatic and creator-requested visual repairs (`6ae47d7`)
-- Current focused checkpoint: production verification on the preserved pages 3, 12 and 20
-- Pull requests: #150 through #202 merged
+- Current branch: `codex/paid-repair-identity-cardinality`
+- Production/main checkpoint: recorded exact-cast deployment (`57c54b6`)
+- Current focused checkpoint: identity-aware cardinality for paid illustration repairs
+- Pull requests: #150 through #203 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #202 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. PR #200 adds exact named-cast cardinality, canonical identity rechecks and structured creator messages after a targeted visual repair; PR #201 records that deployment. PR #202 extends the same exact-cast gate to creator-requested illustration alternatives. Render confirmed `6ae47d7` live on 2026-08-15. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #203 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. PR #200 adds exact named-cast cardinality, canonical identity rechecks and structured creator messages after a targeted visual repair; PR #201 records that deployment. PR #202 extends the same exact-cast gate to creator-requested illustration alternatives; PR #203 records that deployment. Render confirmed `57c54b6` live on 2026-08-15. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Product brick: exact cast cardinality after targeted repair
 
@@ -27,6 +27,14 @@ PR #55 through #202 are merged on `main`. PR #191 proves that every current sign
 4. A structured revision comparison separates identity/cast claims from unrelated invariant regressions, preventing a confirmed complete cast from becoming a false customer task.
 5. Persisted defect codes drive precise FR/ES/EN creator messages instead of free-text keyword matching.
 6. Creator-requested illustration alternatives use the same exact-cast gate, preventing a manual correction from adding a second Eva or preserving a substituted Kovu.
+
+## Candidate product brick: identity-aware paid illustration repair
+
+1. Paid illustration adjustments edit the preserved source locally and must keep exactly one complete instance of every required named identity.
+2. The focused high-detail controller receives the matching private identity references and cannot assign one candidate person to two different aliases.
+3. Its complete result replaces contradictory anonymous missing/duplicate findings; action, location, object and topology findings remain independent.
+4. An incomplete focused response preserves the earlier evidence rather than silently approving or inventing a conclusion.
+5. A failed candidate releases its credit reservation, while capture remains after successful private generation and before explicit creator approval.
 
 ## Product brick: settled final-return composition
 
@@ -269,7 +277,7 @@ PR #55 through #202 are merged on `main`. PR #191 proves that every current sign
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
 - Focused physical chronology, compiler and recovery tests: 67/67 passing.
-- Complete `npm test`: 536/536 passing.
+- Complete `npm test`: 538/538 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 

@@ -11,6 +11,7 @@ import {
   classifyVisualIssue,
   inspectNamedCastCardinality,
   inspectRevisionNonRegression,
+  reconcileFocusedCastInspection,
   inspectSceneFidelity,
   IllustrationQualityError,
   isImageSafetyRejection,
@@ -221,7 +222,11 @@ test("targeted cast repairs require one high-detail occurrence of every named id
   ];
   const client = {
     responses: {
-      create: async () => ({ output_text: JSON.stringify(responses.shift()) }),
+      create: async (request) => {
+        assert.equal(request.input[0].content.filter((item) => item.type === "input_image").length, 2);
+        assert.match(request.input[0].content[0].text, /Image 2: Eva, supporter/);
+        return { output_text: JSON.stringify(responses.shift()) };
+      },
     },
   };
   const sceneContract = {
@@ -230,17 +235,62 @@ test("targeted cast repairs require one high-detail occurrence of every named id
       { name: "Eva", visual_role: "supporter", action: "walks beside Noa" },
     ],
   };
+  const identityReferences = [{
+    buffer: await sharp({
+      create: { width: 32, height: 32, channels: 3, background: "#ffe7d6" },
+    }).png().toBuffer(),
+    kind: "identity",
+    label: "Eva, supporter: private identity-only reference",
+  }];
   try {
-    const duplicated = await inspectNamedCastCardinality({ imagePath, sceneContract, client });
+    const duplicated = await inspectNamedCastCardinality({ imagePath, sceneContract, identityReferences, client });
     assert.deepEqual(duplicated, {
       approved: false,
-      issues: ["Required named identity is duplicated. Eva appears two or more times after high-detail cardinality verification."],
+      issues: ["Required named identity is duplicated. Eva appears two or more times after high-detail identity-cardinality verification."],
+      issueCodes: ["identity_duplicate"],
+      authoritative: true,
     });
-    const exact = await inspectNamedCastCardinality({ imagePath, sceneContract, client });
-    assert.deepEqual(exact, { approved: true, issues: [] });
+    const exact = await inspectNamedCastCardinality({ imagePath, sceneContract, identityReferences, client });
+    assert.deepEqual(exact, { approved: true, issues: [], issueCodes: [], authoritative: true });
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("focused identity cardinality replaces contradictory anonymous cast findings", () => {
+  const reconciled = reconcileFocusedCastInspection({
+    approved: false,
+    issues: [
+      "Required named identity is duplicated: family member 3 appears twice.",
+      "Required named character human friend 4 is missing after high-detail confirmation.",
+      "Required object basket is missing.",
+    ],
+  }, {
+    approved: false,
+    issues: ["Required named identity is duplicated. Eva appears two or more times after high-detail identity-cardinality verification."],
+    issueCodes: ["identity_duplicate"],
+    authoritative: true,
+  });
+  assert.deepEqual(reconciled.issues, [
+    "Required object basket is missing.",
+    "Required named identity is duplicated. Eva appears two or more times after high-detail identity-cardinality verification.",
+  ]);
+  assert.deepEqual(reconciled.issueCodes, ["object_state", "identity_duplicate"]);
+});
+
+test("an incomplete focused cast response preserves the original scene evidence", () => {
+  const original = {
+    approved: false,
+    issues: ["Required named character human friend 4 is missing after high-detail confirmation."],
+  };
+  assert.deepEqual(reconcileFocusedCastInspection(original, {
+    approved: true,
+    issues: [],
+    authoritative: false,
+  }), {
+    ...original,
+    issueCodes: ["required_cast_missing"],
+  });
 });
 
 test("revision comparison keeps structured cast regressions separate from stable-scene regressions", async () => {
