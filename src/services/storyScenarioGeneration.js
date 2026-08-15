@@ -1,6 +1,7 @@
 import { storyScenarioAgent } from "../agents/storyScenario.js";
 import { storyScenarioAuditAgent } from "../agents/storyScenarioAudit.js";
 import { createPagePlan } from "../config/bookStructure.js";
+import { createStoryActContract } from "../config/storyActs.js";
 import {
   applyCreatorStoryScenarioEdits,
   normalizeStoryScenario,
@@ -73,9 +74,11 @@ export function scopeAutomaticRepairCandidate(candidate = {}, previousScenario =
     "castParticipationContract",
     "characters",
     "wardrobePlan",
+    "actPlanVersion",
   ]) {
     if (Object.hasOwn(previousScenario || {}, field)) scoped[field] = structuredClone(previousScenario[field]);
   }
+  if (!Object.hasOwn(previousScenario || {}, "actPlanVersion")) delete scoped.actPlanVersion;
   return scoped;
 }
 
@@ -339,6 +342,7 @@ export async function generateValidatedScenario({
     canonical_characters: canonicalCharacters,
     cast_participation_contract: castParticipationContract,
     page_plan: pagePlan.filter((page) => page.page_type === "image"),
+    act_contract: createStoryActContract(pagePlan),
     creator_clarifications: creatorClarifications,
     creator_scene_edits: sceneEdits,
     creator_feedback: String(feedback || "").slice(0, 2000),

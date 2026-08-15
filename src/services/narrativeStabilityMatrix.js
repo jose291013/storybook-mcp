@@ -1,5 +1,6 @@
 import { ALLOWED_PAGE_COUNTS, UNIVERSE_OPTIONS } from "../config/bookOptions.js";
 import { createPagePlan } from "../config/bookStructure.js";
+import { createStoryActContract, storyActContractIssues } from "../config/storyActs.js";
 import { normalizeBookRequest } from "./normalizeBookRequest.js";
 
 export const NARRATIVE_STABILITY_MATRIX_VERSION = 1;
@@ -139,6 +140,9 @@ export function inspectNarrativeStabilityMatrix(fixtures = buildNarrativeStabili
     if (plan.length !== pageCount) issues.push(`${fixture.id}: incomplete page plan`);
     if (plan.filter((page) => page.page_type === "image").length !== (pageCount - 2) / 2) {
       issues.push(`${fixture.id}: incorrect narrative scene count`);
+    }
+    for (const issue of storyActContractIssues(createStoryActContract(plan))) {
+      issues.push(`${fixture.id}: ${issue}`);
     }
   }
   const expectedCount = UNIVERSE_OPTIONS.length

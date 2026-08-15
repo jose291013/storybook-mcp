@@ -4,6 +4,7 @@ import test from "node:test";
 
 import { ALLOWED_PAGE_COUNTS, UNIVERSE_OPTIONS } from "../src/config/bookOptions.js";
 import { createPagePlan } from "../src/config/bookStructure.js";
+import { createStoryActContract, storyActContractIssues } from "../src/config/storyActs.js";
 import { prepareSyntheticNarrativeBenchmarkFixture } from "../src/services/narrativeModelBenchmark.js";
 import {
   buildNarrativeStabilityMatrix,
@@ -37,6 +38,11 @@ test("every stability case normalizes into its exact universe contract and scene
     assert.equal(
       createPagePlan(fixture.matrix.pageCount).filter((page) => page.page_type === "image").length,
       (fixture.matrix.pageCount - 2) / 2,
+      fixture.id,
+    );
+    assert.deepEqual(
+      storyActContractIssues(createStoryActContract(createPagePlan(fixture.matrix.pageCount))),
+      [],
       fixture.id,
     );
   }

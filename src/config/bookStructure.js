@@ -1,4 +1,5 @@
 import { normalizePageCount } from "./bookOptions.js";
+import { storyActForRole } from "./storyActs.js";
 
 const CORE_STORY_ROLES = [
   "character_and_desire",
@@ -49,12 +50,17 @@ export function createPagePlan(interiorPageCount = 24) {
     spread_number: 0,
     scene_number: 0,
     story_role: "introduction",
+    act: 1,
   }];
 
   storyRoles.forEach((storyRole, index) => {
     const leftPage = 2 + index * 2;
     const textOnLeft = index % 2 === 0;
     const sceneNumber = index + 1;
+    const act = storyActForRole(storyRole, {
+      index,
+      total: storyRoles.length,
+    });
     pages.push(
       {
         page_number: leftPage,
@@ -62,6 +68,7 @@ export function createPagePlan(interiorPageCount = 24) {
         spread_number: sceneNumber,
         scene_number: sceneNumber,
         story_role: storyRole,
+        act,
       },
       {
         page_number: leftPage + 1,
@@ -69,6 +76,7 @@ export function createPagePlan(interiorPageCount = 24) {
         spread_number: sceneNumber,
         scene_number: sceneNumber,
         story_role: storyRole,
+        act,
       }
     );
   });
@@ -79,6 +87,7 @@ export function createPagePlan(interiorPageCount = 24) {
     spread_number: storyRoles.length + 1,
     scene_number: storyRoles.length + 1,
     story_role: "dedication_and_closing",
+    act: 3,
   });
   return pages;
 }
