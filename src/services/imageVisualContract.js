@@ -176,7 +176,7 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       name: safe(item.name),
       owner: safe(item.owner),
       state: safe(item.state),
-      quantity: Number(item.quantity || 1),
+      quantity: Number(item.quantity ?? 1),
       instruction: safe(item.instruction),
     }));
   return {
@@ -284,4 +284,121 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
     spatial_relationships: safetyFallback ? [] : list(contract.spatial_relationships, 12).map(safe),
     forbidden_elements: safetyFallback ? [] : list(contract.forbidden_elements, 12).map(safe),
   };
+}
+
+function sameProjection(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+export function imageContractProjectionIssues(contract = {}, aliases = aliasesFromSceneContract(contract)) {
+  const projected = compactImageSceneContract(contract, aliases);
+  const safe = (value) => neutralizeImageText(value, aliases).replace(/\s+/g, " ").trim();
+  const issues = [];
+  const check = (label, expected, actual) => {
+    if (!sameProjection(expected, actual)) issues.push(`image contract projection loses ${label}`);
+  };
+  check("main action", {
+    subject: safe(contract?.main_action?.subject),
+    verb: safe(contract?.main_action?.verb),
+    target: safe(contract?.main_action?.target),
+  }, projected.main_action);
+  check("named cast", list(contract.named_characters).map((item) => ({
+    name: safe(item?.name), visual_role: safe(item?.visual_role || "visible"),
+    action: safe(item?.action || "present in the scene"),
+  })), projected.named_characters.map((item) => ({
+    name: item.name, visual_role: item.visual_role, action: item.action,
+  })));
+  check("generic cast", list(contract.generic_characters).map((item) => ({
+    id: safe(item?.id), description: safe(item?.description), action: safe(item?.action),
+    must_not_resemble: list(item?.must_not_resemble).map(safe),
+  })), projected.generic_characters.map((item) => ({
+    id: item.id, description: item.description, action: item.action, must_not_resemble: item.must_not_resemble,
+  })));
+  check("required elements", list(contract.required_elements).map((item) => ({
+    description: safe(item?.description), quantity: safe(item?.quantity), scale: safe(item?.scale),
+  })), projected.required_elements);
+  check("object states", list(contract.object_states).map((item) => ({
+    name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state),
+    quantity: Number(item?.quantity ?? 1), instruction: safe(item?.instruction),
+  })), projected.object_states);
+  if (contract.causal_frame) {
+    check("causal frame", {
+      before_location: safe(contract.causal_frame?.before?.location),
+      approved_action: safe(contract.causal_frame?.during?.action),
+      transition_kind: safe(contract.causal_frame?.during?.transition_kind),
+      transition_mechanism: safe(contract.causal_frame?.during?.transition_mechanism),
+      after_location: safe(contract.causal_frame?.after?.location),
+      visible_phase: safe(contract.causal_frame?.visible_phase),
+      visible_location: safe(contract.causal_frame?.visible_location),
+    }, projected.causal_frame);
+  }
+  if (contract.visual_composition) {
+    for (const field of [
+      "composition_id", "framing", "shot_scale", "viewpoint", "subject_placement", "depth_plan",
+      "visual_rhythm", "scale_family", "cast_readability", "action_readability",
+    ]) check(`visual composition ${field}`, safe(contract.visual_composition?.[field]), projected.visual_composition?.[field]);
+    check("visual composition energy", Number(contract.visual_composition?.energy_level || 1), projected.visual_composition?.energy_level);
+  }
+  if (contract.scene_density) {
+    for (const field of ["age_band", "density_mode", "hierarchy_rule", "decoration_rule"]) {
+      check(`scene density ${field}`, safe(contract.scene_density?.[field]), projected.scene_density?.[field]);
+    }
+    for (const field of ["primary_focus", "supporting_cast", "supporting_elements", "background_states"]) {
+      check(`scene density ${field}`, list(contract.scene_density?.[field]).map(safe), projected.scene_density?.[field]);
+    }
+    check("scene density salience", Number(contract.scene_density?.high_salience_limit || 2), projected.scene_density?.high_salience_limit);
+    check("scene density decoration", Number(contract.scene_density?.decorative_detail_limit || 0), projected.scene_density?.decorative_detail_limit);
+  }
+  if (contract.render_snapshot) {
+    for (const field of ["visible_phase", "location", "physical_medium"]) {
+      check(`render snapshot ${field}`, safe(contract.render_snapshot?.[field]), projected.render_snapshot?.[field]);
+    }
+    check("render main action", {
+      subject: safe(contract.render_snapshot?.main_action?.subject),
+      verb: safe(contract.render_snapshot?.main_action?.verb),
+      target: safe(contract.render_snapshot?.main_action?.target),
+    }, projected.render_snapshot?.main_action);
+    if (contract.render_snapshot?.camera_environment) {
+      check("camera environment", {
+        camera_side: safe(contract.render_snapshot.camera_environment?.camera_side),
+        camera_zone: safe(contract.render_snapshot.camera_environment?.camera_zone),
+        ambient_medium: safe(contract.render_snapshot.camera_environment?.ambient_medium),
+        other_side_zone: safe(contract.render_snapshot.camera_environment?.other_side_zone),
+        other_side_medium: safe(contract.render_snapshot.camera_environment?.other_side_medium),
+        before_zone: safe(contract.render_snapshot.camera_environment?.before_zone),
+        after_zone: safe(contract.render_snapshot.camera_environment?.after_zone),
+        entry_passage_id: safe(contract.render_snapshot.camera_environment?.entry_passage_id),
+        boundary_crossing: contract.render_snapshot.camera_environment?.boundary_crossing === true,
+        boundary_rule: safe(contract.render_snapshot.camera_environment?.boundary_rule),
+      }, projected.render_snapshot?.camera_environment);
+    }
+    check("render equipment", list(contract.render_snapshot?.equipment).map((item) => ({
+      name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state), quantity: Number(item?.quantity ?? 1),
+    })), projected.render_snapshot?.equipment);
+    check("visible object states", list(contract.render_snapshot?.visible_object_states).map((item) => ({
+      name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state), quantity: Number(item?.quantity ?? 1),
+    })), projected.render_snapshot?.visible_object_states);
+    check("render prohibitions", list(contract.render_snapshot?.forbidden).map(safe), projected.render_snapshot?.forbidden);
+    check("fixed entities", list(contract.render_snapshot?.fixed_entities).map((item) => ({
+      id: safe(item?.id), name: safe(item?.name), home_location: safe(item?.home_location),
+      home_side: safe(item?.home_side), camera_location: safe(item?.camera_location),
+      camera_side: safe(item?.camera_side), status: safe(item?.status),
+      camera_quantity: Math.max(0, Number(item?.camera_quantity || 0)),
+      other_side_quantity_limit: Math.max(0, Number(item?.other_side_quantity_limit || 0)),
+      global_quantity_limit: Math.max(1, Number(item?.global_quantity_limit || 1)),
+      adjacent_visibility: list(item?.adjacent_visibility).map((entry) => ({
+        scene_number: Math.max(0, Number(entry?.scene_number || 0)), location: safe(entry?.location),
+        camera_side: safe(entry?.camera_side), status: safe(entry?.status),
+      })), rule: safe(item?.rule),
+    })), (projected.render_snapshot?.fixed_entities || []).map((item) => ({
+      id: item.id, name: item.name, home_location: item.home_location, home_side: item.home_side,
+      camera_location: item.camera_location, camera_side: item.camera_side, status: item.status,
+      camera_quantity: item.camera_quantity, other_side_quantity_limit: item.other_side_quantity_limit,
+      global_quantity_limit: item.global_quantity_limit, adjacent_visibility: item.adjacent_visibility,
+      rule: item.rule,
+    })));
+  }
+  check("spatial relationships", list(contract.spatial_relationships).map(safe), projected.spatial_relationships);
+  check("forbidden elements", list(contract.forbidden_elements).map(safe), projected.forbidden_elements);
+  return [...new Set(issues)];
 }
