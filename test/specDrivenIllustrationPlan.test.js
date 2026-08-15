@@ -10,11 +10,13 @@ import {
 import {
   bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
+  isCurrentSpecDrivenIllustrationPlan,
   manuscriptVisualBeatForScene,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
   storyboardAdjacentHandoffIssues,
   storyboardBindingIssues,
   STORYBOARD_FIRST_CONTRACT_VERSION,
+  SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION,
 } from "../src/services/specDrivenIllustrationPlan.js";
 
 const spec = JSON.parse(fs.readFileSync(
@@ -107,6 +109,20 @@ test("visual beats are sealed before prose and text binding cannot change them",
   ), []);
 });
 
+test("only the current deterministic storyboard version is reusable", () => {
+  const storyboard = compileSpecDrivenIllustrationPlan({
+    spec,
+    blueprint: blueprintFromSpec(),
+  });
+  assert.equal(storyboard.version, SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION);
+  assert.equal(isCurrentSpecDrivenIllustrationPlan(storyboard, spec.validation.artifactDigest), true);
+
+  const stale = structuredClone(storyboard);
+  stale.version -= 1;
+  assert.equal(isCurrentSpecDrivenIllustrationPlan(stale, spec.validation.artifactDigest), false);
+  assert.equal(isCurrentSpecDrivenIllustrationPlan(storyboard, "another-artifact"), false);
+});
+
 test("binding integrity rejects visual mutation, stale artifacts and mismatched page text", () => {
   const storyboard = compileSpecDrivenIllustrationPlan({ spec, blueprint: blueprintFromSpec() });
   const texts = Object.fromEntries(storyboard.sceneContracts.map((contract) => ([
@@ -164,6 +180,7 @@ test("preview compiles and checkpoints visual beats before manuscript batches", 
   assert.ok(verificationIndex > bindingIndex);
   assert.ok(verificationIndex < imageStepIndex);
   assert.match(source, /manuscriptBatches\(\{[\s\S]*visualStoryboard,/u);
+  assert.match(source, /isCurrentSpecDrivenIllustrationPlan\([\s\S]*checkpoint\.storyScenePlan,/u);
 });
 
 test("illustration roles distinguish travelers from local supporters", () => {

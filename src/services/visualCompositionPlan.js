@@ -1,4 +1,4 @@
-export const VISUAL_COMPOSITION_PLAN_VERSION = 2;
+export const VISUAL_COMPOSITION_PLAN_VERSION = 3;
 
 const COMPOSITIONS = Object.freeze({
   establishing_environment: Object.freeze({
@@ -172,18 +172,29 @@ const FALLBACK_SEQUENCE = Object.freeze([
   "layered_resolution",
 ]);
 
-function selectCompositionId({ sceneNumber, storyRole, transitionKind, previousCompositionId }) {
+function selectCompositionId({
+  sceneNumber,
+  storyRole,
+  transitionKind,
+  visiblePhase,
+  previousCompositionId,
+}) {
   const crossesBoundary = transitionKind === "cross_passage" || transitionKind === "return_travel";
-  let id = crossesBoundary
+  const showsSettledReturn = storyRole === "return_home_and_moral" && visiblePhase === "end";
+  let id = crossesBoundary && !showsSettledReturn
     ? transitionKind === "return_travel" || previousCompositionId === "threshold_profile"
       ? "threshold_reverse_profile"
       : "threshold_profile"
     : ROLE_COMPOSITION[String(storyRole || "").trim()]
       || FALLBACK_SEQUENCE[(Math.max(1, Number(sceneNumber) || 1) - 1) % FALLBACK_SEQUENCE.length];
   if (id === previousCompositionId) {
-    const start = Math.max(0, FALLBACK_SEQUENCE.indexOf(id));
-    const offset = 1 + ((Math.max(1, Number(sceneNumber) || 1) - 1) % (FALLBACK_SEQUENCE.length - 1));
-    id = FALLBACK_SEQUENCE[(start + offset) % FALLBACK_SEQUENCE.length];
+    if (showsSettledReturn) {
+      id = "layered_resolution";
+    } else {
+      const start = Math.max(0, FALLBACK_SEQUENCE.indexOf(id));
+      const offset = 1 + ((Math.max(1, Number(sceneNumber) || 1) - 1) % (FALLBACK_SEQUENCE.length - 1));
+      id = FALLBACK_SEQUENCE[(start + offset) % FALLBACK_SEQUENCE.length];
+    }
   }
   return id;
 }
@@ -192,10 +203,17 @@ export function compileVisualComposition({
   sceneNumber = 1,
   storyRole = "",
   transitionKind = "none",
+  visiblePhase = "",
   visibleCharacterCount = 1,
   previousCompositionId = "",
 } = {}) {
-  const compositionId = selectCompositionId({ sceneNumber, storyRole, transitionKind, previousCompositionId });
+  const compositionId = selectCompositionId({
+    sceneNumber,
+    storyRole,
+    transitionKind,
+    visiblePhase,
+    previousCompositionId,
+  });
   const template = COMPOSITIONS[compositionId] || COMPOSITIONS.establishing_environment;
   return {
     version: VISUAL_COMPOSITION_PLAN_VERSION,

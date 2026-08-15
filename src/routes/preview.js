@@ -77,7 +77,7 @@ import { narrativeBookSpecForPreview } from "../services/narrativeBookSpecLifecy
 import {
   bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
-  SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  isCurrentSpecDrivenIllustrationPlan,
   storyboardAdjacentHandoffIssues,
   storyboardBindingIssues,
   STORYBOARD_FIRST_CONTRACT_VERSION,
@@ -785,17 +785,17 @@ router.post("/preview", async (req, res) => {
       let visualStoryboard = null;
       if (narrativeBookSpec) {
         const savedStoryboard = checkpoint.visualStoryboard;
-        const savedStoryboardIsCurrent = Boolean(savedStoryboard)
-          && Number(savedStoryboard.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION
-          && savedStoryboard.artifactDigest === narrativeBookSpec.validation.artifactDigest
-          && savedStoryboard.contractSource === SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE;
+        const savedStoryboardIsCurrent = isCurrentSpecDrivenIllustrationPlan(
+          savedStoryboard,
+          narrativeBookSpec.validation.artifactDigest,
+        );
         if (savedStoryboardIsCurrent) {
           visualStoryboard = savedStoryboard;
-        } else if (!Object.keys(checkpoint.draftTexts || {}).length) {
+        } else {
           visualStoryboard = compileSpecDrivenIllustrationPlan({
             spec: narrativeBookSpec,
             blueprint: final_blueprint,
-            pageTexts: {},
+            pageTexts: checkpoint.draftTexts || {},
             approvedScenario,
           });
           await persistCheckpoint({
@@ -913,9 +913,10 @@ router.post("/preview", async (req, res) => {
 
       updateJob(job.id, { step: "story:coherence-and-scene-contracts" });
       const hasCurrentStoryScenePlan = narrativeBookSpec
-        ? Boolean(checkpoint.storyScenePlan)
-          && checkpoint.storyScenePlan?.artifactDigest === narrativeBookSpec.validation.artifactDigest
-          && checkpoint.storyScenePlan?.contractSource === SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE
+        ? isCurrentSpecDrivenIllustrationPlan(
+          checkpoint.storyScenePlan,
+          narrativeBookSpec.validation.artifactDigest,
+        )
         : Boolean(checkpoint.storyScenePlan)
           && Number(checkpoint.storyScenePlanFidelityVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
       let storyScenePlan = hasCurrentStoryScenePlan
