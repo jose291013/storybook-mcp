@@ -474,6 +474,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         `CREATOR-REQUESTED FREE QUALITY ALTERNATIVE: correct only these unresolved objective scene requirements: ${priorIssues || "the approved cast and main action"}.`,
         `CREATOR EXPLANATION OF THE MISMATCH: ${instruction}`,
         "The creator preference is secondary and visual only. Never change the approved chronology, location, physical cast, character identities, object state or main action. Preserve every other approved story, identity, outfit and rendering choice.",
+        "Preserve exactly one complete visible instance of every required named person or animal. Replace an incorrect identity in place and remove an accidental duplicate instead of adding another subject.",
         repairStrategy === "resilient_source_preserving_retry"
           ? "SECOND TECHNICAL STRATEGY: make the smallest possible localized edit to the preserved source image. Prefer retaining its pixels and composition over reinterpreting the scene."
           : repairStrategy === "contract_minimal_reformulation"
@@ -512,6 +513,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         likenessGoal: selectedStyle.likeness,
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
         maximumAttempts: 1,
+        verifyExactCast: true,
         revisionInstruction: `${priorIssues}; ${instruction}`,
       });
       const persistedImage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localImageUrl });
