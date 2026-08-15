@@ -403,6 +403,7 @@ export function sceneContractImagePrompt({
       ? "Create one policy-safe square children's-book illustration from this minimal visual specification. Every character is original and unbranded."
       : "Create one detailed square children's-book illustration from this compact visual specification.",
     `MAIN ACTION: ${compact.main_action.subject} ${compact.main_action.verb} ${compact.main_action.target}. The subject, gesture and target must be unmistakable.`,
+    compact.visual_composition ? `LOCKED VISUAL COMPOSITION: ${compact.visual_composition.framing}; ${compact.visual_composition.shot_scale}; ${compact.visual_composition.viewpoint}; ${compact.visual_composition.subject_placement}; depth: ${compact.visual_composition.depth_plan}; rhythm: ${compact.visual_composition.visual_rhythm}. ${compact.visual_composition.cast_readability}. ${compact.visual_composition.action_readability}. Do not replace this with the previous scene's pose, camera or layout.` : "",
     contract?.artifact_digest ? `CANONICAL CONTRACT DIGEST: ${contract.artifact_digest}. Do not reinterpret or expand this scene contract.` : "",
     named ? `VISIBLE CHARACTER ROLES: ${named}` : "",
     generic ? `GENERIC CHARACTERS: ${generic}` : "",

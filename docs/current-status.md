@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/manuscript-beat-fidelity`
-- Production/main checkpoint: adjacent storyboard handoffs (`5eefa1d`)
-- Current focused checkpoint: manuscript-to-visual-beat fidelity
-- Pull requests: #150 through #186 merged
+- Current branch: `codex/deterministic-visual-variety`
+- Production/main checkpoint: manuscript-to-visual-beat fidelity (`93c09b4`)
+- Current focused checkpoint: deterministic visual variety
+- Pull requests: #150 through #187 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #186 are merged on `main`. PR #186 verifies every adjacent storyboard handoff before manuscript writing. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #187 are merged on `main`. PR #187 requires the existing language-editor call to attest every text page against its signed visual beat before images. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: manuscript-to-visual-beat fidelity
+## Current focused brick: deterministic visual variety
+
+1. Every new Narrative V2 scene receives a deterministic composition derived from its story role and physical transition.
+2. The contract fixes square framing, shot scale, viewpoint, subject placement, depth, rhythm and cast readability without changing canonical facts.
+3. Adjacent scenes cannot repeat the same composition; all six sellable lengths receive at least seven distinct composition patterns.
+4. A passage crossing uses a spatial threshold view that keeps departure, boundary and destination visually separate.
+5. The composition is signed into the visual beat, validated before image generation and added to the compact image prompt with no new model call.
+
+## Product brick: manuscript-to-visual-beat fidelity
 
 1. The existing whole-manuscript language-editor call receives each signed visual beat and must attest every paired text page against its exact digest.
 2. A local wording correction is allowed only when it restores the approved visible instant without changing the event; the complete corrected page must be returned and actually applied.
@@ -195,14 +203,14 @@ PR #55 through #186 are merged on `main`. PR #186 verifies every adjacent storyb
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 506/506 passing.
+- Complete `npm test`: 512/512 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the manuscript-to-visual-beat fidelity gate after its clean full-suite review.
-2. Add deterministic visual-variety slots that diversify composition without changing causal facts.
+1. Publish and merge deterministic visual variety after its clean full-suite review.
+2. Add whole-book visual-rhythm validation across action intensity and emotional role.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
