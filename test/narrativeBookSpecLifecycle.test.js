@@ -10,6 +10,7 @@ import {
   NARRATIVE_V2_PIPELINE_VERSION,
 } from "../src/services/narrativeBookSpecLifecycle.js";
 import { manuscriptBatches } from "../src/services/manuscriptBatches.js";
+import { compileSpecDrivenIllustrationPlan } from "../src/services/specDrivenIllustrationPlan.js";
 
 const example = JSON.parse(fs.readFileSync(
   new URL("../src/contracts/narrativeBookSpec.v1.example.json", import.meta.url),
@@ -54,19 +55,29 @@ test("preview accepts only the approved spec belonging to the exact scenario", (
 });
 
 test("manuscript batches receive only their canonical scene contracts", () => {
-  const batches = manuscriptBatches({
+  const blueprint = {
     pages: example.scenes.flatMap((scene) => ([{
       page_number: scene.pageBinding.textPageNumber,
       page_type: "text",
       scene_number: scene.sceneNumber,
       story_role: scene.narrative.function,
       text_prompt: "legacy prompt must not override the contract",
+    }, {
+      page_number: scene.pageBinding.imagePageNumber,
+      page_type: "image",
+      scene_number: scene.sceneNumber,
+      story_role: scene.narrative.function,
     }])),
+  };
+  const visualStoryboard = compileSpecDrivenIllustrationPlan({ spec: example, blueprint });
+  const batches = manuscriptBatches({
+    pages: blueprint.pages.filter((page) => page.page_type === "text"),
     approvedScenario: { scenes: example.scenes.map((scene) => ({
       sceneNumber: scene.sceneNumber,
       act: scene.act,
     })) },
     narrativeBookSpec: example,
+    visualStoryboard,
     heroAge: example.book.audienceAge,
   });
   const page = batches[0].pages[0];
@@ -77,6 +88,9 @@ test("manuscript batches receive only their canonical scene contracts", () => {
     page.canonical_scene.scene.presences.some((presence) => presence.characterId === character.id)
     || page.canonical_scene.scene.transition.travelerCharacterIds.includes(character.id)
   )));
+  assert.equal(page.visual_beat.artifact_digest, example.validation.artifactDigest);
+  assert.equal(page.visual_beat.scene_number, page.scene_number);
+  assert.deepEqual(page.visual_beat.visible_instant.main_action, visualStoryboard.sceneContracts[0].main_action);
 });
 
 test("spec-driven manuscript context excludes the mutable approved scenario", () => {

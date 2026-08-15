@@ -1,7 +1,8 @@
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 5;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 6;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
+export const STORYBOARD_FIRST_CONTRACT_VERSION = 1;
 
 function byId(entries = []) {
   return new Map(entries.map((entry) => [entry.id, entry]));
@@ -74,6 +75,7 @@ export function compileSpecDrivenIllustrationPlan({
     const transitionMechanism = passages.get(scene.transition?.passageId)?.name || scene.transition?.passageId || "";
     const contract = {
       contract_source: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+      storyboard_first_version: STORYBOARD_FIRST_CONTRACT_VERSION,
       artifact_digest: spec.validation.artifactDigest,
       spread_number: Number(imagePage?.spread_number || scene.sceneNumber),
       scene_number: scene.sceneNumber,
@@ -156,6 +158,7 @@ export function compileSpecDrivenIllustrationPlan({
 
   return {
     version: SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION,
+    storyboardFirstVersion: STORYBOARD_FIRST_CONTRACT_VERSION,
     contractSource: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
     artifactDigest: spec.validation.artifactDigest,
     pageTexts: { ...pageTexts },
@@ -167,6 +170,41 @@ export function compileSpecDrivenIllustrationPlan({
       replacements: 0,
       changedPages: [],
       issueCount: 0,
+    },
+  };
+}
+
+export function bindStoryboardPageTexts(storyboard = {}, pageTexts = {}) {
+  const bound = structuredClone(storyboard || {});
+  bound.pageTexts = Object.fromEntries(Object.entries(pageTexts || {}).map(([page, text]) => [
+    String(Number(page)),
+    String(text || ""),
+  ]));
+  bound.sceneContracts = (Array.isArray(bound.sceneContracts) ? bound.sceneContracts : []).map((contract) => ({
+    ...contract,
+    source_prose: String(bound.pageTexts[String(Number(contract?.text_page_number))] || ""),
+  }));
+  return bound;
+}
+
+export function manuscriptVisualBeatForScene(storyboard = null, sceneNumber = 0) {
+  const contract = (Array.isArray(storyboard?.sceneContracts) ? storyboard.sceneContracts : [])
+    .find((candidate) => Number(candidate?.scene_number) === Number(sceneNumber));
+  if (!contract || Number(contract.storyboard_first_version) !== STORYBOARD_FIRST_CONTRACT_VERSION) return null;
+  return {
+    version: STORYBOARD_FIRST_CONTRACT_VERSION,
+    artifact_digest: String(contract.artifact_digest || ""),
+    scene_number: Number(contract.scene_number || 0),
+    image_page_number: Number(contract.image_page_number || 0),
+    visible_instant: {
+      context: String(contract.planned_image_context || ""),
+      main_action: structuredClone(contract.main_action || {}),
+      named_characters: structuredClone(contract.named_characters || []),
+      required_elements: structuredClone(contract.required_elements || []),
+      object_states: structuredClone(contract.object_states || []),
+      causal_frame: structuredClone(contract.causal_frame || {}),
+      render_snapshot: structuredClone(contract.render_snapshot || {}),
+      forbidden_elements: structuredClone(contract.forbidden_elements || []),
     },
   };
 }

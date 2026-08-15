@@ -75,8 +75,10 @@ import { createApprovedCoverVisualBible, visualBibleCoverStorageKey } from "../s
 import { assertManuscriptLanguage } from "../services/bookLanguage.js";
 import { narrativeBookSpecForPreview } from "../services/narrativeBookSpecLifecycle.js";
 import {
+  bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  STORYBOARD_FIRST_CONTRACT_VERSION,
 } from "../services/specDrivenIllustrationPlan.js";
 import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGovernor.js";
 
@@ -778,6 +780,36 @@ router.post("/preview", async (req, res) => {
       }
       if (!checkpoint.finalBlueprint) await persistCheckpoint({ finalBlueprint: final_blueprint, phase: "blueprint" }, { finalBlueprint: final_blueprint });
 
+      let visualStoryboard = null;
+      if (narrativeBookSpec) {
+        const savedStoryboard = checkpoint.visualStoryboard;
+        const savedStoryboardIsCurrent = Boolean(savedStoryboard)
+          && Number(savedStoryboard.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION
+          && savedStoryboard.artifactDigest === narrativeBookSpec.validation.artifactDigest
+          && savedStoryboard.contractSource === SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE;
+        if (savedStoryboardIsCurrent) {
+          visualStoryboard = savedStoryboard;
+        } else if (!Object.keys(checkpoint.draftTexts || {}).length) {
+          visualStoryboard = compileSpecDrivenIllustrationPlan({
+            spec: narrativeBookSpec,
+            blueprint: final_blueprint,
+            pageTexts: {},
+            approvedScenario,
+          });
+          await persistCheckpoint({
+            visualStoryboard,
+            visualStoryboardVersion: STORYBOARD_FIRST_CONTRACT_VERSION,
+            phase: "storyboard:visual-beats",
+          });
+          console.info("[preview] visual storyboard compiled before manuscript", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            artifactDigest: narrativeBookSpec.validation.artifactDigest.slice(0, 12),
+            sceneCount: visualStoryboard.sceneContracts.length,
+          }));
+        }
+      }
+
       const storyContext = buildNarrativeContext({
         blueprint: final_blueprint,
         intake,
@@ -792,6 +824,7 @@ router.post("/preview", async (req, res) => {
         pages: final_blueprint.pages,
         approvedScenario,
         narrativeBookSpec,
+        visualStoryboard,
         heroAge: final_blueprint.hero?.age,
       }).slice(0, generationCostPolicy().manuscript.maximumBatches);
       let previousText = "";
@@ -831,6 +864,7 @@ router.post("/preview", async (req, res) => {
             ...(final_blueprint.cast || []),
           ],
           approvedScenario,
+          visualStoryboard,
         }, {
           backgroundExecution: providerBackgroundExecution,
           backgroundStep: "manuscript:language-review",
@@ -863,7 +897,9 @@ router.post("/preview", async (req, res) => {
           && Number(checkpoint.storyScenePlanFidelityVersion || 0) >= STORY_PLAN_FIDELITY_VERSION;
       let storyScenePlan = hasCurrentStoryScenePlan
         ? checkpoint.storyScenePlan
-        : null;
+        : visualStoryboard
+          ? bindStoryboardPageTexts(visualStoryboard, Object.fromEntries(draftTextByPage))
+          : null;
       if (!storyScenePlan && narrativeBookSpec) {
         storyScenePlan = compileSpecDrivenIllustrationPlan({
           spec: narrativeBookSpec,
@@ -1219,6 +1255,8 @@ router.post("/preview", async (req, res) => {
           storyScenePlanCandidateStage: "",
           storyScenePlanCandidateCompilerVersion: STORY_PLAN_COMPILER_VERSION,
           storyPlanProviderResponses: {},
+          visualStoryboard: null,
+          visualStoryboardVersion: STORYBOARD_FIRST_CONTRACT_VERSION,
           draftTexts: Object.fromEntries(draftTextByPage),
           finalBlueprint: final_blueprint,
           phase: "scene-contracts",

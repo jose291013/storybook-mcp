@@ -7,6 +7,7 @@ export async function manuscriptEditorAgent({
   pages = [],
   canonicalCharacters = [],
   approvedScenario = null,
+  visualStoryboard = null,
 } = {}, {
   backgroundExecution = null,
   backgroundStep = "",
@@ -24,6 +25,17 @@ export async function manuscriptEditorAgent({
       pages,
       canonical_characters: canonicalCharacters,
       approved_scenario: approvedScenario,
+      visual_beats: (Array.isArray(visualStoryboard?.sceneContracts) ? visualStoryboard.sceneContracts : [])
+        .map((contract) => ({
+          page_number: Number(contract?.text_page_number || 0),
+          main_action: contract?.main_action || {},
+          named_characters: contract?.named_characters || [],
+          object_states: contract?.object_states || [],
+          causal_frame: contract?.causal_frame || {},
+          render_snapshot: contract?.render_snapshot || {},
+          forbidden_elements: contract?.forbidden_elements || [],
+        }))
+        .filter((beat) => beat.page_number > 0),
     },
     backgroundExecution,
     backgroundStep,
