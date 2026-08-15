@@ -78,6 +78,7 @@ import {
   bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  storyboardBindingIssues,
   STORYBOARD_FIRST_CONTRACT_VERSION,
 } from "../services/specDrivenIllustrationPlan.js";
 import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGovernor.js";
@@ -1210,6 +1211,20 @@ router.post("/preview", async (req, res) => {
       Object.entries(storyScenePlan.pageTexts || {}).forEach(([pageNumber, text]) => {
         draftTextByPage.set(Number(pageNumber), String(text || ""));
       });
+      if (narrativeBookSpec
+        && Number(storyScenePlan?.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION) {
+        const bindingIssues = storyboardBindingIssues(
+          storyScenePlan,
+          Object.fromEntries(draftTextByPage),
+          narrativeBookSpec.validation.artifactDigest,
+        );
+        if (bindingIssues.length) {
+          const bindingError = new Error(`Storyboard binding failed: ${bindingIssues.join(" | ")}`);
+          bindingError.code = "storyboard_binding_invalid";
+          bindingError.issues = bindingIssues;
+          throw bindingError;
+        }
+      }
       assertManuscriptLanguage(
         [...draftTextByPage].map(([page_number, text]) => ({ page_number, text })),
         final_blueprint.language,
