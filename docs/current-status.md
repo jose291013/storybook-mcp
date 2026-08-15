@@ -10,14 +10,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/physical-chronology-compiler`
 - Production/main checkpoint: global passage-lifecycle recovery documentation (`b07eddc`); live code last verified at `001fd52`
-- Current focused checkpoint: deterministic physical-chronology compiler, ready for PR and deployment verification
-- Pull requests: #150 through #195 merged
+- Current focused checkpoint: deterministic physical-chronology compiler in PR #196, ready for deployment verification
+- Pull requests: #150 through #195 merged; #196 opened
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
 PR #55 through #195 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. Render confirmed `001fd52` live on 2026-08-15 at 13:07 GMT+2. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate. Deployment verification remains pending.
 
 ## Candidate product brick: deterministic physical chronology
 
