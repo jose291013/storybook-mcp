@@ -20,6 +20,7 @@ ADAPTIVE CLARIFICATIONS
 
 CAUSAL RULES
 - intake.universe_story_contract is authoritative. Use its story bridge, entry rule, physical rules, required mechanisms and object rule in every applicable scene.
+- Its physicalTopology is also authoritative. A story that begins outside the adventure zone must discover one stable entry, cross it with cross_passage, remain on the adventure side until a return_travel through that same mechanism_id, and never use ordinary_travel to blur the two zones. A story that begins natively inside the adventure zone stays there unless a real boundary is established.
 - The selected universe is a real causal setting, not decorative wallpaper. Connect the child's real-world passion to a useful skill, choice or emotional bridge; never force a physically incompatible literal activity or device into the world.
 - Introduce every required world mechanism before first use, include every affected physical traveler, and keep it stable. A nonphysical thought, memory or voice never uses a physical mechanism.
 - Treat story_seed_* as the creator's selected inspiration when present. Preserve its dream, challenge, adaptation, key moment and transformation without copying its wording mechanically.

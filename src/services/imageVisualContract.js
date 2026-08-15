@@ -212,8 +212,12 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       physical_medium: safe(contract.render_snapshot?.physical_medium),
       camera_environment: contract.render_snapshot?.camera_environment ? {
         camera_side: safe(contract.render_snapshot.camera_environment?.camera_side),
+        camera_zone: safe(contract.render_snapshot.camera_environment?.camera_zone),
         ambient_medium: safe(contract.render_snapshot.camera_environment?.ambient_medium),
+        other_side_zone: safe(contract.render_snapshot.camera_environment?.other_side_zone),
         other_side_medium: safe(contract.render_snapshot.camera_environment?.other_side_medium),
+        before_zone: safe(contract.render_snapshot.camera_environment?.before_zone),
+        after_zone: safe(contract.render_snapshot.camera_environment?.after_zone),
         entry_passage_id: safe(contract.render_snapshot.camera_environment?.entry_passage_id),
         boundary_crossing: contract.render_snapshot.camera_environment?.boundary_crossing === true,
         boundary_rule: safe(contract.render_snapshot.camera_environment?.boundary_rule),
