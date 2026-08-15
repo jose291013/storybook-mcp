@@ -275,3 +275,60 @@ export function storyboardBindingIssues(storyboard = {}, pageTexts = {}, expecte
   }
   return [...new Set(issues)];
 }
+
+function sortedIdentitySet(items = [], field = "name") {
+  return (Array.isArray(items) ? items : [])
+    .map((item) => String(item?.[field] || "").trim())
+    .filter(Boolean)
+    .sort()
+    .join("|");
+}
+
+export function storyboardAdjacentHandoffIssues(storyboard = {}) {
+  const issues = [];
+  const contracts = (Array.isArray(storyboard?.sceneContracts) ? storyboard.sceneContracts : [])
+    .slice()
+    .sort((left, right) => Number(left?.scene_number || 0) - Number(right?.scene_number || 0));
+  for (let index = 0; index < contracts.length - 1; index += 1) {
+    const current = contracts[index];
+    const next = contracts[index + 1];
+    const currentNumber = Number(current?.scene_number || 0);
+    const nextNumber = Number(next?.scene_number || 0);
+    if (nextNumber !== currentNumber + 1) {
+      issues.push(`scene ${currentNumber} does not hand off to a contiguous next scene`);
+    }
+    const currentAfter = String(current?.causal_frame?.after?.location || "").trim();
+    const nextBefore = String(next?.causal_frame?.before?.location || "").trim();
+    if (!currentAfter || !nextBefore || currentAfter !== nextBefore) {
+      issues.push(`scene ${currentNumber} location does not hand off to scene ${nextNumber}`);
+    }
+    const currentAfterZone = String(current?.render_snapshot?.camera_environment?.after_zone || "").trim();
+    const nextBeforeZone = String(next?.render_snapshot?.camera_environment?.before_zone || "").trim();
+    if (currentAfterZone && nextBeforeZone && currentAfterZone !== nextBeforeZone) {
+      issues.push(`scene ${currentNumber} physical zone does not hand off to scene ${nextNumber}`);
+    }
+    if (sortedIdentitySet(current?.object_states) !== sortedIdentitySet(next?.object_states)) {
+      issues.push(`scene ${currentNumber} object registry does not hand off to scene ${nextNumber}`);
+    }
+    const currentLastPage = Math.max(Number(current?.text_page_number || 0), Number(current?.image_page_number || 0));
+    const nextFirstPage = Math.min(Number(next?.text_page_number || 0), Number(next?.image_page_number || 0));
+    if (!currentLastPage || nextFirstPage <= currentLastPage) {
+      issues.push(`scene ${currentNumber} page binding overlaps scene ${nextNumber}`);
+    }
+    const nextFixed = new Map((Array.isArray(next?.render_snapshot?.fixed_entities)
+      ? next.render_snapshot.fixed_entities
+      : []).map((entity) => [String(entity?.id || ""), entity]));
+    for (const entity of String(next?.render_snapshot?.visible_phase || "") === "after"
+      && Array.isArray(current?.render_snapshot?.fixed_entities)
+      ? current.render_snapshot.fixed_entities
+      : []) {
+      const expected = (Array.isArray(entity?.adjacent_visibility) ? entity.adjacent_visibility : [])
+        .find((entry) => Number(entry?.scene_number) === nextNumber);
+      const actual = nextFixed.get(String(entity?.id || ""));
+      if (expected && (!actual || String(expected.status || "") !== String(actual.status || ""))) {
+        issues.push(`scene ${currentNumber} fixed entity ${entity.id || entity.name} does not hand off to scene ${nextNumber}`);
+      }
+    }
+  }
+  return [...new Set(issues)];
+}
