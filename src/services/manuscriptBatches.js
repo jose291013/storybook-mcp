@@ -1,6 +1,7 @@
 import { getWordsTargetByAge } from "../config/readingGuidance.js";
 import { STORY_ACT_CONTRACT_VERSION, storyActForRole } from "../config/storyActs.js";
 import { manuscriptSceneContract } from "./narrativeBookSpecLifecycle.js";
+import { manuscriptVisualBeatForScene } from "./specDrivenIllustrationPlan.js";
 
 const TEXT_PAGE_TYPES = new Set(["text", "opening_text", "closing_text"]);
 
@@ -23,6 +24,7 @@ export function manuscriptBatches({
   pages = [],
   approvedScenario = null,
   narrativeBookSpec = null,
+  visualStoryboard = null,
   heroAge = 8,
 } = {}) {
   const textPages = pages.filter((page) => TEXT_PAGE_TYPES.has(page.page_type));
@@ -38,6 +40,7 @@ export function manuscriptBatches({
     if (page.page_type === "closing_text") act = 3;
     if (!act) act = fallbackAct(index, textPages.length);
     const guidance = getWordsTargetByAge(heroAge, page.page_type);
+    const visualBeat = manuscriptVisualBeatForScene(visualStoryboard, page.scene_number);
     const item = {
       page_number: Number(page.page_number),
       page_type: page.page_type,
@@ -47,6 +50,7 @@ export function manuscriptBatches({
       word_target: guidance.target,
       word_tolerance: guidance.tolerance,
       canonical_scene: manuscriptSceneContract(narrativeBookSpec, page.scene_number),
+      ...(visualBeat ? { visual_beat: visualBeat } : {}),
     };
     grouped.set(act, [...(grouped.get(act) || []), item]);
   });

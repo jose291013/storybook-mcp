@@ -4,8 +4,11 @@ import test from "node:test";
 
 import { visualQualityDisposition } from "../src/services/imageQualityGate.js";
 import {
+  bindStoryboardPageTexts,
   compileSpecDrivenIllustrationPlan,
+  manuscriptVisualBeatForScene,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  STORYBOARD_FIRST_CONTRACT_VERSION,
 } from "../src/services/specDrivenIllustrationPlan.js";
 
 const spec = JSON.parse(fs.readFileSync(
@@ -49,6 +52,35 @@ test("illustration contracts are compiled without a second narrative model", () 
   assert.equal(first.quality_policy.blocking.includes("identity_fusion_or_duplication"), true);
   assert.equal(first.render_snapshot.visible_phase, "after");
   assert.equal(first.render_snapshot.location, "le jardin");
+});
+
+test("visual beats are sealed before prose and text binding cannot change them", () => {
+  const storyboard = compileSpecDrivenIllustrationPlan({
+    spec,
+    blueprint: blueprintFromSpec(),
+    pageTexts: {},
+  });
+  const firstBefore = manuscriptVisualBeatForScene(storyboard, 1);
+  assert.equal(storyboard.storyboardFirstVersion, STORYBOARD_FIRST_CONTRACT_VERSION);
+  assert.equal(firstBefore.version, STORYBOARD_FIRST_CONTRACT_VERSION);
+  assert.equal(storyboard.sceneContracts[0].source_prose, "");
+
+  const pageNumber = storyboard.sceneContracts[0].text_page_number;
+  const bound = bindStoryboardPageTexts(storyboard, { [pageNumber]: "Le texte suit exactement l'image prévue." });
+  assert.deepEqual(manuscriptVisualBeatForScene(bound, 1), firstBefore);
+  assert.equal(bound.sceneContracts[0].source_prose, "Le texte suit exactement l'image prévue.");
+  assert.equal(storyboard.sceneContracts[0].source_prose, "");
+});
+
+test("preview compiles and checkpoints visual beats before manuscript batches", () => {
+  const source = fs.readFileSync(new URL("../src/routes/preview.js", import.meta.url), "utf8");
+  const storyboardIndex = source.indexOf("phase: \"storyboard:visual-beats\"");
+  const manuscriptIndex = source.indexOf("const batches = manuscriptBatches");
+  const bindingIndex = source.indexOf("bindStoryboardPageTexts(visualStoryboard");
+  assert.ok(storyboardIndex > 0);
+  assert.ok(storyboardIndex < manuscriptIndex);
+  assert.ok(bindingIndex > manuscriptIndex);
+  assert.match(source, /manuscriptBatches\(\{[\s\S]*visualStoryboard,/u);
 });
 
 test("illustration roles distinguish travelers from local supporters", () => {

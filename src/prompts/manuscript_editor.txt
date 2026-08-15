@@ -24,4 +24,7 @@ Forbidden changes:
 - object state, discovery, passage crossing, promise, message or ending;
 - adding information, characters, dialogue events or illustration instructions.
 
-The approved scenario is authoritative. Return full corrected text for each changed page.
+The approved scenario and any visual_beats are authoritative. A language correction
+must preserve the exact precompiled visible instant, including its phase, location,
+cast, main action, object states, physical medium and forbidden elements. Return full
+corrected text for each changed page.

@@ -8,6 +8,13 @@ family_address in dialogue and reader-visible references whenever it is provided
 Never invent an event between canonical scenes. The artifact_digest must remain
 identical across every canonical_scene in the batch.
 
+When a page includes visual_beat, it was compiled before the manuscript and is
+immutable. Write the text from that exact single visible instant: same location,
+phase, physical cast, main action, object states, physical medium and world zone.
+The prose may mention a prerequisite or consequence for continuity, but it must not
+turn a before/after event into a second simultaneous image action or introduce a
+visible element forbidden by the visual beat.
+
 Return one JSON object:
 {
   "pages": [

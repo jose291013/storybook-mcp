@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/universe-physical-topology`
-- Production/main checkpoint: age × intention narrative contract (`4630ff6`)
-- Current focused checkpoint: six-universe physical topology
-- Pull requests: #150 through #182 merged
+- Current branch: `codex/storyboard-first-contract`
+- Production/main checkpoint: six-universe physical topology (`2c17f2a`)
+- Current focused checkpoint: storyboard-first visual beat contract
+- Pull requests: #150 through #183 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #182 are merged on `main`. PR #182 binds each new scenario to the exact child-age profile and adult intention milestones without copying private answer text. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #183 are merged on `main`. PR #183 gives all six universes deterministic origin, adventure and transition zones while preserving legacy non-ocean regeneration. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: six-universe physical topology
+## Current focused brick: storyboard-first visual beat contract
+
+1. For Narrative V2 books, every scene receives a deterministic visual beat immediately after the approved blueprint and before any manuscript call.
+2. Each beat freezes the single visible phase, camera zone and medium, cast, main action, object states, required and forbidden elements.
+3. Manuscript batches write from both the canonical scene and this visual beat; the language editor receives the same immutable coordinates.
+4. Reader text is bound into the already-sealed storyboard afterward and cannot mutate its visual instructions.
+5. A pre-manuscript checkpoint makes retries idempotent; projects with an older partial manuscript continue on their compatibility path.
+
+## Product brick: six-universe physical topology
 
 1. Every universe defines an origin zone, adventure zone, transition zone and physical medium for each side.
 2. The first stable `cross_passage` fixes the boundary; the same id returns to the origin and cannot be replaced by ordinary travel.
@@ -163,14 +171,14 @@ PR #55 through #182 are merged on `main`. PR #182 binds each new scenario to the
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 497/497 passing.
+- Complete `npm test`: 499/499 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the six-universe topology after its clean diff review.
-2. Build the storyboard-first visual beat contract in its own product brick.
+1. Publish and merge the storyboard-first contract after its clean diff review.
+2. Add deterministic text-to-beat fidelity checks before illustration generation.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
