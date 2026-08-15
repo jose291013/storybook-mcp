@@ -2,6 +2,25 @@
 
 Last updated: 2026-08-15
 
+## Age × adult-intention narrative contract checkpoint
+
+New scenarios receive one server-owned contract joining the exact child age to
+the adult's confirmed intention and selected adventure seed. Five age profiles
+bound conceptual complexity, metaphor, concurrent goals, emotional reasoning
+and causal depth. Eight milestones then point to the authoritative intake field
+and the fixed scene roles where desire, protective doubt, anticipation, first
+step, attempts, the child's own choice, earned reward and inner realization must
+become observable.
+
+The contract never duplicates the family's private answer text: it stores only
+stable source-field names and narrative coordinates. It requires at least two
+distinct child attempts, prevents a guide from solving the climax, and permits
+one explicit formulation of the message only after it has been demonstrated by
+action and consequence. The architect and independent editor receive the same
+immutable contract. New scenarios persist it under version 1; legacy scenarios
+remain readable and targeted repair never migrates them implicitly. No model
+call, environment variable or customer-visible review step is added.
+
 ## Deterministic three-act allocation checkpoint
 
 New scenarios no longer let a narrative model choose or move act boundaries.
