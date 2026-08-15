@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/adjacent-storyboard-handoffs`
-- Production/main checkpoint: signed storyboard-to-manuscript binding (`44f3f55`)
-- Current focused checkpoint: adjacent storyboard handoffs
-- Pull requests: #150 through #185 merged
+- Current branch: `codex/manuscript-beat-fidelity`
+- Production/main checkpoint: adjacent storyboard handoffs (`5eefa1d`)
+- Current focused checkpoint: manuscript-to-visual-beat fidelity
+- Pull requests: #150 through #186 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #185 are merged on `main`. PR #185 signs every visual beat and rejects stale, incomplete or mutated text bindings before image generation. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #186 are merged on `main`. PR #186 verifies every adjacent storyboard handoff before manuscript writing. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: adjacent storyboard handoffs
+## Current focused brick: manuscript-to-visual-beat fidelity
+
+1. The existing whole-manuscript language-editor call receives each signed visual beat and must attest every paired text page against its exact digest.
+2. A local wording correction is allowed only when it restores the approved visible instant without changing the event; the complete corrected page must be returned and actually applied.
+3. Missing, duplicated, stale, unexpected or rejected fidelity evidence stops internally before any illustration request.
+4. A correction may introduce a canonical name only when that person is already authorized in the paired beat's visible cast.
+5. This consumes no additional model call; manuscript review checkpoint version 2 prevents an older review from bypassing the new contract.
+
+## Product brick: adjacent storyboard handoffs
 
 1. Scene numbers must be contiguous and each scene's final location must equal the next scene's initial location.
 2. When world topology is active, the outgoing physical zone must equal the next incoming zone.
@@ -187,14 +195,14 @@ PR #55 through #185 are merged on `main`. PR #185 signs every visual beat and re
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 501/501 passing.
+- Complete `npm test`: 506/506 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the adjacent storyboard handoff gate after its clean diff review.
-2. Add a bounded semantic manuscript-to-beat audit through the existing editor call.
+1. Publish and merge the manuscript-to-visual-beat fidelity gate after its clean full-suite review.
+2. Add deterministic visual-variety slots that diversify composition without changing causal facts.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state

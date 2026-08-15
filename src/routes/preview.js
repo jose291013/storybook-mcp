@@ -27,7 +27,7 @@ import { blueprintRepairAgent } from "../agents/blueprintRepair.js";
 import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
-import { manuscriptEditorAgent } from "../agents/manuscriptEditor.js";
+import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { storySceneTextRepairAgent } from "../agents/storySceneTextRepair.js";
@@ -89,7 +89,7 @@ const BLUEPRINT_CONTRACT_VERSION = 1;
 const STORY_PLAN_FIDELITY_VERSION = 7;
 const STORY_PLAN_TARGETED_REPAIR_VERSION = 2;
 const STORY_PLAN_TEXT_REPAIR_VERSION = 3;
-const MANUSCRIPT_REVIEW_VERSION = 1;
+const MANUSCRIPT_REVIEW_VERSION = 2;
 const GENERATION_RUN_LEASE_MS = 5 * 60 * 1000;
 
 function safeProviderResponseCheckpoint(value) {
@@ -876,12 +876,33 @@ router.post("/preview", async (req, res) => {
           { name: final_blueprint.hero?.name, role: "child", relationship: "hero" },
           ...(final_blueprint.cast || []),
         ];
+        const storyboardNamesByPage = new Map(
+          (Array.isArray(visualStoryboard?.sceneContracts) ? visualStoryboard.sceneContracts : [])
+            .map((contract) => [
+              Number(contract?.text_page_number || 0),
+              (Array.isArray(contract?.named_characters) ? contract.named_characters : [])
+                .map((character) => String(character?.name || "").trim())
+                .filter(Boolean),
+            ]),
+        );
         applyManuscriptCorrections(
           draftTextByPage,
           manuscriptReview,
           [...draftTextByPage.keys()],
           manuscriptCanonicalCharacters,
+          { allowedIntroductionsByPage: storyboardNamesByPage },
         );
+        const manuscriptFidelityIssues = manuscriptReviewFidelityIssues(
+          manuscriptReview,
+          visualStoryboard,
+          draftTextByPage,
+        );
+        if (manuscriptFidelityIssues.length) {
+          const fidelityError = new Error(`Manuscript visual fidelity failed: ${manuscriptFidelityIssues.join(" | ")}`);
+          fidelityError.code = "manuscript_visual_fidelity_unresolved";
+          fidelityError.issues = manuscriptFidelityIssues;
+          throw fidelityError;
+        }
         await persistCheckpoint({
           draftTexts: Object.fromEntries(draftTextByPage),
           manuscriptReview,

@@ -6,18 +6,27 @@ Return one JSON object:
   "status": "approved|corrected",
   "pages": [
     { "page_number": 3, "text": "complete corrected page text", "reason": "brief reason" }
+  ],
+  "fidelity": [
+    { "page_number": 3, "visual_beat_digest": "copy exact digest", "status": "aligned|corrected|rejected" }
   ]
 }
 
 Only include pages that need correction. If none need correction, return an empty pages
-array and status "approved".
+array and status "approved". When visual_beats are supplied, return exactly one fidelity
+entry for every supplied page, copy its visual_beat_digest exactly and use corrected only
+when the complete corrected text is also returned in pages. Use rejected only if a local
+correction cannot preserve both the approved scenario and the visual beat.
 
 Allowed corrections:
 - grammar, punctuation, agreement and malformed or incomplete sentences;
 - accidental repeated words or broken character names;
 - an incorrect family form of address in dialogue (for example a child saying the
   mother's first name instead of Maman);
-- obvious local wording ambiguity that does not alter the event.
+- obvious local wording ambiguity that does not alter the event;
+- an explicit local contradiction with the supplied visual beat's location, visible phase,
+  physical cast, main action, object state, physical medium or world zone, provided the
+  correction restores the approved event rather than inventing a new one;
 
 Forbidden changes:
 - chronology, scene action, location, cast, physical presence or relationships;
