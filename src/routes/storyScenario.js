@@ -28,6 +28,7 @@ import {
   guardChildSafety,
 } from "../services/childSafety.js";
 import {
+  STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION,
   STORY_SCENARIO_RETRY_POLICY_VERSION,
   technicalStoryScenarioRetryAvailable,
 } from "../services/storyScenarioRetry.js";
@@ -96,10 +97,12 @@ function queuedRequest(project, body, safetyContract, retrying, automaticRepair 
           }
         : {}),
       ...(Number(prior.canonicalCandidateCheckpoint?.version) === 1
-        && prior.request?.canonicalCheckpointRecovery !== true
+        && Number(prior.request?.canonicalLifecycleRecoveryVersion || 0)
+          < STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION
         ? {
             canonicalCheckpointRecovery: true,
             canonicalCandidateCheckpoint: prior.canonicalCandidateCheckpoint,
+            canonicalLifecycleRecoveryVersion: STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION,
           }
         : {}),
     };

@@ -181,6 +181,82 @@ export function synchronizeStoryScenarioPassageCoordinates(input = {}) {
   return scenario;
 }
 
+function orientedLifecyclePair(scene, event, pair) {
+  const fromKey = key(event?.from);
+  const toKey = key(event?.to);
+  const pairFromKey = key(pair?.from);
+  const pairToKey = key(pair?.to);
+  const beforeKey = key(scene?.locationBefore);
+  const afterKey = key(scene?.locationAfter);
+  const otherEndpoint = (knownKey) => {
+    if (knownKey === pairFromKey) return pair.to;
+    if (knownKey === pairToKey) return pair.from;
+    return "";
+  };
+
+  if (fromKey && !toKey) {
+    const to = otherEndpoint(fromKey);
+    return to ? { from: text(event.from), to } : null;
+  }
+  if (!fromKey && toKey) {
+    const from = otherEndpoint(toKey);
+    return from ? { from, to: text(event.to) } : null;
+  }
+  if (fromKey && fromKey === toKey && otherEndpoint(fromKey)) {
+    if (beforeKey === fromKey && afterKey !== fromKey) {
+      return { from: text(event.from), to: otherEndpoint(fromKey) };
+    }
+    if (afterKey === fromKey && beforeKey !== fromKey) {
+      return { from: otherEndpoint(fromKey), to: text(event.to) };
+    }
+  }
+  if (fromKey || toKey) return null;
+
+  if (beforeKey && otherEndpoint(beforeKey)) {
+    return { from: text(scene.locationBefore), to: otherEndpoint(beforeKey) };
+  }
+  if (afterKey && otherEndpoint(afterKey)) {
+    return { from: otherEndpoint(afterKey), to: text(scene.locationAfter) };
+  }
+  return null;
+}
+
+export function synchronizeStoryScenarioPassageLifecycleCoordinates(input = {}) {
+  const scenario = structuredClone(input);
+  const groups = new Map();
+  for (const scene of list(scenario?.scenes)) {
+    const events = [
+      scene?.transition,
+      ...list(scene?.characterMovements),
+    ].filter((event) => (
+      event
+      && ["cross_passage", "return_travel"].includes(event.kind)
+      && passageMechanismKey(event)
+    ));
+    for (const event of events) {
+      const mechanism = passageMechanismKey(event);
+      const records = groups.get(mechanism) || [];
+      records.push({ scene, event, pair: endpointPair(event.from, event.to) });
+      groups.set(mechanism, records);
+    }
+  }
+
+  for (const records of groups.values()) {
+    const completePairs = [...new Map(records
+      .filter((record) => record.pair)
+      .map((record) => [record.pair.key, record.pair])).values()];
+    if (completePairs.length !== 1) continue;
+    const stablePair = completePairs[0];
+    for (const record of records.filter((candidate) => !candidate.pair)) {
+      const oriented = orientedLifecyclePair(record.scene, record.event, stablePair);
+      if (!oriented) continue;
+      record.event.from = oriented.from;
+      record.event.to = oriented.to;
+    }
+  }
+  return scenario;
+}
+
 function splitPassageId(baseId, pair, ordinal) {
   if (ordinal === 0) return baseId;
   const endpoints = [passageId(pair.from), passageId(pair.to)].filter(Boolean).sort();
@@ -471,7 +547,11 @@ export function applyStoryScenarioRepairDirectives(input = {}, directives = [], 
 
 export function precompileStoryScenarioPassageLifecycles(input = {}, { language = "FR" } = {}) {
   const scenario = normalizeStoryScenarioPassageEndpoints(
-    synchronizeStoryScenarioPassageCoordinates(input),
+    synchronizeStoryScenarioPassageCoordinates(
+      synchronizeStoryScenarioPassageLifecycleCoordinates(
+        synchronizeStoryScenarioPassageCoordinates(input),
+      ),
+    ),
   );
   const scenes = list(scenario?.scenes);
   const directives = undiscoveredPassageCrossings(scenes)
