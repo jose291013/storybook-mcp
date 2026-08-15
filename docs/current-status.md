@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/deterministic-visual-variety`
-- Production/main checkpoint: manuscript-to-visual-beat fidelity (`93c09b4`)
-- Current focused checkpoint: deterministic visual variety
-- Pull requests: #150 through #187 merged
+- Current branch: `codex/whole-book-visual-rhythm`
+- Production/main checkpoint: deterministic visual variety (`564f645`)
+- Current focused checkpoint: whole-book visual rhythm
+- Pull requests: #150 through #188 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #187 are merged on `main`. PR #187 requires the existing language-editor call to attest every text page against its signed visual beat before images. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #188 are merged on `main`. PR #188 signs a deterministic, non-repeating composition into every new Narrative V2 visual beat. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: deterministic visual variety
+## Current focused brick: whole-book visual rhythm
+
+1. Every composition carries a bounded scale family and an energy level from 1 to 5.
+2. A complete book must use at least three scale families and cannot repeat one family across four consecutive scenes.
+3. At least one attempt gains visible energy; the climax alone carries the unique level-5 peak composition.
+4. The scene after the climax must release intensity, and the final return settles at level 1 or 2.
+5. The whole-book rhythm is validated with the signed storyboard before any illustration request and adds no model call.
+
+## Product brick: deterministic visual variety
 
 1. Every new Narrative V2 scene receives a deterministic composition derived from its story role and physical transition.
 2. The contract fixes square framing, shot scale, viewpoint, subject placement, depth, rhythm and cast readability without changing canonical facts.
@@ -203,14 +211,14 @@ PR #55 through #187 are merged on `main`. PR #187 requires the existing language
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 512/512 passing.
+- Complete `npm test`: 513/513 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge deterministic visual variety after its clean full-suite review.
-2. Add whole-book visual-rhythm validation across action intensity and emotional role.
+1. Publish and merge whole-book visual rhythm after its clean full-suite review.
+2. Add deterministic scene-density limits so exceptional detail never obscures the focal action.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state
