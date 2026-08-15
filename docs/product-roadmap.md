@@ -78,6 +78,32 @@ Structural, editorial and canonical model repairs now have three independent sin
 
 Passage synchronization also reasons over the complete lifecycle of one stable mechanism. If every completed crossing of that mechanism proves one unordered endpoint pair, a missing, partial or collapsed route may inherit that pair only when its own endpoint or scene boundary fixes the direction. This repairs inner passage legs inside ordered multi-step scenes without confusing them with ordinary approach/departure travel. Competing endpoint pairs or absent directional evidence remain blocking. Scenario retry policy version 6 grants one private canonical-checkpoint recovery to projects exhausted before this lifecycle resolver; it neither replays projects without a candidate nor adds a model call.
 
+## Deterministic physical-chronology compiler checkpoint
+
+Scene movement is now compiled as an ordered physical transaction rather than a
+single prose transition. When a scene approaches a passage and then discovers
+it, the ordinary approach remains the scene transition and the stationary
+discovery remains ordered after arrival. The canonical compiler reuses that
+explicit discovery instead of injecting a duplicate at the beginning of the
+movement ledger.
+
+The first unique `cross_passage` pair fixes the two endpoints of one stable
+mechanism. A later return that collapses the passage and an already established
+outer route into one impossible leg is split deterministically into the reverse
+passage crossing followed by the known ordinary route. This is allowed only
+when the passage pair is unique, the traveler set is unchanged and exactly one
+ordinary route already connects the canonical endpoint to the declared final
+location. Competing passage pairs, missing routes or competing ordinary routes
+remain private blocking defects and are never guessed.
+
+Compiler diagnostics now point to the later crossing that introduces a third
+endpoint instead of blaming the first valid crossing. The physical chronology
+pass runs again after targeted checkpoint scoping so an unambiguous dependent
+return scene cannot be restored to its stale coordinates. Scenario retry policy
+version 7 and lifecycle recovery version 2 open exactly one private-candidate
+recovery for projects exhausted under the former resolver. No model call,
+environment variable or customer-visible review step is added.
+
 ## Deterministic passage-envelope completion checkpoint
 
 When a generated focal `cross_passage` or `return_travel` and its matching physical ledger both omit or collapse their hidden coordinates, the precompiler now completes the route from the scene's canonical `locationBefore` and `locationAfter` before canonical compilation. This inference is permitted only when every other explicit physical route in the scene agrees with that same unordered endpoint pair. Matching incomplete passage movements inherit the completed directed pair in the same immutable pass.

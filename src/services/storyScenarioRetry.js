@@ -1,5 +1,5 @@
-export const STORY_SCENARIO_RETRY_POLICY_VERSION = 6;
-export const STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION = 1;
+export const STORY_SCENARIO_RETRY_POLICY_VERSION = 7;
+export const STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION = 2;
 
 export function technicalStoryScenarioRetryAvailable(project = {}) {
   const checkpoint = project?.continuitySnapshot?.storyScenarioGeneration;
