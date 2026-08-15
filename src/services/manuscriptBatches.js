@@ -85,6 +85,7 @@ export function applyManuscriptCorrections(
   review,
   allowedPages = [],
   canonicalCharacters = [],
+  { allowedIntroductionsByPage = new Map() } = {},
 ) {
   const allowed = new Set(allowedPages.map(Number));
   for (const correction of review?.pages || []) {
@@ -92,10 +93,16 @@ export function applyManuscriptCorrections(
     const text = String(correction?.text || "").trim();
     if (!allowed.has(pageNumber) || !text) continue;
     const previous = String(draftTextByPage.get(pageNumber) || "");
+    const allowedIntroductions = new Set(
+      (allowedIntroductionsByPage instanceof Map
+        ? allowedIntroductionsByPage.get(pageNumber)
+        : allowedIntroductionsByPage?.[pageNumber]) || [],
+    );
     const introducesCharacter = canonicalCharacters.some((character) => (
       character?.name
       && mentionsName(text, character.name)
       && !mentionsName(previous, character.name)
+      && !allowedIntroductions.has(character.name)
     ));
     if (introducesCharacter) continue;
     draftTextByPage.set(pageNumber, text);
