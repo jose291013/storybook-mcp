@@ -8,13 +8,26 @@ const AGE_PROFILES = [
   { id: "preteen", minAge: 12, maxAge: 14, sampleAge: 12, recommendedPageCounts: [32, 36] },
 ];
 
-function numericAge(ageValue) {
+export function normalizeReadingAge(ageValue) {
   const age = Number.parseInt(String(ageValue || "").replace(/[^\d]/g, ""), 10);
   return Number.isFinite(age) ? Math.max(1, Math.min(14, age)) : 8;
 }
 
+export function readingAgeProfile(ageValue) {
+  const age = normalizeReadingAge(ageValue);
+  const profile = AGE_PROFILES.find((candidate) => age >= candidate.minAge && age <= candidate.maxAge)
+    || AGE_PROFILES[2];
+  return {
+    id: profile.id,
+    age,
+    minAge: profile.minAge,
+    maxAge: profile.maxAge,
+    recommendedPageCounts: [...profile.recommendedPageCounts],
+  };
+}
+
 export function getWordsTargetByAge(ageValue, pageType = "text") {
-  const age = numericAge(ageValue);
+  const age = normalizeReadingAge(ageValue);
   let target;
   if (age <= 3) target = 28;
   else if (age === 4) target = 45;
@@ -44,9 +57,9 @@ function usageForPageCount(pageCount) {
 }
 
 export function readingGuidanceForAge(ageValue, pageCountValue) {
-  const age = numericAge(ageValue);
+  const age = normalizeReadingAge(ageValue);
   const pageCount = READING_PAGE_COUNTS.includes(Number(pageCountValue)) ? Number(pageCountValue) : 24;
-  const profile = AGE_PROFILES.find((candidate) => age >= candidate.minAge && age <= candidate.maxAge) || AGE_PROFILES[2];
+  const profile = readingAgeProfile(age);
   const sceneCount = (pageCount - 2) / 2;
   const normalTarget = getWordsTargetByAge(age, "text").target;
   const shortTarget = getWordsTargetByAge(age, "opening_text").target;

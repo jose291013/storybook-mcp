@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/deterministic-act-allocation`
-- Production/main checkpoint: narrative stability matrix (`e4d21c3`)
-- Current focused checkpoint: deterministic act allocation
-- Pull requests: #150 through #180 merged
+- Current branch: `codex/age-intention-contract`
+- Production/main checkpoint: deterministic act allocation (`aa54a66`)
+- Current focused checkpoint: age × intention narrative contract
+- Pull requests: #150 through #181 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #180 are merged on `main`. PR #180 adds the synthetic 108-case narrative stability matrix with a zero-model local guard and a deliberately single-case paid benchmark. The public Render health endpoint returned `200 {"ok":true}` after that merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #181 are merged on `main`. PR #181 locks every new scenario to three server-owned contiguous acts and keeps legacy act values compatible. The public Render health endpoint returned `200 {"ok":true}` after that merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: deterministic act allocation
+## Current focused brick: age × intention narrative contract
+
+1. Five deterministic age profiles bound conceptual complexity, metaphor and emotional reasoning from ages 1 through 14.
+2. Eight fixed milestones map the adult's selected intention and seed fields to exact narrative roles without copying private answer text into the contract.
+3. The child owns at least two distinct attempts and the decisive choice; a guide may enable but never solve the climax.
+4. The message must be demonstrated through consequences and may be stated explicitly only once near the resolution.
+5. New scenarios persist the server contract; targeted repair never migrates a legacy scenario implicitly.
+
+## Product brick: deterministic act allocation
 
 1. Every sellable length receives three contiguous acts from a server-owned story-role mapping.
 2. New scenario page plans carry the exact act; model-authored act values are ignored during normalization.
@@ -147,14 +155,14 @@ PR #55 through #180 are merged on `main`. PR #180 adds the synthetic 108-case na
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 488/488 passing.
+- Complete `npm test`: 493/493 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the deterministic act allocation after its clean diff review.
-2. Introduce the age-and-intention narrative contract in its own product brick.
+1. Publish and merge the age × intention contract after its clean diff review.
+2. Expand deterministic physical topology to all six universes in its own product brick.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state

@@ -1,6 +1,7 @@
 import { ALLOWED_PAGE_COUNTS, UNIVERSE_OPTIONS } from "../config/bookOptions.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { createStoryActContract, storyActContractIssues } from "../config/storyActs.js";
+import { ageIntentionContractIssues, createAgeIntentionContract } from "./ageIntentionContract.js";
 import { normalizeBookRequest } from "./normalizeBookRequest.js";
 
 export const NARRATIVE_STABILITY_MATRIX_VERSION = 1;
@@ -142,6 +143,12 @@ export function inspectNarrativeStabilityMatrix(fixtures = buildNarrativeStabili
       issues.push(`${fixture.id}: incorrect narrative scene count`);
     }
     for (const issue of storyActContractIssues(createStoryActContract(plan))) {
+      issues.push(`${fixture.id}: ${issue}`);
+    }
+    for (const issue of ageIntentionContractIssues(
+      createAgeIntentionContract(normalized.answers, plan),
+      { answers: normalized.answers, pagePlan: plan },
+    )) {
       issues.push(`${fixture.id}: ${issue}`);
     }
   }

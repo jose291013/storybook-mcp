@@ -2,6 +2,7 @@ import { storyScenarioAgent } from "../agents/storyScenario.js";
 import { storyScenarioAuditAgent } from "../agents/storyScenarioAudit.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { createStoryActContract } from "../config/storyActs.js";
+import { createAgeIntentionContract } from "./ageIntentionContract.js";
 import {
   applyCreatorStoryScenarioEdits,
   normalizeStoryScenario,
@@ -75,10 +76,12 @@ export function scopeAutomaticRepairCandidate(candidate = {}, previousScenario =
     "characters",
     "wardrobePlan",
     "actPlanVersion",
+    "ageIntentionContract",
   ]) {
     if (Object.hasOwn(previousScenario || {}, field)) scoped[field] = structuredClone(previousScenario[field]);
   }
   if (!Object.hasOwn(previousScenario || {}, "actPlanVersion")) delete scoped.actPlanVersion;
+  if (!Object.hasOwn(previousScenario || {}, "ageIntentionContract")) delete scoped.ageIntentionContract;
   return scoped;
 }
 
@@ -311,6 +314,7 @@ export async function generateValidatedScenario({
   canonicalCheckpointRecoveryPlan = null,
 }) {
   const pagePlan = createPagePlan(normalized.answers.page_count);
+  const ageIntentionContract = createAgeIntentionContract(normalized.answers, pagePlan);
   const creatorCast = scenarioCharacterRegistry(normalized);
   const castParticipationContract = buildStoryCastParticipationContract(
     creatorCast,
@@ -343,6 +347,7 @@ export async function generateValidatedScenario({
     cast_participation_contract: castParticipationContract,
     page_plan: pagePlan.filter((page) => page.page_type === "image"),
     act_contract: createStoryActContract(pagePlan),
+    age_intention_contract: ageIntentionContract,
     creator_clarifications: creatorClarifications,
     creator_scene_edits: sceneEdits,
     creator_feedback: String(feedback || "").slice(0, 2000),
@@ -396,6 +401,7 @@ export async function generateValidatedScenario({
           language: normalized.answers.language,
           requireCausalGraph: true,
           castParticipationContract,
+          ageIntentionContract,
         });
     if ((automaticRepair || checkpointRecovery) && previousScenario) {
       normalizedCandidate = scopeAutomaticRepairCandidate(

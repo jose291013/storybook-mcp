@@ -8,6 +8,10 @@ import {
 } from "./characterMovementLedger.js";
 import { findUniverse } from "../config/bookOptions.js";
 import { STORY_ACT_CONTRACT_VERSION, storyActForRole } from "../config/storyActs.js";
+import {
+  AGE_INTENTION_CONTRACT_VERSION,
+  ageIntentionContractStructuralIssues,
+} from "./ageIntentionContract.js";
 import { validateStoryCastParticipation } from "./storyCastParticipation.js";
 import {
   applyCausalGraph,
@@ -211,6 +215,7 @@ export function normalizeStoryScenario(candidate = {}, {
   language = "FR",
   requireCausalGraph = false,
   castParticipationContract = null,
+  ageIntentionContract = null,
 } = {}) {
   const raw = candidate?.scenario || candidate;
   const expectedScenes = pagePlan.filter((page) => page.page_type === "image");
@@ -400,6 +405,9 @@ export function normalizeStoryScenario(candidate = {}, {
       : {},
     ...(Number(castParticipationContract?.version) === 1
       ? { castParticipationContract: structuredClone(castParticipationContract) }
+      : {}),
+    ...(Number(ageIntentionContract?.version) === AGE_INTENTION_CONTRACT_VERSION
+      ? { ageIntentionContract: structuredClone(ageIntentionContract) }
       : {}),
     characters,
     wardrobePlan,
@@ -1178,6 +1186,9 @@ export function validateStoryScenario(scenario = {}) {
     issues.push("scenario causal graph is required");
   }
   const scenes = list(scenario.scenes, 30);
+  if (scenario.ageIntentionContract) {
+    issues.push(...ageIntentionContractStructuralIssues(scenario.ageIntentionContract, scenes));
+  }
   if (!scenario.title) issues.push("scenario.title is required");
   if (!scenario.summary) issues.push("scenario.summary is required");
   if (!scenes.length) issues.push("scenario.scenes are required");
