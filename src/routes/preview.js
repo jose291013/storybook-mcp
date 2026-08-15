@@ -1460,6 +1460,7 @@ router.post("/preview", async (req, res) => {
         let localImageUrl = "";
         let qualityStatus = "accepted";
         let qualityIssues = [];
+        let qualityIssueCodes = [];
         let qualityKind = "";
         let qualityRepairPolicy = null;
         let adjacentReferenceImages = [];
@@ -1528,6 +1529,9 @@ router.post("/preview", async (req, res) => {
             qualityKind = error.rejectionKind;
             qualityRepairPolicy = error.repairPolicy
               || targetedVisualRepairPolicy(error.issues, { source: error.rejectionKind });
+            qualityIssueCodes = Array.isArray(error.issueCodes) && error.issueCodes.length
+              ? error.issueCodes
+              : qualityRepairPolicy.targetCodes;
             console.warn("[preview] page quarantined for repair", JSON.stringify({
               jobId: job.id,
               projectId,
@@ -1569,6 +1573,7 @@ router.post("/preview", async (req, res) => {
           ...(page.page_type === "image" ? {
             qualityStatus,
             qualityIssues,
+            qualityIssueCodes,
             qualityKind,
             qualityRepairPolicy,
             adjacentVisualContinuityVersion: ADJACENT_VISUAL_CONTINUITY_VERSION,
@@ -1588,6 +1593,7 @@ router.post("/preview", async (req, res) => {
           pageNumber: Number(page.page_number),
           kind: page.qualityKind || "scene",
           issues: page.qualityIssues || [],
+          issueCodes: page.qualityIssueCodes || page.qualityRepairPolicy?.remainingIssueCodes || page.qualityRepairPolicy?.targetCodes || [],
         }));
       const pendingRepairPages = draftPages.filter((page) => (
         page.page_type === "image" && page.qualityStatus === "repair_pending"
@@ -1629,7 +1635,7 @@ router.post("/preview", async (req, res) => {
         ];
         try {
           const repairedLocalImageUrl = await generateQualityCheckedImage({
-            prompt: `${visualPrompt}\n\nFINAL TARGETED IMAGE EDIT (policy V2): edit the preserved candidate instead of redesigning it. Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium pixel-for-pixel wherever possible. Do not introduce any other narrative change.`,
+            prompt: `${visualPrompt}\n\nFINAL TARGETED IMAGE EDIT (policy V3): edit the preserved candidate instead of redesigning it. Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium pixel-for-pixel wherever possible. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. The canonical identity references override the defective preserved candidate for face, hair, species, coat and markings. Do not introduce any other narrative change.`,
             safetyFallbackPrompt: sceneContractImagePrompt({
               contract: page.scene_contract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
@@ -1681,6 +1687,7 @@ router.post("/preview", async (req, res) => {
             storageKey: persistedPage.storageKey,
             qualityStatus: "accepted_after_repair",
             qualityIssues: [],
+            qualityIssueCodes: [],
             qualityKind: "",
             qualityRepairPolicy: {
               ...repairPolicy,
@@ -1720,6 +1727,7 @@ router.post("/preview", async (req, res) => {
             ...draftPages[index],
             qualityStatus: "review_required",
             qualityIssues: issues,
+            qualityIssueCodes: qualityError ? error.issueCodes : repairPolicy.targetCodes,
             qualityKind: qualityError ? error.rejectionKind : "provider",
             qualityRepairPolicy: {
               ...repairPolicy,
@@ -1731,6 +1739,7 @@ router.post("/preview", async (req, res) => {
             pageNumber: Number(page.page_number),
             kind: qualityError ? error.rejectionKind : "provider",
             issues,
+            issueCodes: qualityError ? error.issueCodes : repairPolicy.targetCodes,
           });
           await generationRunStore.updateStep(repairStep.id, {
             status: "repair_pending",

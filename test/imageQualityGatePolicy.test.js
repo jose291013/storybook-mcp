@@ -9,12 +9,15 @@ import {
   blockingSceneContractIssues,
   blockingStyleContinuityIssues,
   classifyVisualIssue,
+  inspectNamedCastCardinality,
+  inspectRevisionNonRegression,
   inspectSceneFidelity,
   IllustrationQualityError,
   isImageSafetyRejection,
   isTransientImageGenerationError,
   objectiveSceneContractIssues,
   objectiveTechnicalIssues,
+  requiresFocusedCastVerification,
   targetedVisualRepairPolicy,
 } from "../src/services/imageQualityGate.js";
 import {
@@ -186,10 +189,99 @@ test("visual QA policy assigns stable codes and reserves automatic repair for hi
     "Required named identity is duplicated.",
     "Required named character family member 3 is missing.",
   ]);
-  assert.equal(policy.version, 2);
+  assert.equal(policy.version, 3);
   assert.equal(policy.automaticRepair, true);
   assert.deepEqual(policy.targetCodes, ["identity_duplicate", "required_cast_missing"]);
   assert.ok(policy.verificationCodes.includes("identity_fusion"));
+});
+
+test("targeted cast repairs require one high-detail occurrence of every named identity", async () => {
+  assert.equal(requiresFocusedCastVerification(["required_cast_missing"]), true);
+  assert.equal(requiresFocusedCastVerification(["identity_substitution"]), true);
+  assert.equal(requiresFocusedCastVerification(["main_action"]), false);
+
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-cardinality-qa-"));
+  const imagePath = path.join(directory, "scene.png");
+  await sharp({
+    create: { width: 32, height: 32, channels: 3, background: "#d7f0ff" },
+  }).png().toFile(imagePath);
+  const responses = [
+    {
+      cast: [
+        { name: "Noa", observed: "one" },
+        { name: "Eva", observed: "two_or_more" },
+      ],
+    },
+    {
+      cast: [
+        { name: "Noa", observed: "one" },
+        { name: "Eva", observed: "one" },
+      ],
+    },
+  ];
+  const client = {
+    responses: {
+      create: async () => ({ output_text: JSON.stringify(responses.shift()) }),
+    },
+  };
+  const sceneContract = {
+    named_characters: [
+      { name: "Noa", visual_role: "actor", action: "leads the game" },
+      { name: "Eva", visual_role: "supporter", action: "walks beside Noa" },
+    ],
+  };
+  try {
+    const duplicated = await inspectNamedCastCardinality({ imagePath, sceneContract, client });
+    assert.deepEqual(duplicated, {
+      approved: false,
+      issues: ["Required named identity is duplicated. Eva appears two or more times after high-detail cardinality verification."],
+    });
+    const exact = await inspectNamedCastCardinality({ imagePath, sceneContract, client });
+    assert.deepEqual(exact, { approved: true, issues: [] });
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("revision comparison keeps structured cast regressions separate from stable-scene regressions", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-revision-qa-"));
+  const imagePath = path.join(directory, "candidate.png");
+  const sourcePath = path.join(directory, "source.png");
+  await Promise.all([imagePath, sourcePath].map((target) => sharp({
+    create: { width: 32, height: 32, channels: 3, background: "#d7f0ff" },
+  }).png().toFile(target)));
+  const client = {
+    responses: {
+      create: async () => ({ output_text: JSON.stringify({
+        approved: false,
+        issues: [
+          { kind: "identity_or_cast", detail: "Eva is missing" },
+          { kind: "stable_visual_invariant", detail: "the unique nest house moved" },
+        ],
+      }) }),
+    },
+  };
+  try {
+    const result = await inspectRevisionNonRegression({
+      imagePath,
+      repairSourceReference: { path: sourcePath },
+      client,
+    });
+    assert.deepEqual(result.issueCodes, ["identity_regression", "revision_invariant_regression"]);
+    assert.match(result.issues[0], /Identity likeness regressed/);
+    assert.match(result.issues[1], /stable visual invariant regressed/);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("quality-review copy uses structured defect codes before legacy text matching", async () => {
+  const app = await fs.readFile("public/app.js", "utf8");
+  const preview = await fs.readFile("src/routes/preview.js", "utf8");
+  assert.match(app, /codes\.has\("identity_duplicate"\)/);
+  assert.match(app, /codes\.has\("identity_substitution"\).*codes\.has\("identity_regression"\)/s);
+  assert.match(app, /draftPage\?\.qualityIssueCodes/);
+  assert.match(preview, /qualityIssueCodes: qualityError \? error\.issueCodes : repairPolicy\.targetCodes/);
 });
 
 test("a targeted repair edits the preserved candidate before continuity and identity references", () => {

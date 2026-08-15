@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/record-settled-return-deployment`
-- Production/main checkpoint: settled final-return storyboard composition (`fdc83b3`)
-- Current focused checkpoint: production verification of the resumed 32-page private preview
-- Pull requests: #150 through #198 merged
+- Current branch: `codex/cast-cardinality-quality-gate`
+- Production/main checkpoint: settled final-return storyboard composition and deployment record (`6b4f0f7`)
+- Current focused checkpoint: targeted cast-cardinality and canonical-identity repair gate
+- Pull requests: #150 through #199 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #198 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard. Render confirmed `fdc83b3` live on 2026-08-15 at 19:37 GMT+2. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #199 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. Render confirmed `6b4f0f7` live on 2026-08-15. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Candidate product brick: exact cast cardinality after targeted repair
+
+1. A targeted cast or identity repair receives one focused high-detail count for every named person and animal.
+2. Zero occurrences remain missing, one is valid and two-or-more become the objective `identity_duplicate` defect.
+3. Canonical identity references outrank the defective source image for face, hair, species, coat and markings, while the source still preserves composition and unaffected content.
+4. A structured revision comparison separates identity/cast claims from unrelated invariant regressions, preventing a confirmed complete cast from becoming a false customer task.
+5. Persisted defect codes drive precise FR/ES/EN creator messages instead of free-text keyword matching.
 
 ## Product brick: settled final-return composition
 
@@ -260,15 +268,15 @@ PR #55 through #198 are merged on `main`. PR #191 proves that every current sign
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
 - Focused physical chronology, compiler and recovery tests: 67/67 passing.
-- Complete `npm test`: 531/531 passing.
+- Complete `npm test`: 536/536 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. After deployment, use the newly reopened free retry on the current 32-page project; do not start a replacement project first.
-2. Confirm `[story-physical-chronology] recovered` reports scenes 2 and 15, then verify `[narrative-v2] approved canonical contract` and `[preview] visual storyboard compiled before manuscript` before image generation.
-3. Compare the resulting manuscript, signed beats, illustrations and automatic QA report as one acceptance artifact.
+1. After deployment, verify that the current project no longer labels page 12's dog substitution as a missing person.
+2. On the next targeted cast repair, confirm the focused high-detail gate accepts one occurrence of every required identity and rejects a duplicated Eva.
+3. Confirm a complete page-3 cast does not remain blocked only because the low-detail preserved-source comparison was uncertain.
 4. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
 
 ## Protected local state

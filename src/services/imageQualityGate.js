@@ -57,6 +57,13 @@ const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
   "identity_regression",
   "revision_invariant_regression",
 ]);
+const CAST_CARDINALITY_REPAIR_CODES = new Set([
+  "required_cast_missing",
+  "identity_duplicate",
+  "identity_fusion",
+  "identity_substitution",
+  "identity_regression",
+]);
 const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "identity_duplicate",
   "identity_fusion",
@@ -193,13 +200,18 @@ export function targetedVisualRepairPolicy(issues = [], { source = "scene" } = {
     .filter((item) => item.automaticRepair)
     .map((item) => item.code))];
   return {
-    version: 2,
+    version: 3,
     classifications,
     targetCodes,
     automaticRepair: targetCodes.length > 0
       && classifications.every((item) => item.automaticRepair),
     verificationCodes: [...new Set([...targetCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES])],
   };
+}
+
+export function requiresFocusedCastVerification(issueScope = []) {
+  return (Array.isArray(issueScope) ? issueScope : [])
+    .some((code) => CAST_CARDINALITY_REPAIR_CODES.has(String(code || "")));
 }
 
 export function objectiveTechnicalIssues(issues = []) {
@@ -524,6 +536,7 @@ export async function inspectRevisionNonRegression({
   revisionInstruction = "",
   sceneContract = null,
   pageLabel = "revised illustration",
+  client = null,
 }) {
   if (!repairSourceReference) {
     return { approved: true, issues: [] };
@@ -546,8 +559,10 @@ Reject only a clear regression that is unrelated to the requested local change:
 Allow the requested correction, necessary local pixels around it, pose or expression changes required by that correction, and small stochastic differences. Do not demand pixel identity. Do not reject artistic preference, lighting nuance or an ambiguous likeness difference. The current structured scene contract overrides the source wherever the story intentionally changes a visible fact.
 CURRENT SCENE CONTRACT:
 ${JSON.stringify(sceneContract || {})}
-Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["short clear regression"]}.`;
-  const response = await getClient().responses.create({
+Classify every reported regression as either identity_or_cast (a person or animal was removed, duplicated, fused, substituted, or changed identity) or stable_visual_invariant (an unrelated location, landmark, object quantity, physical state, or topology changed).
+Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":[{"kind":"identity_or_cast|stable_visual_invariant","detail":"short clear regression"}]}.`;
+  const qaClient = client || getClient();
+  const response = await qaClient.responses.create({
     model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
     input: [{ role: "user", content: [
       { type: "input_text", text: instruction },
@@ -557,17 +572,92 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
     max_output_tokens: 300,
   });
   const result = parseJson(extractText(response));
-  if (result?.approved === true) return { approved: true, issues: [] };
+  if (result?.approved === true) return { approved: true, issues: [], issueCodes: [] };
   const reported = (Array.isArray(result?.issues) ? result.issues : [])
-    .map(String).filter(Boolean).slice(0, 3);
-  const identityRegression = reported.some((issue) => /identity|likeness|face|facial|hair|species|coat|marking|person|child|animal/iu.test(issue));
-  const prefix = identityRegression
-    ? "Identity likeness regressed from preserved source"
-    : "Unrequested stable visual invariant regressed from preserved source";
+    .map((issue) => {
+      if (issue && typeof issue === "object") {
+        return {
+          detail: String(issue.detail || issue.issue || "").trim(),
+          kind: String(issue.kind || "").trim(),
+        };
+      }
+      return { detail: String(issue || "").trim(), kind: "" };
+    })
+    .filter((issue) => issue.detail)
+    .slice(0, 3);
+  const normalized = reported.map((issue) => {
+    const identityRegression = issue.kind === "identity_or_cast"
+      || (!issue.kind && /identity|likeness|face|facial|hair|species|coat|marking|person|child|animal|character|family member|human friend|dog|cat|breed|substitut|duplicat/iu.test(issue.detail));
+    const code = identityRegression ? "identity_regression" : "revision_invariant_regression";
+    const prefix = identityRegression
+      ? "Identity likeness regressed from preserved source"
+      : "Unrequested stable visual invariant regressed from preserved source";
+    return { code, issue: `${prefix}: ${issue.detail}.` };
+  });
   return {
     approved: false,
-    issues: [`${prefix}: ${reported.join("; ") || "the revision clearly changed protected content"}.`],
+    issues: normalized.length
+      ? normalized.map((item) => item.issue)
+      : ["Unrequested stable visual invariant regressed from preserved source: the revision clearly changed protected content."],
+    issueCodes: normalized.length
+      ? normalized.map((item) => item.code)
+      : ["revision_invariant_regression"],
   };
+}
+
+export async function inspectNamedCastCardinality({
+  imagePath,
+  sceneContract = null,
+  pageLabel = "repaired illustration",
+  client = null,
+}) {
+  const requiredCast = (Array.isArray(sceneContract?.named_characters)
+    ? sceneContract.named_characters
+    : []).map((character) => ({
+    name: String(character?.name || "").trim(),
+    entity_type: String(character?.entity_type || character?.type || "").trim(),
+    visual_role: String(character?.visual_role || "visible").trim(),
+    action: String(character?.action || "present in this instant").trim(),
+  })).filter((character) => character.name);
+  if (!requiredCast.length) return { approved: true, issues: [] };
+
+  const source = await sharp(await fs.readFile(imagePath))
+    .rotate()
+    .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 88 })
+    .toBuffer();
+  const qaClient = client || getClient();
+  const response = await qaClient.responses.create({
+    model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+    input: [{ role: "user", content: [
+      { type: "input_text", text: `You are the focused named-cast cardinality controller for one children's-book ${pageLabel} after a targeted image edit.
+Required named cast for this exact illustrated instant:
+${JSON.stringify(requiredCast)}
+
+For every required entry, report whether the illustration visibly contains zero, exactly one, or two-or-more complete instances of that same recurring identity.
+- A reflection, portrait, memory, vision or montage counts separately only when the current scene contract explicitly requires it.
+- Two highly similar copies with the same stable face, hair, species, coat, markings and wardrobe count as a duplicated identity, even when placed on opposite sides of the scene.
+- Different named people must remain different individuals. Do not merge a local supporter or background person into a required identity.
+- Use visual_role and action to distinguish people. Do not demand anyone from another phase of the scene.
+- If identity, occlusion or scale makes the count uncertain, use "uncertain". Never guess.
+
+Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|two_or_more|uncertain"}]}.` },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${source.toString("base64")}`, detail: "high" },
+    ] }],
+    max_output_tokens: 350,
+  });
+  const result = parseJson(extractText(response));
+  const requiredByKey = new Map(requiredCast.map((character) => [normalizedIssueText(character.name), character.name]));
+  const observations = Array.isArray(result?.cast) ? result.cast : [];
+  const issues = [];
+  for (const observation of observations) {
+    const name = requiredByKey.get(normalizedIssueText(observation?.name));
+    if (!name) continue;
+    const observed = normalizedIssueText(observation?.observed);
+    if (observed === "zero") issues.push(`Required named character ${name} is missing after high-detail cardinality verification.`);
+    if (observed === "two_or_more") issues.push(`Required named identity is duplicated. ${name} appears two or more times after high-detail cardinality verification.`);
+  }
+  return { approved: issues.length === 0, issues };
 }
 
 export async function inspectIdentityLikeness({
@@ -581,7 +671,8 @@ export async function inspectIdentityLikeness({
     return { approved: true, issues: [] };
   }
   const candidate = await sharp(await fs.readFile(imagePath)).rotate().resize(640, 640, { fit: "inside" }).jpeg({ quality: 78 }).toBuffer();
-  const references = (await Promise.all(identityReferences.slice(0, 3).map(async (reference) => {
+  const selectedReferences = identityReferences.slice(0, 6);
+  const references = (await Promise.all(selectedReferences.map(async (reference) => {
     const source = await referenceSource(reference);
     return source ? sharp(source).rotate().resize(640, 640, { fit: "inside" }).jpeg({ quality: 78 }).toBuffer() : null;
   }))).filter(Boolean);
@@ -589,8 +680,12 @@ export async function inspectIdentityLikeness({
   const goal = renderingMode === "photorealistic"
     ? "maximum likeness with natural, non-cartoon facial geometry"
     : "strong recognizable likeness while changing only the artistic medium";
+  const referenceLabels = selectedReferences
+    .map((reference, index) => `Reference ${index + 2}: ${String(reference?.label || `required identity ${index + 1}`)}`)
+    .join("\n");
   const instruction = `You are checking identity fidelity in one personalized children's-book ${pageLabel}.
 Image 1 is the generated result. The remaining images are private identity references for the visible named people or animals.
+${referenceLabels}
 Requested goal: ${goal}. Likeness level: ${likenessGoal}.
 
 Reject only a clear identity replacement or major visible mismatch in stable traits: face shape, eye shape and spacing, nose, mouth, ears, hair shape/color, distinctive markings, or animal species and coat pattern.
@@ -677,7 +772,9 @@ export async function generateQualityCheckedImage({
       const identityReferences = generationOptions.referenceImages?.filter((reference) => reference?.kind === "identity") || [];
       const repairSourceReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "repair_source") || null;
       const scopedRepairVerification = Array.isArray(qualityReviewScope) && qualityReviewScope.length > 0;
-      const [styleInspection, sceneInspection, identityInspection, revisionInspection] = inspection.approved
+      const focusedCastVerification = scopedRepairVerification
+        && requiresFocusedCastVerification(qualityReviewScope);
+      const [styleInspection, sceneInspection, identityInspection, revisionInspection, castCardinalityInspection] = inspection.approved
         ? await Promise.all([
           scopedRepairVerification
             ? Promise.resolve({ approved: true, issues: [] })
@@ -688,7 +785,9 @@ export async function generateQualityCheckedImage({
             pageLabel,
             issueScope: qualityReviewScope,
           })),
-          scopedRepairVerification ? Promise.resolve({ approved: true, issues: [] }) : advisoryCheck(inspectIdentityLikeness({
+          scopedRepairVerification && !focusedCastVerification
+            ? Promise.resolve({ approved: true, issues: [] })
+            : advisoryCheck(inspectIdentityLikeness({
             imagePath: outputImagePath(imageUrl),
             identityReferences,
             renderingMode: generationOptions.renderingMode,
@@ -704,11 +803,37 @@ export async function generateQualityCheckedImage({
               pageLabel,
             }))
             : Promise.resolve({ approved: true, issues: [] }),
+          focusedCastVerification
+            ? advisoryCheck(inspectNamedCastCardinality({
+              imagePath: outputImagePath(imageUrl),
+              sceneContract: sceneFidelityContract,
+              pageLabel,
+            }))
+            : Promise.resolve({ approved: true, issues: [] }),
         ])
-        : [{ approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }, { approved: false, issues: [] }];
-      if (!revisionInspection.approved) {
+        : [
+          { approved: false, issues: [] },
+          { approved: false, issues: [] },
+          { approved: false, issues: [] },
+          { approved: false, issues: [] },
+          { approved: false, issues: [] },
+        ];
+      if (!castCardinalityInspection.approved) {
         sceneInspection.approved = false;
-        sceneInspection.issues = [...sceneInspection.issues, ...revisionInspection.issues];
+        sceneInspection.issues = [...sceneInspection.issues, ...castCardinalityInspection.issues];
+      }
+      if (!revisionInspection.approved) {
+        const authoritativeIdentityChecksPassed = focusedCastVerification
+          && castCardinalityInspection.approved
+          && identityInspection.approved;
+        const remainingRevisionIssues = revisionInspection.issues.filter((issue, index) => !(
+          authoritativeIdentityChecksPassed
+          && revisionInspection.issueCodes?.[index] === "identity_regression"
+        ));
+        if (remainingRevisionIssues.length) {
+          sceneInspection.approved = false;
+          sceneInspection.issues = [...sceneInspection.issues, ...remainingRevisionIssues];
+        }
       }
       if (inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved) {
         await onCandidate?.({

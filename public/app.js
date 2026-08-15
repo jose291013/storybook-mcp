@@ -259,8 +259,11 @@ const QUALITY_REVIEW_TEXT = {
     correctionQuestion: "Que faut-il ajuster ?",
     detectedTitle: "Pourquoi Calitiki vous demande de vérifier :",
     issueMissing: "Un personnage prévu dans cette scène semble absent.",
+    issueDuplicate: "Un même personnage semble apparaître plusieurs fois dans cette scène.",
+    issueIdentity: "L’identité visuelle d’un personnage récurrent ne correspond pas à sa référence.",
     issueAction: "L’action principale ne semble pas assez fidèle au texte.",
     issueFusion: "Deux personnages ou leurs traits semblent avoir été mélangés.",
+    issueInvariant: "La correction proposée semble avoir modifié un élément qui devait rester inchangé.",
     issueGeneric: "La composition visuelle ne permet pas de confirmer toute la scène avec suffisamment de certitude.",
     instructionLabel: "Expliquez ce qui ne correspond pas",
     instructionPlaceholder: "Par exemple : l’image est belle, mais Maïté devrait avoir la main sur l’épaule de Malvina comme dans le texte.",
@@ -307,8 +310,11 @@ const QUALITY_REVIEW_TEXT = {
     correctionQuestion: "¿Qué hay que ajustar?",
     detectedTitle: "Por qué Calitiki te pide que la revises:",
     issueMissing: "Parece faltar un personaje previsto en esta escena.",
+    issueDuplicate: "El mismo personaje parece aparecer varias veces en esta escena.",
+    issueIdentity: "La identidad visual de un personaje recurrente no corresponde a su referencia.",
     issueAction: "La acción principal no parece suficientemente fiel al texto.",
     issueFusion: "Dos personajes o sus rasgos parecen haberse mezclado.",
+    issueInvariant: "La corrección propuesta parece haber modificado un elemento que debía permanecer igual.",
     issueGeneric: "La composición visual no permite confirmar toda la escena con suficiente seguridad.",
     instructionLabel: "Explica qué no coincide",
     instructionPlaceholder: "Por ejemplo: la imagen es bonita, pero Maïté debería apoyar la mano en el hombro de Malvina como dice el texto.",
@@ -355,8 +361,11 @@ const QUALITY_REVIEW_TEXT = {
     correctionQuestion: "What needs adjusting?",
     detectedTitle: "Why Calitiki is asking you to review it:",
     issueMissing: "A character expected in this scene appears to be missing.",
+    issueDuplicate: "The same character appears to be shown more than once in this scene.",
+    issueIdentity: "A recurring character’s visual identity does not match its reference.",
     issueAction: "The main action may not match the story closely enough.",
     issueFusion: "Two characters or their features appear to have been mixed.",
+    issueInvariant: "The proposed correction appears to have changed something that should have stayed unchanged.",
     issueGeneric: "The visual composition does not let Calitiki confirm the whole scene with enough confidence.",
     instructionLabel: "Explain what does not match",
     instructionPlaceholder: "For example: the image is lovely, but Maïté should place her hand on Malvina’s shoulder as stated in the text.",
@@ -3093,12 +3102,24 @@ async function refreshAfterQualityDecision(pageNumber, feedback = "") {
   return project;
 }
 
-function localizedQualityIssues(issues, copy) {
+function localizedQualityIssues(issueCodes, issues, copy) {
+  const codes = new Set((Array.isArray(issueCodes) ? issueCodes : []).map(String).filter(Boolean));
   const source = Array.isArray(issues) ? issues.join(" ").toLowerCase() : "";
   const labels = [];
-  if (/(missing|required named character|absent|manquant|falta)/.test(source)) labels.push(copy.issueMissing);
-  if (/(main action|action subject|wrong central actor|action principale)/.test(source)) labels.push(copy.issueAction);
-  if (/(fusion|mixed|mélang|mezclad|exchanged anatomy)/.test(source)) labels.push(copy.issueFusion);
+  if (codes.has("required_cast_missing")) labels.push(copy.issueMissing);
+  if (codes.has("identity_duplicate")) labels.push(copy.issueDuplicate);
+  if (codes.has("identity_substitution") || codes.has("identity_regression")) labels.push(copy.issueIdentity);
+  if (codes.has("main_action")) labels.push(copy.issueAction);
+  if (codes.has("identity_fusion")) labels.push(copy.issueFusion);
+  if (codes.has("revision_invariant_regression")) labels.push(copy.issueInvariant);
+  if (!codes.size) {
+    if (/(duplicat|two or more times|deux fois|plusieurs fois|dos veces|varias veces)/.test(source)) labels.push(copy.issueDuplicate);
+    if (/(identity|likeness|substitut|different person|different animal|breed|markings|identité|ressemblance|raza|identidad)/.test(source)) labels.push(copy.issueIdentity);
+    if (/(missing|required named character|absent|manquant|falta)/.test(source) && !labels.includes(copy.issueIdentity)) labels.push(copy.issueMissing);
+    if (/(main action|action subject|wrong central actor|action principale)/.test(source)) labels.push(copy.issueAction);
+    if (/(fusion|mixed|mélang|mezclad|exchanged anatomy)/.test(source)) labels.push(copy.issueFusion);
+    if (/(stable visual invariant|élément qui devait rester|elemento que debía permanecer)/.test(source)) labels.push(copy.issueInvariant);
+  }
   return labels.length ? [...new Set(labels)] : [copy.issueGeneric];
 }
 
@@ -3221,7 +3242,12 @@ function showQualityReview(job, { scroll = true, initialPageNumber = 0 } = {}) {
         ? candidates.text
         : null;
       const hasCandidate = Boolean(imageCandidate || textCandidate);
-      const issueLabels = localizedQualityIssues(draftPage?.qualityIssues || page.issues, copy);
+      const issueCodes = draftPage?.qualityIssueCodes
+        || draftPage?.qualityRepairPolicy?.remainingIssueCodes
+        || draftPage?.qualityRepairPolicy?.targetCodes
+        || page.issueCodes
+        || [];
+      const issueLabels = localizedQualityIssues(issueCodes, draftPage?.qualityIssues || page.issues, copy);
       const policyPage = { ...page, ...(draftPage || {}) };
       const imageAvailability = qualityScopeAvailability(policyPage, "illustration");
       const textAvailability = qualityScopeAvailability(policyPage, "text");

@@ -21,7 +21,8 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /maximumAttempts: 1/);
   assert.match(preview, /kind: "repair_source"/);
   assert.match(preview, /qualityReviewScope: repairPolicy\.targetCodes/);
-  assert.match(preview, /FINAL TARGETED IMAGE EDIT \(policy V2\)/);
+  assert.match(preview, /FINAL TARGETED IMAGE EDIT \(policy V3\)/);
+  assert.match(preview, /preserve exactly one complete instance of every required named identity/);
   assert.match(preview, /accepted_after_repair/);
   assert.match(preview, /status: "preview_quality_review"/);
   assert.match(preview, /completed with pages awaiting quality review/);
