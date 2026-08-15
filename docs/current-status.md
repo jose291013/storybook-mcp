@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/visual-pipeline-checkpoint`
-- Production/main checkpoint: lossless image-contract preflight (`937187c`)
-- Current focused checkpoint: visual-first deterministic foundation complete
-- Pull requests: #150 through #191 merged
+- Current branch: `codex/deterministic-passage-envelope`
+- Production/main checkpoint: visual pipeline checkpoint (`612529a`)
+- Current focused checkpoint: deterministic passage-envelope completion
+- Pull requests: #150 through #192 merged before this branch
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #191 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts. Render health returned `ok: true` after the merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #192 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, and PR #192 records the visual pipeline checkpoint. Render health returned `ok: true` after that merge. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: deterministic passage-envelope completion
+
+1. A focal `cross_passage` or `return_travel` whose hidden route coordinates are incomplete inherits the scene's canonical `locationBefore` and `locationAfter` when that is the only physical route available.
+2. Matching passage movements inherit the completed pair in the same immutable pre-compilation pass, before any canonical model-repair budget is consumed.
+3. An ordered scene with another explicit route or several competing passage routes remains blocking; the compiler never guesses which inner leg the passage represents.
+4. The submitted scenario remains unchanged, reverse crossings keep their stable passage id and no environment variable or additional model call is introduced.
+5. A failed project whose private candidate still offers a free retry can reuse that candidate after deployment instead of restarting the questionnaire.
 
 ## Product brick: lossless image-contract preflight
 
@@ -233,9 +241,10 @@ PR #55 through #191 are merged on `main`. PR #191 proves that every current sign
 
 ## Next verification target
 
-1. Run one deliberately selected end-to-end synthetic book only after explicit image-cost authorization.
-2. Compare its full manuscript, signed beats, generated illustrations and automatic QA report as one acceptance artifact.
-3. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
+1. After deployment, use the preserved free retry on the current 32-page synthetic project; do not start a replacement project first.
+2. Confirm that scene 3 crosses the canonical gate, then verify `[narrative-v2] approved canonical contract` and `[preview] visual storyboard compiled before manuscript` before image generation.
+3. Compare the resulting manuscript, signed beats, illustrations and automatic QA report as one acceptance artifact.
+4. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
 
 ## Protected local state
 

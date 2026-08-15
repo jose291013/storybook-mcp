@@ -76,6 +76,12 @@ Passage coordinates are synchronized deterministically before passage ids are re
 
 Structural, editorial and canonical model repairs now have three independent single-call ceilings. Deterministic passage synchronization normally avoids the canonical call entirely; if a genuinely undecidable compiler defect remains after a structural repair, it may use its one separate canonical repair instead of failing with `repairBlockedByBudget`. Retry policy version 3 grants one saved-request recovery to projects whose two technical attempts were exhausted under the shared-budget policy.
 
+## Deterministic passage-envelope completion checkpoint
+
+When a generated focal `cross_passage` or `return_travel` and its matching physical ledger both omit or collapse their hidden coordinates, the precompiler now completes the route from the scene's canonical `locationBefore` and `locationAfter` before canonical compilation. This inference is permitted only when every other explicit physical route in the scene agrees with that same unordered endpoint pair. Matching incomplete passage movements inherit the completed directed pair in the same immutable pass.
+
+The completion adds no model call and consumes no repair budget. It does not flatten an ordered multi-step scene: any other explicit route with different endpoints, or several competing passage routes, keeps the passage ambiguous and blocking. Existing private canonical candidates with an unused technical retry benefit on their next attempt without migrating or rewriting an approved project.
+
 ## Deterministic movement-compiler extension checkpoint
 
 The existing NarrativeBookSpec compiler gains a pure pre-compilation canonicalizer for hidden character movements. It replays the physical ledger from canonical character positions, splits one movement when travelers actually begin in different places, removes legs for travelers already at the destination, infers only an unambiguous final leg to an end-phase physical presence, and resynchronizes the focal transition. The approved narrative text and its source digest remain authoritative and unchanged; only the in-memory mechanical clone may be normalized.
