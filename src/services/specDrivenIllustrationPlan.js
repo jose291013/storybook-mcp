@@ -1,12 +1,13 @@
 import crypto from "node:crypto";
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
+import { compileSceneDensityPlan, sceneDensityPlanIssues } from "./sceneDensityPlan.js";
 import {
   compileVisualComposition,
   visualCompositionPlanIssues,
   wholeBookVisualRhythmIssues,
 } from "./visualCompositionPlan.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 9;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 10;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
@@ -56,6 +57,9 @@ function visualBeatCore(contract = {}) {
   };
   if (contract.visual_composition) {
     core.visible_instant.visual_composition = structuredClone(contract.visual_composition);
+  }
+  if (contract.scene_density) {
+    core.visible_instant.scene_density = structuredClone(contract.scene_density);
   }
   return core;
 }
@@ -206,6 +210,13 @@ export function compileSpecDrivenIllustrationPlan({
       approvedScenario,
       worldContract: approvedScenario?.worldContract || {},
     });
+    contract.scene_density = compileSceneDensityPlan({
+      audienceAge: spec.book?.audienceAge,
+      mainAction: contract.main_action,
+      namedCharacters: contract.named_characters,
+      requiredElements: contract.required_elements,
+      objectStates: contract.object_states,
+    });
     contract.visual_beat_digest = visualBeatDigest(contract);
     return contract;
   });
@@ -266,6 +277,7 @@ export function storyboardBindingIssues(storyboard = {}, pageTexts = {}, expecte
   if (!contracts.length) issues.push("storyboard scene contracts are required");
   if (Number(storyboard?.version || 0) >= SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION) {
     issues.push(...wholeBookVisualRhythmIssues(contracts));
+    issues.push(...sceneDensityPlanIssues(contracts));
   } else if (Number(storyboard?.version || 0) >= 8) {
     issues.push(...visualCompositionPlanIssues(contracts, { minimumVersion: 1 }));
   }

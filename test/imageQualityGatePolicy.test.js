@@ -340,12 +340,28 @@ test("image prompts carry the signed deterministic composition without weakening
         cast_readability: "keep every required character complete, separate and readable",
         action_readability: "composition may vary, but the signed main action may not change",
       },
+      scene_density: {
+        version: 1,
+        age_band: "6-8",
+        density_mode: "clear_layered",
+        high_salience_limit: 2,
+        decorative_detail_limit: 3,
+        primary_focus: ["Bastien", "the pearl"],
+        supporting_cast: ["Maman"],
+        supporting_elements: ["the coral gate"],
+        background_states: ["the map: visible"],
+        hierarchy_rule: "Only the primary focus may carry maximum contrast and detail.",
+        decoration_rule: "Add at most 3 non-canonical decorative accents.",
+      },
     },
   });
   assert.match(prompt, /LOCKED VISUAL COMPOSITION/iu);
   assert.match(prompt, /medium decision view/iu);
   assert.match(prompt, /MAIN ACTION: hero child place recurring story companion 1/iu);
   assert.match(prompt, /signed main action may not change/iu);
+  assert.match(prompt, /LOCKED SCENE DENSITY for age band 6-8/iu);
+  assert.match(prompt, /maximum 2 high-salience entities/iu);
+  assert.match(prompt, /Only the primary focus may carry maximum contrast/iu);
 });
 
 test("image prompts remove brands and product comparisons while preserving generic clothing", () => {

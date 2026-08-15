@@ -61,6 +61,8 @@ test("illustration contracts are compiled without a second narrative model", () 
   assert.equal(first.visual_composition.version, VISUAL_COMPOSITION_PLAN_VERSION);
   assert.ok(first.visual_composition.composition_id);
   assert.deepEqual(visualCompositionPlanIssues(plan.sceneContracts), []);
+  assert.equal(first.scene_density.audience_age, spec.book.audienceAge);
+  assert.ok(first.scene_density.primary_focus.includes("Bastien"));
 });
 
 test("deterministic compositions vary adjacent scenes without changing their canonical action", () => {
