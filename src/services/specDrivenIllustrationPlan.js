@@ -1,8 +1,9 @@
+import crypto from "node:crypto";
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 6;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 7;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
-export const STORYBOARD_FIRST_CONTRACT_VERSION = 1;
+export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
 function byId(entries = []) {
   return new Map(entries.map((entry) => [entry.id, entry]));
@@ -21,6 +22,39 @@ function objectStateContract(state, objectMap, characterMap) {
     quantity: state.quantity,
     instruction: `Canonical state: ${state.state}; exact quantity: ${state.quantity}.`,
   };
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.keys(value).sort().map((field) => [field, stableValue(value[field])]));
+}
+
+function visualBeatCore(contract = {}) {
+  return {
+    version: STORYBOARD_FIRST_CONTRACT_VERSION,
+    artifact_digest: String(contract.artifact_digest || ""),
+    spread_number: Number(contract.spread_number || 0),
+    scene_number: Number(contract.scene_number || 0),
+    text_page_number: Number(contract.text_page_number || 0),
+    image_page_number: Number(contract.image_page_number || 0),
+    visible_instant: {
+      context: String(contract.planned_image_context || ""),
+      main_action: structuredClone(contract.main_action || {}),
+      named_characters: structuredClone(contract.named_characters || []),
+      required_elements: structuredClone(contract.required_elements || []),
+      object_states: structuredClone(contract.object_states || []),
+      causal_frame: structuredClone(contract.causal_frame || {}),
+      render_snapshot: structuredClone(contract.render_snapshot || {}),
+      forbidden_elements: structuredClone(contract.forbidden_elements || []),
+    },
+  };
+}
+
+function visualBeatDigest(contract = {}) {
+  return crypto.createHash("sha256")
+    .update(JSON.stringify(stableValue(visualBeatCore(contract))))
+    .digest("hex");
 }
 
 export function compileSpecDrivenIllustrationPlan({
@@ -153,6 +187,7 @@ export function compileSpecDrivenIllustrationPlan({
       approvedScenario,
       worldContract: approvedScenario?.worldContract || {},
     });
+    contract.visual_beat_digest = visualBeatDigest(contract);
     return contract;
   });
 
@@ -192,19 +227,51 @@ export function manuscriptVisualBeatForScene(storyboard = null, sceneNumber = 0)
     .find((candidate) => Number(candidate?.scene_number) === Number(sceneNumber));
   if (!contract || Number(contract.storyboard_first_version) !== STORYBOARD_FIRST_CONTRACT_VERSION) return null;
   return {
-    version: STORYBOARD_FIRST_CONTRACT_VERSION,
-    artifact_digest: String(contract.artifact_digest || ""),
-    scene_number: Number(contract.scene_number || 0),
-    image_page_number: Number(contract.image_page_number || 0),
-    visible_instant: {
-      context: String(contract.planned_image_context || ""),
-      main_action: structuredClone(contract.main_action || {}),
-      named_characters: structuredClone(contract.named_characters || []),
-      required_elements: structuredClone(contract.required_elements || []),
-      object_states: structuredClone(contract.object_states || []),
-      causal_frame: structuredClone(contract.causal_frame || {}),
-      render_snapshot: structuredClone(contract.render_snapshot || {}),
-      forbidden_elements: structuredClone(contract.forbidden_elements || []),
-    },
+    ...visualBeatCore(contract),
+    visual_beat_digest: String(contract.visual_beat_digest || ""),
   };
+}
+
+export function storyboardBindingIssues(storyboard = {}, pageTexts = {}, expectedArtifactDigest = "") {
+  const issues = [];
+  if (Number(storyboard?.storyboardFirstVersion) !== STORYBOARD_FIRST_CONTRACT_VERSION) {
+    issues.push("storyboard-first version is invalid");
+  }
+  if (storyboard?.contractSource !== SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE) {
+    issues.push("storyboard contract source is invalid");
+  }
+  if (expectedArtifactDigest && storyboard?.artifactDigest !== expectedArtifactDigest) {
+    issues.push("storyboard artifact digest is stale");
+  }
+  const contracts = Array.isArray(storyboard?.sceneContracts) ? storyboard.sceneContracts : [];
+  if (!contracts.length) issues.push("storyboard scene contracts are required");
+  const scenes = new Set();
+  const textPages = new Set();
+  const imagePages = new Set();
+  for (const contract of contracts) {
+    const sceneNumber = Number(contract?.scene_number || 0);
+    const textPageNumber = Number(contract?.text_page_number || 0);
+    const imagePageNumber = Number(contract?.image_page_number || 0);
+    if (!sceneNumber || scenes.has(sceneNumber)) issues.push(`storyboard scene ${sceneNumber || "unknown"} is duplicated or invalid`);
+    if (!textPageNumber || textPages.has(textPageNumber)) issues.push(`storyboard text page ${textPageNumber || "unknown"} is duplicated or invalid`);
+    if (!imagePageNumber || imagePages.has(imagePageNumber)) issues.push(`storyboard image page ${imagePageNumber || "unknown"} is duplicated or invalid`);
+    scenes.add(sceneNumber);
+    textPages.add(textPageNumber);
+    imagePages.add(imagePageNumber);
+    if (Number(contract?.storyboard_first_version) !== STORYBOARD_FIRST_CONTRACT_VERSION) {
+      issues.push(`scene ${sceneNumber} storyboard-first version is invalid`);
+    }
+    if (contract?.artifact_digest !== storyboard?.artifactDigest) {
+      issues.push(`scene ${sceneNumber} artifact digest does not match the storyboard`);
+    }
+    if (contract?.visual_beat_digest !== visualBeatDigest(contract)) {
+      issues.push(`scene ${sceneNumber} visual beat integrity failed`);
+    }
+    const text = String(pageTexts?.[textPageNumber] ?? pageTexts?.[String(textPageNumber)] ?? "");
+    if (!text.trim()) issues.push(`scene ${sceneNumber} manuscript text is missing`);
+    if (String(contract?.source_prose || "") !== text) {
+      issues.push(`scene ${sceneNumber} manuscript binding does not match its text page`);
+    }
+  }
+  return [...new Set(issues)];
 }

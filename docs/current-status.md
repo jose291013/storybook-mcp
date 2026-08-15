@@ -8,18 +8,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/storyboard-first-contract`
-- Production/main checkpoint: six-universe physical topology (`2c17f2a`)
-- Current focused checkpoint: storyboard-first visual beat contract
-- Pull requests: #150 through #183 merged
+- Current branch: `codex/storyboard-binding-integrity`
+- Production/main checkpoint: storyboard-first visual beat contract (`853ff89`)
+- Current focused checkpoint: signed storyboard-to-manuscript binding
+- Pull requests: #150 through #184 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #183 are merged on `main`. PR #183 gives all six universes deterministic origin, adventure and transition zones while preserving legacy non-ocean regeneration. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #184 are merged on `main`. PR #184 compiles a sealed visual beat before prose and makes the writer and language editor consume that same instant. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Current focused brick: storyboard-first visual beat contract
+## Current focused brick: signed storyboard-to-manuscript binding
+
+1. Every visual beat receives a SHA-256 digest over its immutable scene, cast, action, objects, causal frame, physical snapshot and forbidden elements.
+2. Text binding may add only the paired source prose; it cannot change the signed visual payload.
+3. Before cover or interior image generation, a local gate verifies versions, artifact ownership, unique scene/page bindings, complete text and every beat digest.
+4. A stale artifact, missing page, mismatched prose binding or visual mutation stops internally before any image cost.
+5. Version-1 storyboard checkpoints continue through the compatibility path instead of being silently upgraded mid-book.
+
+## Product brick: storyboard-first visual beat contract
 
 1. For Narrative V2 books, every scene receives a deterministic visual beat immediately after the approved blueprint and before any manuscript call.
 2. Each beat freezes the single visible phase, camera zone and medium, cast, main action, object states, required and forbidden elements.
@@ -171,14 +179,14 @@ PR #55 through #183 are merged on `main`. PR #183 gives all six universes determ
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Complete `npm test`: 499/499 passing.
+- Complete `npm test`: 500/500 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Publish and merge the storyboard-first contract after its clean diff review.
-2. Add deterministic text-to-beat fidelity checks before illustration generation.
+1. Publish and merge the signed storyboard binding after its clean diff review.
+2. Add deterministic adjacent-beat handoff checks before illustration generation.
 3. Execute one deliberately selected paid matrix case only after explicit cost authorization.
 
 ## Protected local state

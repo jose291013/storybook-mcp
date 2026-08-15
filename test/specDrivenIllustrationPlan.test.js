@@ -8,6 +8,7 @@ import {
   compileSpecDrivenIllustrationPlan,
   manuscriptVisualBeatForScene,
   SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
+  storyboardBindingIssues,
   STORYBOARD_FIRST_CONTRACT_VERSION,
 } from "../src/services/specDrivenIllustrationPlan.js";
 
@@ -66,10 +67,38 @@ test("visual beats are sealed before prose and text binding cannot change them",
   assert.equal(storyboard.sceneContracts[0].source_prose, "");
 
   const pageNumber = storyboard.sceneContracts[0].text_page_number;
-  const bound = bindStoryboardPageTexts(storyboard, { [pageNumber]: "Le texte suit exactement l'image prévue." });
+  const texts = Object.fromEntries(storyboard.sceneContracts.map((contract) => ([
+    contract.text_page_number,
+    contract.text_page_number === pageNumber
+      ? "Le texte suit exactement l'image prévue."
+      : `Texte canonique de la scène ${contract.scene_number}.`,
+  ])));
+  const bound = bindStoryboardPageTexts(storyboard, texts);
   assert.deepEqual(manuscriptVisualBeatForScene(bound, 1), firstBefore);
   assert.equal(bound.sceneContracts[0].source_prose, "Le texte suit exactement l'image prévue.");
   assert.equal(storyboard.sceneContracts[0].source_prose, "");
+  assert.deepEqual(storyboardBindingIssues(
+    bound,
+    bound.pageTexts,
+    spec.validation.artifactDigest,
+  ), []);
+});
+
+test("binding integrity rejects visual mutation, stale artifacts and mismatched page text", () => {
+  const storyboard = compileSpecDrivenIllustrationPlan({ spec, blueprint: blueprintFromSpec() });
+  const texts = Object.fromEntries(storyboard.sceneContracts.map((contract) => ([
+    contract.text_page_number,
+    `Canonical text for scene ${contract.scene_number}`,
+  ])));
+  const bound = bindStoryboardPageTexts(storyboard, texts);
+  bound.sceneContracts[0].main_action.verb = "invented mutation";
+  const issues = storyboardBindingIssues(bound, {
+    ...texts,
+    [bound.sceneContracts[1].text_page_number]: "different text",
+  }, "stale-artifact");
+  assert.ok(issues.includes("storyboard artifact digest is stale"));
+  assert.ok(issues.includes("scene 1 visual beat integrity failed"));
+  assert.ok(issues.includes("scene 2 manuscript binding does not match its text page"));
 });
 
 test("preview compiles and checkpoints visual beats before manuscript batches", () => {
@@ -77,9 +106,13 @@ test("preview compiles and checkpoints visual beats before manuscript batches", 
   const storyboardIndex = source.indexOf("phase: \"storyboard:visual-beats\"");
   const manuscriptIndex = source.indexOf("const batches = manuscriptBatches");
   const bindingIndex = source.indexOf("bindStoryboardPageTexts(visualStoryboard");
+  const verificationIndex = source.indexOf("storyboardBindingIssues(");
+  const imageStepIndex = source.indexOf("updateJob(job.id, { step: \"draft:cover\" }");
   assert.ok(storyboardIndex > 0);
   assert.ok(storyboardIndex < manuscriptIndex);
   assert.ok(bindingIndex > manuscriptIndex);
+  assert.ok(verificationIndex > bindingIndex);
+  assert.ok(verificationIndex < imageStepIndex);
   assert.match(source, /manuscriptBatches\(\{[\s\S]*visualStoryboard,/u);
 });
 
