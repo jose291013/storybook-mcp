@@ -19,6 +19,21 @@ whole-book cascade of carried or worn states. Render logs record only the
 bounded transaction decision, counts, scenes and categories, never scenario
 prose or customer data. This adds no model call and no environment variable.
 
+## Unified repair-transaction recovery checkpoint
+
+Structural, editorial and private semantic-checkpoint repair now use one
+atomic progress rule. A still-invalid proposal can replace its private
+baseline only when it has fewer issues and introduces neither a new affected
+scene nor a new category. A regression or unchanged result restores the exact
+prior private candidate; Render receives only the bounded transaction summary.
+
+Retry policy version 8 grants one migration recovery to exhausted object-only
+semantic checkpoints created before this common transaction. It starts from
+the newest private checkpoint, requires fresh deterministic and semantic
+validation and writes its recovery version into the request so it cannot
+repeat. This adds no model call beyond the already authorized recovery and no
+environment variable.
+
 ## Age × adult-intention narrative contract checkpoint
 
 New scenarios receive one server-owned contract joining the exact child age to

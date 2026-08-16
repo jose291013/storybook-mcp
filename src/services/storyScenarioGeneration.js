@@ -18,7 +18,10 @@ import {
   precompileStoryScenarioPassageLifecycles,
   validateStoryScenarioPassageLifecycles,
 } from "./storyScenarioRepairs.js";
-import { storyScenarioRepairProgress } from "./storyScenarioAutoRepair.js";
+import {
+  storyScenarioRepairProgress,
+  storyScenarioRepairTransaction,
+} from "./storyScenarioAutoRepair.js";
 import { generationCostPolicy } from "./generationCostPolicy.js";
 import { buildStoryCastParticipationContract } from "./storyCastParticipation.js";
 import { canonicalizeStoryScenarioPhysicalChronology } from "./storyPhysicalChronology.js";
@@ -114,21 +117,45 @@ export async function runScenarioQualityDialogue({
   let editorialRepairCalls = 0;
   let editorCalls = 0;
   let finalAuditCalls = 0;
+  let structuralRepairTransaction = null;
   let editorialRepairTransaction = null;
 
   while (!validation.valid && structuralRepairCalls < policy.structuralRepairCalls) {
     if (!consumeRepairBudget(repairBudget)) break;
+    const previousScenario = scenario;
+    const previousValidation = validation;
+    const previousRepairDirectives = repairDirectives;
     structuralRepairCalls += 1;
-    ({ scenario, validation, repairDirectives = [] } = await repairStructural({
+    const repaired = await repairStructural({
       scenario,
       validation,
       repairDirectives,
       attempt: structuralRepairCalls,
-    }));
+    });
+    structuralRepairTransaction = storyScenarioRepairTransaction(
+      previousValidation,
+      repaired.validation,
+      { phase: "structural" },
+    );
+    if (!structuralRepairTransaction.accepted) {
+      scenario = previousScenario;
+      validation = previousValidation;
+      repairDirectives = previousRepairDirectives;
+      break;
+    }
+    scenario = repaired.scenario;
+    validation = repaired.validation;
+    repairDirectives = repaired.repairDirectives || [];
   }
 
   if (!validation.valid) {
-    return { scenario, validation, beforeEditorialResult: null };
+    return {
+      scenario,
+      validation,
+      beforeEditorialResult: null,
+      repairTransaction: structuralRepairTransaction,
+      structuralRepairTransaction,
+    };
   }
 
   let beforeEditorialResult = null;
@@ -146,11 +173,23 @@ export async function runScenarioQualityDialogue({
 
   const semanticAuditAlreadyRan = beforeEditorialResult?.semanticAuditRejected === true;
   if (!validation.valid && !semanticAuditAlreadyRan) {
-    return { scenario, validation, beforeEditorialResult };
+    return {
+      scenario,
+      validation,
+      beforeEditorialResult,
+      repairTransaction: structuralRepairTransaction,
+      structuralRepairTransaction,
+    };
   }
   if (!semanticAuditAlreadyRan) {
     if (beforeEditorialResult?.skipEditorial || policy.editorCalls < 1) {
-      return { scenario, validation, beforeEditorialResult };
+      return {
+        scenario,
+        validation,
+        beforeEditorialResult,
+        repairTransaction: structuralRepairTransaction,
+        structuralRepairTransaction,
+      };
     }
     editorCalls += 1;
     ({ scenario, validation, repairDirectives = [] } = await auditEditorial({
@@ -182,19 +221,11 @@ export async function runScenarioQualityDialogue({
     repairDirectives = repaired.repairDirectives || [];
 
     if (!validation.valid) {
-      const progress = storyScenarioRepairProgress(previousValidation, validation);
-      const previousSummary = summarizeStoryScenarioValidation(previousValidation);
-      editorialRepairTransaction = {
-        version: 1,
-        accepted: false,
-        reason: "deterministic_validation_regression",
-        previousIssueCount: previousSummary.issueCount,
-        issueCount: progress.issueCount,
-        introducedSceneNumbers: progress.introducedSceneNumbers,
-        introducedCategories: progress.summary.categories.filter(
-          (category) => !previousSummary.categories.includes(category),
-        ),
-      };
+      editorialRepairTransaction = storyScenarioRepairTransaction(
+        previousValidation,
+        validation,
+        { phase: "editorial_mechanical", allowInvalidProgress: false },
+      );
       scenario = previousScenario;
       validation = previousValidation;
       repairDirectives = previousRepairDirectives;
@@ -203,10 +234,12 @@ export async function runScenarioQualityDialogue({
     if (finalAuditCalls >= policy.finalAuditCalls) {
       editorialRepairTransaction = {
         version: 1,
+        phase: "editorial_semantic",
         accepted: false,
         reason: "final_audit_unavailable",
         previousIssueCount: summarizeStoryScenarioValidation(previousValidation).issueCount,
         issueCount: summarizeStoryScenarioValidation(validation).issueCount,
+        resolvedSceneNumbers: [],
         introducedSceneNumbers: [],
         introducedCategories: [],
       };
@@ -225,24 +258,12 @@ export async function runScenarioQualityDialogue({
       final: true,
     }));
     if (!validation.valid) {
-      const progress = storyScenarioRepairProgress(previousValidation, validation);
-      const previousSummary = summarizeStoryScenarioValidation(previousValidation);
-      const introducedCategories = progress.summary.categories.filter(
-        (category) => !previousSummary.categories.includes(category),
+      editorialRepairTransaction = storyScenarioRepairTransaction(
+        previousValidation,
+        validation,
+        { phase: "editorial_semantic" },
       );
-      const accepted = progress.issueCount < previousSummary.issueCount
-        && progress.introducedSceneNumbers.length === 0
-        && introducedCategories.length === 0;
-      editorialRepairTransaction = {
-        version: 1,
-        accepted,
-        reason: accepted ? "strict_semantic_progress" : "semantic_regression",
-        previousIssueCount: previousSummary.issueCount,
-        issueCount: progress.issueCount,
-        introducedSceneNumbers: progress.introducedSceneNumbers,
-        introducedCategories,
-      };
-      if (!accepted) {
+      if (!editorialRepairTransaction.accepted) {
         scenario = previousScenario;
         validation = previousValidation;
         repairDirectives = previousRepairDirectives;
@@ -250,10 +271,12 @@ export async function runScenarioQualityDialogue({
     } else {
       editorialRepairTransaction = {
         version: 1,
+        phase: "editorial_semantic",
         accepted: true,
         reason: "approved",
         previousIssueCount: summarizeStoryScenarioValidation(previousValidation).issueCount,
         issueCount: 0,
+        resolvedSceneNumbers: summarizeStoryScenarioValidation(previousValidation).sceneNumbers,
         introducedSceneNumbers: [],
         introducedCategories: [],
       };
@@ -265,6 +288,8 @@ export async function runScenarioQualityDialogue({
     validation,
     repairDirectives,
     beforeEditorialResult,
+    repairTransaction: editorialRepairTransaction || structuralRepairTransaction,
+    structuralRepairTransaction,
     editorialRepairTransaction,
   };
 }
@@ -688,7 +713,31 @@ export async function generateValidatedScenario({
   });
   scenario = qualityResult.scenario;
   validation = qualityResult.validation;
-  const finalRepairDirectives = qualityResult.repairDirectives || validation.repairDirectives || [];
+  const boundedRecoveryPlan = automaticRepair ? automaticRepairPlan : recoveryPlan;
+  let boundedRepairTransaction = null;
+  let boundedRepairRolledBack = false;
+  if ((automaticRepair || checkpointRecovery) && boundedRecoveryPlan?.validation && previousScenario) {
+    boundedRepairTransaction = storyScenarioRepairTransaction(
+      boundedRecoveryPlan.validation,
+      validation,
+      {
+        phase: automaticRepair
+          ? "automatic"
+          : canonicalCheckpointRecovery
+            ? "canonical_checkpoint"
+            : "semantic_checkpoint",
+      },
+    );
+    if (!boundedRepairTransaction.accepted) {
+      scenario = structuredClone(previousScenario);
+      validation = boundedRecoveryPlan.validation;
+      canonicalCandidateEvidence = null;
+      boundedRepairRolledBack = true;
+    }
+  }
+  const finalRepairDirectives = boundedRepairRolledBack
+    ? boundedRecoveryPlan.directives || validation.repairDirectives || []
+    : qualityResult.repairDirectives || validation.repairDirectives || [];
   if (validation.valid && typeof canonicalCandidateCheck === "function") {
     // The editor is read-only when it approves a candidate, but an editorial
     // repair may have changed causal mechanics. Recompile once without another
@@ -722,6 +771,9 @@ export async function generateValidatedScenario({
     validation,
     canonicalCandidateEvidence,
     repairProgress,
+    repairTransaction: boundedRepairTransaction || qualityResult.repairTransaction,
+    checkpointRepairTransaction: checkpointRecovery ? boundedRepairTransaction : null,
+    structuralRepairTransaction: qualityResult.structuralRepairTransaction,
     editorialRepairTransaction: qualityResult.editorialRepairTransaction,
     repairDirectives: finalRepairDirectives,
   };
