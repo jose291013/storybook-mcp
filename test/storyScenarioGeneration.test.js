@@ -314,12 +314,12 @@ test("an editorial repair cannot be accepted without its final audit", async () 
   });
 
   assert.equal(result.validation.valid, false);
-  assert.deepEqual(result.validation.issues, [
-    "scenario final semantic audit is required after editorial repair",
-  ]);
+  assert.deepEqual(result.validation.issues, ["semantic contradiction"]);
+  assert.equal(result.scenario.revision, "rejected");
+  assert.equal(result.editorialRepairTransaction.reason, "final_audit_unavailable");
 });
 
-test("a failed final audit remains blocking after the bounded editorial repair", async () => {
+test("a failed final audit rolls back a non-improving editorial repair", async () => {
   let auditCalls = 0;
   const result = await runScenarioQualityDialogue({
     initialScenario: { revision: "architect" },
@@ -349,7 +349,62 @@ test("a failed final audit remains blocking after the bounded editorial repair",
 
   assert.equal(auditCalls, 2);
   assert.equal(result.validation.valid, false);
-  assert.deepEqual(result.validation.issues, ["semantic contradiction remains"]);
+  assert.deepEqual(result.validation.issues, ["semantic contradiction"]);
+  assert.equal(result.scenario.revision, "architect");
+  assert.deepEqual(result.editorialRepairTransaction, {
+    version: 1,
+    accepted: false,
+    reason: "semantic_regression",
+    previousIssueCount: 1,
+    issueCount: 1,
+    introducedSceneNumbers: [],
+    introducedCategories: [],
+  });
+});
+
+test("an editorial object repair cannot replace one audit finding with a mechanical cascade", async () => {
+  const originalScenario = { revision: "mechanically-valid", scenes: [{ sceneNumber: 5 }] };
+  const originalValidation = {
+    valid: false,
+    issues: ["scene-5: object_owner: clarify the established owner"],
+    diagnostics: [{ sceneNumber: 5, code: "object_owner" }],
+  };
+  const cascadeIssues = [1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13].flatMap((sceneNumber) => [
+    `scene-${sceneNumber}: object state carried for field-kit conflicts with physical presence`,
+    `scene-${sceneNumber}: object state worn for safety-pack conflicts with physical presence`,
+  ]);
+  const result = await runScenarioQualityDialogue({
+    initialScenario: originalScenario,
+    initialValidation: { valid: true, issues: [] },
+    policy,
+    repairStructural: async () => assert.fail("structural repair must not run"),
+    auditEditorial: async () => ({
+      scenario: originalScenario,
+      validation: originalValidation,
+      repairDirectives: [{
+        code: "object_owner",
+        affectedSceneNumbers: [5],
+        entityIds: ["field-kit"],
+      }],
+    }),
+    repairEditorial: async () => ({
+      scenario: { revision: "polluted-object-ledger", scenes: [] },
+      validation: { valid: false, issues: cascadeIssues, diagnostics: [] },
+      repairDirectives: [],
+    }),
+  });
+
+  assert.equal(result.scenario, originalScenario);
+  assert.equal(result.validation, originalValidation);
+  assert.equal(result.editorialRepairTransaction.accepted, false);
+  assert.equal(result.editorialRepairTransaction.reason, "deterministic_validation_regression");
+  assert.equal(result.editorialRepairTransaction.previousIssueCount, 1);
+  assert.equal(result.editorialRepairTransaction.issueCount, 22);
+  assert.deepEqual(
+    result.editorialRepairTransaction.introducedSceneNumbers,
+    [1, 2, 3, 4, 7, 8, 9, 10, 11, 12, 13],
+  );
+  assert.deepEqual(result.editorialRepairTransaction.introducedCategories, []);
 });
 
 test("the canonical pre-review gate repairs internally and never delegates mechanics to the creator", async () => {

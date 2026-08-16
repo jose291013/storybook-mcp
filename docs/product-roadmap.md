@@ -2,6 +2,23 @@
 
 Last updated: 2026-08-15
 
+## Transactional editorial-repair checkpoint
+
+The scenario editor may change only the concrete scenes coordinated by its
+own bounded audit. Its object and causal registries remain repairable because
+they are global authorities, but every proposed editorial result is now a
+private transaction: deterministic validation and a fresh semantic audit must
+prove the result before it can replace the previous mechanically valid
+candidate.
+
+A deterministic failure rolls the entire editorial proposal back. A remaining
+semantic finding is retained only when its issue count strictly decreases and
+it introduces neither a new scene nor a new category; an approval commits the
+transaction normally. Thus one local object finding cannot become a persisted
+whole-book cascade of carried or worn states. Render logs record only the
+bounded transaction decision, counts, scenes and categories, never scenario
+prose or customer data. This adds no model call and no environment variable.
+
 ## Age × adult-intention narrative contract checkpoint
 
 New scenarios receive one server-owned contract joining the exact child age to
