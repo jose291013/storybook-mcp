@@ -8,6 +8,7 @@ import {
   normalizeStoryScenario,
   scenarioCharacterRegistry,
   stabilizeStoryScenario,
+  summarizeStoryScenarioValidation,
   validateStoryScenario,
   withStoryScenarioAuditEvidence,
 } from "./storyScenario.js";
@@ -113,6 +114,7 @@ export async function runScenarioQualityDialogue({
   let editorialRepairCalls = 0;
   let editorCalls = 0;
   let finalAuditCalls = 0;
+  let editorialRepairTransaction = null;
 
   while (!validation.valid && structuralRepairCalls < policy.structuralRepairCalls) {
     if (!consumeRepairBudget(repairBudget)) break;
@@ -165,21 +167,52 @@ export async function runScenarioQualityDialogue({
 
   while (!validation.valid && editorialRepairCalls < policy.editorialRepairCalls) {
     if (!consumeRepairBudget(editorialRepairBudget || repairBudget)) break;
+    const previousScenario = scenario;
+    const previousValidation = validation;
+    const previousRepairDirectives = repairDirectives;
     editorialRepairCalls += 1;
-    ({ scenario, validation, repairDirectives = [] } = await repairEditorial({
+    const repaired = await repairEditorial({
       scenario,
       validation,
       repairDirectives,
       attempt: editorialRepairCalls,
-    }));
+    });
+    scenario = repaired.scenario;
+    validation = repaired.validation;
+    repairDirectives = repaired.repairDirectives || [];
 
-    if (!validation.valid) continue;
-    if (finalAuditCalls >= policy.finalAuditCalls) {
-      validation = {
-        valid: false,
-        issues: ["scenario final semantic audit is required after editorial repair"],
-        diagnostics: [],
+    if (!validation.valid) {
+      const progress = storyScenarioRepairProgress(previousValidation, validation);
+      const previousSummary = summarizeStoryScenarioValidation(previousValidation);
+      editorialRepairTransaction = {
+        version: 1,
+        accepted: false,
+        reason: "deterministic_validation_regression",
+        previousIssueCount: previousSummary.issueCount,
+        issueCount: progress.issueCount,
+        introducedSceneNumbers: progress.introducedSceneNumbers,
+        introducedCategories: progress.summary.categories.filter(
+          (category) => !previousSummary.categories.includes(category),
+        ),
       };
+      scenario = previousScenario;
+      validation = previousValidation;
+      repairDirectives = previousRepairDirectives;
+      break;
+    }
+    if (finalAuditCalls >= policy.finalAuditCalls) {
+      editorialRepairTransaction = {
+        version: 1,
+        accepted: false,
+        reason: "final_audit_unavailable",
+        previousIssueCount: summarizeStoryScenarioValidation(previousValidation).issueCount,
+        issueCount: summarizeStoryScenarioValidation(validation).issueCount,
+        introducedSceneNumbers: [],
+        introducedCategories: [],
+      };
+      scenario = previousScenario;
+      validation = previousValidation;
+      repairDirectives = previousRepairDirectives;
       break;
     }
 
@@ -191,9 +224,49 @@ export async function runScenarioQualityDialogue({
       attempt: editorCalls,
       final: true,
     }));
+    if (!validation.valid) {
+      const progress = storyScenarioRepairProgress(previousValidation, validation);
+      const previousSummary = summarizeStoryScenarioValidation(previousValidation);
+      const introducedCategories = progress.summary.categories.filter(
+        (category) => !previousSummary.categories.includes(category),
+      );
+      const accepted = progress.issueCount < previousSummary.issueCount
+        && progress.introducedSceneNumbers.length === 0
+        && introducedCategories.length === 0;
+      editorialRepairTransaction = {
+        version: 1,
+        accepted,
+        reason: accepted ? "strict_semantic_progress" : "semantic_regression",
+        previousIssueCount: previousSummary.issueCount,
+        issueCount: progress.issueCount,
+        introducedSceneNumbers: progress.introducedSceneNumbers,
+        introducedCategories,
+      };
+      if (!accepted) {
+        scenario = previousScenario;
+        validation = previousValidation;
+        repairDirectives = previousRepairDirectives;
+      }
+    } else {
+      editorialRepairTransaction = {
+        version: 1,
+        accepted: true,
+        reason: "approved",
+        previousIssueCount: summarizeStoryScenarioValidation(previousValidation).issueCount,
+        issueCount: 0,
+        introducedSceneNumbers: [],
+        introducedCategories: [],
+      };
+    }
   }
 
-  return { scenario, validation, repairDirectives, beforeEditorialResult };
+  return {
+    scenario,
+    validation,
+    repairDirectives,
+    beforeEditorialResult,
+    editorialRepairTransaction,
+  };
 }
 
 export async function runCanonicalCandidateGate({
@@ -509,7 +582,21 @@ export async function generateValidatedScenario({
         jsonRepairModelRole,
       },
     );
-    const repairedScenario = normalizeCandidate(repaired, directives);
+    const repairPlan = {
+      validation: currentValidation,
+      directives,
+    };
+    const scopedCandidate = kind === "editorial"
+      ? scopeAutomaticRepairCandidate(repaired, currentScenario, repairPlan)
+      : repaired;
+    let repairedScenario = normalizeCandidate(scopedCandidate, directives);
+    if (kind === "editorial") {
+      repairedScenario = scopeAutomaticRepairCandidate(
+        repairedScenario,
+        currentScenario,
+        repairPlan,
+      );
+    }
     await onStep({ phase: "validation", attempt });
     return {
       scenario: repairedScenario,
@@ -635,6 +722,7 @@ export async function generateValidatedScenario({
     validation,
     canonicalCandidateEvidence,
     repairProgress,
+    editorialRepairTransaction: qualityResult.editorialRepairTransaction,
     repairDirectives: finalRepairDirectives,
   };
 }
