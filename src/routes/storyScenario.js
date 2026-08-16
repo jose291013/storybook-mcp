@@ -92,14 +92,17 @@ function queuedRequest(project, body, safetyContract, retrying, automaticRepair 
   if (retrying) {
     const transactionRecovery = storyScenarioRepairTransactionRecoveryAvailable(project);
     const objectRenderRecovery = storyScenarioObjectRenderRecoveryAvailable(project);
+    const semanticAuditCheckpoint = Number(prior.semanticAuditCheckpoint?.version) === 1
+      ? prior.semanticAuditCheckpoint
+      : prior.request?.semanticAuditCheckpoint;
     return {
       ...prior.request,
       safetyContract,
-      ...(Number(prior.semanticAuditCheckpoint?.version) === 1
+      ...(Number(semanticAuditCheckpoint?.version) === 1
         && (prior.request?.semanticAuditRecovery !== true || transactionRecovery || objectRenderRecovery)
         ? {
             semanticAuditRecovery: true,
-            semanticAuditCheckpoint: prior.semanticAuditCheckpoint,
+            semanticAuditCheckpoint,
             ...(transactionRecovery ? {
               repairTransactionRecoveryVersion: STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
             } : {}),

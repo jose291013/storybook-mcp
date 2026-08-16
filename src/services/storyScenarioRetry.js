@@ -3,6 +3,15 @@ export const STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION = 2;
 export const STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION = 1;
 export const STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION = 1;
 
+function semanticAuditCheckpointReference(checkpoint = {}) {
+  const direct = checkpoint?.semanticAuditCheckpoint;
+  if (Number(direct?.version) === 1) return direct;
+  const preservedRequestReference = checkpoint?.request?.semanticAuditCheckpoint;
+  return Number(preservedRequestReference?.version) === 1
+    ? preservedRequestReference
+    : null;
+}
+
 export function storyScenarioObjectRenderRecoveryAvailable(project = {}) {
   const checkpoint = project?.continuitySnapshot?.storyScenarioGeneration;
   const failure = checkpoint?.rejectedCandidateFailure;
@@ -10,7 +19,7 @@ export function storyScenarioObjectRenderRecoveryAvailable(project = {}) {
   const sceneNumbers = Array.isArray(failure?.sceneNumbers) ? failure.sceneNumbers : [];
   return checkpoint?.status === "failed"
     && Boolean(checkpoint?.request)
-    && Number(checkpoint?.semanticAuditCheckpoint?.version) === 1
+    && Boolean(semanticAuditCheckpointReference(checkpoint))
     && categories.length === 1
     && categories[0] === "object"
     && sceneNumbers.some((number) => Number(number) > 0)
@@ -25,7 +34,7 @@ export function storyScenarioRepairTransactionRecoveryAvailable(project = {}) {
   const sceneNumbers = Array.isArray(failure?.sceneNumbers) ? failure.sceneNumbers : [];
   return checkpoint?.status === "failed"
     && Boolean(checkpoint?.request)
-    && Number(checkpoint?.semanticAuditCheckpoint?.version) === 1
+    && Boolean(semanticAuditCheckpointReference(checkpoint))
     && checkpoint.request?.semanticAuditRecovery === true
     && Number(checkpoint.request?.repairTransactionRecoveryVersion || 0)
       < STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION
@@ -38,7 +47,7 @@ export function technicalStoryScenarioRetryAvailable(project = {}) {
   const checkpoint = project?.continuitySnapshot?.storyScenarioGeneration;
   if (checkpoint?.status !== "failed" || !checkpoint?.request) return false;
   if (checkpoint.retryAvailable === true) return true;
-  if (Number(checkpoint.semanticAuditCheckpoint?.version) === 1
+  if (semanticAuditCheckpointReference(checkpoint)
     && checkpoint.request?.semanticAuditRecovery !== true) return true;
   if (storyScenarioRepairTransactionRecoveryAvailable(project)) return true;
   if (storyScenarioObjectRenderRecoveryAvailable(project)) return true;

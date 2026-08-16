@@ -141,6 +141,34 @@ test("an exhausted object-only checkpoint gets one deterministic render-ledger r
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
 });
 
+test("an object-only recovery survives when its semantic checkpoint is preserved in the retry request", () => {
+  const recoverable = project({
+    status: "failed",
+    retryAvailable: false,
+    retryExhausted: true,
+    request: {
+      semanticAuditRecovery: true,
+      repairTransactionRecoveryVersion: STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
+      semanticAuditCheckpoint: {
+        version: 1,
+        runId: "run-preserved",
+        stepKey: "semantic-audit-checkpoint:v1",
+        candidateNumber: 1,
+      },
+    },
+    rejectedCandidateFailure: {
+      categories: ["object"],
+      sceneNumbers: [7, 8, 9, 10, 11, 12, 13],
+    },
+  });
+  assert.equal(storyScenarioObjectRenderRecoveryAvailable(recoverable), true);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
+  recoverable.continuitySnapshot.storyScenarioGeneration.request.objectRenderRecoveryVersion =
+    STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION;
+  assert.equal(storyScenarioObjectRenderRecoveryAvailable(recoverable), false);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
+});
+
 test("a version-two exhausted failure without a candidate is not replayed", () => {
   const exhausted = project({
     status: "failed",
