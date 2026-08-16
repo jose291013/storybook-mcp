@@ -9,15 +9,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/enforce-scene-wardrobe-continuity`
-- Production/main checkpoint: durable object-checkpoint retry entitlement (`58dc305`, PR #211)
-- Current focused checkpoint: gross active-wardrobe continuity gate for future books
-- Pull requests: #150 through #211 merged
+- Production/main checkpoint: gross active-wardrobe continuity gate (`24cbab6`, PR #212)
+- Current focused checkpoint: gross active-wardrobe continuity gate completed and published
+- Pull requests: #150 through #212 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #211 are merged on `main`. The latest completed brick restores the promised free recovery when an older retry preserved its private semantic checkpoint inside the durable request rather than at the generation root. The current brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #212 are merged on `main`. The latest completed brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Product brick: gross active-wardrobe continuity gate
 
