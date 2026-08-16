@@ -209,14 +209,26 @@ test("targeted cast repairs require one high-detail occurrence of every named id
   const responses = [
     {
       cast: [
-        { name: "Noa", observed: "one" },
-        { name: "Eva", observed: "two_or_more" },
+        { name: "Noa", observed: "one", candidate_ids: ["subject_1"], structural_state: "separate" },
+        { name: "Eva", observed: "two_or_more", candidate_ids: ["subject_2", "subject_3"], structural_state: "separate" },
       ],
     },
     {
       cast: [
-        { name: "Noa", observed: "one" },
-        { name: "Eva", observed: "one" },
+        { name: "Noa", observed: "one", candidate_ids: ["subject_1"], structural_state: "separate" },
+        { name: "Eva", observed: "one", candidate_ids: ["subject_2"], structural_state: "separate" },
+      ],
+    },
+    {
+      cast: [
+        { name: "Noa", observed: "one", candidate_ids: ["subject_1"], structural_state: "separate" },
+        { name: "Eva", observed: "one", candidate_ids: ["subject_1"], structural_state: "separate" },
+      ],
+    },
+    {
+      cast: [
+        { name: "Noa", observed: "uncertain", candidate_ids: [], structural_state: "uncertain" },
+        { name: "Eva", observed: "one", candidate_ids: ["subject_2"], structural_state: "separate" },
       ],
     },
   ];
@@ -252,6 +264,15 @@ test("targeted cast repairs require one high-detail occurrence of every named id
     });
     const exact = await inspectNamedCastCardinality({ imagePath, sceneContract, identityReferences, client });
     assert.deepEqual(exact, { approved: true, issues: [], issueCodes: [], authoritative: true });
+    const fused = await inspectNamedCastCardinality({ imagePath, sceneContract, identityReferences, client });
+    assert.deepEqual(fused, {
+      approved: false,
+      issues: ["Required identities are fused. Noa and Eva share candidate subject_1 after high-detail identity arbitration."],
+      issueCodes: ["identity_fusion"],
+      authoritative: true,
+    });
+    const uncertain = await inspectNamedCastCardinality({ imagePath, sceneContract, identityReferences, client });
+    assert.deepEqual(uncertain, { approved: true, issues: [], issueCodes: [], authoritative: true });
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -290,6 +311,27 @@ test("an incomplete focused cast response preserves the original scene evidence"
   }), {
     ...original,
     issueCodes: ["required_cast_missing"],
+  });
+});
+
+test("an unconfirmed initial cast suspicion becomes advisory while independent defects remain", () => {
+  const original = {
+    approved: false,
+    issues: [
+      "Required identities are fused into one body.",
+      "Required object basket is missing.",
+    ],
+  };
+  assert.deepEqual(reconcileFocusedCastInspection(original, {
+    approved: true,
+    issues: [],
+    authoritative: false,
+  }, { unconfirmed: "advisory" }), {
+    ...original,
+    approved: false,
+    issues: ["Required object basket is missing."],
+    issueCodes: ["object_state"],
+    unconfirmedCastIssues: ["Required identities are fused into one body."],
   });
 });
 
@@ -337,6 +379,8 @@ test("quality-review copy uses structured defect codes before legacy text matchi
   assert.match(qualityReview, /verifyExactCast: true/);
   assert.match(qualityReview, /Preserve exactly one complete visible instance/);
   assert.match(qualityGate, /Boolean\(verifyExactCast\)/);
+  assert.match(qualityGate, /const initialCastArbitration/);
+  assert.match(qualityGate, /unconfirmed: initialCastArbitration \? "advisory" : "preserve"/);
 });
 
 test("a targeted repair edits the preserved candidate before continuity and identity references", () => {
