@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-repair-transaction-recovery`
-- Production/main checkpoint: transactional editorial repair (`1cb8a0c`, PR #208)
-- Current focused checkpoint: unified repair transaction and one object-checkpoint recovery awaiting publication
-- Pull requests: #150 through #208 merged
+- Current branch: `codex/deterministic-object-precompiler`
+- Production/main checkpoint: unified repair transaction (`b4b7539`, PR #209)
+- Current focused checkpoint: deterministic off-camera object projection awaiting publication
+- Pull requests: #150 through #209 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #208 are merged on `main`. The latest completed brick makes bounded editorial repairs atomic; the current brick extends that transaction to structural and private-checkpoint recovery paths. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #209 are merged on `main`. The latest completed brick unifies structural, editorial and private-checkpoint repair transactions. The current brick separates whole-story possession from focal-scene visibility so off-camera owners do not create false object cascades. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: deterministic off-camera object projection
+
+1. The causal graph keeps global possession unchanged when a character is outside the illustrated frame.
+2. The render ledger projects that worn, held or carried object as absent with quantity zero only for the off-camera scene.
+3. When the owner returns, the object returns to its canonical state without a fabricated transfer, retrieval, loss or duplicate.
+4. Retry policy version 9 opens one audit-only recovery for exhausted object-only private checkpoints and skips another architect rewrite.
+5. Render receives only the compiler version, affected count and scene numbers; no environment variable, credit or series canon changes.
 
 ## Product brick: transactional editorial repair
 

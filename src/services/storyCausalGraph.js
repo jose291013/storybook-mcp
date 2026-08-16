@@ -1,5 +1,6 @@
 export const STORY_CAUSAL_GRAPH_VERSION = 2;
 export const LEGACY_STORY_CAUSAL_GRAPH_VERSION = 1;
+export const STORY_OBJECT_RENDER_LEDGER_VERSION = 1;
 
 const STATES = new Set([
   "worn", "held", "carried", "stored", "visible", "absent", "left_behind",
@@ -79,6 +80,25 @@ function objectSpatialState(object = {}, canonical = {}, scene = {}) {
     state: "absent",
     owner: "",
     quantity: 0,
+  };
+}
+
+function physicalCharacterKeys(scene = {}) {
+  return new Set(values(scene.characterPresences, 30)
+    .filter((presence) => presence?.mode === "physical")
+    .map((presence) => stableId(presence?.name))
+    .filter(Boolean));
+}
+
+function objectRenderState(canonical = {}, scene = {}) {
+  if (!POSSESSION_STATES.has(canonical?.state) || !canonical?.owner) return canonical;
+  if (physicalCharacterKeys(scene).has(stableId(canonical.owner))) return canonical;
+  return {
+    ...canonical,
+    state: "absent",
+    owner: "",
+    quantity: 0,
+    hiddenWithOwner: canonical.owner,
   };
 }
 
@@ -312,6 +332,8 @@ export function projectCausalGraphObjectLedger(input = {}) {
     .filter((event) => event.structurallyValid)
     .slice()
     .sort((left, right) => left.sceneNumber - right.sceneNumber || left.sequence - right.sequence);
+  const hiddenSceneNumbers = new Set();
+  let hiddenPossessedStates = 0;
   for (const scene of values(scenario.scenes, 30).slice().sort((left, right) => left.sceneNumber - right.sceneNumber)) {
     for (const event of events.filter((candidate) => candidate.sceneNumber === Number(scene.sceneNumber))) {
       stateByEntity.set(event.entityId, {
@@ -334,7 +356,12 @@ export function projectCausalGraphObjectLedger(input = {}) {
     scene.objectStates = entities.map((entity) => {
       const canonical = stateByEntity.get(entity.id);
       const object = objects.find((candidate, index) => objectId(candidate, index) === entity.id);
-      const current = objectSpatialState(object, canonical, scene);
+      const spatial = objectSpatialState(object, canonical, scene);
+      const current = objectRenderState(spatial, scene);
+      if (current.hiddenWithOwner) {
+        hiddenPossessedStates += 1;
+        hiddenSceneNumbers.add(Number(scene.sceneNumber));
+      }
       return {
         objectId: entity.id,
         name: clean(object?.name || entity.label),
@@ -347,9 +374,18 @@ export function projectCausalGraphObjectLedger(input = {}) {
           label: clean(object?.name || entity.label),
           state: current.state,
           owner: current.owner,
-        }),
+        }) + (current.hiddenWithOwner
+          ? ` It remains with ${current.hiddenWithOwner} off-camera; do not invent a transfer, loss or duplicate.`
+          : ""),
       };
     });
+  }
+  if (hiddenPossessedStates > 0) {
+    console.info("[story-object-render-ledger] compiled", JSON.stringify({
+      version: STORY_OBJECT_RENDER_LEDGER_VERSION,
+      hiddenPossessedStates,
+      sceneNumbers: [...hiddenSceneNumbers].sort((left, right) => left - right),
+    }));
   }
   return scenario;
 }

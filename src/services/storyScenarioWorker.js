@@ -693,6 +693,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
         automaticRepair,
         automaticRepairPlan: request.automaticRepairPlan || null,
         semanticAuditRecovery: Boolean(semanticAuditCheckpoint),
+        deterministicObjectRenderRecovery: request.deterministicObjectRenderRecovery === true,
         semanticAuditRecoveryPlan: semanticAuditCheckpoint ? {
           version: 1,
           validation: semanticAuditCheckpoint.validation,

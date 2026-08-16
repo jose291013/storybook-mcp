@@ -1,6 +1,24 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-15
+Last updated: 2026-08-16
+
+## Deterministic off-camera object projection checkpoint
+
+The causal graph keeps the real whole-story state of every portable object:
+an object that Eva carries remains Eva's object when she is outside the camera
+frame. The scene render ledger is now compiled separately. A worn, held or
+carried object is projected as absent with quantity zero whenever its canonical
+owner is not physically present in that scene, then becomes visible again when
+the owner returns, without inventing a transfer, storage, loss or retrieval.
+
+This separation removes the repeated object cascade produced when a correct
+global possession state was copied into every focal scene. Location-bound
+objects, transformations, quantities and narrative causal events keep their
+existing rules. Scenario retry policy version 9 grants one deterministic,
+audit-only recovery to exhausted object-only private checkpoints, so the
+existing dinosaur-valley project can be recompiled without another architect
+rewrite. Render logs expose only counts and scene numbers. No customer text,
+credit, environment variable or series canon changes.
 
 ## Transactional editorial-repair checkpoint
 

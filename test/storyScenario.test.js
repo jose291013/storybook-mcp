@@ -2072,6 +2072,7 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioPrompt, /causal_graph\.version 2 is the only mechanical source of truth/);
   assert.match(scenarioPrompt, /Do not return objects\[\]\.owner/);
   assert.doesNotMatch(scenarioPrompt, /"object_states": \[/);
+  assert.match(scenarioPrompt, /Possession in causal_graph is global, not camera visibility/);
   assert.match(app, /requestStoryScenario/);
   assert.match(app, /approveStoryScenario/);
   assert.match(app, /storyScenarioBusy/);
