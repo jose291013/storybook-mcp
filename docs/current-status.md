@@ -8,18 +8,18 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/initial-cast-arbitration`
-- Production/main checkpoint: paid-repair identity deployment record (`6a70d5a`)
-- Current focused checkpoint: initial-page named-cast arbitration before creator review
-- Pull requests: #150 through #205 merged
+- Current branch: `codex/initial-cast-arbitration-deployment`
+- Production/main checkpoint: initial-page named-cast arbitration (`ae49aa2`)
+- Current focused checkpoint: verify the next fresh preview has no unconfirmed cast review
+- Pull requests: #150 through #206 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #205 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. PR #200 adds exact named-cast cardinality, canonical identity rechecks and structured creator messages after a targeted visual repair; PR #201 records that deployment. PR #202 extends the same exact-cast gate to creator-requested illustration alternatives; PR #203 records that deployment. PR #204 applies the identity-aware exact-cast controller to paid illustration repairs, reconciles contradictory cast evidence and keeps failed candidates credit-safe; PR #205 records that production deployment. Render confirmed `6a70d5a` live on 2026-08-16. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #206 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. PR #200 adds exact named-cast cardinality, canonical identity rechecks and structured creator messages after a targeted visual repair; PR #201 records that deployment. PR #202 extends the same exact-cast gate to creator-requested illustration alternatives; PR #203 records that deployment. PR #204 applies the identity-aware exact-cast controller to paid illustration repairs, reconciles contradictory cast evidence and keeps failed candidates credit-safe; PR #205 records that production deployment. PR #206 arbitrates every low-detail cast suspicion on a first-generation page with a structured high-detail identity check before creator review. Render confirmed `ae49aa2` live on 2026-08-16. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
-## Candidate product brick: initial named-cast arbitration
+## Product brick: initial named-cast arbitration
 
 1. A low-detail cast finding on an ordinary generated page is a suspicion, not a customer correction.
 2. Only a suspected page receives one high-detail structured arbitration with its private identity references; unaffected pages add no call.
