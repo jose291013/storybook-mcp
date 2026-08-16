@@ -110,6 +110,68 @@ test("an explicit causal graph overrides conflicting wording inference", () => {
   );
 });
 
+test("a possessed object stays with its off-camera owner without becoming visible or changing causal state", () => {
+  const narrativeScenes = [
+    {
+      sceneNumber: 1,
+      characterPresences: [{ name: "Eva", mode: "physical" }],
+    },
+    {
+      sceneNumber: 2,
+      characterPresences: [{ name: "Noa", mode: "physical" }],
+    },
+    {
+      sceneNumber: 3,
+      characterPresences: [{ name: "Eva", mode: "physical" }],
+    },
+  ];
+  const trackedObjects = [{
+    objectId: "eva_basket",
+    name: "panier d'Eva",
+    owner: "Eva",
+    initialState: "carried",
+    initialQuantity: 1,
+    trackEveryScene: true,
+  }];
+  const causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "eva_basket",
+      label: "panier d'Eva",
+      initial_state: "carried",
+      initial_owner_character: "Eva",
+      initial_quantity: 1,
+    }],
+    events: [],
+  }, trackedObjects, narrativeScenes, [{ name: "Eva" }, { name: "Noa" }]);
+  const scenario = {
+    objects: trackedObjects,
+    scenes: narrativeScenes,
+    characters: [{ name: "Eva" }, { name: "Noa" }],
+    causalGraph,
+  };
+
+  applyCausalGraph(scenario);
+  projectCausalGraphObjectLedger(scenario);
+
+  assert.deepEqual(
+    scenario.scenes.map((scene) => ({
+      state: scene.objectStates[0].state,
+      owner: scene.objectStates[0].owner,
+      quantity: scene.objectStates[0].quantity,
+    })),
+    [
+      { state: "carried", owner: "Eva", quantity: 1 },
+      { state: "absent", owner: "", quantity: 0 },
+      { state: "carried", owner: "Eva", quantity: 1 },
+    ],
+  );
+  assert.equal(causalGraph.entities[0].initialState, "carried");
+  assert.equal(causalGraph.entities[0].initialOwnerCharacter, "Eva");
+  assert.match(scenario.scenes[1].objectStates[0].instruction, /remains with Eva off-camera/i);
+  assert.deepEqual(validateCausalGraph(scenario), []);
+});
+
 test("a result cannot appear before its producing transformation", () => {
   const events = [
     ...chainEvents(),

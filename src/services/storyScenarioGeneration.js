@@ -409,6 +409,7 @@ export async function generateValidatedScenario({
   automaticRepairPlan = null,
   semanticAuditRecovery = false,
   semanticAuditRecoveryPlan = null,
+  deterministicObjectRenderRecovery = false,
   canonicalCheckpointRecovery = false,
   canonicalCheckpointRecoveryPlan = null,
 }) {
@@ -548,12 +549,14 @@ export async function generateValidatedScenario({
   const editorModelRole = modelRoles.editor || "story_editor";
   const jsonRepairModelRole = modelRoles.jsonRepair || repairModelRole;
   const semanticRecoveryTargets = automaticRepairTargetSceneNumbers(semanticAuditRecoveryPlan || {});
-  const auditOnlyRecovery = semanticAuditRecovery
+  const auditOnlyRecovery = deterministicObjectRenderRecovery || (semanticAuditRecovery
     && previousScenario
-    && semanticRecoveryTargets.length === 0;
+    && semanticRecoveryTargets.length === 0);
   await onStep({
     phase: canonicalCheckpointRecovery
       ? "canonical-checkpoint"
+      : deterministicObjectRenderRecovery
+        ? "object-render-checkpoint"
       : auditOnlyRecovery
         ? "semantic-checkpoint"
         : generationRoute.phase,

@@ -1,6 +1,22 @@
-export const STORY_SCENARIO_RETRY_POLICY_VERSION = 8;
+export const STORY_SCENARIO_RETRY_POLICY_VERSION = 9;
 export const STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION = 2;
 export const STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION = 1;
+export const STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION = 1;
+
+export function storyScenarioObjectRenderRecoveryAvailable(project = {}) {
+  const checkpoint = project?.continuitySnapshot?.storyScenarioGeneration;
+  const failure = checkpoint?.rejectedCandidateFailure;
+  const categories = Array.isArray(failure?.categories) ? failure.categories : [];
+  const sceneNumbers = Array.isArray(failure?.sceneNumbers) ? failure.sceneNumbers : [];
+  return checkpoint?.status === "failed"
+    && Boolean(checkpoint?.request)
+    && Number(checkpoint?.semanticAuditCheckpoint?.version) === 1
+    && categories.length === 1
+    && categories[0] === "object"
+    && sceneNumbers.some((number) => Number(number) > 0)
+    && Number(checkpoint.request?.objectRenderRecoveryVersion || 0)
+      < STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION;
+}
 
 export function storyScenarioRepairTransactionRecoveryAvailable(project = {}) {
   const checkpoint = project?.continuitySnapshot?.storyScenarioGeneration;
@@ -25,6 +41,7 @@ export function technicalStoryScenarioRetryAvailable(project = {}) {
   if (Number(checkpoint.semanticAuditCheckpoint?.version) === 1
     && checkpoint.request?.semanticAuditRecovery !== true) return true;
   if (storyScenarioRepairTransactionRecoveryAvailable(project)) return true;
+  if (storyScenarioObjectRenderRecoveryAvailable(project)) return true;
   if (Number(checkpoint.canonicalCandidateCheckpoint?.version) === 1
     && checkpoint.request?.canonicalCheckpointRecovery !== true) return true;
   if (Number(checkpoint.canonicalCandidateCheckpoint?.version) === 1

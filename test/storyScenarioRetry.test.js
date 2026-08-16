@@ -3,9 +3,11 @@ import test from "node:test";
 
 import {
   STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION,
+  STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION,
   STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
   STORY_SCENARIO_RETRY_POLICY_VERSION,
   storyScenarioRepairTransactionRecoveryAvailable,
+  storyScenarioObjectRenderRecoveryAvailable,
   technicalStoryScenarioRetryAvailable,
   technicalStoryScenarioRetryExhausted,
 } from "../src/services/storyScenarioRetry.js";
@@ -99,7 +101,8 @@ test("an exhausted object-only semantic checkpoint opens one transactional recov
   recoverable.continuitySnapshot.storyScenarioGeneration.request.repairTransactionRecoveryVersion =
     STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION;
   assert.equal(storyScenarioRepairTransactionRecoveryAvailable(recoverable), false);
-  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
+  assert.equal(storyScenarioObjectRenderRecoveryAvailable(recoverable), true);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
 });
 
 test("transactional recovery stays closed for mixed semantic categories", () => {
@@ -115,6 +118,29 @@ test("transactional recovery stays closed for mixed semantic categories", () => 
   assert.equal(storyScenarioRepairTransactionRecoveryAvailable(mixed), false);
 });
 
+test("an exhausted object-only checkpoint gets one deterministic render-ledger recovery", () => {
+  const recoverable = project({
+    status: "failed",
+    retryAvailable: false,
+    retryExhausted: true,
+    request: {
+      semanticAuditRecovery: true,
+      repairTransactionRecoveryVersion: STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
+    },
+    semanticAuditCheckpoint: { version: 1 },
+    rejectedCandidateFailure: {
+      categories: ["object"],
+      sceneNumbers: [7, 8, 9, 10, 11, 12, 13],
+    },
+  });
+  assert.equal(storyScenarioObjectRenderRecoveryAvailable(recoverable), true);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
+  recoverable.continuitySnapshot.storyScenarioGeneration.request.objectRenderRecoveryVersion =
+    STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION;
+  assert.equal(storyScenarioObjectRenderRecoveryAvailable(recoverable), false);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
+});
+
 test("a version-two exhausted failure without a candidate is not replayed", () => {
   const exhausted = project({
     status: "failed",
@@ -124,6 +150,6 @@ test("a version-two exhausted failure without a candidate is not replayed", () =
     retryPolicyVersion: 2,
     errorCode: "scenario_contract_invalid",
   });
-  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 8);
+  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 9);
   assert.equal(technicalStoryScenarioRetryAvailable(exhausted), false);
 });

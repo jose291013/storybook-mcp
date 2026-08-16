@@ -29,8 +29,10 @@ import {
 } from "../services/childSafety.js";
 import {
   STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION,
+  STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION,
   STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
   STORY_SCENARIO_RETRY_POLICY_VERSION,
+  storyScenarioObjectRenderRecoveryAvailable,
   storyScenarioRepairTransactionRecoveryAvailable,
   technicalStoryScenarioRetryAvailable,
 } from "../services/storyScenarioRetry.js";
@@ -89,16 +91,21 @@ function queuedRequest(project, body, safetyContract, retrying, automaticRepair 
   const prior = generationSnapshot(project);
   if (retrying) {
     const transactionRecovery = storyScenarioRepairTransactionRecoveryAvailable(project);
+    const objectRenderRecovery = storyScenarioObjectRenderRecoveryAvailable(project);
     return {
       ...prior.request,
       safetyContract,
       ...(Number(prior.semanticAuditCheckpoint?.version) === 1
-        && (prior.request?.semanticAuditRecovery !== true || transactionRecovery)
+        && (prior.request?.semanticAuditRecovery !== true || transactionRecovery || objectRenderRecovery)
         ? {
             semanticAuditRecovery: true,
             semanticAuditCheckpoint: prior.semanticAuditCheckpoint,
             ...(transactionRecovery ? {
               repairTransactionRecoveryVersion: STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
+            } : {}),
+            ...(objectRenderRecovery ? {
+              deterministicObjectRenderRecovery: true,
+              objectRenderRecoveryVersion: STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION,
             } : {}),
           }
         : {}),
