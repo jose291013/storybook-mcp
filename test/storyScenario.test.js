@@ -23,6 +23,7 @@ import {
   storyScenarioAutomaticRepairAssessment,
   storyScenarioAutomaticRepairFailureSummary,
   storyScenarioRepairProgress,
+  storyScenarioRepairTransaction,
 } from "../src/services/storyScenarioAutoRepair.js";
 import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
 import { stabilizeSceneCharacterMovements } from "../src/services/characterMovementLedger.js";
@@ -245,6 +246,37 @@ test("progressive repair accepts only a strictly smaller or better-localized fai
   });
   assert.equal(regression.improved, false);
   assert.deepEqual(regression.introducedSceneNumbers, [18]);
+});
+
+test("repair transactions accept strict progress without moving the defect", () => {
+  const previous = {
+    valid: false,
+    issues: [
+      "scene-7: object: carried state conflicts with presence",
+      "scene-8: object: carried state conflicts with presence",
+      "scene-9: object: carried state conflicts with presence",
+    ],
+  };
+  const improved = storyScenarioRepairTransaction(previous, {
+    valid: false,
+    issues: [
+      "scene-8: object: carried state conflicts with presence",
+      "scene-9: object: carried state conflicts with presence",
+    ],
+  }, { phase: "semantic_checkpoint" });
+  assert.equal(improved.accepted, true);
+  assert.equal(improved.reason, "strict_progress");
+  assert.deepEqual(improved.resolvedSceneNumbers, [7]);
+
+  const displaced = storyScenarioRepairTransaction(previous, {
+    valid: false,
+    issues: [
+      "scene-8: object: carried state conflicts with presence",
+      "scene-10: object: carried state conflicts with presence",
+    ],
+  }, { phase: "semantic_checkpoint" });
+  assert.equal(displaced.accepted, false);
+  assert.deepEqual(displaced.introducedSceneNumbers, [10]);
 });
 
 test("prepare, invite and share remain three distinct causal progression stages", () => {

@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION,
+  STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
   STORY_SCENARIO_RETRY_POLICY_VERSION,
+  storyScenarioRepairTransactionRecoveryAvailable,
   technicalStoryScenarioRetryAvailable,
   technicalStoryScenarioRetryExhausted,
 } from "../src/services/storyScenarioRetry.js";
@@ -79,6 +81,40 @@ test("a private canonical checkpoint opens exactly one targeted recovery", () =>
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
 });
 
+test("an exhausted object-only semantic checkpoint opens one transactional recovery", () => {
+  const recoverable = project({
+    status: "failed",
+    retryAvailable: false,
+    retryExhausted: true,
+    request: { semanticAuditRecovery: true },
+    semanticAuditCheckpoint: { version: 1 },
+    rejectedCandidateFailure: {
+      version: 1,
+      categories: ["object"],
+      sceneNumbers: [7, 8, 9],
+    },
+  });
+  assert.equal(storyScenarioRepairTransactionRecoveryAvailable(recoverable), true);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
+  recoverable.continuitySnapshot.storyScenarioGeneration.request.repairTransactionRecoveryVersion =
+    STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION;
+  assert.equal(storyScenarioRepairTransactionRecoveryAvailable(recoverable), false);
+  assert.equal(technicalStoryScenarioRetryAvailable(recoverable), false);
+});
+
+test("transactional recovery stays closed for mixed semantic categories", () => {
+  const mixed = project({
+    status: "failed",
+    request: { semanticAuditRecovery: true },
+    semanticAuditCheckpoint: { version: 1 },
+    rejectedCandidateFailure: {
+      categories: ["object", "travel"],
+      sceneNumbers: [7],
+    },
+  });
+  assert.equal(storyScenarioRepairTransactionRecoveryAvailable(mixed), false);
+});
+
 test("a version-two exhausted failure without a candidate is not replayed", () => {
   const exhausted = project({
     status: "failed",
@@ -88,6 +124,6 @@ test("a version-two exhausted failure without a candidate is not replayed", () =
     retryPolicyVersion: 2,
     errorCode: "scenario_contract_invalid",
   });
-  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 7);
+  assert.equal(STORY_SCENARIO_RETRY_POLICY_VERSION, 8);
   assert.equal(technicalStoryScenarioRetryAvailable(exhausted), false);
 });

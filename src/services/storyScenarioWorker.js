@@ -577,8 +577,8 @@ async function failScenario({
         diagnostics: undefined,
       },
     } : {}),
-    ...(error?.editorialRepairTransaction ? {
-      editorialRepairTransaction: error.editorialRepairTransaction,
+    ...(error?.repairTransaction ? {
+      repairTransaction: error.repairTransaction,
     } : {}),
     ...(canonicalDiagnostics ? { canonicalGate: canonicalDiagnostics } : {}),
   }));
@@ -800,6 +800,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       error.privateScenarioCandidate = scenario;
       error.privateCanonicalCandidateEvidence = canonicalCandidateEvidence;
       error.semanticRepairDirectives = generated.repairDirectives || validation.repairDirectives || [];
+      error.repairTransaction = generated.repairTransaction || null;
       error.editorialRepairTransaction = generated.editorialRepairTransaction || null;
       if (automaticRepair && repairProgress?.improved) {
         error.progressiveScenario = scenario;

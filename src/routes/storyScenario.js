@@ -29,7 +29,9 @@ import {
 } from "../services/childSafety.js";
 import {
   STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION,
+  STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
   STORY_SCENARIO_RETRY_POLICY_VERSION,
+  storyScenarioRepairTransactionRecoveryAvailable,
   technicalStoryScenarioRetryAvailable,
 } from "../services/storyScenarioRetry.js";
 import { storyScenarioAutomaticRepairAssessment } from "../services/storyScenarioAutoRepair.js";
@@ -86,14 +88,18 @@ function generationSnapshot(project) {
 function queuedRequest(project, body, safetyContract, retrying, automaticRepair = null) {
   const prior = generationSnapshot(project);
   if (retrying) {
+    const transactionRecovery = storyScenarioRepairTransactionRecoveryAvailable(project);
     return {
       ...prior.request,
       safetyContract,
       ...(Number(prior.semanticAuditCheckpoint?.version) === 1
-        && prior.request?.semanticAuditRecovery !== true
+        && (prior.request?.semanticAuditRecovery !== true || transactionRecovery)
         ? {
             semanticAuditRecovery: true,
             semanticAuditCheckpoint: prior.semanticAuditCheckpoint,
+            ...(transactionRecovery ? {
+              repairTransactionRecoveryVersion: STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
+            } : {}),
           }
         : {}),
       ...(Number(prior.canonicalCandidateCheckpoint?.version) === 1

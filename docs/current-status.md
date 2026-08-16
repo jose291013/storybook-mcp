@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scenario-object-repair-transaction`
-- Production/main checkpoint: initial-page named-cast arbitration deployment (`a04c47f`)
-- Current focused checkpoint: transactional editorial repair awaiting publication
-- Pull requests: #150 through #207 merged
+- Current branch: `codex/scenario-repair-transaction-recovery`
+- Production/main checkpoint: transactional editorial repair (`1cb8a0c`, PR #208)
+- Current focused checkpoint: unified repair transaction and one object-checkpoint recovery awaiting publication
+- Pull requests: #150 through #208 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #207 are merged on `main`. PR #191 proves that every current signed visual beat crosses the compact image-contract boundary without losing canonical facts, PR #192 records the visual pipeline checkpoint, PR #193 completes an unambiguous missing passage route from its canonical scene envelope, PR #194 resolves an inner route from its complete stable passage lifecycle and PR #195 records that deployment. PR #196 adds the deterministic physical-chronology compiler and one lifecycle-v2 recovery for the preserved 32-page private candidate; PR #197 records its production deployment. PR #198 settles a final return from its signed visible phase and deterministically invalidates the contradictory saved storyboard; PR #199 records that production checkpoint. PR #200 adds exact named-cast cardinality, canonical identity rechecks and structured creator messages after a targeted visual repair; PR #201 records that deployment. PR #202 extends the same exact-cast gate to creator-requested illustration alternatives; PR #203 records that deployment. PR #204 applies the identity-aware exact-cast controller to paid illustration repairs, reconciles contradictory cast evidence and keeps failed candidates credit-safe; PR #205 records that production deployment. PR #206 arbitrates every low-detail cast suspicion on a first-generation page with a structured high-detail identity check before creator review, and PR #207 records that deployment. Render confirmed `a04c47f` live on 2026-08-16. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #208 are merged on `main`. The latest completed brick makes bounded editorial repairs atomic; the current brick extends that transaction to structural and private-checkpoint recovery paths. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
 
 ## Product brick: transactional editorial repair
 
@@ -26,6 +26,14 @@ PR #55 through #207 are merged on `main`. PR #191 proves that every current sign
 3. A failed mechanical result rolls back atomically; a remaining semantic result is kept only when it strictly reduces issues without adding a scene or category.
 4. A missing final audit also rolls back, so no unverified editorial candidate becomes the private recovery checkpoint.
 5. Render receives a content-free transaction summary that makes a rejected 22-error cascade operationally visible.
+
+## Product brick: unified repair transaction recovery
+
+1. Structural, editorial and private-checkpoint repairs share one content-free transaction decision.
+2. An invalid candidate is retained only when it strictly reduces issue count without introducing a scene or category; otherwise the previous private candidate is restored atomically.
+3. Retry policy version 8 opens exactly one recovery for exhausted object-only semantic checkpoints created before this common transaction.
+4. That recovery starts from the latest private checkpoint, reruns mechanical and semantic validation, and cannot reopen again.
+5. No customer story, credit, environment variable or series canon is changed by deployment.
 
 ## Product brick: initial named-cast arbitration
 
@@ -292,16 +300,16 @@ PR #55 through #207 are merged on `main`. PR #191 proves that every current sign
 ## Verification
 
 - Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
-- Focused physical chronology, compiler and recovery tests: 67/67 passing.
-- Complete `npm test`: 540/540 passing.
+- Focused scenario transaction, compiler and recovery tests: 94/94 passing.
+- Complete `npm test`: 543/543 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Retry the dinosaur-valley scenario and confirm an editorial object correction cannot persist a multi-scene object cascade.
-2. If a correction is rolled back, confirm Render logs `editorialRepairTransaction` with bounded counts and the original focused semantic checkpoint remains retryable.
-3. Confirm a successful repair still reaches the final audit and publishes the scenario normally.
+1. After Render is live, reopen the dinosaur-valley project and confirm its single free retry is available from mobile and desktop.
+2. Confirm Render logs `repairTransaction` for the semantic checkpoint, with fewer than 14 object findings or an approved scenario and no newly affected scene/category.
+3. Confirm an unchanged or regressed recovery rolls back to the 14-finding private checkpoint and does not offer another loop.
 4. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
 
 ## Protected local state

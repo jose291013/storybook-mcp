@@ -163,3 +163,35 @@ export function storyScenarioRepairProgress(previousValidation = {}, candidateVa
     summary: candidate,
   };
 }
+
+export function storyScenarioRepairTransaction(
+  previousValidation = {},
+  candidateValidation = {},
+  { phase = "repair", allowInvalidProgress = true } = {},
+) {
+  const previous = summarizeStoryScenarioValidation(previousValidation);
+  const progress = storyScenarioRepairProgress(previousValidation, candidateValidation);
+  const introducedCategories = progress.summary.categories.filter(
+    (category) => !previous.categories.includes(category),
+  );
+  const strictProgress = progress.issueCount < previous.issueCount
+    && progress.introducedSceneNumbers.length === 0
+    && introducedCategories.length === 0;
+  const approved = candidateValidation?.valid === true;
+  const accepted = approved || (allowInvalidProgress && strictProgress);
+  return {
+    version: 1,
+    phase,
+    accepted,
+    reason: approved
+      ? "approved"
+      : accepted
+        ? "strict_progress"
+        : "regression_or_no_progress",
+    previousIssueCount: previous.issueCount,
+    issueCount: progress.issueCount,
+    resolvedSceneNumbers: progress.resolvedSceneNumbers,
+    introducedSceneNumbers: progress.introducedSceneNumbers,
+    introducedCategories,
+  };
+}

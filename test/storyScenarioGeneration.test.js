@@ -317,6 +317,7 @@ test("an editorial repair cannot be accepted without its final audit", async () 
   assert.deepEqual(result.validation.issues, ["semantic contradiction"]);
   assert.equal(result.scenario.revision, "rejected");
   assert.equal(result.editorialRepairTransaction.reason, "final_audit_unavailable");
+  assert.equal(result.editorialRepairTransaction.phase, "editorial_semantic");
 });
 
 test("a failed final audit rolls back a non-improving editorial repair", async () => {
@@ -353,10 +354,12 @@ test("a failed final audit rolls back a non-improving editorial repair", async (
   assert.equal(result.scenario.revision, "architect");
   assert.deepEqual(result.editorialRepairTransaction, {
     version: 1,
+    phase: "editorial_semantic",
     accepted: false,
-    reason: "semantic_regression",
+    reason: "regression_or_no_progress",
     previousIssueCount: 1,
     issueCount: 1,
+    resolvedSceneNumbers: [],
     introducedSceneNumbers: [],
     introducedCategories: [],
   });
@@ -397,7 +400,8 @@ test("an editorial object repair cannot replace one audit finding with a mechani
   assert.equal(result.scenario, originalScenario);
   assert.equal(result.validation, originalValidation);
   assert.equal(result.editorialRepairTransaction.accepted, false);
-  assert.equal(result.editorialRepairTransaction.reason, "deterministic_validation_regression");
+  assert.equal(result.editorialRepairTransaction.reason, "regression_or_no_progress");
+  assert.equal(result.editorialRepairTransaction.phase, "editorial_mechanical");
   assert.equal(result.editorialRepairTransaction.previousIssueCount, 1);
   assert.equal(result.editorialRepairTransaction.issueCount, 22);
   assert.deepEqual(
