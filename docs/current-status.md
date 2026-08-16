@@ -8,16 +8,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/deterministic-object-precompiler`
-- Production/main checkpoint: unified repair transaction (`b4b7539`, PR #209)
-- Current focused checkpoint: deterministic off-camera object projection awaiting publication
-- Pull requests: #150 through #209 merged
+- Current branch: `codex/restore-object-checkpoint-retry`
+- Production/main checkpoint: deterministic off-camera object projection (`c93c839`, PR #210)
+- Current focused checkpoint: durable object-checkpoint retry entitlement awaiting publication
+- Pull requests: #150 through #210 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #209 are merged on `main`. The latest completed brick unifies structural, editorial and private-checkpoint repair transactions. The current brick separates whole-story possession from focal-scene visibility so off-camera owners do not create false object cascades. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #210 are merged on `main`. The latest completed brick separates whole-story possession from focal-scene visibility so off-camera owners do not create false object cascades. The current brick restores the promised free recovery when an older retry preserved its private semantic checkpoint inside the durable request rather than at the generation root. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: durable object-checkpoint retry entitlement
+
+1. Retry eligibility accepts the same private semantic checkpoint in either its original generation field or the preserved retry request.
+2. The queued recovery reuses that exact checkpoint pointer and existing candidate; it does not restart the architect or questionnaire.
+3. A failed scenario already visible to the creator now labels the available action explicitly as a free retry in FR, ES and EN.
+4. The object-only recovery remains single-use and audit-only under retry policy version 9.
+5. No customer data migration, credit, environment variable, model call or series-canon change is introduced.
 
 ## Product brick: deterministic off-camera object projection
 

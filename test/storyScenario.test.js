@@ -2097,6 +2097,10 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(app, /includeEdits: state\.storyScenarioDirty \|\| !state\.storyScenarioRetryAvailable/);
   assert.match(app, /retry: state\.storyScenarioRetryAvailable && !state\.storyScenarioDirty/);
   assert.match(app, /scenarioUpdateWithChanges/);
+  assert.match(app, /scenarioRetryFree/);
+  assert.match(i18n, /scenarioRetryFree: "Réessayer gratuitement"/);
+  assert.match(i18n, /scenarioRetryFree: "Reintentar gratis"/);
+  assert.match(i18n, /scenarioRetryFree: "Retry free"/);
   assert.match(app, /scenarioApiMessage\(\{ code: errorCode \}, "scenarioRevisionError"\)/);
   assert.match(app, /addedCharacters: \[\]/);
   assert.match(app, /scenarioCreatorCast/);
@@ -2133,6 +2137,7 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioRoute, /activeScenarioEnqueues/);
   assert.match(scenarioRoute, /canonicalPassageRecovery/);
   assert.match(scenarioRoute, /canonicalPassageRecoveryVersion/);
+  assert.match(scenarioRoute, /prior\.request\?\.semanticAuditCheckpoint/);
   assert.match(app, /automaticRepairRecoveryAvailable/);
   assert.match(scenarioGeneration, /series_continuity_contract/);
   assert.match(scenarioWorker, /seriesScenarioContract/);

@@ -1007,7 +1007,11 @@ function setStoryScenarioBusy(busy, action = "update") {
   elements.reviseScenarioButton.disabled = busy;
   elements.approveScenarioButton.disabled = busy || !state.storyScenario || state.storyScenarioDirty || scenarioHasUnansweredClarifications() || scenarioNeedsRevision();
   elements.reviseScenarioButton.textContent = state.storyScenarioUpdateFailed
-    ? tr(state.storyScenarioDirty ? "scenarioUpdateWithChanges" : "scenarioRetryUpdate")
+    ? tr(state.storyScenarioDirty
+      ? "scenarioUpdateWithChanges"
+      : state.storyScenarioRetryAvailable
+        ? "scenarioRetryFree"
+        : "scenarioRetryUpdate")
     : tr("reviseScenario");
   elements.approveScenarioButton.textContent = tr("approveScenario");
   elements.automaticRepairScenarioButton.textContent = tr("automaticRepairScenario");
@@ -3659,6 +3663,7 @@ async function restoreCompletedPreview() {
           : tr("scenarioRevisionError"),
         "error",
       );
+      setStoryScenarioBusy(false);
     } else {
       state.storyScenarioRetryAvailable = project?.technicalStoryScenarioRetryAvailable === true;
       showInitialScenarioPreparation();

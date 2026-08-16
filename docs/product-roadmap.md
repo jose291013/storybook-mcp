@@ -2,6 +2,21 @@
 
 Last updated: 2026-08-16
 
+## Durable object-checkpoint retry entitlement
+
+An older targeted retry can legitimately move the private semantic-checkpoint
+pointer from the generation root into its durable request. Eligibility and
+queue construction now resolve both representations of that same pointer, so
+the object-only version-9 recovery promised to an exhausted project remains
+available after page reload, device change and deployment. The recovery starts
+from the preserved candidate and never restarts the architect or questionnaire.
+
+When the rejected scenario is already visible, the creator action is labelled
+explicitly as a free retry in French, Spanish and English. The entitlement is
+still single-use and audit-only; projects without a real private checkpoint are
+not reopened. This is a compatibility fix only: it adds no data migration,
+credit, environment variable, model call or series-canon change.
+
 ## Deterministic off-camera object projection checkpoint
 
 The causal graph keeps the real whole-story state of every portable object:
