@@ -75,6 +75,7 @@ export function buildSceneContinuity({
   const identityFor = (name) => visualAliases.find((item) => sameCharacter(item.name, name));
   const aliasFor = (name) => identityFor(name)?.alias || safe(name);
   const characterFingerprints = [];
+  const wardrobeContracts = [];
   const identityReferenceImages = [];
 
   for (const character of selected) {
@@ -103,6 +104,15 @@ export function buildSceneContinuity({
       role === "mascot" && "SPECIES LOCK: keep the exact same animal species, coat colors, markings, ears, muzzle, tail and accessories; never reinterpret it as another animal or a famous character.",
     ].filter(Boolean);
     characterFingerprints.push(rules.join(" "));
+    const isHumanIdentity = !["animal", "plush_toy"].includes(visualIdentity?.entity_type)
+      && role !== "mascot";
+    if (outfit && isHumanIdentity) {
+      wardrobeContracts.push({
+        name: visualAlias,
+        required_outfit: safe(outfit),
+        rule: "The visible person must remain in this declared scene outfit. Reject only a clearly different outfit state or garment category, not a tiny hidden detail, harmless simplification or removed brand mark.",
+      });
+    }
 
     if (photoCanon?.photoId || photoCanon?.storageKey) {
       const privateAsset = referenceAssets.get(String(photoCanon.photoId));
@@ -193,7 +203,10 @@ export function buildSceneContinuity({
     referenceImages,
     sceneContract: sceneRules.filter(Boolean).join("\n"),
     sceneFidelityContract: structuredSceneContract
-      ? compactImageSceneContract(structuredSceneContract, visualAliases, { pairedText })
+      ? {
+          ...compactImageSceneContract(structuredSceneContract, visualAliases, { pairedText }),
+          wardrobe_contracts: wardrobeContracts,
+        }
       : null,
     visualAliases,
   };

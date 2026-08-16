@@ -8,16 +8,25 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/restore-object-checkpoint-retry`
-- Production/main checkpoint: deterministic off-camera object projection (`c93c839`, PR #210)
-- Current focused checkpoint: durable object-checkpoint retry entitlement awaiting publication
-- Pull requests: #150 through #210 merged
+- Current branch: `codex/enforce-scene-wardrobe-continuity`
+- Production/main checkpoint: durable object-checkpoint retry entitlement (`58dc305`, PR #211)
+- Current focused checkpoint: gross active-wardrobe continuity gate for future books
+- Pull requests: #150 through #211 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #210 are merged on `main`. The latest completed brick separates whole-story possession from focal-scene visibility so off-camera owners do not create false object cascades. The current brick restores the promised free recovery when an older retry preserved its private semantic checkpoint inside the durable request rather than at the generation root. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #211 are merged on `main`. The latest completed brick restores the promised free recovery when an older retry preserved its private semantic checkpoint inside the durable request rather than at the generation root. The current brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: gross active-wardrobe continuity gate
+
+1. Every visible human's resolved per-scene wardrobe lock enters the existing scene-fidelity contract using neutral visual aliases.
+2. The already-budgeted scene QA call rejects only a clear outfit-state/category contradiction; approximate color, tiny details, occlusion, simplification and removed branding remain non-blocking.
+3. `wardrobe_state_mismatch` is a high-confidence objective code eligible for one existing targeted image edit, with no systematic extra QA or image call.
+4. A quarantined wardrobe candidate is not an accepted adjacent-scene reference, so one casual-clothing error cannot contaminate later adventure scenes.
+5. The targeted edit changes only the affected person's clothes and preserves identity, body, pose, composition and every unaffected subject.
+6. The brick applies only to future generations; it does not inspect, regenerate, charge or otherwise mutate the current Mathéo book.
 
 ## Product brick: durable object-checkpoint retry entitlement
 
@@ -315,18 +324,18 @@ PR #55 through #210 are merged on `main`. The latest completed brick separates w
 
 ## Verification
 
-- Focused illustrated-cast, wardrobe, scene-plan and image-QA tests: 114/114 passing.
+- Focused active-wardrobe, scene-plan and image-QA tests: 105/105 passing.
 - Focused scenario transaction, compiler and recovery tests: 94/94 passing.
-- Complete `npm test`: 543/543 passing.
+- Complete `npm test`: 548/548 passing.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. After Render is live, reopen the dinosaur-valley project and confirm its single free retry is available from mobile and desktop.
-2. Confirm Render logs `repairTransaction` for the semantic checkpoint, with fewer than 14 object findings or an approved scenario and no newly affected scene/category.
-3. Confirm an unchanged or regressed recovery rolls back to the 14-finding private checkpoint and does not offer another loop.
-4. Keep the 108-case zero-model matrix as the mandatory regression gate for every later narrative brick.
+1. After publication and Render deployment, create a new starry-space book and confirm every visible traveler keeps the activated space outfit through all cabin and adventure scenes.
+2. Confirm a gross wrong-outfit candidate logs `wardrobe_state_mismatch`, enters one targeted edit and never becomes an adjacent-scene source before repair approval.
+3. Confirm approximate colors, hidden seams, tiny accessories and removed branding do not trigger repair or creator review.
+4. Confirm no pre-existing book is scanned or regenerated, and keep the 108-case zero-model matrix as the mandatory narrative regression gate.
 
 ## Protected local state
 

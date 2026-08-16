@@ -77,12 +77,17 @@ test("temporary image-service failures consume the next bounded image attempt", 
   assert.match(qualityGate, /attempt < attemptLimit && isTransientImageGenerationError\(error\)/);
 });
 
-test("scene QA discards wardrobe-only reports but keeps narrative and object-state contradictions", () => {
+test("scene QA ignores minor wardrobe detail but keeps an explicit active-outfit contradiction", () => {
   assert.deepEqual(objectiveSceneContractIssues([
     "Nolan does not wear the locked grey Sonic T-shirt and red Crocs.",
     "Mathéo ne porte pas sa casquette noire ni la tenue décrite.",
     "Jérôme no lleva la camiseta ni la gorra solicitadas.",
   ]), []);
+  assert.deepEqual(objectiveSceneContractIssues([
+    "Required wardrobe state conflicts. The hero child wears casual clothes instead of the required full space suit.",
+  ]), [
+    "Required wardrobe state conflicts. The hero child wears casual clothes instead of the required full space suit.",
+  ]);
   assert.deepEqual(objectiveSceneContractIssues([
     "Mathéo is shown smiling but does not perform the central action of placing a hand on Nolan's shoulder.",
     "The required giant dinosaur is absent.",
@@ -190,10 +195,59 @@ test("visual QA policy assigns stable codes and reserves automatic repair for hi
     "Required named identity is duplicated.",
     "Required named character family member 3 is missing.",
   ]);
-  assert.equal(policy.version, 3);
+  assert.equal(policy.version, 4);
   assert.equal(policy.automaticRepair, true);
   assert.deepEqual(policy.targetCodes, ["identity_duplicate", "required_cast_missing"]);
   assert.ok(policy.verificationCodes.includes("identity_fusion"));
+  const wardrobePolicy = targetedVisualRepairPolicy([
+    "Required wardrobe state conflicts. The hero child wears casual clothes instead of the required full space suit.",
+  ]);
+  assert.equal(wardrobePolicy.automaticRepair, true);
+  assert.deepEqual(wardrobePolicy.targetCodes, ["wardrobe_state_mismatch"]);
+  assert.ok(wardrobePolicy.verificationCodes.includes("wardrobe_state_mismatch"));
+});
+
+test("the existing scene-fidelity call checks only gross declared wardrobe states", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-wardrobe-qa-"));
+  const imagePath = path.join(directory, "scene.png");
+  await sharp({
+    create: { width: 32, height: 32, channels: 3, background: "#d7f0ff" },
+  }).png().toFile(imagePath);
+  let instruction = "";
+  const client = {
+    responses: {
+      create: async ({ input }) => {
+        instruction = input[0].content[0].text;
+        return {
+          output_text: JSON.stringify({
+            approved: false,
+            issues: ["Required wardrobe state conflicts. The hero child wears a blue T-shirt instead of the required full space suit."],
+          }),
+        };
+      },
+    },
+  };
+  try {
+    const result = await inspectSceneFidelity({
+      imagePath,
+      client,
+      sceneContract: {
+        named_characters: [{ name: "hero child", action: "listens inside the cabin" }],
+        wardrobe_contracts: [{
+          name: "hero child",
+          required_outfit: "a navy and turquoise full space suit",
+        }],
+      },
+    });
+    assert.match(instruction, /categorically different outfit/u);
+    assert.match(instruction, /wardrobe_contracts/u);
+    assert.deepEqual(result, {
+      approved: false,
+      issues: ["Required wardrobe state conflicts. The hero child wears a blue T-shirt instead of the required full space suit."],
+    });
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("targeted cast repairs require one high-detail occurrence of every named identity", async () => {

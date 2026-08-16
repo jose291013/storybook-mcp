@@ -45,6 +45,7 @@ const BLOCKING_SCENE_CONTRADICTION_PATTERN = /(?:wrong (?:subject|target|central
 const DUPLICATE_IDENTITY_PATTERN = /(?:required named identity is duplicated|same (?:named )?(?:character|identity|person|child|animal)[^.]{0,100}(?:appears|is shown|is depicted|rendered)[^.]{0,80}(?:twice|two times|two positions|multiple positions|two copies)|(?:character|identity|person|child|animal)[^.]{0,80}(?:appears|is shown|is depicted|rendered) twice|m[êe]me (?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,100}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]|est dessin[ée])[^.]{0,80}(?:deux fois|deux positions|plusieurs positions|deux exemplaires)|(?:personnage|identit[ée]|personne|enfant|animal)[^.]{0,80}(?:appara[îi]t|est montr[ée]|est repr[ée]sent[ée]) deux fois|mis[mt]o (?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,100}(?:aparece|se muestra|se representa)[^.]{0,80}(?:dos veces|dos posiciones|varias posiciones|dos copias)|(?:personaje|identidad|persona|niñ[oa]|animal)[^.]{0,80}(?:aparece|se muestra|se representa) dos veces)/iu;
 
 const PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN = /(?:physical environment is wrong|conditional equipment (?:state conflicts|is duplicated)|multiple causal phases are combined|wrong physical (?:environment|medium)|milieu physique incorrect|equipement conditionnel[^.]{0,60}(?:incorrect|dupliqu)|plusieurs (?:phases|instants)[^.]{0,60}(?:fusionn|combin)|entorno fisico incorrecto|equipo condicional[^.]{0,60}(?:incorrect|duplic)|varias (?:fases|instantes)[^.]{0,60}(?:combin|fusion))/iu;
+const WARDROBE_STATE_CONTRADICTION_PATTERN = /(?:required wardrobe state conflicts|tenue de scene requise[^.]{0,80}(?:incorrect|contradi)|vestuario de escena requerido[^.]{0,80}(?:incorrect|contradi))/iu;
 const UNIQUE_LANDMARK_CONTRADICTION_PATTERN = /(?:unique landmark is duplicated|landmark location is wrong|repere unique[^.]{0,60}dupliqu|emplacement du repere[^.]{0,60}incorrect|hito unico[^.]{0,60}duplic|ubicacion del hito[^.]{0,60}incorrect)/iu;
 const REVISION_REGRESSION_PATTERN = /(?:identity likeness regressed from preserved source|unrequested stable visual invariant regressed from preserved source)/iu;
 
@@ -56,6 +57,7 @@ const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
   "technical_integrity",
   "identity_regression",
   "revision_invariant_regression",
+  "wardrobe_state_mismatch",
 ]);
 const CAST_CARDINALITY_REPAIR_CODES = new Set([
   "required_cast_missing",
@@ -81,6 +83,7 @@ const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "wrong_physical_environment",
   "conditional_equipment_state",
   "conditional_equipment_duplicate",
+  "wardrobe_state_mismatch",
   "multi_phase_composite",
   "unique_landmark_duplicate",
   "landmark_wrong_location",
@@ -145,6 +148,10 @@ export function classifyVisualIssue(issue, { source = "scene" } = {}) {
     code = "conditional_equipment_state";
     severity = "blocking";
     confidence = "high";
+  } else if (WARDROBE_STATE_CONTRADICTION_PATTERN.test(String(issue || ""))) {
+    code = "wardrobe_state_mismatch";
+    severity = "blocking";
+    confidence = "high";
   } else if (/multiple causal phases are combined|plusieurs (?:phases|instants)[^.]{0,60}(?:fusionn|combin)|varias (?:fases|instantes)[^.]{0,60}(?:combin|fusion)/u.test(text)) {
     code = "multi_phase_composite";
     severity = "blocking";
@@ -206,7 +213,7 @@ export function targetedVisualRepairPolicy(issues = [], { source = "scene" } = {
     .filter((item) => item.automaticRepair)
     .map((item) => item.code))];
   return {
-    version: 3,
+    version: 4,
     classifications,
     targetCodes,
     automaticRepair: targetCodes.length > 0
@@ -287,9 +294,11 @@ export function objectiveSceneContractIssues(issues = []) {
       || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue)
       || DUPLICATE_IDENTITY_PATTERN.test(issue)
       || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
+      || WARDROBE_STATE_CONTRADICTION_PATTERN.test(issue)
       || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue)
       || REVISION_REGRESSION_PATTERN.test(issue))
     .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
+      || WARDROBE_STATE_CONTRADICTION_PATTERN.test(issue)
       || OBJECT_STATE_CONTRADICTION_PATTERN.test(issue)
       || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
       || BLOCKING_SCENE_CONTRADICTION_PATTERN.test(issue));
@@ -301,6 +310,7 @@ export function blockingSceneContractIssues(issues = []) {
     || NARRATIVE_CONTRADICTION_PATTERN.test(issue)
     || DUPLICATE_IDENTITY_PATTERN.test(issue)
     || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
+    || WARDROBE_STATE_CONTRADICTION_PATTERN.test(issue)
     || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue)
     || REVISION_REGRESSION_PATTERN.test(issue)
   ));
@@ -506,12 +516,13 @@ Judge only objective, clearly visible contradictions:
 - the depicted physical environment contradicts render_snapshot.physical_medium or render_snapshot.camera_environment. Begin with "Physical environment is wrong." Judge the characters' camera side separately from any view through a portal or sealed window. A breathable-air room may show water, fish or coral only beyond that clear boundary; it remains dry air around the people and furniture.
 - conditional equipment differs from render_snapshot.equipment. Begin with "Conditional equipment state conflicts."
 - one character's conditional equipment appears more than once or simultaneously in two states. Begin with "Conditional equipment is duplicated."
+- a clearly visible named human wears a categorically different outfit from wardrobe_contracts, such as casual clothes instead of the required space suit, exploration uniform, protective suit or sleepwear. Begin with "Required wardrobe state conflicts." Compare each person separately. Do not reject a hidden seam, tiny accessory, exact shade, harmless simplification, removed logo or garment detail that cannot be seen reliably.
 - preparation, crossing, arrival, equipment removal or storage from multiple phases appear together. Begin with "Multiple causal phases are combined."
 - a render_snapshot.fixed_entities landmark appears twice in the same image. Begin with "Unique landmark is duplicated."
 - a fixed landmark appears on the wrong camera side or outside its canonical home without being clearly beyond the established bounded passage. Begin with "Landmark location is wrong."
 Tiny jewelry and small personal accessories may be partly hidden by pose, hair, framing or clothing. A missing tiny necklace, pendant, bracelet, earring or charm alone is advisory and MUST NOT cause rejection. Object duplication or a held-versus-worn contradiction remains rejectable.
 For a missing named character, begin the issue with "Required named character ... is missing." For an identity fusion, begin it with "Required identities are fused." When the same named identity is rendered more than once without an explicit reflection, portrait, memory, vision or montage contract, begin the issue with "Required named identity is duplicated."
-Do not judge artistic style, beauty, exact facial likeness, clothing detail, lighting or minor composition choices. If the evidence is ambiguous, approve.
+Do not judge artistic style, beauty, exact facial likeness, minor clothing detail, lighting or minor composition choices. A gross active-outfit contradiction declared by wardrobe_contracts is objective; an uncertain or partly occluded outfit remains approved.
 ${scopedInstruction}
 SCENE CONTRACT JSON:
 ${JSON.stringify(sceneContract)}
@@ -576,9 +587,8 @@ Return only JSON: {"confirmed_missing":["exact required cast name"]}.` },
   const issues = scopedCodes.length
     ? objectiveIssues.filter((issue) => allowedCodes.has(classifyVisualIssue(issue, { source: "scene" }).code))
     : objectiveIssues;
-  // This check owns action, cast, quantity and spatial contradictions only.
-  // Models sometimes report wardrobe or logo differences despite the explicit
-  // instruction above; those belong to continuity prompting, not scene QA.
+  // This check owns action, cast, quantity, spatial and gross active-wardrobe
+  // contradictions. Tiny garment details and removed branding stay advisory.
   const approved = result?.approved === true || issues.length === 0;
   return { approved, issues: approved ? [] : (issues.length ? issues : ["The illustration contradicts the structured scene contract."]) };
 }
@@ -881,7 +891,7 @@ export async function generateQualityCheckedImage({
         : previousRejectionKind === "identity"
           ? `\n\nIDENTITY FIDELITY REGENERATION: the previous output replaced or altered the referenced subject because ${previousIssues.join("; ")}. Treat the identity reference as authoritative. Preserve natural face geometry, eye shape and spacing, nose, mouth, ears, hair shape and distinctive visible details. Change the medium and scene, never the person's identity.`
         : previousRejectionKind === "scene"
-          ? `\n\nSCENE FIDELITY REGENERATION: the previous output contradicted the authoritative scene contract because ${previousIssues.join("; ")}. Correct exactly who performs the main action and toward whom, keep generic people distinct from recurring named characters, obey the required quantity, physical scale, spatial relationships and forbidden substitutions, and preserve each fixed landmark as one instance only at its canonical home or beyond the explicitly bounded passage.`
+          ? `\n\nSCENE FIDELITY REGENERATION: the previous output contradicted the authoritative scene contract because ${previousIssues.join("; ")}. Correct exactly who performs the main action and toward whom, keep generic people distinct from recurring named characters, obey every visible person's declared wardrobe state, the required quantity, physical scale, spatial relationships and forbidden substitutions, and preserve each fixed landmark as one instance only at its canonical home or beyond the explicitly bounded passage.`
           : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
       : "";
     try {
