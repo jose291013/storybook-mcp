@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-creation-intent`
-- Production/main checkpoint: Narrative V3 durable step state machine (`4e04eda`, PR #218)
-- Current focused checkpoint: strict `CreationIntent.v1` root artifact and exact intent-to-concept ancestry; no production route or model enabled
-- Pull requests: #150 through #218 merged
+- Current branch: `codex/narrative-v3-mechanics-builder`
+- Production/main checkpoint: Narrative V3 canonical creation intent (`1e53c4b`, PR #219)
+- Current focused checkpoint: pure deterministic concept-to-mechanics builder across all supported universes and formats; no production route or model enabled
+- Pull requests: #150 through #219 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #217 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #219 are merged on `main`. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,10 +39,37 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: complete and merge strict `CreationIntent.v1`, then
-define deterministic server mechanics configuration builders before running the
-state machine in synthetic shadow mode only. No production customer route or
-paid model call is authorized yet.
+Next verification target: complete and merge the deterministic server mechanics
+builder, then run the state machine in synthetic shadow mode only. No production
+customer route or paid model call is authorized yet.
+
+## Product brick: Narrative V3 deterministic mechanics builder
+
+1. Every supported page count produces exactly `(pageCount - 2) / 2` semantic
+   scenes; the server assigns three contiguous acts by fixed boundaries.
+2. A concept must begin with `opening`, end with `resolution`, contain exactly
+   one act-3 climax, and use either one complete act-2 crossing/act-3 return pair
+   or no passage at all. Partial or duplicated mechanics fail before compilation.
+3. The builder resolves each cast member's canonical initial side from first
+   participation, moves only explicit travelers, returns every outbound traveler,
+   and keeps departure witnesses and adventure-local companions on their side.
+4. All six universe contracts supply one stable origin/adventure topology and,
+   when needed, one passage registry. No model supplies or repairs endpoints.
+5. Wardrobe is resolved for the visible instant. Adventure clothing starts at
+   preparation, persists through return, and underwater travelers receive their
+   individual breathing/communication state only inside the passage window.
+6. Visible cast, forbidden cast, physical presences, movements and wardrobe
+   cardinality are compiled from the same state. The result passes the strict
+   canonical graph compiler without normalization.
+7. Canonical names remain neutral semantic aliases in this isolated shadow
+   layer; immutable private profile/display-name binding belongs to the later
+   release-spec brick and is not inferred here.
+8. No route, V2 project, credit, series canon, environment variable, customer
+   data or model call is changed.
+
+Verification: 23 focused V3 tests and the complete 593-test suite pass. The
+matrix compiles all 36 universe/format combinations twice with byte-identical
+mechanics and valid canonical graphs.
 
 ## Product brick: Narrative V3 canonical creation intent
 

@@ -129,6 +129,37 @@ from production routes, V2 projects, credits, series canon and paid model calls.
 The next brick is the pure deterministic server-mechanics builder, followed by
 a synthetic-only shadow runner.
 
+## Narrative V3 deterministic mechanics-builder checkpoint
+
+The server now converts one sealed CreationIntent plus one sealed StoryConcept
+into strict `CanonicalStoryMechanics.v1` without a repair model. Supported page
+counts map to exactly `(pageCount - 2) / 2` semantic scenes and three contiguous
+server-owned acts. The concept must provide one opening, one final resolution,
+one act-3 climax, and either a complete act-2 crossing/act-3 return pair or no
+passage. A partial pair, duplicate mechanical purpose, incorrect scene count,
+unknown cast key or off-side participant is a bounded configuration failure.
+
+For all six configured universes, the builder owns the origin and adventure
+zones, the unique passage endpoints, initial character sides, traveler sets,
+return sets and visible scene phase. Departure witnesses remain at origin,
+adventure-local companions are not silently transported, and every outbound
+traveler returns deterministically. A universe-native concept with no passage
+stays wholly on the configured adventure side.
+
+The same physical snapshot produces presences, movements, visible and forbidden
+cast, wardrobe and equipment. Adventure outfits begin during preparation and
+remain stable through the return scene. In the coral-ocean topology, each visible
+human receives the breathing/communication equipment state only from crossing
+through return. No text heuristic decides these states.
+
+The current isolated builder uses semantic character keys as neutral canonical
+names. Binding immutable private profile revisions and display names is deferred
+to the release-spec layer; the mechanics compiler never reads a mutable customer
+aggregate. The 36 universe/format combinations compile to byte-identical valid
+graphs in synthetic tests. No production route, V2 project, paid model call,
+credit, environment variable or customer migration is introduced. The next
+brick is a synthetic-only state-machine shadow runner and structural report.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint
