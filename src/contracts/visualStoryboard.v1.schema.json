@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/visual-storyboard.v1.json",
+  "title": "Calitiki Visual Storyboard V1",
+  "description": "Deterministic illustration beats bound to one NarrativeBookSpec.v3 and Manuscript.v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "book", "beats", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.visual-storyboard.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["narrativeBookSpec", "manuscript"],
+      "properties": {
+        "narrativeBookSpec": { "$ref": "#/$defs/specSource" },
+        "manuscript": { "$ref": "#/$defs/manuscriptSource" }
+      }
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "pageCount", "sceneCount"],
+      "properties": {
+        "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+        "pageCount": { "type": "integer", "enum": [24, 28, 32, 36, 40, 44] },
+        "sceneCount": { "type": "integer", "minimum": 11, "maximum": 21 }
+      }
+    },
+    "beats": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 21,
+      "items": { "$ref": "#/$defs/beat" }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "specSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.narrative-book-spec.v3" },
+        "schemaVersion": { "const": 3 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "manuscriptSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.manuscript.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "physicalFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visiblePhase", "locationBeforeId", "locationId", "locationAfterId", "physicalMediumId"],
+      "properties": {
+        "visiblePhase": { "type": "string", "enum": ["start", "during", "end"] },
+        "locationBeforeId": { "$ref": "#/$defs/identifier" },
+        "locationId": { "$ref": "#/$defs/identifier" },
+        "locationAfterId": { "$ref": "#/$defs/identifier" },
+        "physicalMediumId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "castFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibleCharacterIds", "forbiddenCharacterIds", "wardrobeStates"],
+      "properties": {
+        "visibleCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "forbiddenCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "wardrobeStates": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" } }
+      }
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "compositionId", "storyRole", "shotScale", "viewpoint", "subjectPlacement", "depthPlan", "scaleFamily", "energyLevel"],
+      "properties": {
+        "version": { "const": 3 },
+        "compositionId": { "$ref": "#/$defs/identifier" },
+        "storyRole": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "shotScale": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "viewpoint": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "subjectPlacement": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "depthPlan": { "type": "string", "minLength": 1, "maxLength": 240 },
+        "scaleFamily": { "type": "string", "enum": ["wide", "medium", "detail", "close"] },
+        "energyLevel": { "type": "integer", "minimum": 1, "maximum": 5 }
+      }
+    },
+    "handoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["previousBeatDigest", "nextBeatDigest", "previousLocationId", "nextLocationId"],
+      "properties": {
+        "previousBeatDigest": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+        "nextBeatDigest": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+        "previousLocationId": { "anyOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }] },
+        "nextLocationId": { "anyOf": [{ "$ref": "#/$defs/identifier" }, { "type": "null" }] }
+      }
+    },
+    "beat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sceneNumber", "act", "spreadNumber", "textPageNumber", "imagePageNumber", "sourceSceneDigest", "objectStateDigest", "manuscriptPageDigest", "physical", "cast", "objectStates", "mainAction", "composition", "handoff", "beatDigest"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "act": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "spreadNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "textPageNumber": { "type": "integer", "minimum": 2, "maximum": 43 },
+        "imagePageNumber": { "type": "integer", "minimum": 2, "maximum": 43 },
+        "sourceSceneDigest": { "$ref": "#/$defs/digest" },
+        "objectStateDigest": { "$ref": "#/$defs/digest" },
+        "manuscriptPageDigest": { "$ref": "#/$defs/digest" },
+        "physical": { "$ref": "#/$defs/physicalFrame" },
+        "cast": { "$ref": "#/$defs/castFrame" },
+        "objectStates": { "type": "array", "maxItems": 30, "items": { "$ref": "https://calitiki.com/schemas/object-lifecycle-projection.v1.json#/$defs/objectState" } },
+        "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" },
+        "composition": { "$ref": "#/$defs/composition" },
+        "handoff": { "$ref": "#/$defs/handoff" },
+        "beatDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

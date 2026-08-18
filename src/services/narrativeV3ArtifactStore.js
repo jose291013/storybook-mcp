@@ -42,6 +42,12 @@ import {
   loadManuscript,
   manuscriptDigest,
 } from "../contracts/manuscriptV1.js";
+import {
+  VISUAL_STORYBOARD_ID,
+  VISUAL_STORYBOARD_VERSION,
+  loadVisualStoryboard,
+  visualStoryboardDigest,
+} from "../contracts/visualStoryboardV1.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -100,6 +106,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadManuscript,
     digest: manuscriptDigest,
     parentTypes: Object.freeze(["narrative_book_spec_v3"]),
+  }),
+  visual_storyboard: Object.freeze({
+    contractId: VISUAL_STORYBOARD_ID,
+    schemaVersion: VISUAL_STORYBOARD_VERSION,
+    load: loadVisualStoryboard,
+    digest: visualStoryboardDigest,
+    parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
   }),
 });
 
@@ -229,6 +242,15 @@ function validateArtifactInput(input = {}) {
     && parents[0]?.payloadDigest !== payload.sourceSpec.artifactDigest
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The manuscript parent does not match its declared released-spec digest.");
+  }
+  if (
+    artifactType === "visual_storyboard"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.narrativeBookSpec.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.manuscript.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual storyboard parents do not match its declared released-spec and manuscript digests.");
   }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {
