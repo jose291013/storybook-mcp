@@ -297,6 +297,31 @@ project, environment variable or Render change. The next artifact is a
 deterministic `VisualStoryboard.v1` compiled from this exact spec and
 manuscript.
 
+## Narrative V3 deterministic visual-storyboard checkpoint
+
+`VisualStoryboard.v1` is compiled locally from exactly one
+`NarrativeBookSpec.v3` and its exact `Manuscript.v1`; it has no model-facing
+wire representation. Every released scene becomes one image beat with the
+exact spread and page pair, source-scene digest, object-state digest and paired
+manuscript-page digest.
+
+Each beat copies one physical before/visible/after frame, physical medium,
+required and forbidden cast, exact wardrobe/equipment states, every projected
+object state and the signed main action. Adjacent beats carry reciprocal
+previous/next beat digests and locations, so a location jump or stale scene
+cannot be hidden by prose or an image prompt. A deterministic composition
+sequence supplies bounded scale, viewpoint, placement, depth and energy while
+the existing whole-book rhythm rules keep the climax unique and the ending
+settled.
+
+The ledger accepts `visual_storyboard` only behind the exact ordered released
+spec and manuscript parents. The leased `compile_visual_storyboard` operation
+commits it idempotently; migration 023 changes only isolated V3 constraints.
+The 18-case anonymous matrix now reaches seven immutable artifacts with no
+route, provider call, paid call, customer project, environment variable or
+Render change. The next checkpoint records immutable image candidates and
+deterministic illustration decisions against these exact beat digests.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

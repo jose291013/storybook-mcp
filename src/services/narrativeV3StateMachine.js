@@ -17,6 +17,7 @@ const STEP_TYPES = Object.freeze({
   release_narrative_book_spec: "narrative_book_spec",
   release_narrative_book_spec_v3: "narrative_book_spec_v3",
   write_manuscript: "manuscript",
+  compile_visual_storyboard: "visual_storyboard",
 });
 const STEP_INPUT_TYPES = Object.freeze({
   parse_story_concept: Object.freeze(["creation_intent"]),
@@ -25,6 +26,7 @@ const STEP_INPUT_TYPES = Object.freeze({
   release_narrative_book_spec: Object.freeze(["creation_intent", "canonical_story_graph"]),
   release_narrative_book_spec_v3: Object.freeze(["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]),
   write_manuscript: Object.freeze(["narrative_book_spec_v3"]),
+  compile_visual_storyboard: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
 });
 
 function now() {

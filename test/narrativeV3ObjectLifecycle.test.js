@@ -111,7 +111,7 @@ test("the object projection is committed through the real ledger and durable ste
     assert.deepEqual(replay, first);
     assert.equal(first.objectCount, 3);
     assert.equal(first.adversarialCases, 5);
-    assert.equal((await artifactStore.listArtifacts(projectId)).length, 6);
+    assert.equal((await artifactStore.listArtifacts(projectId)).length, 7);
     const pointer = await artifactStore.getCurrentPointer(projectId, "object_lifecycle_projection");
     const artifact = await artifactStore.getArtifact(pointer.artifactId);
     assert.equal(pointer.pointerRevision, 1);
@@ -130,6 +130,12 @@ test("the object projection is committed through the real ledger and durable ste
     assert.equal(manuscriptPointer.pointerRevision, 1);
     assert.deepEqual(manuscript.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3"]);
     assert.equal(manuscript.payload.sourceSpec.artifactDigest, release.payloadDigest);
+    const storyboardPointer = await artifactStore.getCurrentPointer(projectId, "visual_storyboard");
+    const storyboard = await artifactStore.getArtifact(storyboardPointer.artifactId);
+    assert.equal(storyboardPointer.pointerRevision, 1);
+    assert.deepEqual(storyboard.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "manuscript"]);
+    assert.equal(storyboard.payload.sources.narrativeBookSpec.artifactDigest, release.payloadDigest);
+    assert.equal(storyboard.payload.sources.manuscript.artifactDigest, manuscript.payloadDigest);
   });
 });
 

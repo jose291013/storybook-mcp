@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-manuscript-contract`
+- Current branch: `codex/narrative-v3-visual-storyboard`
 - Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
-- Current focused checkpoint: strict `Manuscript.v1` bound page by page to the exact object-aware `NarrativeBookSpec.v3`; no production route or model enabled
+- Current focused checkpoint: deterministic `VisualStoryboard.v1` bound to exact V3 spec and manuscript artifacts with reciprocal physical handoffs; no production route or model enabled
 - Pull requests: #150 through #223 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -39,10 +39,33 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: publish the stacked object-aware release and strict
-manuscript bricks, then compile `VisualStoryboard.v1` deterministically from
-their exact immutable artifacts. No production customer route or paid model
-call is authorized yet.
+Next verification target: publish the stacked release, manuscript and
+storyboard bricks, then persist immutable image candidates and objective
+illustration decisions against exact storyboard beat digests. No production
+customer route or paid model call is authorized yet.
+
+## Product brick: Narrative V3 deterministic visual storyboard
+
+1. `VisualStoryboard.v1` has exactly one released-spec and one manuscript
+   source and is compiled locally without a creative model or compatibility
+   normalizer.
+2. Every scene produces exactly one image beat bound to the exact spread,
+   text/image pages, source scene, prose page and complete object-state digest.
+3. The beat copies the single physical instant, medium, required/forbidden
+   cast, wardrobe/equipment, every object state and main action.
+4. Consecutive beats store reciprocal digests and incoming/outgoing locations;
+   an unexplained jump, reordered scene or stale neighbor fails closed.
+5. A deterministic whole-book composition sequence varies scale, viewpoint,
+   placement, depth and energy while reserving peak energy for the climax and
+   settling the return.
+6. The ledger requires exact ordered V3 spec/manuscript parents. The leased
+   `compile_visual_storyboard` step is idempotent and migration 023 changes only
+   isolated V3 constraints.
+7. The anonymous 18-case matrix now reaches seven immutable artifacts with no
+   route, provider, credit, customer project, environment or Render change.
+
+Verification: 20 focused manuscript/storyboard/lifecycle tests and the complete
+633-test suite pass.
 
 ## Product brick: Narrative V3 strict manuscript contract
 
