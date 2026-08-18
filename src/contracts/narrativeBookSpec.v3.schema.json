@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/narrative-book-spec.v3.json",
+  "title": "Calitiki Narrative Book Spec V3",
+  "description": "Immutable released book contract bound to intent, canonical graph and deterministic object lifecycle projection.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "book", "title", "premise", "registries", "scenes", "pages", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 3 },
+    "contractId": { "const": "calitiki.narrative-book-spec.v3" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": { "$ref": "#/$defs/sources" },
+    "book": { "$ref": "https://calitiki.com/schemas/narrative-book-spec.v2.json#/$defs/book" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "premise": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "registries": { "$ref": "#/$defs/registries" },
+    "scenes": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 21,
+      "items": { "$ref": "#/$defs/releasedScene" }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 44,
+      "items": { "$ref": "https://calitiki.com/schemas/narrative-book-spec.v2.json#/$defs/page" }
+    },
+    "validation": { "$ref": "#/$defs/validation" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "schemaVersion": { "type": "integer", "minimum": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creationIntent", "canonicalStoryGraph", "objectLifecycleProjection"],
+      "properties": {
+        "creationIntent": { "$ref": "#/$defs/source" },
+        "canonicalStoryGraph": { "$ref": "#/$defs/source" },
+        "objectLifecycleProjection": { "$ref": "#/$defs/source" }
+      }
+    },
+    "registries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characters", "locations", "objects", "passages"],
+      "properties": {
+        "characters": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "https://calitiki.com/schemas/narrative-book-spec.v2.json#/$defs/releasedCharacter" }
+        },
+        "locations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": { "$ref": "https://calitiki.com/schemas/narrative-book-spec.v2.json#/$defs/releasedLocation" }
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "https://calitiki.com/schemas/object-lifecycle-projection.v1.json#/$defs/objectProjection" }
+        },
+        "passages": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "$ref": "https://calitiki.com/schemas/narrative-book-spec.v2.json#/$defs/releasedPassage" }
+        }
+      }
+    },
+    "illustrationInstant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visiblePhase", "locationId", "physicalMediumId", "visibleCharacterIds", "forbiddenCharacterIds", "wardrobeStates", "objectEvents", "objectStateDigest", "mainAction"],
+      "properties": {
+        "visiblePhase": { "type": "string", "enum": ["start", "during", "end"] },
+        "locationId": { "$ref": "#/$defs/identifier" },
+        "physicalMediumId": { "$ref": "#/$defs/identifier" },
+        "visibleCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "forbiddenCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "wardrobeStates": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" } },
+        "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
+        "objectStateDigest": { "$ref": "#/$defs/digest" },
+        "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" }
+      }
+    },
+    "releasedScene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sceneNumber", "act", "sourceSceneDigest", "pageBinding", "semantic", "timeline", "presences", "movements", "objectEvents", "objectEventDigest", "objectStates", "objectStateDigest", "illustrationInstant"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "act": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "sourceSceneDigest": { "$ref": "#/$defs/digest" },
+        "pageBinding": { "$ref": "https://calitiki.com/schemas/narrative-book-spec.v2.json#/$defs/pageBinding" },
+        "semantic": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/semanticBeat" },
+        "timeline": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/timeline" },
+        "presences": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/presence" } },
+        "movements": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/movement" } },
+        "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
+        "objectEventDigest": { "$ref": "#/$defs/digest" },
+        "objectStates": {
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "https://calitiki.com/schemas/object-lifecycle-projection.v1.json#/$defs/objectState" }
+        },
+        "objectStateDigest": { "$ref": "#/$defs/digest" },
+        "illustrationInstant": { "$ref": "#/$defs/illustrationInstant" }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

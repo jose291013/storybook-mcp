@@ -248,6 +248,30 @@ object-bearing graphs; the next release-spec version will bind this projection
 as a required parent before manuscript work begins. No production route,
 environment switch, credit, V2 project or customer project is changed.
 
+## Narrative V3 object-aware release-spec checkpoint
+
+`NarrativeBookSpec.v3` is a new strict released artifact rather than an
+in-place mutation of V2. Its three exact ordered parents are the sealed
+CreationIntent, CanonicalStoryGraph and ObjectLifecycleProjection. The ledger
+uses the explicit `narrative_book_spec_v3` type, so V2 artifacts, pointers and
+retries cannot be silently reinterpreted under the new contract.
+
+The compiler proves that the projection descends from the same graph, that its
+object registry preserves every canonical id, name, kind and order, and that
+each projected scene binds the exact source-scene and object-event digests.
+Every released scene carries the complete ordered object state plus its digest;
+the illustration instant points to that same digest instead of independently
+inventing quantity, ownership, location or visibility.
+
+Migration 021 adds only the isolated V3 artifact, pointer and release-step
+constraints. The leased `release_narrative_book_spec_v3` operation requires all
+three ancestors in order and promotes its output idempotently. The synthetic
+object matrix now commits five artifacts for all 18 language/universe cases;
+54 objects and 90 adversarial corruptions pass with zero provider calls, paid
+calls or customer routes. No production route, rollout switch, credit, series
+canon, customer project or Render configuration changes. The next brick is a
+strict manuscript artifact compiled only from this released V3 specification.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

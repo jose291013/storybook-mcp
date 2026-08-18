@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-object-lifecycle`
-- Production/main checkpoint: Narrative V3 deterministic release spec (`f6d7d13`, PR #222)
-- Current focused checkpoint: versioned deterministic object lifecycle projection and adversarial synthetic matrix; no production route or model enabled
-- Pull requests: #150 through #222 merged
+- Current branch: `codex/narrative-v3-object-aware-release`
+- Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
+- Current focused checkpoint: object-aware `NarrativeBookSpec.v3` with exact intent, graph and projection ancestry; no production route or model enabled
+- Pull requests: #150 through #223 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #222 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #223 are merged on `main`. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,10 +39,33 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: merge the object lifecycle projection, then introduce
-a new released-spec version whose exact parents include that projection before
-manuscript work. No production customer route or paid model call is authorized
-yet.
+Next verification target: publish the object-aware release spec, then compile a
+strict manuscript artifact only from that released V3 parent. No production
+customer route or paid model call is authorized yet.
+
+## Product brick: Narrative V3 object-aware release spec
+
+1. `NarrativeBookSpec.v3` is a new strict contract; V2 remains immutable and
+   keeps its own artifact type, parents, pointers and behavior.
+2. The new release has exactly three ordered immutable parents: CreationIntent,
+   CanonicalStoryGraph and ObjectLifecycleProjection.
+3. Compilation rejects a projection from another graph, a changed object
+   registry, stale source-scene evidence, stale event evidence or incomplete
+   per-scene object state before any manuscript or image work.
+4. Every released scene carries the complete ordered state of every object and
+   one digest shared with its illustration instant. Quantity, owner, location
+   and visibility therefore have one deterministic authority.
+5. The append-only ledger adds the isolated `narrative_book_spec_v3` type and
+   proves both intent ancestry and graph-to-projection ancestry. The durable
+   state machine requires all three exact inputs in order.
+6. Migration 021 expands only isolated V3 artifact, pointer and step checks.
+   No production route, V2/customer project, model call, credit, series canon,
+   environment variable or Render configuration changes.
+7. The 18-case object matrix now reaches five immutable artifacts with 54
+   projected objects and 90 stable adversarial rejections.
+
+Verification: 23 focused V2/V3 release and lifecycle tests, the complete
+621-test suite and `npm run check:narrative-v3-objects` pass.
 
 ## Product brick: Narrative V3 deterministic object lifecycle
 
@@ -572,22 +595,21 @@ Verification: 129 focused scenario/worker tests and the complete 552-test suite 
 
 - Focused active-wardrobe, scene-plan and image-QA tests: 105/105 passing.
 - Focused scenario transaction, compiler and recovery tests: 94/94 passing.
-- Narrative V3 foundation tests: 13/13 passing.
-- Narrative V3 foundation and artifact-ledger tests: 22/22 passing.
-- Narrative V3 foundation, ledger and state-machine tests: 28/28 passing.
-- Complete `npm test`: 582/582 passing.
+- Narrative V3 V2/V3 release and lifecycle focused tests: 23/23 passing.
+- Narrative V3 object matrix: 18/18 fixtures, 54 objects and 90/90 adversarial rejections.
+- Complete `npm test`: 621/621 passing.
 - Production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. Add an append-only artifact table for V3 payloads, digests, parent digests,
-   schema versions and lifecycle state.
-2. Add compare-and-set pointers so concurrent workers cannot replace a released
-   ancestor or publish two competing descendants.
-3. Prove idempotent replay, restart recovery and concurrency locally before any
-   model or customer route can write V3 artifacts.
+1. Compile a strict versioned manuscript artifact only from one sealed
+   `NarrativeBookSpec.v3` parent.
+2. Bind every text page to its exact scene, page and released object-state
+   digest without reading legacy scenario or blueprint state.
+3. Prove deterministic batching, idempotent restart and language/age bounds on
+   synthetic fixtures before introducing any provider call.
 4. Keep every V2 project on its existing path and require an explicit rollout
    decision before the first V3 canary.
 

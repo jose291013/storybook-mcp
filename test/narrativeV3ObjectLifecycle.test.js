@@ -111,12 +111,20 @@ test("the object projection is committed through the real ledger and durable ste
     assert.deepEqual(replay, first);
     assert.equal(first.objectCount, 3);
     assert.equal(first.adversarialCases, 5);
-    assert.equal((await artifactStore.listArtifacts(projectId)).length, 4);
+    assert.equal((await artifactStore.listArtifacts(projectId)).length, 5);
     const pointer = await artifactStore.getCurrentPointer(projectId, "object_lifecycle_projection");
     const artifact = await artifactStore.getArtifact(pointer.artifactId);
     assert.equal(pointer.pointerRevision, 1);
     assert.deepEqual(artifact.parents.map((parent) => parent.artifactType), ["canonical_story_graph"]);
     assert.equal(artifact.parents[0].payloadDigest, artifact.payload.sourceGraph.artifactDigest);
+    const releasePointer = await artifactStore.getCurrentPointer(projectId, "narrative_book_spec_v3");
+    const release = await artifactStore.getArtifact(releasePointer.artifactId);
+    assert.equal(releasePointer.pointerRevision, 1);
+    assert.deepEqual(
+      release.parents.map((parent) => parent.artifactType),
+      ["creation_intent", "canonical_story_graph", "object_lifecycle_projection"],
+    );
+    assert.equal(release.payload.sources.objectLifecycleProjection.artifactDigest, artifact.payloadDigest);
   });
 });
 
