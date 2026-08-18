@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-delivery-manifest`
+- Current branch: `codex/narrative-v3-shadow-canary`
 - Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
-- Current focused checkpoint: strict page-complete `DeliveryManifest.v1` compiled only from one fully accepted immutable V3 lineage; no production route or paid model enabled
+- Current focused checkpoint: complete V3 shadow/release gates and guarded rollout assignment; production defaults remain off and no customer route invokes V3
 - Pull requests: #150 through #223 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -39,9 +39,30 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: execute the complete V3 chain in shadow across the
-language/universe/format matrix, enforce quality, cost and concurrency gates,
-then add a production canary that remains disabled by default.
+Next verification target: publish and merge the six stacked V3 product bricks
+in order, verify Render migrations/deploy health after each merge, and keep the
+production rollout off. A separately reviewed route/worker integration is
+required before any real customer or paid provider can enter V3.
+
+## Product brick: Narrative V3 full shadow and guarded canary
+
+1. `npm run check:narrative-v3-full` executes 108 combinations across all three
+   languages, six universes and six sellable formats to the delivery manifest.
+2. Every fixture commits ten real immutable local artifacts and rejects five
+   deliberate lifecycle corruptions; one fixture is replayed on the same stores.
+3. Release eligibility requires 108 ready deliveries, exact artifact counts,
+   zero provider/paid calls, no customer route and successful idempotent replay.
+4. The passing gate digest is
+   `849bb68b690840309381de3fadce00f5b4e19ae6f23faad8ad47def0e635a523`.
+5. V3 rollout assignment is stable per project and cannot enable without a
+   syntactically valid gate digest. Existing assignments never change mid-book.
+6. `.env.example` defaults V3 to off, zero percent and no gate digest. No route
+   invokes the assignment in this brick, so merge/deploy cannot move customer
+   traffic or spend.
+
+Verification: full shadow 108/108, 1,080 artifacts, 540 adversarial rejections,
+zero provider calls, zero paid calls, no customer routes, replay pass; focused
+rollout/gate tests pass. The complete repository suite passes: 650/650 tests.
 
 ## Product brick: Narrative V3 delivery manifest
 

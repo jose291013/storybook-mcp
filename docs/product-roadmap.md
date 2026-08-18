@@ -370,6 +370,30 @@ constraints. The anonymous matrix reaches ten immutable artifacts and replay
 reuses them without regenerating accepted work. Production routing and canary
 activation remain separate and disabled until the final shadow gate.
 
+## Narrative V3 full-shadow and guarded-canary checkpoint
+
+The complete V3 chain is now exercised by `npm run check:narrative-v3-full`
+across 108 combinations: FR/ES/EN, all six universes and all six sellable page
+counts. Every fixture reaches ten immutable artifacts through the real local
+ledger and leased state machine, ends with a ready delivery manifest and
+rejects five deliberate object-lifecycle corruptions. One fixture is replayed
+against the same stores to prove that completed steps and pointers are reused.
+
+The release evaluator requires all 108 fixtures, ten artifacts per fixture,
+complete delivery, all adversarial rejections, zero provider/paid calls, no
+customer route and successful replay. The current passing gate digest is
+`849bb68b690840309381de3fadce00f5b4e19ae6f23faad8ad47def0e635a523`.
+This digest is structural synthetic evidence, not permission to spend or deploy.
+
+The deterministic `narrativeV3RolloutAssignment` supports off, shadow, canary
+and on modes, preserves an existing project assignment and hashes project ids
+into stable buckets. It cannot enable V3 unless a 64-character release-gate
+digest is also configured. Production defaults remain
+`NARRATIVE_V3_ROLLOUT_MODE=off`, `NARRATIVE_V3_ROLLOUT_PERCENT=0` and an empty
+`NARRATIVE_V3_RELEASE_GATE_DIGEST`. No current route calls this assignment, so
+merging the checkpoint deploys contracts and verification only; customer books
+continue on the existing path until a separately reviewed integration decision.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

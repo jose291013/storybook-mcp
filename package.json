@@ -10,6 +10,7 @@
     "benchmark:narrative-models": "node scripts/benchmarkNarrativeModels.js",
     "check:narrative-stability": "node scripts/checkNarrativeStabilityMatrix.js",
     "check:narrative-v3-shadow": "node scripts/runNarrativeV3SyntheticShadow.js",
+    "check:narrative-v3-full": "node scripts/runNarrativeV3FullShadow.js",
     "check:narrative-v3-objects": "node scripts/runNarrativeV3ObjectLifecycleMatrix.js",
     "benchmark:narrative-stability": "node scripts/benchmarkNarrativeStabilityCase.js",
     "sample:typography": "node scripts/renderTypographySamples.js"

@@ -139,7 +139,7 @@ export function buildNarrativeV3ObjectFixture(rawFixture = {}) {
   const fixture = buildNarrativeV3SyntheticFixture({
     language: rawFixture.language || "FR",
     universeId: rawFixture.universeId || "dinosaur_valley",
-    pageCount: 32,
+    pageCount: Number(rawFixture.pageCount || 32),
   });
   const mechanics = structuredClone(buildCanonicalStoryMechanics({ intent: fixture.intent, concept: fixture.concept }));
   mechanics.registries.objects = [
@@ -362,10 +362,11 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     fixtureId: fixture.fixture.fixtureId,
     language: fixture.fixture.language,
     universeId: fixture.fixture.universeId,
-    pageCount: 32,
+    pageCount: fixture.fixture.pageCount,
     sceneCount: projection.scenes.length,
     objectCount: projection.objects.length,
     adversarialCases: adversarial.length,
+    deliveryReady: deliveryManifest.book.ready,
     artifactDigests: {
       creationIntent: intentArtifact.payloadDigest,
       storyConcept: conceptArtifact.payloadDigest,
