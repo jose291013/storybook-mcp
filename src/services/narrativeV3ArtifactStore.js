@@ -36,6 +36,12 @@ import {
   loadObjectLifecycleProjection,
   objectLifecycleProjectionDigest,
 } from "../contracts/objectLifecycleProjection.js";
+import {
+  MANUSCRIPT_ID,
+  MANUSCRIPT_VERSION,
+  loadManuscript,
+  manuscriptDigest,
+} from "../contracts/manuscriptV1.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -87,6 +93,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadNarrativeBookSpecV3,
     digest: narrativeBookSpecV3Digest,
     parentTypes: Object.freeze(["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]),
+  }),
+  manuscript: Object.freeze({
+    contractId: MANUSCRIPT_ID,
+    schemaVersion: MANUSCRIPT_VERSION,
+    load: loadManuscript,
+    digest: manuscriptDigest,
+    parentTypes: Object.freeze(["narrative_book_spec_v3"]),
   }),
 });
 
@@ -210,6 +223,12 @@ function validateArtifactInput(input = {}) {
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The V3 released spec parents do not match its declared intent, graph and object projection digests.");
+  }
+  if (
+    artifactType === "manuscript"
+    && parents[0]?.payloadDigest !== payload.sourceSpec.artifactDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The manuscript parent does not match its declared released-spec digest.");
   }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {

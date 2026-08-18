@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/manuscript.v1.json",
+  "title": "Calitiki Canonical Manuscript V1",
+  "description": "Immutable reader prose bound page-by-page to one NarrativeBookSpec.v3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sourceSpec", "book", "pages", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.manuscript.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sourceSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.narrative-book-spec.v3" },
+        "schemaVersion": { "const": 3 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "audienceAge", "readingBand", "pageCount"],
+      "properties": {
+        "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+        "audienceAge": { "type": "integer", "minimum": 2, "maximum": 14 },
+        "readingBand": { "type": "string", "enum": ["read_aloud", "emergent", "independent", "upper_middle"] },
+        "pageCount": { "type": "integer", "enum": [24, 28, 32, 36, 40, 44] }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 23,
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parserVersion", "artifactDigest"],
+      "properties": {
+        "parserVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pageNumber", "kind", "act", "sceneNumber", "sourceSceneDigest", "objectStateDigest", "text", "wordCount", "wordTarget", "wordTolerance"],
+      "properties": {
+        "pageNumber": { "type": "integer", "minimum": 1, "maximum": 44 },
+        "kind": { "type": "string", "enum": ["opening_text", "scene_text", "closing_text"] },
+        "act": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "sceneNumber": { "anyOf": [{ "type": "integer", "minimum": 1, "maximum": 21 }, { "type": "null" }] },
+        "sourceSceneDigest": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+        "objectStateDigest": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 2400 },
+        "wordCount": { "type": "integer", "minimum": 1, "maximum": 400 },
+        "wordTarget": { "type": "integer", "minimum": 1, "maximum": 300 },
+        "wordTolerance": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    }
+  }
+}

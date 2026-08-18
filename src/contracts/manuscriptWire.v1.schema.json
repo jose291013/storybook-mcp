@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/manuscript-wire.v1.json",
+  "title": "Calitiki Manuscript Wire V1",
+  "description": "Minimal creative-model response. It contains prose only and cannot author canonical mechanics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_id", "source_spec_digest", "language", "pages"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "contract_id": { "const": "calitiki.manuscript-wire.v1" },
+    "source_spec_digest": { "$ref": "#/$defs/digest" },
+    "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+    "pages": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 23,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["page_number", "text"],
+        "properties": {
+          "page_number": { "type": "integer", "minimum": 1, "maximum": 44 },
+          "text": { "type": "string", "minLength": 1, "maxLength": 2400 }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

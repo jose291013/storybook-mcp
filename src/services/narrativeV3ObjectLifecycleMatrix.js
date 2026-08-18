@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { UNIVERSE_OPTIONS } from "../config/bookOptions.js";
+import { getWordsTargetByAge } from "../config/readingGuidance.js";
 import { buildCanonicalStoryMechanics } from "../contracts/buildCanonicalStoryMechanics.js";
 import {
   canonicalStoryGraphDigest,
@@ -10,6 +11,7 @@ import {
   compileObjectLifecycleProjection,
 } from "../contracts/objectLifecycleProjection.js";
 import { compileNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js";
+import { parseManuscriptWire } from "../contracts/manuscriptV1.js";
 import {
   buildNarrativeV3SyntheticFixture,
   NARRATIVE_V3_SYNTHETIC_LANGUAGES,
@@ -32,6 +34,7 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     compile_story_graph: "canonical_story_graph",
     compile_object_lifecycle: "object_lifecycle_projection",
     release_narrative_book_spec_v3: "narrative_book_spec_v3",
+    write_manuscript: "manuscript",
   };
   const outputType = outputTypes[stepType];
   const pointer = await artifactStore.getCurrentPointer(projectId, outputType);
@@ -72,6 +75,22 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
 
 function addEvent(scene, event) {
   scene.objectEvents.push({ sequence: scene.objectEvents.length + 1, ...event });
+}
+
+function syntheticManuscriptWire(spec) {
+  const word = { FR: "aventure", ES: "aventura", EN: "adventure" }[spec.book.language];
+  return {
+    schema_version: 1,
+    contract_id: "calitiki.manuscript-wire.v1",
+    source_spec_digest: spec.validation.artifactDigest,
+    language: spec.book.language,
+    pages: spec.pages
+      .filter((page) => ["opening_text", "scene_text", "closing_text"].includes(page.kind))
+      .map((page) => {
+        const guidance = getWordsTargetByAge(spec.book.audienceAge, page.kind === "scene_text" ? "text" : page.kind);
+        return { page_number: page.pageNumber, text: Array(guidance.target).fill(word).join(" ") };
+      }),
+  };
 }
 
 export function buildNarrativeV3ObjectFixture(rawFixture = {}) {
@@ -230,6 +249,15 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [intentArtifact, graphArtifact, projectionArtifact],
     payload: releaseSpec,
   });
+  const manuscript = parseManuscriptWire({ spec: releaseSpec, wire: syntheticManuscriptWire(releaseSpec) });
+  const manuscriptArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-manuscript-v1`,
+    stepKey: "write-object-manuscript-v1",
+    stepType: "write_manuscript",
+    inputs: [releaseArtifact],
+    payload: manuscript,
+  });
   const adversarial = narrativeV3ObjectAdversarialCases(fixture.graph, fixture.indexes).map((entry) => {
     try {
       compileObjectLifecycleProjection({ graph: entry.graph });
@@ -254,6 +282,7 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       canonicalStoryGraph: graphArtifact.payloadDigest,
       objectLifecycleProjection: projectionArtifact.payloadDigest,
       narrativeBookSpecV3: releaseArtifact.payloadDigest,
+      manuscript: manuscriptArtifact.payloadDigest,
     },
     providerCalls: 0,
     paidModelCalls: 0,

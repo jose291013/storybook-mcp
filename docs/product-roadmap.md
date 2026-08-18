@@ -272,6 +272,31 @@ calls or customer routes. No production route, rollout switch, credit, series
 canon, customer project or Render configuration changes. The next brick is a
 strict manuscript artifact compiled only from this released V3 specification.
 
+## Narrative V3 strict-manuscript checkpoint
+
+`ManuscriptWire.v1` is the only representation that a prose model may return.
+It contains the exact released-spec digest, one supported book language and
+one page-number/text pair for every released text page. Unknown fields,
+duplicate pages, omitted pages, invented pages, a foreign language or a stale
+spec digest are rejected at this wire boundary rather than normalized.
+
+One explicit parser produces immutable `Manuscript.v1`. Every canonical page
+copies its exact opening, closing or scene binding from
+`NarrativeBookSpec.v3`; a scene page also records the source-scene and complete
+object-state digests. The server derives the word target and tolerance from the
+sealed audience age and checks the actual word count before persistence. The
+canonical loader revalidates every binding and digest and never repairs a
+changed artifact.
+
+The append-only ledger accepts `manuscript` only behind one exact
+`narrative_book_spec_v3` parent. The leased `write_manuscript` operation commits
+and promotes it idempotently; migration 022 expands only isolated V3 artifact,
+pointer and step constraints. The anonymous object matrix now reaches six
+immutable artifacts without any route, provider call, paid call, customer
+project, environment variable or Render change. The next artifact is a
+deterministic `VisualStoryboard.v1` compiled from this exact spec and
+manuscript.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint
