@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/canonical-story-graph.v1.json",
+  "title": "Calitiki Canonical Story Graph",
+  "description": "Immutable physical and causal graph compiled deterministically from one StoryConcept and server-owned mechanics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "revision",
+    "sourceConcept",
+    "book",
+    "title",
+    "premise",
+    "registries",
+    "scenes",
+    "validation"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.canonical-story-graph.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sourceConcept": { "$ref": "#/$defs/sourceConcept" },
+    "book": { "$ref": "#/$defs/book" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "premise": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "registries": { "$ref": "#/$defs/registries" },
+    "scenes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/scene" }
+    },
+    "validation": { "$ref": "#/$defs/validation" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$"
+    },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "nonEmptyString": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "identifierArray": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "sourceConcept": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.story-concept.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "audienceAge", "pageCount", "universeId"],
+      "properties": {
+        "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+        "audienceAge": { "type": "integer", "minimum": 2, "maximum": 17 },
+        "pageCount": { "type": "integer", "enum": [24, 28, 32, 36, 40, 44] },
+        "universeId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "registries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characters", "locations", "objects", "passages"],
+      "properties": {
+        "characters": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": { "$ref": "#/$defs/character" }
+        },
+        "locations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": { "$ref": "#/$defs/location" }
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "#/$defs/object" }
+        },
+        "passages": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "$ref": "#/$defs/passage" }
+        }
+      }
+    },
+    "character": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "semanticKey", "canonicalName", "role", "initialLocationId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "semanticKey": { "$ref": "#/$defs/identifier" },
+        "canonicalName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "role": { "$ref": "#/$defs/identifier" },
+        "initialLocationId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "kind": { "type": "string", "enum": ["origin", "adventure", "transition"] }
+      }
+    },
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "kind": { "type": "string", "enum": ["fixture", "portable", "symbol", "consumable"] }
+      }
+    },
+    "passage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "sideALocationId", "sideBLocationId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "sideALocationId": { "$ref": "#/$defs/identifier" },
+        "sideBLocationId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sceneNumber",
+        "act",
+        "semantic",
+        "timeline",
+        "presences",
+        "movements",
+        "objectEvents",
+        "wardrobeStates",
+        "illustration"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 24 },
+        "act": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "semantic": { "$ref": "#/$defs/semanticBeat" },
+        "timeline": { "$ref": "#/$defs/timeline" },
+        "presences": {
+          "type": "array",
+          "maxItems": 12,
+          "items": { "$ref": "#/$defs/presence" }
+        },
+        "movements": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/movement" }
+        },
+        "objectEvents": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "#/$defs/objectEvent" }
+        },
+        "wardrobeStates": {
+          "type": "array",
+          "maxItems": 12,
+          "items": { "$ref": "#/$defs/wardrobeState" }
+        },
+        "illustration": { "$ref": "#/$defs/illustration" }
+      }
+    },
+    "semanticBeat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beatKey", "purpose", "summary", "emotionalShift", "distinctiveImage", "participantKeys"],
+      "properties": {
+        "beatKey": { "$ref": "#/$defs/identifier" },
+        "purpose": {
+          "type": "string",
+          "enum": ["opening", "desire", "preparation", "crossing", "attempt", "setback", "choice", "climax", "return", "resolution"]
+        },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "emotionalShift": { "type": "string", "minLength": 1, "maxLength": 400 },
+        "distinctiveImage": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "participantKeys": { "$ref": "#/$defs/identifierArray" }
+      }
+    },
+    "timeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locationBeforeId", "locationAfterId", "visiblePhase"],
+      "properties": {
+        "locationBeforeId": { "$ref": "#/$defs/identifier" },
+        "locationAfterId": { "$ref": "#/$defs/identifier" },
+        "visiblePhase": { "type": "string", "enum": ["start", "during", "end"] }
+      }
+    },
+    "presence": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["characterId", "mode", "phase", "locationId"],
+          "properties": {
+            "characterId": { "$ref": "#/$defs/identifier" },
+            "mode": { "const": "physical" },
+            "phase": { "type": "string", "enum": ["start", "throughout", "end"] },
+            "locationId": { "$ref": "#/$defs/identifier" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["characterId", "mode", "evocationKind"],
+          "properties": {
+            "characterId": { "$ref": "#/$defs/identifier" },
+            "mode": { "const": "evoked" },
+            "evocationKind": { "type": "string", "enum": ["thought", "memory", "voice"] }
+          }
+        }
+      ]
+    },
+    "movement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "kind", "travelerCharacterIds", "fromLocationId", "toLocationId"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "kind": { "type": "string", "enum": ["ordinary_travel", "cross_passage", "return_travel"] },
+        "travelerCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "fromLocationId": { "$ref": "#/$defs/identifier" },
+        "toLocationId": { "$ref": "#/$defs/identifier" },
+        "passageId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "objectEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sequence", "objectId", "kind", "fromState", "toState"],
+      "properties": {
+        "sequence": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "objectId": { "$ref": "#/$defs/identifier" },
+        "kind": { "type": "string", "enum": ["acquire", "release", "store", "transform", "consume", "reveal"] },
+        "fromState": { "$ref": "#/$defs/identifier" },
+        "toState": { "$ref": "#/$defs/identifier" },
+        "fromOwnerCharacterId": { "$ref": "#/$defs/identifier" },
+        "toOwnerCharacterId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "wardrobeState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characterId", "outfitStateId", "equipmentStateIds"],
+      "properties": {
+        "characterId": { "$ref": "#/$defs/identifier" },
+        "outfitStateId": { "$ref": "#/$defs/identifier" },
+        "equipmentStateIds": { "$ref": "#/$defs/identifierArray" }
+      }
+    },
+    "illustration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibleCharacterIds", "forbiddenCharacterIds", "mainAction"],
+      "properties": {
+        "visibleCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "forbiddenCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "mainAction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["subjectCharacterId", "action", "targetId"],
+          "properties": {
+            "subjectCharacterId": { "$ref": "#/$defs/identifier" },
+            "action": { "type": "string", "minLength": 1, "maxLength": 240 },
+            "targetId": { "type": "string", "maxLength": 120 }
+          }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

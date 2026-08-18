@@ -1,0 +1,70 @@
+import fs from "node:fs";
+
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
+
+const ajv = new Ajv2020({
+  allErrors: true,
+  strict: true,
+  strictRequired: false,
+  allowUnionTypes: true,
+});
+addFormats(ajv);
+
+function readSchema(name) {
+  return JSON.parse(fs.readFileSync(new URL(`./${name}`, import.meta.url), "utf8"));
+}
+
+export const storyConceptWireSchema = readSchema("storyConceptWire.v1.schema.json");
+export const storyConceptSchema = readSchema("storyConcept.v1.schema.json");
+export const canonicalStoryGraphSchema = readSchema("canonicalStoryGraph.v1.schema.json");
+export const canonicalStoryMechanicsSchema = readSchema("canonicalStoryMechanics.v1.schema.json");
+
+ajv.addSchema(storyConceptWireSchema);
+ajv.addSchema(storyConceptSchema);
+ajv.addSchema(canonicalStoryGraphSchema);
+ajv.addSchema(canonicalStoryMechanicsSchema);
+
+const validators = new Map([
+  ["story_concept_wire", ajv.getSchema(storyConceptWireSchema.$id)],
+  ["story_concept", ajv.getSchema(storyConceptSchema.$id)],
+  ["canonical_story_graph", ajv.getSchema(canonicalStoryGraphSchema.$id)],
+  ["canonical_story_mechanics", ajv.getSchema(canonicalStoryMechanicsSchema.$id)],
+]);
+
+function boundedErrors(errors = []) {
+  return errors.slice(0, 20).map((error) => ({
+    keyword: String(error?.keyword || "invalid"),
+    path: String(error?.instancePath || "/"),
+    schemaPath: String(error?.schemaPath || ""),
+    message: String(error?.message || "does not match the contract"),
+  }));
+}
+
+export class NarrativeV3ContractError extends Error {
+  constructor({ code = "narrative_v3_contract_invalid", artifactType = "unknown", issues = [] } = {}) {
+    super(`${artifactType} does not match its strict Narrative V3 contract.`);
+    this.name = "NarrativeV3ContractError";
+    this.code = code;
+    this.artifactType = artifactType;
+    this.issues = issues;
+  }
+}
+
+export function assertNarrativeV3Schema(artifactType, value) {
+  const validator = validators.get(artifactType);
+  if (!validator) {
+    throw new NarrativeV3ContractError({
+      code: "narrative_v3_schema_unknown",
+      artifactType,
+      issues: [{ path: "/", message: "No strict schema is registered for this artifact type." }],
+    });
+  }
+  if (!validator(value)) {
+    throw new NarrativeV3ContractError({
+      artifactType,
+      issues: boundedErrors(validator.errors),
+    });
+  }
+  return true;
+}
