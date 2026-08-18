@@ -168,6 +168,8 @@ test("a possessed object stays with its off-camera owner without becoming visibl
   );
   assert.equal(causalGraph.entities[0].initialState, "carried");
   assert.equal(causalGraph.entities[0].initialOwnerCharacter, "Eva");
+  assert.equal(scenario.scenes[1].objectStates[0].visibilityReason, "owner_off_camera");
+  assert.equal(scenario.scenes[1].objectStates[0].causalOwner, "Eva");
   assert.match(scenario.scenes[1].objectStates[0].instruction, /remains with Eva off-camera/i);
   assert.deepEqual(validateCausalGraph(scenario), []);
 });

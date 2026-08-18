@@ -32,9 +32,68 @@ function isProgressionDuplicate(code = "") {
   return /duplicate|repeat|progress|narrative.?function|story.?change/i.test(code);
 }
 
+function stableEntityId(value = "") {
+  return clean(value, 160)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function physicalCharacterKeys(scene = {}) {
+  return new Set((Array.isArray(scene?.characterPresences) ? scene.characterPresences : [])
+    .filter((presence) => presence?.mode === "physical")
+    .map((presence) => stableEntityId(presence?.name))
+    .filter(Boolean));
+}
+
+function isSafeOffCameraObjectDirective(directive = {}, scenario = {}) {
+  const entityIds = (Array.isArray(directive?.entityIds) ? directive.entityIds : [])
+    .map(stableEntityId)
+    .filter(Boolean);
+  const sceneNumbers = (Array.isArray(directive?.affectedSceneNumbers)
+    ? directive.affectedSceneNumbers
+    : [])
+    .map(Number)
+    .filter((number) => Number.isInteger(number) && number > 0);
+  if (!entityIds.length || !sceneNumbers.length) return false;
+  return sceneNumbers.every((sceneNumber) => {
+    const scene = (scenario?.scenes || []).find((candidate) => (
+      Number(candidate?.sceneNumber) === sceneNumber
+    ));
+    if (!scene) return false;
+    const physical = physicalCharacterKeys(scene);
+    return entityIds.every((entityId) => {
+      const state = (scene.objectStates || []).find((candidate) => (
+        stableEntityId(candidate?.objectId || candidate?.entityId) === entityId
+      ));
+      return state?.visibilityReason === "owner_off_camera"
+        && state?.state === "absent"
+        && Number(state?.quantity) === 0
+        && Boolean(stableEntityId(state?.causalOwner))
+        && !physical.has(stableEntityId(state.causalOwner));
+    });
+  });
+}
+
+function isOffCameraVisibilityIssue(issue = {}, directives = [], scenario = {}) {
+  const code = clean(issue?.code, 120);
+  if (!/(?:object|inventory|prop|equipment|wardrobe)/i.test(code)) return false;
+  if (/(?:duplic|quant|transform|consum|destroy|lifecycle|transfer|owner)/i.test(code)) return false;
+  const matching = directives.filter((directive) => directive?.code === issue?.code);
+  if (!matching.length || !matching.every((directive) => (
+    isSafeOffCameraObjectDirective(directive, scenario)
+  ))) return false;
+  const issueSceneNumber = Number(issue?.sceneNumber);
+  return !(issueSceneNumber > 0) || matching.some((directive) => (
+    directive.affectedSceneNumbers?.map(Number).includes(issueSceneNumber)
+  ));
+}
+
 export function reconcileStoryScenarioAudit(audit = {}, scenario = {}) {
   const directives = Array.isArray(audit.repairDirectives) ? audit.repairDirectives : [];
-  const issues = (Array.isArray(audit.issues) ? audit.issues : []).map((issue) => ({
+  const coordinatedIssues = (Array.isArray(audit.issues) ? audit.issues : []).map((issue) => ({
     ...issue,
     ...(Number(issue?.sceneNumber) > 0 ? {} : {
       affectedSceneNumbers: [...new Set(directives
@@ -44,10 +103,21 @@ export function reconcileStoryScenarioAudit(audit = {}, scenario = {}) {
         .filter((number) => Number.isInteger(number) && number > 0))],
     }),
   }));
+  const offCameraIssues = new Set(coordinatedIssues
+    .filter((issue) => isOffCameraVisibilityIssue(issue, directives, scenario)));
+  const issues = coordinatedIssues.filter((issue) => !offCameraIssues.has(issue));
+  const retainedDirectives = directives.filter((directive) => !(
+    isSafeOffCameraObjectDirective(directive, scenario)
+    && [...offCameraIssues].some((issue) => (
+      issue?.code === directive?.code
+      && (!(Number(issue?.sceneNumber) > 0)
+        || directive.affectedSceneNumbers?.map(Number).includes(Number(issue.sceneNumber)))
+    ))
+  ));
   const affectedNumbers = new Set();
   for (const issue of issues.filter((item) => isProgressionDuplicate(item?.code))) {
     if (Number(issue?.sceneNumber) > 0) affectedNumbers.add(Number(issue.sceneNumber));
-    for (const directive of directives.filter((item) => item?.code === issue?.code)) {
+    for (const directive of retainedDirectives.filter((item) => item?.code === issue?.code)) {
       for (const number of directive.affectedSceneNumbers || []) affectedNumbers.add(Number(number));
     }
   }
@@ -59,7 +129,7 @@ export function reconcileStoryScenarioAudit(audit = {}, scenario = {}) {
     && stages.length === affectedScenes.length
     && new Set(stages).size === stages.length
     && stages.every((stage, index) => index === 0 || stage > stages[index - 1]);
-  if (!legitimateChain) return { issues, repairDirectives: directives };
+  if (!legitimateChain) return { issues, repairDirectives: retainedDirectives };
   const retainedIssues = issues.filter((issue) => !(
     isProgressionDuplicate(issue?.code)
     && affectedNumbers.has(Number(issue?.sceneNumber))
@@ -69,7 +139,7 @@ export function reconcileStoryScenarioAudit(audit = {}, scenario = {}) {
     .map((issue) => issue.code));
   return {
     issues: retainedIssues,
-    repairDirectives: directives.filter((directive) => !removedCodes.has(directive?.code)),
+    repairDirectives: retainedDirectives.filter((directive) => !removedCodes.has(directive?.code)),
   };
 }
 

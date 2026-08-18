@@ -16,7 +16,9 @@ import { worldPhysicalTopologyContractIssues } from "./worldPhysicalTopology.js"
 import { validateStoryCastParticipation } from "./storyCastParticipation.js";
 import {
   applyCausalGraph,
+  causalGraphObjectStateAtScene,
   normalizeCausalGraph,
+  objectRenderState,
   projectCausalGraphObjectLedger,
   validateCausalGraph,
 } from "./storyCausalGraph.js";
@@ -1153,7 +1155,16 @@ function validateNarrativeObjectLifecycles(scenario = {}) {
         && key(scene.locationAfter) !== key(object.homeLocation)
         && expectedState !== "absent"
         && !OBJECT_TERMINAL_STATES.has(expectedState);
-      const expectedSceneState = locationBoundElsewhere ? "absent" : expectedState;
+      const causalState = causalGraphObjectStateAtScene(
+        scenario,
+        object.objectId || object.object_id || object.entityId || object.entity_id,
+        scene.sceneNumber,
+      );
+      const renderedState = objectRenderState({
+        ...(causalState || {}),
+        state: locationBoundElsewhere ? "absent" : expectedState,
+      }, scene);
+      const expectedSceneState = renderedState.state;
       if (!supplied || supplied.state !== expectedSceneState) {
         issues.push(`scene-${scene.sceneNumber}: object ${object.name} must be ${expectedSceneState} according to its lifecycle and location`);
       }
