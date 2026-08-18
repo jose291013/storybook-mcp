@@ -1,6 +1,33 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-16
+Last updated: 2026-08-18
+
+## Narrative V3 structural replacement direction
+
+The current narrative pipeline is frozen for new product repair bricks except
+for security, privacy, commerce and data-loss defects. The structural audit in
+`docs/narrative-pipeline-v3-audit.md` proved that wire model responses and
+canonical persisted scenarios are interpreted through the same mixed
+normalizer. A canonical retry can therefore erase locations and character
+presences without a provider call. The audit also found several simultaneous
+authorities for story and illustration facts, mutable JSONB aggregate
+persistence, a hybrid local/durable preview worker and probabilistic visual QA
+being asked to arbitrate deterministic state.
+
+Narrative V3 will be built beside V2 as a typed, immutable artifact chain:
+creation intent, creative story concept, deterministically compiled canonical
+story graph, released NarrativeBookSpec, manuscript, visual storyboard, image
+candidates, illustration decisions and delivery manifest. Each artifact has one
+strict schema, canonical digest and explicit parent digests. Routes enqueue
+idempotent durable steps; they do not run long generation closures. A technical
+retry resumes one step and cannot rewrite an approved ancestor.
+
+V2 projects are never migrated implicitly during read, retry or deployment.
+They remain readable through the legacy path. V3 begins with strict concept and
+graph schemas, separate wire/canonical loaders, canonical serialization and
+property tests; it does not begin with another recovery policy. Shadow and
+canary rollout are allowed only after the audit's deterministic, restart,
+concurrency, cost and narrative-quality gates pass.
 
 ## Durable object-checkpoint retry entitlement
 

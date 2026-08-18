@@ -8,16 +8,42 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/refresh-whole-object-checkpoint`
-- Production/main checkpoint: causal/render object-state arbitration (`ba80bff`, PR #213)
-- Current focused checkpoint: whole-checkpoint mechanical refresh implementation and verification
-- Pull requests: #150 through #213 merged
+- Current branch: `codex/audit-narrative-v3`
+- Production/main checkpoint: whole-checkpoint mechanical refresh (`a323696`, PR #214)
+- Current focused checkpoint: Narrative V3 structural audit; no production behavior changed
+- Pull requests: #150 through #214 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #213 are merged on `main`. The latest completed brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #214 are merged on `main`. The whole-checkpoint recovery deployed
+in #214 correctly stopped when it detected a creator-visible mutation. The V3
+audit then reproduced the underlying defect locally: passing a canonical
+scenario through the raw-output normalizer erased its locations and physical
+presences. This is a pipeline-boundary failure, not another missing recovery
+rule. The current product direction is therefore the side-by-side V3 artifact
+pipeline documented in `docs/narrative-pipeline-v3-audit.md`; further V2 repair
+bricks are frozen except for security, privacy, commerce and data-loss defects.
+
+## Current architecture decision: Narrative V3
+
+1. V3 uses immutable typed artifacts with strict wire/canonical boundaries and
+   parent digests.
+2. Creative models author semantic concepts; deterministic compilers own acts,
+   topology, movements, presences, objects, outfits and page bindings.
+3. HTTP routes enqueue durable idempotent steps. A retry resumes one step and
+   cannot rewrite an approved ancestor.
+4. Manuscript and visual storyboard derive from the released spec; they do not
+   read duplicated blueprint or legacy scenario authorities.
+5. Vision QA uncertainty remains internal. Only deterministic evidence or
+   focused confirmed objective defects can block a page.
+6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
+
+Next verification target: approve the audit, then implement only the first
+foundation brick (strict `StoryConcept.v1`/`CanonicalStoryGraph.v1` schemas,
+separate loaders, canonical digest and property tests) with no route, model,
+Render variable or customer migration.
 
 ## Product brick: whole-checkpoint mechanical refresh
 
