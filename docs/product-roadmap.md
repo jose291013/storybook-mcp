@@ -401,6 +401,33 @@ unset in production, and no customer route calls the assignment. This live
 checkpoint proves deployability of the isolated chain; it does not authorize a
 customer canary, provider spend, credit reservation or V2 project migration.
 
+## Narrative V3 allowlisted production-shadow checkpoint
+
+The first real V3 production shadow is connected only to an authenticated
+preview request after the normal V2 generation has been durably queued. V2
+remains the sole customer-visible and credit-bearing path. The shadow performs
+one creative provider call for StoryConcept wire, then deterministically
+commits StoryConcept, CanonicalStoryGraph, ObjectLifecycleProjection and
+NarrativeBookSpec.v3 beneath the sealed CreationIntent root. It deliberately
+stops before manuscript, storyboard and images.
+
+Activation requires all three independent conditions: rollout mode shadow,
+the exact approved 108-fixture gate digest, and the authenticated Woo customer
+id in NARRATIVE_V3_SHADOW_CUSTOMER_IDS. The allowlist is exact and server-side;
+email addresses and customer content are never logged. Shadow failures are
+content-free internal observations and cannot block V2, consume another credit,
+alter series canon or become visible to the customer.
+Series projects remain excluded from this first real shadow because their
+previous-canon input is not yet part of the sealed V3 concept request.
+
+The dedicated worker leases only production-shadow-v1 runs, heartbeats long
+provider work, persists the Responses API identifier, and retrieves that same
+response after a Render restart. Each deterministic successor is a separately
+idempotent run bound to immutable input digests. A recovery scan closes the
+commit-before-successor-enqueue crash window. The kill switch is
+NARRATIVE_V3_SHADOW_WORKER_ENABLED=false; production defaults remain off and
+the tester allowlist defaults empty.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

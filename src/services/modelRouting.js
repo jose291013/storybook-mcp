@@ -45,6 +45,12 @@ const ROUTES = {
     defaultModel: "gpt-5.6-terra",
     defaultEffort: "medium",
   },
+  narrative_v3_concept: {
+    modelEnv: "NARRATIVE_V3_CONCEPT_MODEL",
+    effortEnv: "NARRATIVE_V3_CONCEPT_REASONING_EFFORT",
+    defaultModel: "gpt-5.6-sol",
+    defaultEffort: "high",
+  },
   manuscript_editor: {
     modelEnv: "MANUSCRIPT_EDITOR_MODEL",
     effortEnv: "MANUSCRIPT_EDITOR_REASONING_EFFORT",

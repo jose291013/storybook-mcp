@@ -9,15 +9,15 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main` after the live-checkpoint merge
-- Production/main checkpoint: Narrative V3 full shadow and guarded canary (`0ac5fc8`, PR #229)
-- Current focused checkpoint: the complete isolated V3 artifact chain, release gates and stable rollout assignment are deployed; production defaults remain off and no customer route invokes V3
-- Pull requests: #150 through #229 merged
+- Production/main checkpoint before this brick: Narrative V3 live checkpoint (`818bc89`, PR #230)
+- Current focused checkpoint: allowlisted real V3 production shadow through `NarrativeBookSpec.v3`; V2 remains the sole visible and credit-bearing path
+- Pull requests before this brick: #150 through #230 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #229 are merged on `main`. PRs #224 through #229 published and
+PR #55 through #230 are merged on `main`. PRs #224 through #229 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest and guarded-canary checkpoints. Render
 was verified Live on commit `0ac5fc8` after the final merge; intermediate
@@ -43,10 +43,30 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: keep the production rollout off and separately
-review the route/worker/provider integration before any real customer, credit
-reservation or paid provider can enter V3. That future integration must consume
-only the immutable V3 chain and preserve the current release-gate digest.
+Next verification target after deployment: configure one Woo test customer in
+the exact production shadow allowlist, keep V3 invisible, create one new
+32-page book, and compare V2 with the five V3 artifact digests and content-free
+stage logs. Do not activate manuscript, images or canary delivery until this
+real shadow passes across several universes.
+
+## Product brick: Narrative V3 allowlisted real shadow
+
+1. The authenticated preview route queues an independent V3 shadow only after
+   the normal V2 job and credit reservation are durable.
+2. Three gates are mandatory: `shadow` mode, the exact approved release digest
+   and an exact Woo customer id in `NARRATIVE_V3_SHADOW_CUSTOMER_IDS`.
+3. One background creative call produces only semantic StoryConcept wire. The
+   server owns acts, topology, movements, presences, wardrobe, objects and page
+   binding through deterministic compilers.
+4. Five immutable artifacts are committed through `NarrativeBookSpec.v3`; no
+   manuscript, image, delivery, second credit or customer-visible status exists.
+5. Provider response ids, leased steps, heartbeats, prefix-isolated claims and
+   recovery scanning make replay and Render restart idempotent.
+6. Failures log only project/run/stage/code/timing and never affect the V2 book.
+
+Verification: the complete repository suite passes 654/654 tests. The real
+shadow itself is covered for exact gating, five-artifact completion, V2
+isolation, idempotent replay, restart continuation and private failure.
 
 ## Product brick: Narrative V3 full shadow and guarded canary
 

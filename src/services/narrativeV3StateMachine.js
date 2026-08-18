@@ -153,17 +153,26 @@ export class JsonNarrativeV3RunStore {
   }
 
   async getRun(id) { return frozenClone(this.read().runs[id] || null); }
+  async listRunsByPrefix(prefix) {
+    const bounded = validateKey(prefix, "runKeyPrefix");
+    return Object.values(this.read().runs)
+      .filter((run) => String(run.runKey || "").startsWith(bounded))
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .map(frozenClone);
+  }
   async getStep(id) { return frozenClone(this.read().steps[id] || null); }
   async listSteps(runId) {
     return Object.values(this.read().steps).filter((step) => step.runId === runId).sort((a, b) => a.sequence - b.sequence).map(frozenClone);
   }
 
-  async claimNext({ workerId, leaseMs = 120000 }) {
+  async claimNext({ workerId, leaseMs = 120000, runKeyPrefix = "" }) {
     const state = this.read();
     const worker = validateKey(workerId, "workerId");
+    const prefix = runKeyPrefix ? validateKey(runKeyPrefix, "runKeyPrefix") : "";
     const timestamp = Date.now();
     const candidates = Object.values(state.steps).filter((step) => {
       if (step.status === "completed" || step.status === "failed" || step.status === "cancelled") return false;
+      if (prefix && !String(state.runs[step.runId]?.runKey || "").startsWith(prefix)) return false;
       if (step.attemptCount >= step.maxAttempts) return false;
       if (step.status === "running" && Date.parse(step.leaseExpiresAt || 0) > timestamp) return false;
       return !Object.values(state.steps).some((prior) => prior.runId === step.runId && prior.sequence < step.sequence && prior.status !== "completed");
@@ -201,6 +210,22 @@ export class JsonNarrativeV3RunStore {
     if (!step || step.status !== "running" || step.leaseOwner !== workerId) return null;
     step.leaseExpiresAt = new Date(Date.now() + Math.max(30000, Number(leaseMs) || 120000)).toISOString();
     step.updatedAt = now();
+    this.write(state);
+    return frozenClone(step);
+  }
+
+  async fail(stepId, workerId, errorCode = "shadow_step_failed") {
+    const state = this.read();
+    const step = state.steps[stepId];
+    if (!step || step.status !== "running" || step.leaseOwner !== workerId) return null;
+    step.status = "failed";
+    step.errorCode = validateKey(errorCode, "errorCode");
+    step.leaseOwner = "";
+    step.leaseExpiresAt = null;
+    step.updatedAt = now();
+    state.runs[step.runId].status = "failed";
+    state.runs[step.runId].errorCode = step.errorCode;
+    state.runs[step.runId].updatedAt = now();
     this.write(state);
     return frozenClone(step);
   }
@@ -312,11 +337,14 @@ export class PostgresNarrativeV3RunStore {
     return Promise.all(rows.map((row) => this.stepFromRow(row)));
   }
 
-  async claimNext({ workerId, leaseMs = 120000 }) {
+  async claimNext({ workerId, leaseMs = 120000, runKeyPrefix = "" }) {
+    const prefix = runKeyPrefix ? validateKey(runKeyPrefix, "runKeyPrefix") : "";
     const { rows } = await this.database.query(
       `WITH candidate AS (
          SELECT step.id FROM narrative_v3_steps AS step
+         JOIN narrative_v3_runs AS run ON run.id=step.run_id
          WHERE step.status IN ('queued','running','waiting_provider')
+           AND ($3='' OR run.run_key LIKE $3)
            AND (step.status<>'running' OR step.lease_expires_at<=now())
            AND step.attempt_count<step.max_attempts
            AND NOT EXISTS (
@@ -330,7 +358,7 @@ export class PostgresNarrativeV3RunStore {
            lease_expires_at=now()+($2 * interval '1 millisecond'),
            attempt_count=step.attempt_count+1,updated_at=now()
        FROM candidate WHERE step.id=candidate.id RETURNING step.*`,
-      [validateKey(workerId, "workerId"), Math.max(30000, Number(leaseMs) || 120000)],
+      [validateKey(workerId, "workerId"), Math.max(30000, Number(leaseMs) || 120000), prefix ? `${prefix}%` : ""],
     );
     if (!rows[0]) return null;
     await this.database.query("UPDATE narrative_v3_runs SET status='running',updated_at=now() WHERE id=$1 AND status='queued'", [rows[0].run_id]);
@@ -364,6 +392,31 @@ export class PostgresNarrativeV3RunStore {
        SET lease_expires_at=now()+($3 * interval '1 millisecond'),updated_at=now()
        WHERE id=$1 AND status='running' AND lease_owner=$2 RETURNING *`,
       [stepId, workerId, Math.max(30000, Number(leaseMs) || 120000)],
+    );
+    return this.stepFromRow(rows[0]);
+  }
+
+  async listRunsByPrefix(prefix) {
+    const bounded = validateKey(prefix, "runKeyPrefix");
+    const { rows } = await this.database.query(
+      "SELECT * FROM narrative_v3_runs WHERE run_key LIKE $1 ORDER BY created_at",
+      [`${bounded}%`],
+    );
+    return rows.map((row) => this.runFromRow(row));
+  }
+
+  async fail(stepId, workerId, errorCode = "shadow_step_failed") {
+    const code = validateKey(errorCode, "errorCode");
+    const { rows } = await this.database.query(
+      `UPDATE narrative_v3_steps SET status='failed',error_code=$3,
+       lease_owner=NULL,lease_expires_at=NULL,updated_at=now()
+       WHERE id=$1 AND status='running' AND lease_owner=$2 RETURNING *`,
+      [stepId, workerId, code],
+    );
+    if (!rows[0]) return null;
+    await this.database.query(
+      "UPDATE narrative_v3_runs SET status='failed',error_code=$2,updated_at=now() WHERE id=$1",
+      [rows[0].run_id, code],
     );
     return this.stepFromRow(rows[0]);
   }
