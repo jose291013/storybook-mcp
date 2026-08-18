@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,16 +8,20 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-shadow-canary`
-- Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
-- Current focused checkpoint: complete V3 shadow/release gates and guarded rollout assignment; production defaults remain off and no customer route invokes V3
-- Pull requests: #150 through #223 merged
+- Current branch: `main` after the live-checkpoint merge
+- Production/main checkpoint: Narrative V3 full shadow and guarded canary (`0ac5fc8`, PR #229)
+- Current focused checkpoint: the complete isolated V3 artifact chain, release gates and stable rollout assignment are deployed; production defaults remain off and no customer route invokes V3
+- Pull requests: #150 through #229 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #223 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #229 are merged on `main`. PRs #224 through #229 published and
+merged the object-aware release, strict manuscript, visual storyboard,
+illustration evidence, delivery manifest and guarded-canary checkpoints. Render
+was verified Live on commit `0ac5fc8` after the final merge; intermediate
+auto-deploys were superseded by that final deployment. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,10 +43,10 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: publish and merge the six stacked V3 product bricks
-in order, verify Render migrations/deploy health after each merge, and keep the
-production rollout off. A separately reviewed route/worker integration is
-required before any real customer or paid provider can enter V3.
+Next verification target: keep the production rollout off and separately
+review the route/worker/provider integration before any real customer, credit
+reservation or paid provider can enter V3. That future integration must consume
+only the immutable V3 chain and preserve the current release-gate digest.
 
 ## Product brick: Narrative V3 full shadow and guarded canary
 
