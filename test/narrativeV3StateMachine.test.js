@@ -6,6 +6,7 @@ import path from "node:path";
 import test from "node:test";
 
 import { parseStoryConceptWire } from "../src/contracts/narrativeV3Canonical.js";
+import { buildCreationIntent } from "../src/contracts/creationIntent.js";
 import { JsonNarrativeV3ArtifactStore } from "../src/services/narrativeV3ArtifactStore.js";
 import {
   JsonNarrativeV3RunStore,
@@ -51,7 +52,37 @@ async function withMachine(run) {
   }
 }
 
-function parseRun(projectId, runKey = "concept-v1") {
+function creationIntent() {
+  return buildCreationIntent({
+    language: "FR",
+    audienceAge: 8,
+    pageCount: 24,
+    universeId: "luminous_valley",
+    intentionId: "learn_by_trying",
+    approachId: "two_paths",
+    sensitivityLevel: 1,
+    castRefs: [{ characterKey: "hero", profileRef: "profile:hero", role: "hero", kind: "human" }],
+    seriesRef: null,
+    previousCanonDigest: null,
+    questionnaireDigest: "a".repeat(64),
+    safetyAssessmentDigest: "b".repeat(64),
+  });
+}
+
+function artifactRef(artifact) {
+  return { artifactId: artifact.id, artifactType: artifact.artifactType, artifactDigest: artifact.payloadDigest };
+}
+
+async function ensureIntent(artifactStore, projectId) {
+  return (await artifactStore.createArtifact({
+    projectId,
+    artifactType: "creation_intent",
+    payload: creationIntent(),
+    provenance: { producer: "server_intent_builder", producerVersion: "v1" },
+  })).artifact;
+}
+
+function parseRun(projectId, intentArtifact, runKey = "concept-v1") {
   return {
     projectId,
     runKey,
@@ -59,17 +90,21 @@ function parseRun(projectId, runKey = "concept-v1") {
       stepKey: "parse-concept",
       stepType: "parse_story_concept",
       expectedPointerRevision: 0,
-      inputs: [],
+      inputs: [artifactRef(intentArtifact)],
       maxAttempts: 2,
     }],
   };
 }
 
-function conceptArtifact(payload, id = crypto.randomUUID()) {
+function conceptArtifact(payload, intentArtifact, id = crypto.randomUUID()) {
   return {
     id,
     payload,
-    parents: [],
+    parents: [{
+      artifactId: intentArtifact.id,
+      artifactType: intentArtifact.artifactType,
+      payloadDigest: intentArtifact.payloadDigest,
+    }],
     provenance: {
       producer: "server_parser",
       producerVersion: "v1",
@@ -80,10 +115,11 @@ function conceptArtifact(payload, id = crypto.randomUUID()) {
 }
 
 test("enqueue and claim are idempotent and expose only the first runnable step", async () => {
-  await withMachine(async ({ machine, runStore }) => {
+  await withMachine(async ({ machine, runStore, artifactStore }) => {
     const projectId = crypto.randomUUID();
-    const first = await machine.enqueue(parseRun(projectId));
-    const replay = await machine.enqueue(parseRun(projectId));
+    const intentArtifact = await ensureIntent(artifactStore, projectId);
+    const first = await machine.enqueue(parseRun(projectId, intentArtifact));
+    const replay = await machine.enqueue(parseRun(projectId, intentArtifact));
     const [left, right] = await Promise.all([
       runStore.claimNext({ workerId: "worker-a" }),
       runStore.claimNext({ workerId: "worker-b" }),
@@ -97,9 +133,10 @@ test("enqueue and claim are idempotent and expose only the first runnable step",
 });
 
 test("one logical model step persists exactly one provider response id", async () => {
-  await withMachine(async ({ machine, runStore }) => {
+  await withMachine(async ({ machine, runStore, artifactStore }) => {
     const projectId = crypto.randomUUID();
-    await machine.enqueue(parseRun(projectId));
+    const intentArtifact = await ensureIntent(artifactStore, projectId);
+    await machine.enqueue(parseRun(projectId, intentArtifact));
     const step = await runStore.claimNext({ workerId: "worker-a" });
     const saved = await runStore.checkpointProvider(step.id, "worker-a", "response-1");
     const repeated = await runStore.checkpointProvider(step.id, "worker-a", "response-1");
@@ -114,9 +151,10 @@ test("one logical model step persists exactly one provider response id", async (
 });
 
 test("only the active worker can renew a running step lease", async () => {
-  await withMachine(async ({ machine, runStore }) => {
+  await withMachine(async ({ machine, runStore, artifactStore }) => {
     const projectId = crypto.randomUUID();
-    await machine.enqueue(parseRun(projectId));
+    const intentArtifact = await ensureIntent(artifactStore, projectId);
+    await machine.enqueue(parseRun(projectId, intentArtifact));
     const step = await runStore.claimNext({ workerId: "worker-a", leaseMs: 30000 });
     const before = Date.parse(step.leaseExpiresAt);
     const renewed = await runStore.heartbeat(step.id, "worker-a", 60000);
@@ -131,8 +169,9 @@ test("a restart after artifact promotion resumes without a second artifact or po
   await withMachine(async ({ machine, runStore, artifactStore, runPath }) => {
     const projectId = crypto.randomUUID();
     const payload = concept();
-    const artifactInput = conceptArtifact(payload);
-    const queued = await machine.enqueue(parseRun(projectId));
+    const intentArtifact = await ensureIntent(artifactStore, projectId);
+    const artifactInput = conceptArtifact(payload, intentArtifact);
+    const queued = await machine.enqueue(parseRun(projectId, intentArtifact));
     const firstLease = await runStore.claimNext({ workerId: "worker-a" });
     const created = await artifactStore.createArtifact({
       ...artifactInput,
@@ -171,8 +210,9 @@ test("a restart after artifact promotion resumes without a second artifact or po
 test("a compile step refuses an input that is not the exact immutable project artifact", async () => {
   await withMachine(async ({ machine, artifactStore }) => {
     const projectId = crypto.randomUUID();
+    const intentArtifact = await ensureIntent(artifactStore, projectId);
     const stored = (await artifactStore.createArtifact({
-      ...conceptArtifact(concept()),
+      ...conceptArtifact(concept(), intentArtifact),
       projectId,
       artifactType: "story_concept",
     })).artifact;

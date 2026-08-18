@@ -64,7 +64,7 @@ function normalizeRun(input = {}) {
     const stepType = String(step?.stepType || "");
     if (!STEP_TYPES[stepType]) throw new NarrativeV3StateError("step_type_unsupported", "The step type has no strict artifact output.");
     const inputs = normalizeInputs(step.inputs);
-    const expectedInputs = stepType === "compile_story_graph" ? ["story_concept"] : [];
+    const expectedInputs = stepType === "compile_story_graph" ? ["story_concept"] : ["creation_intent"];
     if (inputs.length !== expectedInputs.length || inputs.some((entry, inputIndex) => entry.artifactType !== expectedInputs[inputIndex])) {
       throw new NarrativeV3StateError("invalid_step_inputs", "The step does not have its exact ordered artifact inputs.");
     }
@@ -417,7 +417,11 @@ export class NarrativeV3StateMachine {
       ...artifact,
       projectId: step.projectId,
       artifactType: step.outputArtifactType,
-      parents: step.inputs,
+      parents: step.inputs.map((input) => ({
+        artifactId: input.artifactId,
+        artifactType: input.artifactType,
+        payloadDigest: input.artifactDigest,
+      })),
     });
     const promotion = await this.artifactStore.promoteArtifact({
       projectId: step.projectId,

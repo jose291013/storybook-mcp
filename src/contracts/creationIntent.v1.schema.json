@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/creation-intent.v1.schema.json",
+  "title": "CreationIntent.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "language",
+    "audience",
+    "book",
+    "narrativeGoal",
+    "cast",
+    "continuity",
+    "sourceRefs",
+    "validation"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.creation-intent.v1" },
+    "language": { "enum": ["FR", "ES", "EN"] },
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["age", "readingBand"],
+      "properties": {
+        "age": { "type": "integer", "minimum": 2, "maximum": 14 },
+        "readingBand": { "enum": ["read_aloud", "emergent", "independent", "upper_middle"] }
+      }
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pageCount", "universeId"],
+      "properties": {
+        "pageCount": { "enum": [24, 28, 32, 36, 40, 44] },
+        "universeId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "narrativeGoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["intentionId", "approachId", "sensitivityLevel"],
+      "properties": {
+        "intentionId": { "$ref": "#/$defs/identifier" },
+        "approachId": { "$ref": "#/$defs/identifier" },
+        "sensitivityLevel": { "type": "integer", "minimum": 1, "maximum": 3 }
+      }
+    },
+    "cast": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["characterKey", "profileRef", "role", "kind"],
+        "properties": {
+          "characterKey": { "$ref": "#/$defs/identifier" },
+          "profileRef": { "$ref": "#/$defs/reference" },
+          "role": { "enum": ["hero", "guide", "family", "companion", "peer"] },
+          "kind": { "enum": ["human", "animal", "fantasy"] }
+        }
+      }
+    },
+    "continuity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seriesRef", "previousCanonDigest"],
+      "properties": {
+        "seriesRef": { "anyOf": [{ "$ref": "#/$defs/reference" }, { "type": "null" }] },
+        "previousCanonDigest": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] }
+      }
+    },
+    "sourceRefs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questionnaireDigest", "safetyAssessmentDigest"],
+      "properties": {
+        "questionnaireDigest": { "$ref": "#/$defs/digest" },
+        "safetyAssessmentDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["builderVersion", "artifactDigest"],
+      "properties": {
+        "builderVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  }
+}
