@@ -10,8 +10,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/arbitrate-off-camera-object-audits`
 - Production/main checkpoint: gross active-wardrobe continuity gate (`76912e0`, PR #212)
-- Current focused checkpoint: causal/render object-state arbitration implementation and verification
-- Pull requests: #150 through #212 merged
+- Current focused checkpoint: causal/render object-state arbitration published in PR #213
+- Pull requests: #150 through #212 merged; #213 ready to merge
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
