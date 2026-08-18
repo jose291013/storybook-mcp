@@ -79,6 +79,30 @@ model call, credit event, V2 migration or series-canon change. The next V3 brick
 is the leased step state machine that commits and promotes one artifact exactly
 once across restart and worker concurrency.
 
+## Narrative V3 durable-step state-machine checkpoint
+
+V3 orchestration now has dedicated run, step, ordered-input and immutable commit
+tables. A step names one strict operation and output artifact type, records the
+exact input artifact ids and digests, captures the expected current-pointer
+revision, and is claimable only after all earlier steps in its run complete.
+PostgreSQL workers use expiring leases and `FOR UPDATE SKIP LOCKED`, so one
+active logical step has one owner, only that owner can renew its heartbeat, and
+an expired lease remains recoverable.
+
+A model-backed step may checkpoint one provider response id and cannot replace
+it with another id on retry. Artifact creation and pointer promotion are already
+idempotent: if Render stops after promotion but before the step commit, a new
+worker reuses the same payload artifact, observes the same current pointer and
+records the single immutable commit. A completed step cannot later commit a
+different output. Tests reproduce this exact interruption locally.
+
+The implemented operation vocabulary is intentionally limited to parsing a
+strict StoryConcept and compiling its canonical graph. No HTTP route enqueues
+these runs, no production worker executes them, and no paid model call,
+environment variable, credit event, customer migration or V2 mutation is
+introduced. The next brick defines `CreationIntent.v1` and deterministic server
+mechanics builders before a synthetic-only shadow runner is considered.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

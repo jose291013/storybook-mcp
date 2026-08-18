@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-artifact-ledger`
-- Production/main checkpoint: Narrative V3 strict-contract foundation (`f9bdb84`, PR #216)
-- Current focused checkpoint: append-only Narrative V3 artifact ledger and atomic current pointers; no production route or customer project changed
-- Pull requests: #150 through #216 merged
+- Current branch: `codex/narrative-v3-state-machine`
+- Production/main checkpoint: Narrative V3 append-only artifact ledger (`243455e`, PR #217)
+- Current focused checkpoint: leased Narrative V3 step state machine with idempotent artifact commit; no production route or model enabled
+- Pull requests: #150 through #217 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #216 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #217 are merged on `main`. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,9 +39,30 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: add the central durable V3 step state machine on top
-of the artifact ledger, with leased exactly-once step completion and no model or
-customer route until restart/concurrency tests pass.
+Next verification target: define strict `CreationIntent.v1` and server mechanics
+configuration builders, then run the state machine in synthetic shadow mode
+only. No production customer route or paid model call is authorized yet.
+
+## Product brick: Narrative V3 durable step state machine
+
+1. Dedicated V3 run, step, ordered input and commit tables bind every operation
+   to exact immutable input/output artifact ids and digests.
+2. Workers claim only the earliest unfinished step with a lease and
+   `FOR UPDATE SKIP LOCKED`; a concurrent worker cannot execute the same active
+   step, and only its owner can renew the lease heartbeat.
+3. A model-backed logical step may persist one provider response id. A restart
+   polls that same response instead of creating another paid request.
+4. Artifact creation and pointer promotion remain idempotent. If the process
+   stops after promotion but before step completion, the reclaimed step records
+   the same artifact and pointer revision without duplicating either.
+5. A completed step has one immutable commit; a competing output fails closed.
+   Later steps remain unclaimable until every earlier sequence is complete.
+6. Only `parse_story_concept` and `compile_story_graph` exist, both bound to
+   strict artifact types. The state machine is not connected to HTTP, workers,
+   customer projects or model calls in production.
+
+Verification: 28 focused V3 tests pass, including provider-id idempotence,
+two-worker claiming and crash recovery after artifact promotion.
 
 ## Product brick: Narrative V3 append-only artifact ledger
 
@@ -420,7 +441,8 @@ Verification: 129 focused scenario/worker tests and the complete 552-test suite 
 - Focused scenario transaction, compiler and recovery tests: 94/94 passing.
 - Narrative V3 foundation tests: 13/13 passing.
 - Narrative V3 foundation and artifact-ledger tests: 22/22 passing.
-- Complete `npm test`: 576/576 passing.
+- Narrative V3 foundation, ledger and state-machine tests: 28/28 passing.
+- Complete `npm test`: 582/582 passing.
 - Production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
