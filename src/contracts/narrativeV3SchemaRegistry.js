@@ -20,12 +20,14 @@ export const storyConceptSchema = readSchema("storyConcept.v1.schema.json");
 export const canonicalStoryGraphSchema = readSchema("canonicalStoryGraph.v1.schema.json");
 export const canonicalStoryMechanicsSchema = readSchema("canonicalStoryMechanics.v1.schema.json");
 export const creationIntentSchema = readSchema("creationIntent.v1.schema.json");
+export const narrativeBookSpecV2Schema = readSchema("narrativeBookSpec.v2.schema.json");
 
 ajv.addSchema(creationIntentSchema);
 ajv.addSchema(storyConceptWireSchema);
 ajv.addSchema(storyConceptSchema);
 ajv.addSchema(canonicalStoryGraphSchema);
 ajv.addSchema(canonicalStoryMechanicsSchema);
+ajv.addSchema(narrativeBookSpecV2Schema);
 
 const validators = new Map([
   ["creation_intent", ajv.getSchema(creationIntentSchema.$id)],
@@ -33,6 +35,7 @@ const validators = new Map([
   ["story_concept", ajv.getSchema(storyConceptSchema.$id)],
   ["canonical_story_graph", ajv.getSchema(canonicalStoryGraphSchema.$id)],
   ["canonical_story_mechanics", ajv.getSchema(canonicalStoryMechanicsSchema.$id)],
+  ["narrative_book_spec_v2", ajv.getSchema(narrativeBookSpecV2Schema.$id)],
 ]);
 
 function boundedErrors(errors = []) {

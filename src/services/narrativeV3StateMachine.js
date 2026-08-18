@@ -13,6 +13,7 @@ const KEY_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const STEP_TYPES = Object.freeze({
   parse_story_concept: "story_concept",
   compile_story_graph: "canonical_story_graph",
+  release_narrative_book_spec: "narrative_book_spec",
 });
 
 function now() {
@@ -64,7 +65,11 @@ function normalizeRun(input = {}) {
     const stepType = String(step?.stepType || "");
     if (!STEP_TYPES[stepType]) throw new NarrativeV3StateError("step_type_unsupported", "The step type has no strict artifact output.");
     const inputs = normalizeInputs(step.inputs);
-    const expectedInputs = stepType === "compile_story_graph" ? ["story_concept"] : ["creation_intent"];
+    const expectedInputs = stepType === "compile_story_graph"
+      ? ["story_concept"]
+      : stepType === "release_narrative_book_spec"
+        ? ["creation_intent", "canonical_story_graph"]
+        : ["creation_intent"];
     if (inputs.length !== expectedInputs.length || inputs.some((entry, inputIndex) => entry.artifactType !== expectedInputs[inputIndex])) {
       throw new NarrativeV3StateError("invalid_step_inputs", "The step does not have its exact ordered artifact inputs.");
     }

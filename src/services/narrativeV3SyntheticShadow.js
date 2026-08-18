@@ -8,6 +8,7 @@ import {
   compileCanonicalStoryGraph,
   parseStoryConceptWire,
 } from "../contracts/narrativeV3Canonical.js";
+import { compileNarrativeBookSpecV2 } from "../contracts/narrativeBookSpecV2.js";
 import { NarrativeV3StateMachine } from "./narrativeV3StateMachine.js";
 
 export const NARRATIVE_V3_SYNTHETIC_SHADOW_VERSION = 1;
@@ -145,7 +146,16 @@ export function buildNarrativeV3SyntheticFixture(rawFixture = {}) {
     },
     beats,
   });
-  return Object.freeze({ fixture, intent, concept });
+  const profileBindings = intent.cast.map((entry, index) => ({
+    characterKey: entry.characterKey,
+    profileRef: entry.profileRef,
+    profileRevision: 1,
+    profileDigest: canonicalDigest({ fixtureId: fixture.fixtureId, characterKey: entry.characterKey, kind: "profile" }),
+    displayName: `Synthetic ${index + 1}`,
+    visualIdentityRef: `synthetic-identity:${entry.characterKey}`,
+    visualIdentityDigest: canonicalDigest({ fixtureId: fixture.fixtureId, characterKey: entry.characterKey, kind: "visual-identity" }),
+  }));
+  return Object.freeze({ fixture, intent, concept, profileBindings });
 }
 
 async function ensureRootIntent({ artifactStore, projectId, intent }) {
@@ -165,8 +175,14 @@ async function ensureRootIntent({ artifactStore, projectId, intent }) {
   return result.artifact;
 }
 
-async function commitSyntheticStep({ machine, runStore, artifactStore, projectId, runKey, stepKey, stepType, inputArtifact, payload }) {
-  const pointer = await artifactStore.getCurrentPointer(projectId, stepType === "parse_story_concept" ? "story_concept" : "canonical_story_graph");
+async function commitSyntheticStep({ machine, runStore, artifactStore, projectId, runKey, stepKey, stepType, inputArtifacts, payload }) {
+  const outputTypes = {
+    parse_story_concept: "story_concept",
+    compile_story_graph: "canonical_story_graph",
+    release_narrative_book_spec: "narrative_book_spec",
+  };
+  const outputType = outputTypes[stepType];
+  const pointer = await artifactStore.getCurrentPointer(projectId, outputType);
   const queued = await machine.enqueue({
     projectId,
     runKey,
@@ -174,7 +190,7 @@ async function commitSyntheticStep({ machine, runStore, artifactStore, projectId
       stepKey,
       stepType,
       expectedPointerRevision: Number(pointer?.pointerRevision || 0),
-      inputs: [artifactRef(inputArtifact)],
+      inputs: inputArtifacts.map(artifactRef),
       maxAttempts: 1,
     }],
   });
@@ -198,7 +214,6 @@ async function commitSyntheticStep({ machine, runStore, artifactStore, projectId
       },
     });
   }
-  const outputType = stepType === "parse_story_concept" ? "story_concept" : "canonical_story_graph";
   const current = await artifactStore.getCurrentPointer(projectId, outputType);
   if (!current) throw new Error("synthetic_shadow_output_pointer_missing");
   return artifactStore.getArtifact(current.artifactId);
@@ -211,7 +226,7 @@ export async function runNarrativeV3SyntheticShadowFixture({
   fixture: rawFixture,
 } = {}) {
   if (!artifactStore || !runStore) throw new Error("synthetic_shadow_local_stores_required");
-  const { fixture, intent, concept } = buildNarrativeV3SyntheticFixture(rawFixture);
+  const { fixture, intent, concept, profileBindings } = buildNarrativeV3SyntheticFixture(rawFixture);
   const machine = new NarrativeV3StateMachine({ artifactStore, runStore });
   const intentArtifact = await ensureRootIntent({ artifactStore, projectId, intent });
   const conceptArtifact = await commitSyntheticStep({
@@ -222,7 +237,7 @@ export async function runNarrativeV3SyntheticShadowFixture({
     runKey: `${fixture.fixtureId}-concept-v1`,
     stepKey: "parse-concept",
     stepType: "parse_story_concept",
-    inputArtifact: intentArtifact,
+    inputArtifacts: [intentArtifact],
     payload: concept,
   });
   const mechanics = buildCanonicalStoryMechanics({ intent, concept });
@@ -235,8 +250,20 @@ export async function runNarrativeV3SyntheticShadowFixture({
     runKey: `${fixture.fixtureId}-graph-v1`,
     stepKey: "compile-graph",
     stepType: "compile_story_graph",
-    inputArtifact: conceptArtifact,
+    inputArtifacts: [conceptArtifact],
     payload: graph,
+  });
+  const releaseSpec = compileNarrativeBookSpecV2({ intent, graph, profileBindings });
+  const releaseArtifact = await commitSyntheticStep({
+    machine,
+    runStore,
+    artifactStore,
+    projectId,
+    runKey: `${fixture.fixtureId}-release-v1`,
+    stepKey: "release-spec",
+    stepType: "release_narrative_book_spec",
+    inputArtifacts: [intentArtifact, graphArtifact],
+    payload: releaseSpec,
   });
   const actCounts = Object.fromEntries([1, 2, 3].map((act) => [act, graph.scenes.filter((scene) => scene.act === act).length]));
   const movementCounts = graph.scenes.reduce((counts, scene) => {
@@ -256,6 +283,7 @@ export async function runNarrativeV3SyntheticShadowFixture({
       creationIntent: intentArtifact.payloadDigest,
       storyConcept: conceptArtifact.payloadDigest,
       canonicalStoryGraph: graphArtifact.payloadDigest,
+      narrativeBookSpec: releaseArtifact.payloadDigest,
     },
     providerCalls: 0,
     paidModelCalls: 0,

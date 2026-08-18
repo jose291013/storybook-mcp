@@ -38,7 +38,7 @@ test("synthetic shadow runs the real ledger and state machine without provider o
     assert.equal(report.providerCalls, 0);
     assert.equal(report.paidModelCalls, 0);
     assert.equal(report.customerRoutesTouched, false);
-    assert.deepEqual(Object.keys(report.artifactDigests), ["creationIntent", "storyConcept", "canonicalStoryGraph"]);
+    assert.deepEqual(Object.keys(report.artifactDigests), ["creationIntent", "storyConcept", "canonicalStoryGraph", "narrativeBookSpec"]);
     assert.doesNotMatch(JSON.stringify(report), /synthetic-profile|Le chemin|Moment narratif/);
   });
 });
@@ -56,8 +56,8 @@ test("replaying one fixture is artifact and pointer idempotent", async () => {
     const replay = await runNarrativeV3SyntheticShadowFixture(input);
 
     assert.deepEqual(replay, first);
-    assert.equal((await artifactStore.listArtifacts(projectId)).length, 3);
-    for (const artifactType of ["creation_intent", "story_concept", "canonical_story_graph"]) {
+    assert.equal((await artifactStore.listArtifacts(projectId)).length, 4);
+    for (const artifactType of ["creation_intent", "story_concept", "canonical_story_graph", "narrative_book_spec"]) {
       assert.equal((await artifactStore.getCurrentPointer(projectId, artifactType)).pointerRevision, 1);
     }
   });

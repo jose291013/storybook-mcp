@@ -157,7 +157,7 @@ function provenance(producer = "server_parser") {
   return { producer, producerVersion: "v1", runId: "synthetic-run-1", stepId: "concept" };
 }
 
-function intent() {
+function intent(questionnaireDigest = "a".repeat(64)) {
   return buildCreationIntent({
     language: "FR",
     audienceAge: 8,
@@ -172,7 +172,7 @@ function intent() {
     ],
     seriesRef: null,
     previousCanonDigest: null,
-    questionnaireDigest: "a".repeat(64),
+    questionnaireDigest,
     safetyAssessmentDigest: "b".repeat(64),
   });
 }
@@ -253,6 +253,43 @@ test("CreationIntent is the immutable root parent of every StoryConcept", async 
         provenance: provenance(),
       }),
       (error) => error instanceof NarrativeV3ArtifactStoreError && error.code === "artifact_parent_contract_invalid",
+    );
+  });
+});
+
+test("identical payload content cannot silently reuse a different immutable lineage", async () => {
+  await withStore(async (store) => {
+    const projectId = crypto.randomUUID();
+    const firstIntent = (await store.createArtifact({
+      projectId,
+      artifactType: "creation_intent",
+      payload: intent("a".repeat(64)),
+      provenance: provenance("server_intent_builder"),
+    })).artifact;
+    const secondIntent = (await store.createArtifact({
+      projectId,
+      artifactType: "creation_intent",
+      payload: intent("c".repeat(64)),
+      provenance: provenance("server_intent_builder"),
+    })).artifact;
+    const payload = parseStoryConceptWire(wireConcept());
+    await store.createArtifact({
+      projectId,
+      artifactType: "story_concept",
+      payload,
+      parents: [parentRef(firstIntent)],
+      provenance: provenance(),
+    });
+
+    await assert.rejects(
+      store.createArtifact({
+        projectId,
+        artifactType: "story_concept",
+        payload,
+        parents: [parentRef(secondIntent)],
+        provenance: provenance(),
+      }),
+      (error) => error instanceof NarrativeV3ArtifactStoreError && error.code === "artifact_lineage_conflict",
     );
   });
 });

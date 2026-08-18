@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/narrative-book-spec.v2.json",
+  "title": "Calitiki Narrative Book Spec V2",
+  "description": "Immutable released book contract compiled from one CreationIntent and one CanonicalStoryGraph.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "book", "title", "premise", "registries", "scenes", "pages", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "contractId": { "const": "calitiki.narrative-book-spec.v2" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": { "$ref": "#/$defs/sources" },
+    "book": { "$ref": "#/$defs/book" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "premise": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "registries": { "$ref": "#/$defs/registries" },
+    "scenes": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 21,
+      "items": { "$ref": "#/$defs/releasedScene" }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 44,
+      "items": { "$ref": "#/$defs/page" }
+    },
+    "validation": { "$ref": "#/$defs/validation" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "reference": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,191}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "schemaVersion": { "type": "integer", "minimum": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["creationIntent", "canonicalStoryGraph"],
+      "properties": {
+        "creationIntent": { "$ref": "#/$defs/source" },
+        "canonicalStoryGraph": { "$ref": "#/$defs/source" }
+      }
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "audienceAge", "readingBand", "pageCount", "universeId", "openingPageNumber", "closingPageNumber"],
+      "properties": {
+        "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+        "audienceAge": { "type": "integer", "minimum": 2, "maximum": 14 },
+        "readingBand": { "type": "string", "enum": ["read_aloud", "emergent", "independent", "upper_middle"] },
+        "pageCount": { "type": "integer", "enum": [24, 28, 32, 36, 40, 44] },
+        "universeId": { "$ref": "#/$defs/identifier" },
+        "openingPageNumber": { "const": 1 },
+        "closingPageNumber": { "type": "integer", "minimum": 24, "maximum": 44 }
+      }
+    },
+    "registries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characters", "locations", "objects", "passages"],
+      "properties": {
+        "characters": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/releasedCharacter" }
+        },
+        "locations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 30,
+          "items": { "$ref": "#/$defs/releasedLocation" }
+        },
+        "objects": {
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/object" }
+        },
+        "passages": {
+          "type": "array",
+          "maxItems": 10,
+          "items": { "$ref": "#/$defs/releasedPassage" }
+        }
+      }
+    },
+    "releasedCharacter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "characterKey", "displayName", "role", "kind", "initialLocationId", "profileRef", "profileRevision", "profileDigest", "visualIdentityRef", "visualIdentityDigest"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "characterKey": { "$ref": "#/$defs/identifier" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "role": { "type": "string", "enum": ["hero", "guide", "family", "companion", "peer"] },
+        "kind": { "type": "string", "enum": ["human", "animal", "fantasy"] },
+        "initialLocationId": { "$ref": "#/$defs/identifier" },
+        "profileRef": { "$ref": "#/$defs/reference" },
+        "profileRevision": { "type": "integer", "minimum": 1 },
+        "profileDigest": { "$ref": "#/$defs/digest" },
+        "visualIdentityRef": { "$ref": "#/$defs/reference" },
+        "visualIdentityDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "releasedLocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind", "physicalMediumId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "kind": { "type": "string", "enum": ["origin", "adventure", "transition"] },
+        "physicalMediumId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "releasedPassage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "sideALocationId", "sideBLocationId", "transitionMediumId"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "sideALocationId": { "$ref": "#/$defs/identifier" },
+        "sideBLocationId": { "$ref": "#/$defs/identifier" },
+        "transitionMediumId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "pageBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["spreadNumber", "textPageNumber", "imagePageNumber", "textSide", "imageSide"],
+      "properties": {
+        "spreadNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "textPageNumber": { "type": "integer", "minimum": 2, "maximum": 43 },
+        "imagePageNumber": { "type": "integer", "minimum": 2, "maximum": 43 },
+        "textSide": { "type": "string", "enum": ["left", "right"] },
+        "imageSide": { "type": "string", "enum": ["left", "right"] }
+      }
+    },
+    "illustrationInstant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visiblePhase", "locationId", "physicalMediumId", "visibleCharacterIds", "forbiddenCharacterIds", "wardrobeStates", "objectEvents", "mainAction"],
+      "properties": {
+        "visiblePhase": { "type": "string", "enum": ["start", "during", "end"] },
+        "locationId": { "$ref": "#/$defs/identifier" },
+        "physicalMediumId": { "$ref": "#/$defs/identifier" },
+        "visibleCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "forbiddenCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "wardrobeStates": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" } },
+        "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
+        "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" }
+      }
+    },
+    "releasedScene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "sceneNumber", "act", "sourceSceneDigest", "pageBinding", "semantic", "timeline", "presences", "movements", "objectEvents", "illustrationInstant"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "act": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "sourceSceneDigest": { "$ref": "#/$defs/digest" },
+        "pageBinding": { "$ref": "#/$defs/pageBinding" },
+        "semantic": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/semanticBeat" },
+        "timeline": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/timeline" },
+        "presences": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/presence" } },
+        "movements": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/movement" } },
+        "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
+        "illustrationInstant": { "$ref": "#/$defs/illustrationInstant" }
+      }
+    },
+    "page": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pageNumber", "spreadNumber", "side", "kind"],
+          "properties": {
+            "pageNumber": { "const": 1 },
+            "spreadNumber": { "const": 0 },
+            "side": { "const": "right" },
+            "kind": { "const": "opening_text" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pageNumber", "spreadNumber", "side", "kind", "sceneId", "sceneNumber", "sourceSceneDigest"],
+          "properties": {
+            "pageNumber": { "type": "integer", "minimum": 2, "maximum": 43 },
+            "spreadNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+            "side": { "type": "string", "enum": ["left", "right"] },
+            "kind": { "type": "string", "enum": ["scene_text", "scene_image"] },
+            "sceneId": { "$ref": "#/$defs/identifier" },
+            "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+            "sourceSceneDigest": { "$ref": "#/$defs/digest" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pageNumber", "spreadNumber", "side", "kind"],
+          "properties": {
+            "pageNumber": { "type": "integer", "minimum": 24, "maximum": 44 },
+            "spreadNumber": { "type": "integer", "minimum": 12, "maximum": 22 },
+            "side": { "const": "left" },
+            "kind": { "const": "closing_text" }
+          }
+        }
+      ]
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
