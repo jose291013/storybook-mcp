@@ -103,6 +103,32 @@ environment variable, credit event, customer migration or V2 mutation is
 introduced. The next brick defines `CreationIntent.v1` and deterministic server
 mechanics builders before a synthetic-only shadow runner is considered.
 
+## Narrative V3 canonical creation-intent checkpoint
+
+`CreationIntent.v1` is the parentless root of the V3 artifact chain. It is built
+by the server from already-authorized stable identifiers and digests, not by a
+creative model. Its strict payload records language, audience age and derived
+reading band, supported page count, selected universe, narrative-goal and
+approach identifiers, sensitivity level, bounded character/profile references,
+optional series continuity references, and digests of the questionnaire and
+safety assessment. It contains no generated topology, movement, presence,
+object, wardrobe or page mechanics.
+
+The builder rejects unknown fields, free customer prose, unsupported formats,
+duplicate character keys and any cast without exactly one hero. Names, photos
+and raw questionnaire answers are deliberately absent: the immutable artifact
+uses only opaque private references. A sealed intent is digest-verified on every
+load and cannot be normalized or repaired.
+
+The V3 ledger and PostgreSQL type constraints now include the new root type.
+Every new StoryConcept has exactly one direct `creation_intent` parent, while a
+canonical graph still has exactly one StoryConcept parent. The leased
+`parse_story_concept` step consumes that exact intent id and digest; no implicit
+project aggregate is consulted during commit or retry. This remains isolated
+from production routes, V2 projects, credits, series canon and paid model calls.
+The next brick is the pure deterministic server-mechanics builder, followed by
+a synthetic-only shadow runner.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

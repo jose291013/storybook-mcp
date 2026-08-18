@@ -9,6 +9,7 @@ import {
   compileCanonicalStoryGraph,
   parseStoryConceptWire,
 } from "../src/contracts/narrativeV3Canonical.js";
+import { buildCreationIntent } from "../src/contracts/creationIntent.js";
 import {
   JsonNarrativeV3ArtifactStore,
   NarrativeV3ArtifactStoreError,
@@ -156,6 +157,55 @@ function provenance(producer = "server_parser") {
   return { producer, producerVersion: "v1", runId: "synthetic-run-1", stepId: "concept" };
 }
 
+function intent() {
+  return buildCreationIntent({
+    language: "FR",
+    audienceAge: 8,
+    pageCount: 24,
+    universeId: "luminous_valley",
+    intentionId: "learn_by_trying",
+    approachId: "two_paths",
+    sensitivityLevel: 1,
+    castRefs: [
+      { characterKey: "hero", profileRef: "profile:hero", role: "hero", kind: "human" },
+      { characterKey: "guide", profileRef: "profile:guide", role: "guide", kind: "human" },
+    ],
+    seriesRef: null,
+    previousCanonDigest: null,
+    questionnaireDigest: "a".repeat(64),
+    safetyAssessmentDigest: "b".repeat(64),
+  });
+}
+
+function parentRef(artifact) {
+  return {
+    artifactId: artifact.id,
+    artifactType: artifact.artifactType,
+    payloadDigest: artifact.payloadDigest,
+  };
+}
+
+async function ensureIntent(store, projectId) {
+  return (await store.createArtifact({
+    projectId,
+    artifactType: "creation_intent",
+    payload: intent(),
+    provenance: provenance("server_intent_builder"),
+  })).artifact;
+}
+
+async function createConcept(store, projectId, payload, extra = {}) {
+  const intentRecord = await ensureIntent(store, projectId);
+  return store.createArtifact({
+    projectId,
+    artifactType: "story_concept",
+    payload,
+    parents: [parentRef(intentRecord)],
+    provenance: provenance(),
+    ...extra,
+  });
+}
+
 async function withStore(run) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-v3-artifacts-"));
   const filePath = path.join(directory, "artifacts.json");
@@ -170,14 +220,9 @@ test("append-only StoryConcept creation is idempotent and allocates revisions", 
   await withStore(async (store) => {
     const projectId = crypto.randomUUID();
     const concept = parseStoryConceptWire(wireConcept());
-    const first = await store.createArtifact({ projectId, artifactType: "story_concept", payload: concept, provenance: provenance() });
-    const replay = await store.createArtifact({ projectId, artifactType: "story_concept", payload: concept, provenance: provenance() });
-    const second = await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept("Le vallon des deux chemins")),
-      provenance: provenance(),
-    });
+    const first = await createConcept(store, projectId, concept);
+    const replay = await createConcept(store, projectId, concept);
+    const second = await createConcept(store, projectId, parseStoryConceptWire(wireConcept("Le vallon des deux chemins")));
 
     assert.equal(first.created, true);
     assert.equal(replay.created, false);
@@ -189,16 +234,34 @@ test("append-only StoryConcept creation is idempotent and allocates revisions", 
   });
 });
 
+test("CreationIntent is the immutable root parent of every StoryConcept", async () => {
+  await withStore(async (store) => {
+    const projectId = crypto.randomUUID();
+    const root = await ensureIntent(store, projectId);
+    const conceptRecord = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept()))).artifact;
+
+    assert.equal(root.artifactType, "creation_intent");
+    assert.deepEqual(root.parents, []);
+    assert.equal(conceptRecord.parents.length, 1);
+    assert.deepEqual(conceptRecord.parents[0], parentRef(root));
+    await assert.rejects(
+      store.createArtifact({
+        projectId,
+        artifactType: "story_concept",
+        payload: parseStoryConceptWire(wireConcept("Concept sans intention")),
+        parents: [],
+        provenance: provenance(),
+      }),
+      (error) => error instanceof NarrativeV3ArtifactStoreError && error.code === "artifact_parent_contract_invalid",
+    );
+  });
+});
+
 test("a canonical graph can be stored only behind its exact persisted concept parent", async () => {
   await withStore(async (store) => {
     const projectId = crypto.randomUUID();
     const concept = parseStoryConceptWire(wireConcept());
-    const conceptRecord = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: concept,
-      provenance: provenance(),
-    })).artifact;
+    const conceptRecord = (await createConcept(store, projectId, concept)).artifact;
     const graph = compileCanonicalStoryGraph({ concept, mechanics: mechanics() });
     const graphRecord = await store.createArtifact({
       projectId,
@@ -249,18 +312,8 @@ test("a missing, foreign or digest-mismatched graph parent fails closed", async 
 test("concurrent compare-and-set promotion has exactly one winner", async () => {
   await withStore(async (store) => {
     const projectId = crypto.randomUUID();
-    const first = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept("Premier concept")),
-      provenance: provenance(),
-    })).artifact;
-    const second = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept("Concept concurrent")),
-      provenance: provenance(),
-    })).artifact;
+    const first = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept("Premier concept")))).artifact;
+    const second = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept("Concept concurrent")))).artifact;
     const results = await Promise.all([
       store.promoteArtifact({ projectId, artifactType: "story_concept", artifactId: first.id, expectedPointerRevision: 0 }),
       store.promoteArtifact({ projectId, artifactType: "story_concept", artifactId: second.id, expectedPointerRevision: 0 }),
@@ -287,18 +340,8 @@ test("concurrent compare-and-set promotion has exactly one winner", async () => 
 test("a current pointer can advance but can never roll back to an older artifact revision", async () => {
   await withStore(async (store) => {
     const projectId = crypto.randomUUID();
-    const older = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept("Ancienne version")),
-      provenance: provenance(),
-    })).artifact;
-    const newer = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept("Nouvelle version")),
-      provenance: provenance(),
-    })).artifact;
+    const older = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept("Ancienne version")))).artifact;
+    const newer = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept("Nouvelle version")))).artifact;
     const first = await store.promoteArtifact({
       projectId,
       artifactType: "story_concept",
@@ -322,35 +365,20 @@ test("a current pointer can advance but can never roll back to an older artifact
 test("restart replay preserves exact artifacts and the current pointer", async () => {
   await withStore(async (store, filePath) => {
     const projectId = crypto.randomUUID();
-    const artifact = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept()),
-      provenance: provenance(),
-    })).artifact;
+    const artifact = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept()))).artifact;
     await store.promoteArtifact({ projectId, artifactType: "story_concept", artifactId: artifact.id, expectedPointerRevision: 0 });
 
     const restarted = new JsonNarrativeV3ArtifactStore(filePath);
     assert.deepEqual(await restarted.getArtifact(artifact.id), artifact);
     assert.equal((await restarted.getCurrentPointer(projectId, "story_concept")).artifactDigest, artifact.payloadDigest);
-    assert.equal((await restarted.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: artifact.payload,
-      provenance: provenance(),
-    })).created, false);
+    assert.equal((await createConcept(restarted, projectId, artifact.payload)).created, false);
   });
 });
 
 test("a persisted payload corruption is rejected on load instead of normalized", async () => {
   await withStore(async (store, filePath) => {
     const projectId = crypto.randomUUID();
-    const artifact = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept()),
-      provenance: provenance(),
-    })).artifact;
+    const artifact = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept()))).artifact;
     const ledger = JSON.parse(await fs.readFile(filePath, "utf8"));
     ledger.artifacts[artifact.id].payload.title = "Titre modifié après scellement";
     await fs.writeFile(filePath, JSON.stringify(ledger), "utf8");
@@ -363,21 +391,19 @@ test("a persisted payload corruption is rejected on load instead of normalized",
 test("rejected artifacts and unbounded provenance cannot be promoted or persisted", async () => {
   await withStore(async (store) => {
     const projectId = crypto.randomUUID();
+    const intentRecord = await ensureIntent(store, projectId);
     await assert.rejects(
       store.createArtifact({
         projectId,
         artifactType: "story_concept",
         payload: parseStoryConceptWire(wireConcept()),
+        parents: [parentRef(intentRecord)],
         provenance: { ...provenance(), customerText: "private" },
       }),
       (error) => error instanceof NarrativeV3ArtifactStoreError && error.code === "invalid_provenance",
     );
-    const rejected = (await store.createArtifact({
-      projectId,
-      artifactType: "story_concept",
-      payload: parseStoryConceptWire(wireConcept()),
+    const rejected = (await createConcept(store, projectId, parseStoryConceptWire(wireConcept()), {
       state: "rejected",
-      provenance: provenance(),
     })).artifact;
     await assert.rejects(
       store.promoteArtifact({ projectId, artifactType: "story_concept", artifactId: rejected.id, expectedPointerRevision: 0 }),
@@ -388,6 +414,7 @@ test("rejected artifacts and unbounded provenance cannot be promoted or persiste
 
 test("PostgreSQL migration enforces immutable ancestry and CAS pointer integrity", async () => {
   const migration = await fs.readFile("db/migrations/016_narrative_v3_artifacts.sql", "utf8");
+  const intentMigration = await fs.readFile("db/migrations/018_narrative_v3_creation_intent.sql", "utf8");
   const implementation = await fs.readFile("src/services/narrativeV3ArtifactStore.js", "utf8");
 
   assert.match(migration, /CREATE TABLE IF NOT EXISTS narrative_artifacts/);
@@ -396,6 +423,7 @@ test("PostgreSQL migration enforces immutable ancestry and CAS pointer integrity
   assert.match(migration, /FOREIGN KEY \(parent_artifact_id, project_id, parent_digest\)/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS narrative_project_pointers/);
   assert.match(migration, /FOREIGN KEY \(artifact_id, project_id, artifact_type, artifact_digest, artifact_revision\)/);
+  assert.match(intentMigration, /'creation_intent','story_concept','canonical_story_graph'/);
   assert.match(implementation, /SELECT id FROM book_projects WHERE id=\$1 FOR UPDATE/);
   assert.match(implementation, /pointer_revision=\$6 RETURNING/);
   assert.match(implementation, /ON CONFLICT \(project_id,artifact_type\) DO NOTHING RETURNING/);

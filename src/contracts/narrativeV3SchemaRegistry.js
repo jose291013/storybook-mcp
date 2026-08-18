@@ -19,13 +19,16 @@ export const storyConceptWireSchema = readSchema("storyConceptWire.v1.schema.jso
 export const storyConceptSchema = readSchema("storyConcept.v1.schema.json");
 export const canonicalStoryGraphSchema = readSchema("canonicalStoryGraph.v1.schema.json");
 export const canonicalStoryMechanicsSchema = readSchema("canonicalStoryMechanics.v1.schema.json");
+export const creationIntentSchema = readSchema("creationIntent.v1.schema.json");
 
+ajv.addSchema(creationIntentSchema);
 ajv.addSchema(storyConceptWireSchema);
 ajv.addSchema(storyConceptSchema);
 ajv.addSchema(canonicalStoryGraphSchema);
 ajv.addSchema(canonicalStoryMechanicsSchema);
 
 const validators = new Map([
+  ["creation_intent", ajv.getSchema(creationIntentSchema.$id)],
   ["story_concept_wire", ajv.getSchema(storyConceptWireSchema.$id)],
   ["story_concept", ajv.getSchema(storyConceptSchema.$id)],
   ["canonical_story_graph", ajv.getSchema(canonicalStoryGraphSchema.$id)],

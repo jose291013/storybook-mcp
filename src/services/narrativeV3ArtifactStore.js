@@ -12,6 +12,12 @@ import {
   loadStoryConcept,
   storyConceptDigest,
 } from "../contracts/narrativeV3Canonical.js";
+import {
+  CREATION_INTENT_ID,
+  CREATION_INTENT_VERSION,
+  creationIntentDigest,
+  loadCreationIntent,
+} from "../contracts/creationIntent.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -22,12 +28,19 @@ const ARTIFACT_STATES = new Set(["sealed", "accepted", "rejected", "quarantined"
 const PROMOTABLE_ARTIFACT_STATES = new Set(["sealed", "accepted"]);
 
 const ARTIFACT_DEFINITIONS = Object.freeze({
+  creation_intent: Object.freeze({
+    contractId: CREATION_INTENT_ID,
+    schemaVersion: CREATION_INTENT_VERSION,
+    load: loadCreationIntent,
+    digest: creationIntentDigest,
+    parentTypes: Object.freeze([]),
+  }),
   story_concept: Object.freeze({
     contractId: STORY_CONCEPT_ID,
     schemaVersion: STORY_CONCEPT_VERSION,
     load: loadStoryConcept,
     digest: storyConceptDigest,
-    parentTypes: Object.freeze([]),
+    parentTypes: Object.freeze(["creation_intent"]),
   }),
   canonical_story_graph: Object.freeze({
     contractId: CANONICAL_STORY_GRAPH_ID,

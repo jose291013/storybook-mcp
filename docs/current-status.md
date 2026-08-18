@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-state-machine`
-- Production/main checkpoint: Narrative V3 append-only artifact ledger (`243455e`, PR #217)
-- Current focused checkpoint: leased Narrative V3 step state machine with idempotent artifact commit; no production route or model enabled
-- Pull requests: #150 through #217 merged
+- Current branch: `codex/narrative-v3-creation-intent`
+- Production/main checkpoint: Narrative V3 durable step state machine (`4e04eda`, PR #218)
+- Current focused checkpoint: strict `CreationIntent.v1` root artifact and exact intent-to-concept ancestry; no production route or model enabled
+- Pull requests: #150 through #218 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
@@ -39,9 +39,34 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: define strict `CreationIntent.v1` and server mechanics
-configuration builders, then run the state machine in synthetic shadow mode
-only. No production customer route or paid model call is authorized yet.
+Next verification target: complete and merge strict `CreationIntent.v1`, then
+define deterministic server mechanics configuration builders before running the
+state machine in synthetic shadow mode only. No production customer route or
+paid model call is authorized yet.
+
+## Product brick: Narrative V3 canonical creation intent
+
+1. `CreationIntent.v1` is a strict immutable server artifact containing only
+   language, age/reading band, supported format, universe and narrative-goal
+   identifiers, bounded profile references, continuity references and source
+   digests.
+2. The constructor deterministically derives the reading band and rejects
+   unsupported pages, duplicate character keys, missing/multiple heroes,
+   generated mechanics, customer prose and unknown fields.
+3. Names, photos and questionnaire text never enter the artifact; only opaque
+   private profile references and SHA-256 source digests are persisted.
+4. The artifact ledger accepts `creation_intent` as a parentless root. Every new
+   `story_concept` must name exactly that root as its immutable direct parent.
+5. The `parse_story_concept` state-machine step now consumes the exact intent
+   artifact id and digest. Step inputs are translated explicitly to ledger
+   parent digests during idempotent commit.
+6. Migration 018 expands only the isolated V3 artifact/pointer type checks. No
+   customer route, V2 project, credit, series canon, environment variable or
+   model call is changed.
+
+Verification: 34 focused V3 tests and the complete 588-test suite pass,
+including strict privacy boundaries, digest tamper detection, exact intent
+ancestry and restart after promotion.
 
 ## Product brick: Narrative V3 durable step state machine
 
