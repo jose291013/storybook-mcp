@@ -24,6 +24,12 @@ import {
   loadNarrativeBookSpecV2,
   narrativeBookSpecV2Digest,
 } from "../contracts/narrativeBookSpecV2.js";
+import {
+  OBJECT_LIFECYCLE_PROJECTION_ID,
+  OBJECT_LIFECYCLE_PROJECTION_VERSION,
+  loadObjectLifecycleProjection,
+  objectLifecycleProjectionDigest,
+} from "../contracts/objectLifecycleProjection.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -54,6 +60,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadCanonicalStoryGraph,
     digest: canonicalStoryGraphDigest,
     parentTypes: Object.freeze(["story_concept"]),
+  }),
+  object_lifecycle_projection: Object.freeze({
+    contractId: OBJECT_LIFECYCLE_PROJECTION_ID,
+    schemaVersion: OBJECT_LIFECYCLE_PROJECTION_VERSION,
+    load: loadObjectLifecycleProjection,
+    digest: objectLifecycleProjectionDigest,
+    parentTypes: Object.freeze(["canonical_story_graph"]),
   }),
   narrative_book_spec: Object.freeze({
     contractId: NARRATIVE_BOOK_SPEC_V2_ID,
@@ -159,6 +172,12 @@ function validateArtifactInput(input = {}) {
     && parents[0]?.payloadDigest !== payload.sourceConcept.artifactDigest
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The graph parent does not match its declared source concept digest.");
+  }
+  if (
+    artifactType === "object_lifecycle_projection"
+    && parents[0]?.payloadDigest !== payload.sourceGraph.artifactDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The object projection parent does not match its declared source graph digest.");
   }
   if (
     artifactType === "narrative_book_spec"

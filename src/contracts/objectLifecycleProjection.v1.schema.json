@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/object-lifecycle-projection.v1.json",
+  "title": "Calitiki deterministic object lifecycle projection",
+  "description": "Immutable quantity, ownership, location and illustration visibility derived from one canonical story graph.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sourceGraph", "objects", "scenes", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.object-lifecycle-projection.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sourceGraph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.canonical-story-graph.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "objects": {
+      "type": "array",
+      "maxItems": 30,
+      "items": { "$ref": "#/$defs/objectProjection" }
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/sceneProjection" }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "nullableIdentifier": {
+      "anyOf": [
+        { "$ref": "#/$defs/identifier" },
+        { "type": "null" }
+      ]
+    },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "objectState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["objectId", "stateId", "quantity", "ownerCharacterId", "locationId", "visibility", "visibilityReason"],
+      "properties": {
+        "objectId": { "$ref": "#/$defs/identifier" },
+        "stateId": { "$ref": "#/$defs/identifier" },
+        "quantity": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "ownerCharacterId": { "$ref": "#/$defs/nullableIdentifier" },
+        "locationId": { "$ref": "#/$defs/nullableIdentifier" },
+        "visibility": { "type": "string", "enum": ["required", "forbidden"] },
+        "visibilityReason": {
+          "type": "string",
+          "enum": ["event_scene", "visible_owner", "owner_off_camera", "fixture_at_location", "different_location", "not_introduced", "consumed"]
+        }
+      }
+    },
+    "objectProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "kind", "initialState"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "kind": { "type": "string", "enum": ["fixture", "portable", "symbol", "consumable"] },
+        "initialState": { "$ref": "#/$defs/objectState" }
+      }
+    },
+    "sceneProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sceneNumber", "sourceSceneDigest", "eventDigest", "states"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 24 },
+        "sourceSceneDigest": { "$ref": "#/$defs/digest" },
+        "eventDigest": { "$ref": "#/$defs/digest" },
+        "states": {
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "#/$defs/objectState" }
+        }
+      }
+    }
+  }
+}

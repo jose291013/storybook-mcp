@@ -213,6 +213,41 @@ constraints. The 108-case synthetic runner now exercises this fourth artifact
 without a route, environment switch, provider call, credit or customer project.
 Production model traffic remains unauthorized.
 
+## Narrative V3 deterministic object-lifecycle checkpoint
+
+`ObjectLifecycleProjection.v1` now derives one complete immutable state for
+every registered plot object after every canonical scene. The projection is
+compiled only from `CanonicalStoryGraph.v1`; it records exact quantity,
+canonical owner, canonical location, state id, required/forbidden illustration
+visibility and a bounded deterministic reason. It reads no prose and performs
+no repair.
+
+Every object is one unique entity with quantity one until an explicit terminal
+consumption. Its first causal event establishes the initial state and location.
+Acquisition, release, ownership transfer, reveal, transformation, storage and
+consumption must continue the exact prior state and owner. An owner involved in
+an event must be physically visible at that event location. Fixed objects cannot
+move, consumed objects cannot reappear, and one object cannot change twice in
+the same scene. A portable object follows its canonical owner through compiled
+movements; if that owner is off camera, the object is forbidden rather than
+duplicated or silently transferred.
+
+The projection has the exact canonical graph as its sole parent in the
+append-only ledger. The leased `compile_object_lifecycle` step commits and
+promotes it idempotently; migration 020 expands only isolated V3 artifact and
+step constraints. A dedicated 32-page matrix covers all three languages and six
+universes with a portable map, fixed landmark and consumable seed. Ninety
+adversarial mutations prove that duplicate acquisition, silent owner changes,
+post-consumption reappearance, fixed-object movement and broken state chains
+fail with stable codes.
+
+The command is `npm run check:narrative-v3-objects`. It uses temporary local
+stores and reports zero provider calls, paid calls and customer routes. The
+existing `NarrativeBookSpec.v2` remains immutable and continues to reject
+object-bearing graphs; the next release-spec version will bind this projection
+as a required parent before manuscript work begins. No production route,
+environment switch, credit, V2 project or customer project is changed.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint
