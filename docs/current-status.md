@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-release-spec`
-- Production/main checkpoint: Narrative V3 synthetic shadow runner (`24b617b`, PR #221)
-- Current focused checkpoint: strict deterministic `NarrativeBookSpec.v2` release compiler and immutable profile/page/visual binding; no production route or model enabled
-- Pull requests: #150 through #221 merged
+- Current branch: `codex/narrative-v3-object-lifecycle`
+- Production/main checkpoint: Narrative V3 deterministic release spec (`f6d7d13`, PR #222)
+- Current focused checkpoint: versioned deterministic object lifecycle projection and adversarial synthetic matrix; no production route or model enabled
+- Pull requests: #150 through #222 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #221 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #222 are merged on `main`. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,10 +39,37 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: complete and merge the deterministic released
-`NarrativeBookSpec.v2`, then introduce the complete versioned object lifecycle
-projection before manuscript work. No production customer route or paid model
-call is authorized yet.
+Next verification target: merge the object lifecycle projection, then introduce
+a new released-spec version whose exact parents include that projection before
+manuscript work. No production customer route or paid model call is authorized
+yet.
+
+## Product brick: Narrative V3 deterministic object lifecycle
+
+1. `ObjectLifecycleProjection.v1` projects every registered object through
+   every canonical scene with exact quantity, state, owner, location,
+   required/forbidden illustration visibility and a deterministic reason.
+2. The compiler consumes only one sealed `CanonicalStoryGraph.v1`; it reads no
+   prose, invokes no model and never repairs its input.
+3. Every unique plot object starts at quantity one. State and owner transitions
+   must be explicit and continuous; consumption is terminal, fixed objects
+   cannot move, and an event owner must be visible at the event location.
+4. Portable objects follow their canonical owner through graph movements.
+   Off-camera ownership forbids rendering without inventing a loss, transfer or
+   duplicate.
+5. The append-only ledger stores the projection behind its exact graph parent.
+   The durable state machine adds one idempotent compile step and migration 020
+   expands only isolated V3 type constraints.
+6. `npm run check:narrative-v3-objects` exercises 18 anonymous 32-page fixtures
+   across FR/ES/EN and all six universes. Three objects per fixture and five
+   deliberate corruptions produce 90 stable adversarial rejections.
+7. The current release-spec schema is not mutated. It still fails closed for
+   objects until its next version binds this projection as an immutable parent.
+8. No route, V2/customer project, provider call, credit, series canon,
+   environment variable or Render configuration changes.
+
+Verification: 8 focused lifecycle tests, 18 matrix fixtures with 90 adversarial
+rejections, and the complete 615-test suite pass.
 
 ## Product brick: Narrative V3 deterministic release spec
 
