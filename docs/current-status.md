@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-foundation`
-- Production/main checkpoint: Narrative V3 structural audit (`2714343`, PR #215)
-- Current focused checkpoint: isolated Narrative V3 strict-contract foundation; no production route or customer project changed
-- Pull requests: #150 through #215 merged
+- Current branch: `codex/narrative-v3-artifact-ledger`
+- Production/main checkpoint: Narrative V3 strict-contract foundation (`f9bdb84`, PR #216)
+- Current focused checkpoint: append-only Narrative V3 artifact ledger and atomic current pointers; no production route or customer project changed
+- Pull requests: #150 through #216 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #215 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #216 are merged on `main`. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,9 +39,32 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: add append-only Narrative V3 artifact persistence and
-compare-and-set project pointers beside V2, still without a customer route,
-model call, Render variable or implicit migration.
+Next verification target: add the central durable V3 step state machine on top
+of the artifact ledger, with leased exactly-once step completion and no model or
+customer route until restart/concurrency tests pass.
+
+## Product brick: Narrative V3 append-only artifact ledger
+
+1. PostgreSQL stores each strict V3 artifact as a new immutable row with project,
+   type, schema version, monotonically allocated revision, canonical payload
+   digest, bounded provenance and lifecycle state.
+2. Ordered parent links have database foreign keys to the exact parent project
+   and digest. A graph cannot be stored unless its one persisted concept parent
+   matches `sourceConcept.artifactDigest` exactly.
+3. Current project state is a separate pointer. Promotion locks the project and
+   uses compare-and-set pointer revisions, so concurrent workers cannot both
+   publish competing descendants or roll a pointer back to an older artifact
+   revision.
+4. Retrying the same write or promotion is idempotent; a rejected or quarantined
+   artifact can never become current.
+5. Every read revalidates schema, digest, revision and ancestry. Persisted
+   corruption fails closed instead of entering a normalizer or migration.
+6. The local JSON implementation is development-only; production selects
+   PostgreSQL through the existing `DATABASE_URL`. No new environment variable,
+   route, model call, customer migration, credit or V2 mutation is introduced.
+
+Verification: 22 focused V3 contract/ledger tests pass, including restart replay
+and a concurrent two-writer compare-and-set race with exactly one winner.
 
 ## Product brick: Narrative V3 strict contract foundation
 
@@ -396,7 +419,8 @@ Verification: 129 focused scenario/worker tests and the complete 552-test suite 
 - Focused active-wardrobe, scene-plan and image-QA tests: 105/105 passing.
 - Focused scenario transaction, compiler and recovery tests: 94/94 passing.
 - Narrative V3 foundation tests: 13/13 passing.
-- Complete `npm test`: 567/567 passing.
+- Narrative V3 foundation and artifact-ledger tests: 22/22 passing.
+- Complete `npm test`: 576/576 passing.
 - Production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
