@@ -54,6 +54,31 @@ append-only V3 artifact persistence with compare-and-set project pointers;
 production model calls remain out of scope until restart and concurrency tests
 pass.
 
+## Narrative V3 append-only artifact-ledger checkpoint
+
+V3 product artifacts now have a separate PostgreSQL ledger beside the mutable
+V2 project aggregate. Each row records its project, strict type and schema
+version, monotonically allocated type revision, canonical payload and digest,
+immutable state, bounded operational provenance and creation time. Ordered
+parent rows carry foreign keys to the exact parent project and digest, so a
+canonical graph cannot claim a missing, foreign or altered StoryConcept.
+
+The released/current state is not written into an artifact. A separate project
+pointer is promoted atomically under a project lock and compare-and-set pointer
+revision. Two workers starting from the same revision therefore produce exactly
+one winner; an identical retry returns the already-current result idempotently,
+and a delayed worker cannot roll the pointer back to an older artifact revision.
+Rejected and quarantined artifacts remain inspectable but cannot be promoted.
+
+Every load reruns the strict artifact loader and verifies payload digest,
+revision and ancestry. A changed stored payload is rejected rather than repaired
+or migrated. Local JSON persistence exists only as the repository's development
+fallback; production uses the existing PostgreSQL configuration. Nothing calls
+this store from a customer route yet, and there is no new environment variable,
+model call, credit event, V2 migration or series-canon change. The next V3 brick
+is the leased step state machine that commits and promotes one artifact exactly
+once across restart and worker concurrency.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint
