@@ -90,6 +90,76 @@ export function scopeAutomaticRepairCandidate(candidate = {}, previousScenario =
   return scoped;
 }
 
+export function scopeStoryScenarioRecoveryCandidate(
+  candidate = {},
+  previousScenario = {},
+  plan = {},
+  { deterministicObjectRenderRecovery = false } = {},
+) {
+  return deterministicObjectRenderRecovery
+    ? structuredClone(candidate)
+    : scopeAutomaticRepairCandidate(candidate, previousScenario, plan);
+}
+
+export function storyScenarioNarrativeSurface(scenario = {}) {
+  return {
+    title: scenario?.title || "",
+    summary: scenario?.summary || "",
+    scenes: (scenario?.scenes || []).map((scene) => ({
+      id: scene?.id || "",
+      sceneNumber: Number(scene?.sceneNumber || 0),
+      title: scene?.title || "",
+      action: scene?.action || "",
+      locationBefore: scene?.locationBefore || "",
+      locationAfter: scene?.locationAfter || "",
+      narrativeFunction: scene?.narrativeFunction || "",
+      dominantEmotion: scene?.dominantEmotion || "",
+      emotionalShift: scene?.emotionalShift || "",
+      storyChange: scene?.storyChange || "",
+      characterPresences: (scene?.characterPresences || []).map((presence) => ({
+        name: presence?.name || "",
+        mode: presence?.mode || "",
+      })),
+    })),
+  };
+}
+
+export function storyScenarioGenerationPolicy(configuredPolicy = {}, {
+  automaticRepair = false,
+  checkpointRecovery = false,
+  deterministicObjectRenderRecovery = false,
+} = {}) {
+  if (!automaticRepair && !checkpointRecovery) return configuredPolicy;
+  return {
+    ...configuredPolicy,
+    maximumRepairCalls: 0,
+    maximumEditorialRepairCalls: 0,
+    maximumCanonicalRepairCalls: 0,
+    structuralRepairCalls: 0,
+    editorialRepairCalls: 0,
+    finalAuditCalls: 0,
+    canonicalRepairCalls: 0,
+    canonicalFinalAuditCalls: 0,
+    // A legacy object checkpoint failed before reaching the semantic editor.
+    // Re-audit the mechanically refreshed whole scenario once, but never call
+    // the architect or a repair model during this migration recovery.
+    editorCalls: deterministicObjectRenderRecovery ? 1 : 0,
+  };
+}
+
+export function shouldApplyScenarioRecoveryTransaction({
+  automaticRepair = false,
+  checkpointRecovery = false,
+  deterministicObjectRenderRecovery = false,
+  hasRecoveryValidation = false,
+  hasPreviousScenario = false,
+} = {}) {
+  return (automaticRepair || checkpointRecovery)
+    && !deterministicObjectRenderRecovery
+    && hasRecoveryValidation
+    && hasPreviousScenario;
+}
+
 function consumeRepairBudget(repairBudget) {
   if (!repairBudget) return true;
   if (!Number.isFinite(repairBudget.remaining)) return true;
@@ -472,17 +542,11 @@ export async function generateValidatedScenario({
     } : {}),
   };
   const configuredPolicy = generationCostPolicy().scenario;
-  const policy = automaticRepair || checkpointRecovery ? {
-    ...configuredPolicy,
-    maximumRepairCalls: 0,
-    maximumEditorialRepairCalls: 0,
-    maximumCanonicalRepairCalls: 0,
-    structuralRepairCalls: 0,
-    editorialRepairCalls: 0,
-    finalAuditCalls: 0,
-    canonicalRepairCalls: 0,
-    canonicalFinalAuditCalls: 0,
-  } : configuredPolicy;
+  const policy = storyScenarioGenerationPolicy(configuredPolicy, {
+    automaticRepair,
+    checkpointRecovery,
+    deterministicObjectRenderRecovery,
+  });
   const repairBudget = { remaining: Number(policy.maximumRepairCalls) };
   const editorialRepairBudget = {
     remaining: Number(policy.maximumEditorialRepairCalls),
@@ -504,10 +568,11 @@ export async function generateValidatedScenario({
           ageIntentionContract,
         });
     if ((automaticRepair || checkpointRecovery) && previousScenario) {
-      normalizedCandidate = scopeAutomaticRepairCandidate(
+      normalizedCandidate = scopeStoryScenarioRecoveryCandidate(
         normalizedCandidate,
         previousScenario,
         automaticRepairPlan || recoveryPlan,
+        { deterministicObjectRenderRecovery },
       );
     }
     let normalizedResult = precompileStoryScenarioPassageLifecycles(applyStoryScenarioRepairDirectives(stabilizeStoryScenario(
@@ -517,16 +582,27 @@ export async function generateValidatedScenario({
       ),
     ), directives, { language: normalized.answers.language }), { language: normalized.answers.language });
     if ((automaticRepair || checkpointRecovery) && previousScenario) {
-      normalizedResult = scopeAutomaticRepairCandidate(
+      normalizedResult = scopeStoryScenarioRecoveryCandidate(
         normalizedResult,
         previousScenario,
         automaticRepairPlan || recoveryPlan,
+        { deterministicObjectRenderRecovery },
       );
       const physicalChronology = canonicalizeStoryScenarioPhysicalChronology(normalizedResult);
       if (physicalChronology.report.changed) {
         console.info("[story-physical-chronology] recovered", JSON.stringify(physicalChronology.report));
       }
       normalizedResult = physicalChronology.scenario;
+    }
+    if (deterministicObjectRenderRecovery && previousScenario) {
+      const before = storyScenarioNarrativeSurface(previousScenario);
+      const after = storyScenarioNarrativeSurface(normalizedResult);
+      if (JSON.stringify(before) !== JSON.stringify(after)) {
+        const error = new Error("The deterministic checkpoint refresh changed the creator-visible story surface.");
+        error.code = "scenario_checkpoint_surface_changed";
+        error.noTechnicalRetry = true;
+        throw error;
+      }
     }
     return normalizedResult;
   };
@@ -719,7 +795,13 @@ export async function generateValidatedScenario({
   const boundedRecoveryPlan = automaticRepair ? automaticRepairPlan : recoveryPlan;
   let boundedRepairTransaction = null;
   let boundedRepairRolledBack = false;
-  if ((automaticRepair || checkpointRecovery) && boundedRecoveryPlan?.validation && previousScenario) {
+  if (shouldApplyScenarioRecoveryTransaction({
+    automaticRepair,
+    checkpointRecovery,
+    deterministicObjectRenderRecovery,
+    hasRecoveryValidation: Boolean(boundedRecoveryPlan?.validation),
+    hasPreviousScenario: Boolean(previousScenario),
+  })) {
     boundedRepairTransaction = storyScenarioRepairTransaction(
       boundedRecoveryPlan.validation,
       validation,

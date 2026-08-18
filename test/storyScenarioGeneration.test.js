@@ -5,6 +5,10 @@ import {
   runCanonicalCandidateGate,
   runScenarioQualityDialogue,
   scopeAutomaticRepairCandidate,
+  scopeStoryScenarioRecoveryCandidate,
+  shouldApplyScenarioRecoveryTransaction,
+  storyScenarioGenerationPolicy,
+  storyScenarioNarrativeSurface,
 } from "../src/services/storyScenarioGeneration.js";
 import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
 
@@ -89,6 +93,104 @@ test("automatic repair without a scene coordinate cannot rewrite the proposal", 
   assert.deepEqual(scopeAutomaticRepairCandidate(candidate, previous, {
     validation: { issues: ["global incomplete finding"] },
   }), previous);
+});
+
+test("deterministic object recovery refreshes hidden mechanics across every scene", () => {
+  const previous = {
+    title: "The same title",
+    summary: "The same summary",
+    scenes: [
+      {
+        id: "scene-3",
+        sceneNumber: 3,
+        title: "Scene three",
+        action: "Noa continues.",
+        locationBefore: "home",
+        locationAfter: "home",
+        characterPresences: [{ name: "Noa", mode: "physical" }],
+        objectStates: [{ objectId: "eva_basket", state: "carried" }],
+      },
+      {
+        id: "scene-8",
+        sceneNumber: 8,
+        title: "Scene eight",
+        action: "Eva returns.",
+        locationBefore: "garden",
+        locationAfter: "garden",
+        characterPresences: [{ name: "Eva", mode: "physical" }],
+        transition: { kind: "ordinary_travel", from: "stale", to: "garden" },
+        objectStates: [{ objectId: "eva_basket", state: "absent" }],
+      },
+    ],
+  };
+  const refreshed = structuredClone(previous);
+  refreshed.scenes[0].objectStates = [{
+    objectId: "eva_basket",
+    state: "absent",
+    quantity: 0,
+    visibilityReason: "owner_off_camera",
+    causalOwner: "Eva",
+  }];
+  refreshed.scenes[1].transition = { kind: "none", from: "garden", to: "garden" };
+  refreshed.scenes[1].objectStates = [{
+    objectId: "eva_basket",
+    state: "carried",
+    quantity: 1,
+    owner: "Eva",
+  }];
+  const plan = { publicSummary: { sceneNumbers: [3] } };
+
+  const legacyScoped = scopeStoryScenarioRecoveryCandidate(refreshed, previous, plan);
+  const fullyRefreshed = scopeStoryScenarioRecoveryCandidate(
+    refreshed,
+    previous,
+    plan,
+    { deterministicObjectRenderRecovery: true },
+  );
+
+  assert.deepEqual(legacyScoped.scenes[1], previous.scenes[1]);
+  assert.deepEqual(fullyRefreshed.scenes[1], refreshed.scenes[1]);
+  assert.deepEqual(
+    storyScenarioNarrativeSurface(fullyRefreshed),
+    storyScenarioNarrativeSurface(previous),
+  );
+});
+
+test("deterministic object recovery budgets one audit and no generation or repair call", () => {
+  const configured = {
+    architectCalls: 1,
+    editorCalls: 1,
+    maximumRepairCalls: 1,
+    maximumEditorialRepairCalls: 1,
+    maximumCanonicalRepairCalls: 1,
+    structuralRepairCalls: 1,
+    editorialRepairCalls: 1,
+    finalAuditCalls: 1,
+    canonicalRepairCalls: 1,
+    canonicalFinalAuditCalls: 1,
+  };
+  const recovery = storyScenarioGenerationPolicy(configured, {
+    checkpointRecovery: true,
+    deterministicObjectRenderRecovery: true,
+  });
+
+  assert.equal(recovery.architectCalls, 1, "the route skips the architect before policy use");
+  assert.equal(recovery.editorCalls, 1);
+  assert.equal(recovery.structuralRepairCalls, 0);
+  assert.equal(recovery.editorialRepairCalls, 0);
+  assert.equal(recovery.canonicalRepairCalls, 0);
+  assert.equal(recovery.finalAuditCalls, 0);
+  assert.equal(shouldApplyScenarioRecoveryTransaction({
+    checkpointRecovery: true,
+    deterministicObjectRenderRecovery: true,
+    hasRecoveryValidation: true,
+    hasPreviousScenario: true,
+  }), false, "stale checkpoint diagnostics cannot roll back refreshed mechanics");
+  assert.equal(shouldApplyScenarioRecoveryTransaction({
+    checkpointRecovery: true,
+    hasRecoveryValidation: true,
+    hasPreviousScenario: true,
+  }), true);
 });
 
 test("a structural repair never consumes the independent editorial repair", async () => {

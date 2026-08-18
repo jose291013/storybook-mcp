@@ -1,7 +1,7 @@
 export const STORY_SCENARIO_RETRY_POLICY_VERSION = 9;
 export const STORY_SCENARIO_CANONICAL_LIFECYCLE_RECOVERY_VERSION = 2;
 export const STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION = 1;
-export const STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION = 2;
+export const STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION = 3;
 
 function semanticAuditCheckpointReference(checkpoint = {}) {
   const direct = checkpoint?.semanticAuditCheckpoint;
