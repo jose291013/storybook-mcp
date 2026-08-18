@@ -23,6 +23,8 @@ export const creationIntentSchema = readSchema("creationIntent.v1.schema.json");
 export const narrativeBookSpecV2Schema = readSchema("narrativeBookSpec.v2.schema.json");
 export const objectLifecycleProjectionSchema = readSchema("objectLifecycleProjection.v1.schema.json");
 export const narrativeBookSpecV3Schema = readSchema("narrativeBookSpec.v3.schema.json");
+export const manuscriptWireSchema = readSchema("manuscriptWire.v1.schema.json");
+export const manuscriptSchema = readSchema("manuscript.v1.schema.json");
 
 ajv.addSchema(creationIntentSchema);
 ajv.addSchema(storyConceptWireSchema);
@@ -32,6 +34,8 @@ ajv.addSchema(canonicalStoryMechanicsSchema);
 ajv.addSchema(narrativeBookSpecV2Schema);
 ajv.addSchema(objectLifecycleProjectionSchema);
 ajv.addSchema(narrativeBookSpecV3Schema);
+ajv.addSchema(manuscriptWireSchema);
+ajv.addSchema(manuscriptSchema);
 
 const validators = new Map([
   ["creation_intent", ajv.getSchema(creationIntentSchema.$id)],
@@ -42,6 +46,8 @@ const validators = new Map([
   ["narrative_book_spec_v2", ajv.getSchema(narrativeBookSpecV2Schema.$id)],
   ["object_lifecycle_projection", ajv.getSchema(objectLifecycleProjectionSchema.$id)],
   ["narrative_book_spec_v3", ajv.getSchema(narrativeBookSpecV3Schema.$id)],
+  ["manuscript_wire_v1", ajv.getSchema(manuscriptWireSchema.$id)],
+  ["manuscript_v1", ajv.getSchema(manuscriptSchema.$id)],
 ]);
 
 function boundedErrors(errors = []) {

@@ -16,6 +16,15 @@ const STEP_TYPES = Object.freeze({
   compile_object_lifecycle: "object_lifecycle_projection",
   release_narrative_book_spec: "narrative_book_spec",
   release_narrative_book_spec_v3: "narrative_book_spec_v3",
+  write_manuscript: "manuscript",
+});
+const STEP_INPUT_TYPES = Object.freeze({
+  parse_story_concept: Object.freeze(["creation_intent"]),
+  compile_story_graph: Object.freeze(["story_concept"]),
+  compile_object_lifecycle: Object.freeze(["canonical_story_graph"]),
+  release_narrative_book_spec: Object.freeze(["creation_intent", "canonical_story_graph"]),
+  release_narrative_book_spec_v3: Object.freeze(["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]),
+  write_manuscript: Object.freeze(["narrative_book_spec_v3"]),
 });
 
 function now() {
@@ -67,15 +76,7 @@ function normalizeRun(input = {}) {
     const stepType = String(step?.stepType || "");
     if (!STEP_TYPES[stepType]) throw new NarrativeV3StateError("step_type_unsupported", "The step type has no strict artifact output.");
     const inputs = normalizeInputs(step.inputs);
-    const expectedInputs = stepType === "compile_story_graph"
-      ? ["story_concept"]
-      : stepType === "compile_object_lifecycle"
-        ? ["canonical_story_graph"]
-        : stepType === "release_narrative_book_spec"
-          ? ["creation_intent", "canonical_story_graph"]
-          : stepType === "release_narrative_book_spec_v3"
-            ? ["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]
-          : ["creation_intent"];
+    const expectedInputs = STEP_INPUT_TYPES[stepType];
     if (inputs.length !== expectedInputs.length || inputs.some((entry, inputIndex) => entry.artifactType !== expectedInputs[inputIndex])) {
       throw new NarrativeV3StateError("invalid_step_inputs", "The step does not have its exact ordered artifact inputs.");
     }

@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-object-aware-release`
+- Current branch: `codex/narrative-v3-manuscript-contract`
 - Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
-- Current focused checkpoint: object-aware `NarrativeBookSpec.v3` with exact intent, graph and projection ancestry; no production route or model enabled
+- Current focused checkpoint: strict `Manuscript.v1` bound page by page to the exact object-aware `NarrativeBookSpec.v3`; no production route or model enabled
 - Pull requests: #150 through #223 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -39,9 +39,30 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: publish the object-aware release spec, then compile a
-strict manuscript artifact only from that released V3 parent. No production
-customer route or paid model call is authorized yet.
+Next verification target: publish the stacked object-aware release and strict
+manuscript bricks, then compile `VisualStoryboard.v1` deterministically from
+their exact immutable artifacts. No production customer route or paid model
+call is authorized yet.
+
+## Product brick: Narrative V3 strict manuscript contract
+
+1. `ManuscriptWire.v1` is the only model-facing representation. It accepts one
+   exact released-spec digest, one supported language and every text page once.
+2. The parser rejects missing, duplicate, invented or stale pages, unknown
+   fields, a foreign language and text outside the age-bound word tolerance.
+3. `Manuscript.v1` binds every scene page to the exact released source-scene
+   and complete object-state digests; opening and closing pages remain explicit.
+4. Canonical loading revalidates page order, bindings, word counts and artifact
+   digest and never normalizes or repairs persisted content.
+5. The append-only ledger permits the artifact only behind one exact
+   `narrative_book_spec_v3` parent. The leased `write_manuscript` step commits it
+   idempotently, and migration 022 changes only isolated V3 constraints.
+6. The 18-case anonymous object matrix now reaches six immutable artifacts.
+   No route, V2/customer project, provider call, credit, series canon,
+   environment variable or Render configuration changes.
+
+Verification: 20 focused manuscript/release/lifecycle tests and the complete
+627-test suite pass.
 
 ## Product brick: Narrative V3 object-aware release spec
 
