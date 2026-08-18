@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/image-candidate-set.v1.json",
+  "title": "Calitiki Image Candidate Set V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sourceStoryboard", "candidates", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.image-candidate-set.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sourceStoryboard": { "$ref": "#/$defs/storyboardSource" },
+    "candidates": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/candidate" } },
+    "validation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["recorderVersion", "artifactDigest"],
+      "properties": { "recorderVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "boundedId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "storyboardSource": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.visual-storyboard.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "asset": {
+      "type": "object", "additionalProperties": false,
+      "required": ["storageKey", "sha256", "mimeType", "width", "height", "byteLength"],
+      "properties": {
+        "storageKey": { "type": "string", "pattern": "^private/narrative-v3/[A-Za-z0-9/_-]{1,240}\\.(png|webp|jpg)$" },
+        "sha256": { "$ref": "#/$defs/digest" },
+        "mimeType": { "type": "string", "enum": ["image/png", "image/webp", "image/jpeg"] },
+        "width": { "type": "integer", "minimum": 512, "maximum": 8192 },
+        "height": { "type": "integer", "minimum": 512, "maximum": 8192 },
+        "byteLength": { "type": "integer", "minimum": 1, "maximum": 100000000 }
+      }
+    },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sceneNumber", "beatDigest", "attempt", "providerModel", "providerResponseId", "asset", "candidateDigest"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "beatDigest": { "$ref": "#/$defs/digest" },
+        "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "providerModel": { "$ref": "#/$defs/boundedId" },
+        "providerResponseId": { "$ref": "#/$defs/boundedId" },
+        "asset": { "$ref": "#/$defs/asset" },
+        "candidateDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

@@ -322,6 +322,32 @@ route, provider call, paid call, customer project, environment variable or
 Render change. The next checkpoint records immutable image candidates and
 deterministic illustration decisions against these exact beat digests.
 
+## Narrative V3 illustration-evidence checkpoint
+
+`ImageCandidateSet.v1` records exactly one generated candidate per storyboard
+beat. Every candidate is bound to the beat digest and provider response id and
+contains only a private object-storage key, file digest, MIME type, dimensions
+and byte length. Public URLs are structurally impossible; response ids, storage
+keys and file digests must be unique across the book, preventing an exact image
+or response from being silently reused for another scene.
+
+The vision boundary accepts only `IllustrationEvaluationWire.v1`, whose issue
+codes are limited to objective file, identity, physical-medium, wardrobe and
+object-state defects. The explicit parser creates
+`IllustrationDecisionSet.v1`: a candidate is rejected only when at least one
+objective issue is confirmed. Uncertain evidence remains recorded internally
+but cannot reject the page, trigger creator review or expose a paid repair. An
+accepted decision copies the exact private candidate asset; a rejected decision
+exposes no asset.
+
+The ledger stores candidate sets behind their exact storyboard and decision
+sets behind the exact ordered storyboard/candidate parents. The leased
+`record_image_candidates` and `decide_illustrations` operations are idempotent;
+migration 024 changes only isolated V3 constraints. The anonymous matrix now
+reaches nine immutable artifacts without a production provider or customer
+route. The next checkpoint assembles a delivery manifest only when every
+illustration decision is accepted.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

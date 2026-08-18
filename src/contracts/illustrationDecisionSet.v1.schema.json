@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/illustration-decision-set.v1.json",
+  "title": "Calitiki Illustration Decision Set V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "decisions", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.illustration-decision-set.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["visualStoryboard", "imageCandidateSet"],
+      "properties": {
+        "visualStoryboard": { "$ref": "#/$defs/source" },
+        "imageCandidateSet": { "$ref": "#/$defs/source" }
+      }
+    },
+    "decisions": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/decision" } },
+    "validation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["parserVersion", "acceptedCount", "rejectedCount", "artifactDigest"],
+      "properties": {
+        "parserVersion": { "const": 1 },
+        "acceptedCount": { "type": "integer", "minimum": 0, "maximum": 21 },
+        "rejectedCount": { "type": "integer", "minimum": 0, "maximum": 21 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "certainty"],
+      "properties": {
+        "code": { "type": "string", "enum": ["corrupted_asset", "missing_required_character", "duplicated_required_identity", "wrong_physical_medium", "wardrobe_state_mismatch", "object_state_mismatch"] },
+        "certainty": { "type": "string", "enum": ["confirmed", "uncertain"] }
+      }
+    },
+    "asset": { "$ref": "https://calitiki.com/schemas/image-candidate-set.v1.json#/$defs/asset" },
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sceneNumber", "beatDigest", "candidateDigest", "outcome", "evidence", "acceptedAsset", "decisionDigest"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "beatDigest": { "$ref": "#/$defs/digest" },
+        "candidateDigest": { "$ref": "#/$defs/digest" },
+        "outcome": { "type": "string", "enum": ["accepted", "rejected"] },
+        "evidence": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/evidence" } },
+        "acceptedAsset": { "anyOf": [{ "$ref": "#/$defs/asset" }, { "type": "null" }] },
+        "decisionDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/illustration-evaluation-wire.v1.json",
+  "title": "Calitiki Illustration Evaluation Wire V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_id", "source_storyboard_digest", "source_candidate_set_digest", "decisions"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "contract_id": { "const": "calitiki.illustration-evaluation-wire.v1" },
+    "source_storyboard_digest": { "$ref": "#/$defs/digest" },
+    "source_candidate_set_digest": { "$ref": "#/$defs/digest" },
+    "decisions": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/decision" } }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "issue": {
+      "type": "object", "additionalProperties": false,
+      "required": ["code", "certainty"],
+      "properties": {
+        "code": { "type": "string", "enum": ["corrupted_asset", "missing_required_character", "duplicated_required_identity", "wrong_physical_medium", "wardrobe_state_mismatch", "object_state_mismatch"] },
+        "certainty": { "type": "string", "enum": ["confirmed", "uncertain"] }
+      }
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scene_number", "candidate_digest", "issues"],
+      "properties": {
+        "scene_number": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "candidate_digest": { "$ref": "#/$defs/digest" },
+        "issues": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/issue" } }
+      }
+    }
+  }
+}
