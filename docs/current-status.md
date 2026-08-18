@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-visual-storyboard`
+- Current branch: `codex/narrative-v3-illustration-evidence`
 - Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
-- Current focused checkpoint: deterministic `VisualStoryboard.v1` bound to exact V3 spec and manuscript artifacts with reciprocal physical handoffs; no production route or model enabled
+- Current focused checkpoint: private image-candidate recording and objective illustration decisions bound to exact V3 storyboard beats; no production route or paid model enabled
 - Pull requests: #150 through #223 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -39,10 +39,30 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: publish the stacked release, manuscript and
-storyboard bricks, then persist immutable image candidates and objective
-illustration decisions against exact storyboard beat digests. No production
-customer route or paid model call is authorized yet.
+Next verification target: publish the stacked V3 bricks, then compile a strict
+delivery manifest only from an exact spec, manuscript, storyboard and fully
+accepted illustration-decision set. No production customer route or paid model
+call is authorized yet.
+
+## Product brick: Narrative V3 illustration evidence
+
+1. `ImageCandidateSet.v1` records one candidate per exact beat with a provider
+   response id and private storage key plus file digest, type and dimensions.
+2. Candidate response ids, private keys and file hashes must be unique across
+   the book; public asset URLs and a candidate from another beat fail closed.
+3. `IllustrationEvaluationWire.v1` permits only bounded objective defect codes.
+   Subjective labels or a foreign candidate digest are rejected at the wire.
+4. `IllustrationDecisionSet.v1` rejects only confirmed objective evidence.
+   Uncertainty stays internal and cannot ask the parent to arbitrate or spend.
+5. Accepted decisions copy the exact private asset; rejected decisions expose
+   no asset and remain an internal incomplete-generation state.
+6. Exact storyboard/candidate ancestry is enforced by the append-only ledger;
+   two leased idempotent steps and migration 024 remain isolated from V2.
+7. The 18-case anonymous matrix reaches nine immutable artifacts with zero
+   production provider calls, paid calls or customer routes.
+
+Verification: 15 focused illustration/lifecycle tests and the complete
+640-test suite pass.
 
 ## Product brick: Narrative V3 deterministic visual storyboard
 

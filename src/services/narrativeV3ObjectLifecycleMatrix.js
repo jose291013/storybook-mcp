@@ -14,6 +14,10 @@ import { compileNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js"
 import { parseManuscriptWire } from "../contracts/manuscriptV1.js";
 import { compileVisualStoryboard } from "../contracts/visualStoryboardV1.js";
 import {
+  parseIllustrationEvaluationWire,
+  recordImageCandidateSet,
+} from "../contracts/illustrationEvidenceV1.js";
+import {
   buildNarrativeV3SyntheticFixture,
   NARRATIVE_V3_SYNTHETIC_LANGUAGES,
 } from "./narrativeV3SyntheticShadow.js";
@@ -37,6 +41,8 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     release_narrative_book_spec_v3: "narrative_book_spec_v3",
     write_manuscript: "manuscript",
     compile_visual_storyboard: "visual_storyboard",
+    record_image_candidates: "image_candidate_set",
+    decide_illustrations: "illustration_decision_set",
   };
   const outputType = outputTypes[stepType];
   const pointer = await artifactStore.getCurrentPointer(projectId, outputType);
@@ -92,6 +98,38 @@ function syntheticManuscriptWire(spec) {
         const guidance = getWordsTargetByAge(spec.book.audienceAge, page.kind === "scene_text" ? "text" : page.kind);
         return { page_number: page.pageNumber, text: Array(guidance.target).fill(word).join(" ") };
       }),
+  };
+}
+
+function syntheticImageCandidates(storyboard, fixtureId) {
+  return storyboard.beats.map((beat) => ({
+    sceneNumber: beat.sceneNumber,
+    beatDigest: beat.beatDigest,
+    attempt: 1,
+    providerModel: "synthetic-image-v1",
+    providerResponseId: `${fixtureId}-image-${beat.sceneNumber}`,
+    asset: {
+      storageKey: `private/narrative-v3/${fixtureId}/scene-${beat.sceneNumber}.webp`,
+      sha256: crypto.createHash("sha256").update(`${fixtureId}:image:${beat.sceneNumber}`).digest("hex"),
+      mimeType: "image/webp",
+      width: 2048,
+      height: 2048,
+      byteLength: 100000 + beat.sceneNumber,
+    },
+  }));
+}
+
+function syntheticEvaluationWire(storyboard, candidateSet) {
+  return {
+    schema_version: 1,
+    contract_id: "calitiki.illustration-evaluation-wire.v1",
+    source_storyboard_digest: storyboard.validation.artifactDigest,
+    source_candidate_set_digest: candidateSet.validation.artifactDigest,
+    decisions: candidateSet.candidates.map((candidate) => ({
+      scene_number: candidate.sceneNumber,
+      candidate_digest: candidate.candidateDigest,
+      issues: [],
+    })),
   };
 }
 
@@ -269,6 +307,31 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [releaseArtifact, manuscriptArtifact],
     payload: storyboard,
   });
+  const candidateSet = recordImageCandidateSet({
+    storyboard,
+    candidates: syntheticImageCandidates(storyboard, fixture.fixture.fixtureId),
+  });
+  const candidateArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-image-candidates-v1`,
+    stepKey: "record-object-image-candidates-v1",
+    stepType: "record_image_candidates",
+    inputs: [storyboardArtifact],
+    payload: candidateSet,
+  });
+  const decisions = parseIllustrationEvaluationWire({
+    storyboard,
+    candidateSet,
+    wire: syntheticEvaluationWire(storyboard, candidateSet),
+  });
+  const decisionArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-illustration-decisions-v1`,
+    stepKey: "decide-object-illustrations-v1",
+    stepType: "decide_illustrations",
+    inputs: [storyboardArtifact, candidateArtifact],
+    payload: decisions,
+  });
   const adversarial = narrativeV3ObjectAdversarialCases(fixture.graph, fixture.indexes).map((entry) => {
     try {
       compileObjectLifecycleProjection({ graph: entry.graph });
@@ -295,6 +358,8 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       narrativeBookSpecV3: releaseArtifact.payloadDigest,
       manuscript: manuscriptArtifact.payloadDigest,
       visualStoryboard: storyboardArtifact.payloadDigest,
+      imageCandidateSet: candidateArtifact.payloadDigest,
+      illustrationDecisionSet: decisionArtifact.payloadDigest,
     },
     providerCalls: 0,
     paidModelCalls: 0,

@@ -48,6 +48,16 @@ import {
   loadVisualStoryboard,
   visualStoryboardDigest,
 } from "../contracts/visualStoryboardV1.js";
+import {
+  IMAGE_CANDIDATE_SET_ID,
+  IMAGE_CANDIDATE_SET_VERSION,
+  ILLUSTRATION_DECISION_SET_ID,
+  ILLUSTRATION_DECISION_SET_VERSION,
+  imageCandidateSetDigest,
+  illustrationDecisionSetDigest,
+  loadImageCandidateSet,
+  loadIllustrationDecisionSet,
+} from "../contracts/illustrationEvidenceV1.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -113,6 +123,20 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadVisualStoryboard,
     digest: visualStoryboardDigest,
     parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+  }),
+  image_candidate_set: Object.freeze({
+    contractId: IMAGE_CANDIDATE_SET_ID,
+    schemaVersion: IMAGE_CANDIDATE_SET_VERSION,
+    load: loadImageCandidateSet,
+    digest: imageCandidateSetDigest,
+    parentTypes: Object.freeze(["visual_storyboard"]),
+  }),
+  illustration_decision_set: Object.freeze({
+    contractId: ILLUSTRATION_DECISION_SET_ID,
+    schemaVersion: ILLUSTRATION_DECISION_SET_VERSION,
+    load: loadIllustrationDecisionSet,
+    digest: illustrationDecisionSetDigest,
+    parentTypes: Object.freeze(["visual_storyboard", "image_candidate_set"]),
   }),
 });
 
@@ -251,6 +275,18 @@ function validateArtifactInput(input = {}) {
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual storyboard parents do not match its declared released-spec and manuscript digests.");
+  }
+  if (artifactType === "image_candidate_set" && parents[0]?.payloadDigest !== payload.sourceStoryboard.artifactDigest) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The image candidates do not match their declared storyboard digest.");
+  }
+  if (
+    artifactType === "illustration_decision_set"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.visualStoryboard.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.imageCandidateSet.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The illustration decisions do not match their declared storyboard and candidate-set digests.");
   }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {
