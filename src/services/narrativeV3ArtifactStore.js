@@ -58,6 +58,12 @@ import {
   loadImageCandidateSet,
   loadIllustrationDecisionSet,
 } from "../contracts/illustrationEvidenceV1.js";
+import {
+  DELIVERY_MANIFEST_ID,
+  DELIVERY_MANIFEST_VERSION,
+  deliveryManifestDigest,
+  loadDeliveryManifest,
+} from "../contracts/deliveryManifestV1.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -137,6 +143,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadIllustrationDecisionSet,
     digest: illustrationDecisionSetDigest,
     parentTypes: Object.freeze(["visual_storyboard", "image_candidate_set"]),
+  }),
+  delivery_manifest: Object.freeze({
+    contractId: DELIVERY_MANIFEST_ID,
+    schemaVersion: DELIVERY_MANIFEST_VERSION,
+    load: loadDeliveryManifest,
+    digest: deliveryManifestDigest,
+    parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"]),
   }),
 });
 
@@ -287,6 +300,17 @@ function validateArtifactInput(input = {}) {
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The illustration decisions do not match their declared storyboard and candidate-set digests.");
+  }
+  if (
+    artifactType === "delivery_manifest"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.narrativeBookSpec.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.manuscript.artifactDigest
+      || parents[2]?.payloadDigest !== payload.sources.visualStoryboard.artifactDigest
+      || parents[3]?.payloadDigest !== payload.sources.illustrationDecisions.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The delivery manifest does not match its four declared source digests.");
   }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {

@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-illustration-evidence`
+- Current branch: `codex/narrative-v3-delivery-manifest`
 - Production/main checkpoint: Narrative V3 deterministic object lifecycle (`3d54984`, PR #223)
-- Current focused checkpoint: private image-candidate recording and objective illustration decisions bound to exact V3 storyboard beats; no production route or paid model enabled
+- Current focused checkpoint: strict page-complete `DeliveryManifest.v1` compiled only from one fully accepted immutable V3 lineage; no production route or paid model enabled
 - Pull requests: #150 through #223 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -39,10 +39,28 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: publish the stacked V3 bricks, then compile a strict
-delivery manifest only from an exact spec, manuscript, storyboard and fully
-accepted illustration-decision set. No production customer route or paid model
-call is authorized yet.
+Next verification target: execute the complete V3 chain in shadow across the
+language/universe/format matrix, enforce quality, cost and concurrency gates,
+then add a production canary that remains disabled by default.
+
+## Product brick: Narrative V3 delivery manifest
+
+1. `DeliveryManifest.v1` is compiled only from the exact released spec,
+   manuscript, storyboard and illustration-decision artifacts.
+2. A single rejected or missing image prevents readiness; no stale candidate,
+   parent approval or public asset fallback can enter delivery.
+3. Every physical page appears exactly once and in order. Text pages reference
+   the exact manuscript-page digest; image pages reference the accepted
+   decision and its private file metadata.
+4. Per-page and whole-manifest digests reject reorder, replacement and tamper.
+5. The append-only ledger enforces all four ordered parents. The leased
+   `assemble_delivery_manifest` step is restart-idempotent and migration 025 is
+   isolated from V2/customer aggregates.
+6. The anonymous 18-case matrix reaches ten immutable artifacts and replay
+   preserves every current pointer without provider, credit or route access.
+
+Verification: 13 focused delivery/lifecycle tests and the complete 645-test
+suite pass.
 
 ## Product brick: Narrative V3 illustration evidence
 

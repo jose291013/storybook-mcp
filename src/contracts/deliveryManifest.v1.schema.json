@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/delivery-manifest.v1.json",
+  "title": "Calitiki Delivery Manifest V1",
+  "description": "Private page-by-page delivery map assembled only from fully accepted Narrative V3 artifacts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "book", "pages", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.delivery-manifest.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["narrativeBookSpec", "manuscript", "visualStoryboard", "illustrationDecisions"],
+      "properties": {
+        "narrativeBookSpec": { "$ref": "#/$defs/source" },
+        "manuscript": { "$ref": "#/$defs/source" },
+        "visualStoryboard": { "$ref": "#/$defs/source" },
+        "illustrationDecisions": { "$ref": "#/$defs/source" }
+      }
+    },
+    "book": {
+      "type": "object", "additionalProperties": false,
+      "required": ["language", "pageCount", "ready"],
+      "properties": {
+        "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+        "pageCount": { "type": "integer", "enum": [24, 28, 32, 36, 40, 44] },
+        "ready": { "const": true }
+      }
+    },
+    "pages": { "type": "array", "minItems": 24, "maxItems": 44, "items": { "$ref": "#/$defs/page" } },
+    "validation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": { "compilerVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "schemaVersion": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "asset": { "$ref": "https://calitiki.com/schemas/image-candidate-set.v1.json#/$defs/asset" },
+    "page": {
+      "type": "object", "additionalProperties": false,
+      "required": ["pageNumber", "kind", "sceneNumber", "sourceItemDigest", "privateAsset", "pageDigest"],
+      "properties": {
+        "pageNumber": { "type": "integer", "minimum": 1, "maximum": 44 },
+        "kind": { "type": "string", "enum": ["opening_text", "scene_text", "scene_image", "closing_text"] },
+        "sceneNumber": { "anyOf": [{ "type": "integer", "minimum": 1, "maximum": 21 }, { "type": "null" }] },
+        "sourceItemDigest": { "$ref": "#/$defs/digest" },
+        "privateAsset": { "anyOf": [{ "$ref": "#/$defs/asset" }, { "type": "null" }] },
+        "pageDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

@@ -20,6 +20,7 @@ const STEP_TYPES = Object.freeze({
   compile_visual_storyboard: "visual_storyboard",
   record_image_candidates: "image_candidate_set",
   decide_illustrations: "illustration_decision_set",
+  assemble_delivery_manifest: "delivery_manifest",
 });
 const STEP_INPUT_TYPES = Object.freeze({
   parse_story_concept: Object.freeze(["creation_intent"]),
@@ -31,6 +32,7 @@ const STEP_INPUT_TYPES = Object.freeze({
   compile_visual_storyboard: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
   record_image_candidates: Object.freeze(["visual_storyboard"]),
   decide_illustrations: Object.freeze(["visual_storyboard", "image_candidate_set"]),
+  assemble_delivery_manifest: Object.freeze(["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"]),
 });
 
 function now() {

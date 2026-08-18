@@ -17,6 +17,7 @@ import {
   parseIllustrationEvaluationWire,
   recordImageCandidateSet,
 } from "../contracts/illustrationEvidenceV1.js";
+import { compileDeliveryManifest } from "../contracts/deliveryManifestV1.js";
 import {
   buildNarrativeV3SyntheticFixture,
   NARRATIVE_V3_SYNTHETIC_LANGUAGES,
@@ -43,6 +44,7 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     compile_visual_storyboard: "visual_storyboard",
     record_image_candidates: "image_candidate_set",
     decide_illustrations: "illustration_decision_set",
+    assemble_delivery_manifest: "delivery_manifest",
   };
   const outputType = outputTypes[stepType];
   const pointer = await artifactStore.getCurrentPointer(projectId, outputType);
@@ -332,6 +334,20 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [storyboardArtifact, candidateArtifact],
     payload: decisions,
   });
+  const deliveryManifest = compileDeliveryManifest({
+    spec: releaseSpec,
+    manuscript,
+    storyboard,
+    decisions,
+  });
+  const deliveryArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-delivery-manifest-v1`,
+    stepKey: "assemble-object-delivery-manifest-v1",
+    stepType: "assemble_delivery_manifest",
+    inputs: [releaseArtifact, manuscriptArtifact, storyboardArtifact, decisionArtifact],
+    payload: deliveryManifest,
+  });
   const adversarial = narrativeV3ObjectAdversarialCases(fixture.graph, fixture.indexes).map((entry) => {
     try {
       compileObjectLifecycleProjection({ graph: entry.graph });
@@ -360,6 +376,7 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       visualStoryboard: storyboardArtifact.payloadDigest,
       imageCandidateSet: candidateArtifact.payloadDigest,
       illustrationDecisionSet: decisionArtifact.payloadDigest,
+      deliveryManifest: deliveryArtifact.payloadDigest,
     },
     providerCalls: 0,
     paidModelCalls: 0,
