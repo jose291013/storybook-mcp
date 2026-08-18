@@ -18,6 +18,12 @@ import {
   creationIntentDigest,
   loadCreationIntent,
 } from "../contracts/creationIntent.js";
+import {
+  NARRATIVE_BOOK_SPEC_V2_ID,
+  NARRATIVE_BOOK_SPEC_V2_VERSION,
+  loadNarrativeBookSpecV2,
+  narrativeBookSpecV2Digest,
+} from "../contracts/narrativeBookSpecV2.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -48,6 +54,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadCanonicalStoryGraph,
     digest: canonicalStoryGraphDigest,
     parentTypes: Object.freeze(["story_concept"]),
+  }),
+  narrative_book_spec: Object.freeze({
+    contractId: NARRATIVE_BOOK_SPEC_V2_ID,
+    schemaVersion: NARRATIVE_BOOK_SPEC_V2_VERSION,
+    load: loadNarrativeBookSpecV2,
+    digest: narrativeBookSpecV2Digest,
+    parentTypes: Object.freeze(["creation_intent", "canonical_story_graph"]),
   }),
 });
 
@@ -147,6 +160,15 @@ function validateArtifactInput(input = {}) {
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The graph parent does not match its declared source concept digest.");
   }
+  if (
+    artifactType === "narrative_book_spec"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.creationIntent.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.canonicalStoryGraph.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The released spec parents do not match its declared intent and graph digests.");
+  }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {
     throw new NarrativeV3ArtifactStoreError("artifact_state_invalid", "The artifact state is not supported.");
@@ -181,6 +203,34 @@ function assertStoredParents(input, storedParents) {
       throw new NarrativeV3ArtifactStoreError("artifact_parent_mismatch", "A direct parent id, type, project or digest does not match.");
     }
   });
+}
+
+function sameParentLineage(storedParents = [], expectedParents = []) {
+  return storedParents.length === expectedParents.length && storedParents.every((stored, index) => (
+    (stored.id || stored.artifactId) === expectedParents[index].artifactId
+    && stored.artifactType === expectedParents[index].artifactType
+    && stored.payloadDigest === expectedParents[index].payloadDigest
+  ));
+}
+
+function assertReleaseIntentLineage(input, graphParents, conceptParents) {
+  if (input.artifactType !== "narrative_book_spec") return;
+  const expectedIntent = input.parents[0];
+  const graphConcept = graphParents[0];
+  const conceptIntent = conceptParents[0];
+  if (
+    graphParents.length !== 1
+    || graphConcept?.artifactType !== "story_concept"
+    || conceptParents.length !== 1
+    || conceptIntent?.artifactType !== "creation_intent"
+    || (conceptIntent.id || conceptIntent.artifactId) !== expectedIntent.artifactId
+    || conceptIntent.payloadDigest !== expectedIntent.payloadDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError(
+      "artifact_release_lineage_mismatch",
+      "The released graph does not descend from the exact CreationIntent parent.",
+    );
+  }
 }
 
 function loadStoredArtifact(record) {
@@ -289,12 +339,24 @@ export class JsonNarrativeV3ArtifactStore {
       && artifact.artifactType === input.artifactType
       && artifact.payloadDigest === input.payloadDigest
     ));
-    if (existing) return { artifact: loadJsonArtifact(ledger, existing), created: false };
+    if (existing) {
+      const artifact = loadJsonArtifact(ledger, existing);
+      if (!sameParentLineage(artifact.parents, input.parents)) {
+        throw new NarrativeV3ArtifactStoreError("artifact_lineage_conflict", "Identical payload content cannot be reused with different immutable parents.");
+      }
+      return { artifact, created: false };
+    }
     if (ledger.artifacts[input.id]) {
       throw new NarrativeV3ArtifactStoreError("artifact_id_conflict", "The requested artifact id already belongs to another immutable payload.");
     }
     const storedParents = input.parents.map((parent) => ledger.artifacts[parent.artifactId]).filter(Boolean);
     assertStoredParents(input, storedParents);
+    if (input.artifactType === "narrative_book_spec") {
+      const graphRecord = ledger.artifacts[input.parents[1].artifactId];
+      const graphParents = graphRecord?.parents || [];
+      const conceptRecord = ledger.artifacts[graphParents[0]?.artifactId];
+      assertReleaseIntentLineage(input, graphParents, conceptRecord?.parents || []);
+    }
     const revision = Object.values(ledger.artifacts)
       .filter((artifact) => artifact.projectId === input.projectId && artifact.artifactType === input.artifactType)
       .reduce((maximum, artifact) => Math.max(maximum, Number(artifact.revision) || 0), 0) + 1;
@@ -414,6 +476,9 @@ export class PostgresNarrativeV3ArtifactStore {
       );
       if (duplicate.rows[0]) {
         const artifact = await this.hydrate(client, duplicate.rows[0]);
+        if (!sameParentLineage(artifact.parents, input.parents)) {
+          throw new NarrativeV3ArtifactStoreError("artifact_lineage_conflict", "Identical payload content cannot be reused with different immutable parents.");
+        }
         await client.query("COMMIT");
         return { artifact, created: false };
       }
@@ -431,6 +496,11 @@ export class PostgresNarrativeV3ArtifactStore {
         payloadDigest: row.payload_digest,
       }]));
       assertStoredParents(input, input.parents.map((parent) => parentsById.get(parent.artifactId)).filter(Boolean));
+      if (input.artifactType === "narrative_book_spec") {
+        const graphParents = await this.parentsFor(client, input.parents[1].artifactId);
+        const conceptParents = graphParents[0] ? await this.parentsFor(client, graphParents[0].id) : [];
+        assertReleaseIntentLineage(input, graphParents, conceptParents);
+      }
       const revisionResult = await client.query(
         `SELECT COALESCE(MAX(revision),0)+1 AS revision FROM narrative_artifacts
          WHERE project_id=$1 AND artifact_type=$2`,

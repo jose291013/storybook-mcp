@@ -183,6 +183,36 @@ customer routes touched. It is a verification command, not a production shadow
 hook. The next brick is the deterministic released `NarrativeBookSpec`
 compiler; production model traffic remains unauthorized.
 
+## Narrative V3 deterministic release-spec checkpoint
+
+`NarrativeBookSpec.v2` now seals the creator-approved mechanical result without
+consulting a mutable scenario, blueprint or runtime checkpoint. Its two direct
+immutable parents are the exact CreationIntent and CanonicalStoryGraph. The pure
+compiler additionally receives bounded private profile bindings and verifies
+that every character key, role and profile reference was authorized by the
+intent and exists once in the graph.
+
+The released character registry fixes each display name, positive profile
+revision, profile digest and private visual-identity reference/digest. The
+server computes all page numbers and alternating text/image sides from the
+selected format. Every released scene copies semantic and physical facts
+unchanged, records its exact source-scene digest and resolves one illustration
+instant: phase, location, physical medium, visible and forbidden cast, wardrobe,
+conditional equipment, object-event evidence and main action.
+
+Object-bearing graphs currently fail closed at this boundary. Canonical graph
+version 1 does not yet prove initial quantity, ownership, location and projected
+visibility for every registered object, so the release compiler refuses to
+invent those states. The next brick extends that deterministic object lifecycle
+before manuscript or storyboard work begins.
+
+The append-only ledger accepts the release artifact only behind its ordered
+intent and graph parent digests. One new leased state-machine operation commits
+and promotes it idempotently; migration 019 changes only the isolated V3 type
+constraints. The 108-case synthetic runner now exercises this fourth artifact
+without a route, environment switch, provider call, credit or customer project.
+Production model traffic remains unauthorized.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint
