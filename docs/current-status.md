@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-16
+Last updated: 2026-08-18
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/enforce-scene-wardrobe-continuity`
-- Production/main checkpoint: gross active-wardrobe continuity gate (`24cbab6`, PR #212)
-- Current focused checkpoint: gross active-wardrobe continuity gate completed and published
+- Current branch: `codex/arbitrate-off-camera-object-audits`
+- Production/main checkpoint: gross active-wardrobe continuity gate (`76912e0`, PR #212)
+- Current focused checkpoint: causal/render object-state arbitration implementation and verification
 - Pull requests: #150 through #212 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -18,6 +18,17 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 PR #55 through #212 are merged on `main`. The latest completed brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: causal/render object-state arbitration
+
+1. The causal graph remains the global authority for possession, while one shared deterministic function derives whether that possessed object is visible in each scene.
+2. A worn, held or carried object is locally absent with quantity zero only while its canonical owner is physically off camera; no transfer, loss or duplicate is invented.
+3. Structural lifecycle validation consumes that same projection instead of contradicting it with the global state.
+4. The semantic auditor may discard only an object-visibility suspicion coordinated to exact entity ids and compiler-certified `owner_off_camera` scene states; duplication, quantity, transformation and uncoordinated findings remain blocking.
+5. Object-render recovery version 2 reopens one free private-checkpoint retry for failures exhausted under version 1, without rerunning the questionnaire or architect.
+6. No environment variable, credit, customer-data migration or series-canon change is introduced.
+
+Verification: 129 focused scenario/worker tests and the complete 552-test suite pass. After deployment, project `94a8c52b-9537-4e8a-b5f4-25eff24f1c4e` should expose one free retry, reuse its private semantic checkpoint and complete without another architect call if its only remaining findings are the former off-camera possession contradictions.
 
 ## Product brick: gross active-wardrobe continuity gate
 

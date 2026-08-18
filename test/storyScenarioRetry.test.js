@@ -126,6 +126,7 @@ test("an exhausted object-only checkpoint gets one deterministic render-ledger r
     request: {
       semanticAuditRecovery: true,
       repairTransactionRecoveryVersion: STORY_SCENARIO_REPAIR_TRANSACTION_RECOVERY_VERSION,
+      objectRenderRecoveryVersion: 1,
     },
     semanticAuditCheckpoint: { version: 1 },
     rejectedCandidateFailure: {
@@ -133,6 +134,7 @@ test("an exhausted object-only checkpoint gets one deterministic render-ledger r
       sceneNumbers: [7, 8, 9, 10, 11, 12, 13],
     },
   });
+  assert.equal(STORY_SCENARIO_OBJECT_RENDER_RECOVERY_VERSION, 2);
   assert.equal(storyScenarioObjectRenderRecoveryAvailable(recoverable), true);
   assert.equal(technicalStoryScenarioRetryAvailable(recoverable), true);
   recoverable.continuitySnapshot.storyScenarioGeneration.request.objectRenderRecoveryVersion =

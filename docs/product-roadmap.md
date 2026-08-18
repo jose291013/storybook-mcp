@@ -756,6 +756,27 @@ quality-review and private cost metrics reviewed at each step.
 - `REFERENCE_PHOTO_RECOVERY_CUTOFF`: optional ISO timestamp limiting the one-time free rebuild to legacy previews created before durable reference-photo storage was deployed.
 - `NARRATION_TTS_MODEL`: Speech-endpoint model used only for paid narration generation and cached voice samples; defaults to `gpt-4o-mini-tts`. The former conversational `NARRATION_MODEL` setting is intentionally ignored.
 
+## Causal/render object-state arbitration checkpoint
+
+Global causal possession and local illustrated visibility are now two explicit
+layers of one deterministic contract. The causal graph remains authoritative
+for identity, owner, quantity and lifecycle. A single shared projection then
+marks a worn, held or carried object absent with quantity zero only while its
+canonical owner is physically outside the selected scene. Structural lifecycle
+validation consumes that same projection, so it cannot demand that an
+off-camera possession be drawn while simultaneously accepting the owner as
+absent.
+
+The projected state carries bounded machine evidence (`owner_off_camera` plus
+the canonical owner) for the semantic checkpoint. The final auditor may clear
+only a visibility suspicion whose matching directive cites exact causal entity
+ids and scenes that all have that compiler-certified evidence. Missing ids,
+visible owners, duplicates, quantities, transfers and irreversible lifecycle
+changes remain blocking. Object-render recovery version 2 grants one free
+private-checkpoint retry to object-only failures exhausted under version 1; it
+reuses the preserved candidate and does not rerun the architect. This adds no
+environment variable, systematic model call, credit use or canon mutation.
+
 ## Resume prompt for a new Codex task
 
 > Continue the Storybook MCP project from `docs/product-roadmap.md` and `AGENTS.md`. Inspect Git status and open PRs first. Preserve `data/jobs.json`. Continue the first incomplete delivery phase, run tests, then publish a focused draft PR.

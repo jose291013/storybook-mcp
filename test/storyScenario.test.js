@@ -27,6 +27,7 @@ import {
 } from "../src/services/storyScenarioAutoRepair.js";
 import { reconcileStoryScenarioAudit } from "../src/agents/storyScenarioAudit.js";
 import { stabilizeSceneCharacterMovements } from "../src/services/characterMovementLedger.js";
+import { normalizeCausalGraph } from "../src/services/storyCausalGraph.js";
 
 function coherentPortalScenario() {
   return {
@@ -310,6 +311,78 @@ test("a true repeated action remains rejected by the semantic reconciliation", (
     scenes: [{ sceneNumber: 8, action: "Noa prepara la misma merienda otra vez." }],
   });
   assert.equal(audit.issues.length, 1);
+});
+
+test("semantic audit ignores only a coordinated off-camera object visibility suspicion", () => {
+  const scenario = {
+    scenes: [{
+      sceneNumber: 4,
+      characterPresences: [{ name: "Noa", mode: "physical" }],
+      objectStates: [{
+        objectId: "eva_basket",
+        state: "absent",
+        quantity: 0,
+        visibilityReason: "owner_off_camera",
+        causalOwner: "Eva",
+      }],
+    }],
+  };
+  const audit = reconcileStoryScenarioAudit({
+    issues: [{
+      code: "required_object_missing",
+      sceneNumber: 4,
+      explanation: "Eva's basket appears to be missing.",
+    }],
+    repairDirectives: [{
+      code: "required_object_missing",
+      affectedSceneNumbers: [4],
+      entityIds: ["eva_basket"],
+      instruction: "Show the basket.",
+    }],
+  }, scenario);
+
+  assert.deepEqual(audit, { issues: [], repairDirectives: [] });
+});
+
+test("semantic audit keeps duplicate and uncoordinated object findings", () => {
+  const scenario = {
+    scenes: [{
+      sceneNumber: 4,
+      characterPresences: [{ name: "Noa", mode: "physical" }],
+      objectStates: [{
+        objectId: "eva_basket",
+        state: "absent",
+        quantity: 0,
+        visibilityReason: "owner_off_camera",
+        causalOwner: "Eva",
+      }],
+    }],
+  };
+  const audit = reconcileStoryScenarioAudit({
+    issues: [
+      { code: "object_duplicate", sceneNumber: 4, explanation: "Two baskets are shown." },
+      { code: "required_object_missing", sceneNumber: 4, explanation: "A bag is missing." },
+    ],
+    repairDirectives: [
+      {
+        code: "object_duplicate",
+        affectedSceneNumbers: [4],
+        entityIds: ["eva_basket"],
+        instruction: "Remove the duplicate.",
+      },
+      {
+        code: "required_object_missing",
+        affectedSceneNumbers: [4],
+        entityIds: [],
+        instruction: "Show the bag.",
+      },
+    ],
+  }, scenario);
+
+  assert.deepEqual(audit.issues.map((issue) => issue.code), [
+    "object_duplicate", "required_object_missing",
+  ]);
+  assert.equal(audit.repairDirectives.length, 2);
 });
 
 test("the narrative controller turns an undiscovered crossing into a targeted scenarist repair", () => {
@@ -1084,6 +1157,88 @@ test("ordinary growth and English travel wording do not create false terminal ev
   assert.equal(stabilized.objects[0].lifecycle, undefined);
   assert.equal(stabilized.objects[1].lifecycle, undefined);
   assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
+test("a causal possession lifecycle is locally absent while its owner is off camera", () => {
+  const scenario = coherentPortalScenario();
+  scenario.objects = [{
+    objectId: "alexandra_bag",
+    name: "sac d'Alexandra",
+    owner: "Alexandra",
+    initialState: "carried",
+    initialQuantity: 1,
+    trackEveryScene: true,
+  }];
+  scenario.causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "alexandra_bag",
+      label: "sac d'Alexandra",
+      initial_state: "carried",
+      initial_owner_character: "Alexandra",
+      initial_quantity: 1,
+    }],
+    events: [{
+      id: "keep_bag",
+      scene_number: 2,
+      type: "use",
+      entity_id: "alexandra_bag",
+      from_state: "carried",
+      to_state: "carried",
+      to_owner_character: "Alexandra",
+      to_quantity: 1,
+    }],
+  }, scenario.objects, scenario.scenes, scenario.characters);
+
+  const stabilized = stabilizeStoryScenario(scenario);
+
+  assert.deepEqual(stabilized.scenes.map((scene) => scene.objectStates[0].state), [
+    "absent", "absent", "absent",
+  ]);
+  assert.ok(stabilized.scenes.every((scene) => (
+    scene.objectStates[0].visibilityReason === "owner_off_camera"
+      && scene.objectStates[0].causalOwner === "Alexandra"
+  )));
+  assert.deepEqual(validateStoryScenario(stabilized), { valid: true, issues: [] });
+});
+
+test("an absent causal possession still fails when its owner is physically in frame", () => {
+  const scenario = coherentPortalScenario();
+  scenario.objects[0].objectId = "nolan_cap";
+  scenario.causalGraph = normalizeCausalGraph({
+    version: 2,
+    entities: [{
+      id: "nolan_cap",
+      label: "casquette rouge",
+      initial_state: "worn",
+      initial_owner_character: "Nolan",
+      initial_quantity: 1,
+    }],
+    events: [{
+      id: "adjust_cap",
+      scene_number: 2,
+      type: "use",
+      entity_id: "nolan_cap",
+      from_state: "worn",
+      to_state: "worn",
+      to_owner_character: "Nolan",
+      to_quantity: 1,
+    }],
+  }, scenario.objects, scenario.scenes, scenario.characters);
+  const stabilized = stabilizeStoryScenario(scenario);
+  stabilized.scenes[1].objectStates[0] = {
+    ...stabilized.scenes[1].objectStates[0],
+    state: "absent",
+    owner: "",
+    quantity: 0,
+  };
+
+  const validation = validateStoryScenario(stabilized);
+
+  assert.equal(validation.valid, false);
+  assert.ok(validation.issues.some((issue) => (
+    issue.includes("object casquette rouge must be worn")
+  )));
 });
 
 test("explicit lifecycle events survive normalization and drive deterministic scene states", () => {

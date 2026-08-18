@@ -1,6 +1,6 @@
 export const STORY_CAUSAL_GRAPH_VERSION = 2;
 export const LEGACY_STORY_CAUSAL_GRAPH_VERSION = 1;
-export const STORY_OBJECT_RENDER_LEDGER_VERSION = 1;
+export const STORY_OBJECT_RENDER_LEDGER_VERSION = 2;
 
 const STATES = new Set([
   "worn", "held", "carried", "stored", "visible", "absent", "left_behind",
@@ -90,7 +90,7 @@ function physicalCharacterKeys(scene = {}) {
     .filter(Boolean));
 }
 
-function objectRenderState(canonical = {}, scene = {}) {
+export function objectRenderState(canonical = {}, scene = {}) {
   if (!POSSESSION_STATES.has(canonical?.state) || !canonical?.owner) return canonical;
   if (physicalCharacterKeys(scene).has(stableId(canonical.owner))) return canonical;
   return {
@@ -100,6 +100,46 @@ function objectRenderState(canonical = {}, scene = {}) {
     quantity: 0,
     hiddenWithOwner: canonical.owner,
   };
+}
+
+export function causalGraphObjectStateAtScene(scenario = {}, entityIdValue = "", sceneNumberValue = 0) {
+  const graph = scenario?.causalGraph || {};
+  const entityId = stableId(entityIdValue);
+  const sceneNumber = Number(sceneNumberValue);
+  const entity = values(graph.entities, 30).find((candidate) => candidate.id === entityId);
+  if (!entity || !Number.isInteger(sceneNumber) || sceneNumber < 1) return null;
+  let current = {
+    state: entity.initialState,
+    owner: entity.initialOwnerCharacter || "",
+    quantity: stateQuantity(entity.initialState, entity.initialQuantity),
+    eventId: "",
+    progressStep: boundedProgress(entity.initialProgress, boundedProgress(entity.progressTotal) || 20),
+  };
+  const events = values(graph.events, 80)
+    .filter((event) => event.structurallyValid && Number(event.sceneNumber) <= sceneNumber)
+    .slice()
+    .sort((left, right) => left.sceneNumber - right.sceneNumber || left.sequence - right.sequence);
+  for (const event of events) {
+    if (event.entityId === entityId) {
+      current = {
+        state: event.toState,
+        owner: event.toOwnerCharacter || "",
+        quantity: stateQuantity(event.toState, event.toQuantity),
+        eventId: event.id,
+        progressStep: event.progressStep || current.progressStep || 0,
+      };
+    }
+    if (event.resultEntityId === entityId) {
+      current = {
+        state: event.resultState,
+        owner: event.resultOwnerCharacter || "",
+        quantity: stateQuantity(event.resultState, event.resultQuantity),
+        eventId: event.id,
+        progressStep: event.progressStep || current.progressStep || 0,
+      };
+    }
+  }
+  return current;
 }
 
 function graphEntityOwner(graph = {}, entityIdValue = "", characters = []) {
@@ -368,6 +408,10 @@ export function projectCausalGraphObjectLedger(input = {}) {
         owner: current.owner,
         state: current.state,
         quantity: current.quantity,
+        ...(current.hiddenWithOwner ? {
+          visibilityReason: "owner_off_camera",
+          causalOwner: current.hiddenWithOwner,
+        } : {}),
         progressStep: current.progressStep || 0,
         progressTotal: boundedProgress(entity.progressTotal),
         instruction: ledgerInstruction({
