@@ -777,6 +777,25 @@ private-checkpoint retry to object-only failures exhausted under version 1; it
 reuses the preserved candidate and does not rerun the architect. This adds no
 environment variable, systematic model call, credit use or canon mutation.
 
+## Whole-checkpoint mechanical refresh checkpoint
+
+Migration recovery for an object-only private checkpoint now recompiles hidden
+mechanics across the complete preserved scenario. It no longer applies the
+ordinary targeted-editor scope after stabilization, because that scope restores
+the stale movement and object ledgers of non-target scenes and can turn a local
+six-finding checkpoint into a nine-finding mechanical regression. The recovery
+starts from the exact private candidate and never invokes the architect or a
+repair model.
+
+A deterministic narrative-surface projection proves that the title, summary,
+scene titles, actions, locations and physical/nonphysical presence choices are
+unchanged by the refresh. Only after the full mechanical and canonical gates
+pass does one fresh semantic audit run; legacy structural failures had never
+reached that audit. The old diagnostic set is not used as a rollback baseline
+for newly compiled mechanics. Object-render recovery version 3 opens one free
+attempt for checkpoints exhausted under version 2. This adds no environment
+variable, customer credit, series-canon change or creator-visible rewrite.
+
 ## Resume prompt for a new Codex task
 
 > Continue the Storybook MCP project from `docs/product-roadmap.md` and `AGENTS.md`. Inspect Git status and open PRs first. Preserve `data/jobs.json`. Continue the first incomplete delivery phase, run tests, then publish a focused draft PR.

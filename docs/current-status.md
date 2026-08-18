@@ -8,16 +8,27 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/arbitrate-off-camera-object-audits`
-- Production/main checkpoint: gross active-wardrobe continuity gate (`76912e0`, PR #212)
-- Current focused checkpoint: causal/render object-state arbitration published in PR #213
-- Pull requests: #150 through #212 merged; #213 ready to merge
+- Current branch: `codex/refresh-whole-object-checkpoint`
+- Production/main checkpoint: causal/render object-state arbitration (`ba80bff`, PR #213)
+- Current focused checkpoint: whole-checkpoint mechanical refresh implementation and verification
+- Pull requests: #150 through #213 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #212 are merged on `main`. The latest completed brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+PR #55 through #213 are merged on `main`. The latest completed brick prevents a generated scene from replacing a named traveler's active universe outfit with a categorically different ordinary outfit and then propagating that error through adjacent visual continuity. The movement canonicalizer remains independently controlled by `NARRATIVE_MOVEMENT_CANONICALIZER_MODE`; its last requested production value was `observe`.
+
+## Product brick: whole-checkpoint mechanical refresh
+
+1. A deterministic object recovery rebuilds hidden mechanics for every scene of the preserved private candidate instead of restoring stale non-target ledgers after stabilization.
+2. A bounded narrative-surface assertion guarantees that title, summary, scene title/action/locations and visible presence modes remain byte-for-value unchanged.
+3. The migration route invokes no architect and no repair model; it permits exactly one fresh semantic audit because the legacy structural failure never reached that gate.
+4. Old semantic diagnostics cannot roll back newly compiled mechanics or reintroduce the former `6 -> 9 -> rollback` cycle.
+5. Object-render recovery version 3 grants one free retry to the project exhausted under version 2.
+6. No environment variable, customer credit, series-canon mutation or creator-visible rewrite is introduced.
+
+Verification: 131 focused scenario/compiler/worker tests and the complete 554-test suite pass.
 
 ## Product brick: causal/render object-state arbitration
 
