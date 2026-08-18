@@ -9,6 +9,7 @@ import {
 import {
   compileObjectLifecycleProjection,
 } from "../contracts/objectLifecycleProjection.js";
+import { compileNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js";
 import {
   buildNarrativeV3SyntheticFixture,
   NARRATIVE_V3_SYNTHETIC_LANGUAGES,
@@ -30,6 +31,7 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     parse_story_concept: "story_concept",
     compile_story_graph: "canonical_story_graph",
     compile_object_lifecycle: "object_lifecycle_projection",
+    release_narrative_book_spec_v3: "narrative_book_spec_v3",
   };
   const outputType = outputTypes[stepType];
   const pointer = await artifactStore.getCurrentPointer(projectId, outputType);
@@ -214,6 +216,20 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [graphArtifact],
     payload: projection,
   });
+  const releaseSpec = compileNarrativeBookSpecV3({
+    intent: fixture.intent,
+    graph: fixture.graph,
+    objectProjection: projection,
+    profileBindings: fixture.profileBindings,
+  });
+  const releaseArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-object-release-v3`,
+    stepKey: "release-object-book-spec-v3",
+    stepType: "release_narrative_book_spec_v3",
+    inputs: [intentArtifact, graphArtifact, projectionArtifact],
+    payload: releaseSpec,
+  });
   const adversarial = narrativeV3ObjectAdversarialCases(fixture.graph, fixture.indexes).map((entry) => {
     try {
       compileObjectLifecycleProjection({ graph: entry.graph });
@@ -237,6 +253,7 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       storyConcept: conceptArtifact.payloadDigest,
       canonicalStoryGraph: graphArtifact.payloadDigest,
       objectLifecycleProjection: projectionArtifact.payloadDigest,
+      narrativeBookSpecV3: releaseArtifact.payloadDigest,
     },
     providerCalls: 0,
     paidModelCalls: 0,

@@ -25,6 +25,12 @@ import {
   narrativeBookSpecV2Digest,
 } from "../contracts/narrativeBookSpecV2.js";
 import {
+  NARRATIVE_BOOK_SPEC_V3_ID,
+  NARRATIVE_BOOK_SPEC_V3_VERSION,
+  loadNarrativeBookSpecV3,
+  narrativeBookSpecV3Digest,
+} from "../contracts/narrativeBookSpecV3.js";
+import {
   OBJECT_LIFECYCLE_PROJECTION_ID,
   OBJECT_LIFECYCLE_PROJECTION_VERSION,
   loadObjectLifecycleProjection,
@@ -74,6 +80,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadNarrativeBookSpecV2,
     digest: narrativeBookSpecV2Digest,
     parentTypes: Object.freeze(["creation_intent", "canonical_story_graph"]),
+  }),
+  narrative_book_spec_v3: Object.freeze({
+    contractId: NARRATIVE_BOOK_SPEC_V3_ID,
+    schemaVersion: NARRATIVE_BOOK_SPEC_V3_VERSION,
+    load: loadNarrativeBookSpecV3,
+    digest: narrativeBookSpecV3Digest,
+    parentTypes: Object.freeze(["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]),
   }),
 });
 
@@ -188,6 +201,16 @@ function validateArtifactInput(input = {}) {
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The released spec parents do not match its declared intent and graph digests.");
   }
+  if (
+    artifactType === "narrative_book_spec_v3"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.creationIntent.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.canonicalStoryGraph.artifactDigest
+      || parents[2]?.payloadDigest !== payload.sources.objectLifecycleProjection.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The V3 released spec parents do not match its declared intent, graph and object projection digests.");
+  }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {
     throw new NarrativeV3ArtifactStoreError("artifact_state_invalid", "The artifact state is not supported.");
@@ -233,7 +256,7 @@ function sameParentLineage(storedParents = [], expectedParents = []) {
 }
 
 function assertReleaseIntentLineage(input, graphParents, conceptParents) {
-  if (input.artifactType !== "narrative_book_spec") return;
+  if (!["narrative_book_spec", "narrative_book_spec_v3"].includes(input.artifactType)) return;
   const expectedIntent = input.parents[0];
   const graphConcept = graphParents[0];
   const conceptIntent = conceptParents[0];
@@ -248,6 +271,23 @@ function assertReleaseIntentLineage(input, graphParents, conceptParents) {
     throw new NarrativeV3ArtifactStoreError(
       "artifact_release_lineage_mismatch",
       "The released graph does not descend from the exact CreationIntent parent.",
+    );
+  }
+}
+
+function assertReleaseObjectLineage(input, projectionParents) {
+  if (input.artifactType !== "narrative_book_spec_v3") return;
+  const expectedGraph = input.parents[1];
+  const projectionGraph = projectionParents[0];
+  if (
+    projectionParents.length !== 1
+    || projectionGraph?.artifactType !== "canonical_story_graph"
+    || (projectionGraph.id || projectionGraph.artifactId) !== expectedGraph.artifactId
+    || projectionGraph.payloadDigest !== expectedGraph.payloadDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError(
+      "artifact_release_object_lineage_mismatch",
+      "The released object projection does not descend from the exact CanonicalStoryGraph parent.",
     );
   }
 }
@@ -370,11 +410,15 @@ export class JsonNarrativeV3ArtifactStore {
     }
     const storedParents = input.parents.map((parent) => ledger.artifacts[parent.artifactId]).filter(Boolean);
     assertStoredParents(input, storedParents);
-    if (input.artifactType === "narrative_book_spec") {
+    if (["narrative_book_spec", "narrative_book_spec_v3"].includes(input.artifactType)) {
       const graphRecord = ledger.artifacts[input.parents[1].artifactId];
       const graphParents = graphRecord?.parents || [];
       const conceptRecord = ledger.artifacts[graphParents[0]?.artifactId];
       assertReleaseIntentLineage(input, graphParents, conceptRecord?.parents || []);
+    }
+    if (input.artifactType === "narrative_book_spec_v3") {
+      const projectionRecord = ledger.artifacts[input.parents[2].artifactId];
+      assertReleaseObjectLineage(input, projectionRecord?.parents || []);
     }
     const revision = Object.values(ledger.artifacts)
       .filter((artifact) => artifact.projectId === input.projectId && artifact.artifactType === input.artifactType)
@@ -515,10 +559,14 @@ export class PostgresNarrativeV3ArtifactStore {
         payloadDigest: row.payload_digest,
       }]));
       assertStoredParents(input, input.parents.map((parent) => parentsById.get(parent.artifactId)).filter(Boolean));
-      if (input.artifactType === "narrative_book_spec") {
+      if (["narrative_book_spec", "narrative_book_spec_v3"].includes(input.artifactType)) {
         const graphParents = await this.parentsFor(client, input.parents[1].artifactId);
         const conceptParents = graphParents[0] ? await this.parentsFor(client, graphParents[0].id) : [];
         assertReleaseIntentLineage(input, graphParents, conceptParents);
+      }
+      if (input.artifactType === "narrative_book_spec_v3") {
+        const projectionParents = await this.parentsFor(client, input.parents[2].artifactId);
+        assertReleaseObjectLineage(input, projectionParents);
       }
       const revisionResult = await client.query(
         `SELECT COALESCE(MAX(revision),0)+1 AS revision FROM narrative_artifacts
