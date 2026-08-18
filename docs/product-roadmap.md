@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-18
+Last updated: 2026-08-19
 
 ## Narrative V3 structural replacement direction
 
@@ -393,6 +393,13 @@ digest is also configured. Production defaults remain
 `NARRATIVE_V3_RELEASE_GATE_DIGEST`. No current route calls this assignment, so
 merging the checkpoint deploys contracts and verification only; customer books
 continue on the existing path until a separately reviewed integration decision.
+
+PRs #224 through #229 are merged on `main`. Render was verified Live on the
+final guarded-canary commit `0ac5fc8` on 2026-08-19. The release remains safely
+inactive: the default mode is `off`, its percentage is zero, its gate digest is
+unset in production, and no customer route calls the assignment. This live
+checkpoint proves deployability of the isolated chain; it does not authorize a
+customer canary, provider spend, credit reservation or V2 project migration.
 
 ## Durable object-checkpoint retry entitlement
 
