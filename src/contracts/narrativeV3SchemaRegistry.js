@@ -29,6 +29,7 @@ export const visualStoryboardSchema = readSchema("visualStoryboard.v1.schema.jso
 export const imageCandidateSetSchema = readSchema("imageCandidateSet.v1.schema.json");
 export const illustrationEvaluationWireSchema = readSchema("illustrationEvaluationWire.v1.schema.json");
 export const illustrationDecisionSetSchema = readSchema("illustrationDecisionSet.v1.schema.json");
+export const deliveryManifestSchema = readSchema("deliveryManifest.v1.schema.json");
 
 ajv.addSchema(creationIntentSchema);
 ajv.addSchema(storyConceptWireSchema);
@@ -44,6 +45,7 @@ ajv.addSchema(visualStoryboardSchema);
 ajv.addSchema(imageCandidateSetSchema);
 ajv.addSchema(illustrationEvaluationWireSchema);
 ajv.addSchema(illustrationDecisionSetSchema);
+ajv.addSchema(deliveryManifestSchema);
 
 const validators = new Map([
   ["creation_intent", ajv.getSchema(creationIntentSchema.$id)],
@@ -60,6 +62,7 @@ const validators = new Map([
   ["image_candidate_set_v1", ajv.getSchema(imageCandidateSetSchema.$id)],
   ["illustration_evaluation_wire_v1", ajv.getSchema(illustrationEvaluationWireSchema.$id)],
   ["illustration_decision_set_v1", ajv.getSchema(illustrationDecisionSetSchema.$id)],
+  ["delivery_manifest_v1", ajv.getSchema(deliveryManifestSchema.$id)],
 ]);
 
 function boundedErrors(errors = []) {

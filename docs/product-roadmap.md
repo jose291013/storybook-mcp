@@ -348,6 +348,28 @@ reaches nine immutable artifacts without a production provider or customer
 route. The next checkpoint assembles a delivery manifest only when every
 illustration decision is accepted.
 
+## Narrative V3 delivery-manifest checkpoint
+
+`DeliveryManifest.v1` is the first artifact that may declare a V3 book ready.
+It has four exact ordered sources: released spec, manuscript, visual storyboard
+and illustration decisions. Compilation fails while any illustration is
+rejected or missing; it never substitutes an older candidate or asks the
+customer to approve an internal uncertainty.
+
+The manifest covers every physical page exactly once and in order. Text pages
+reference the digest of their exact immutable manuscript page. Image pages
+reference the exact accepted decision digest and copy only its private storage
+asset metadata. No public URL or duplicated prose becomes a second narrative
+authority. Every page has its own digest and the canonical loader fails closed
+on reordering, replacement or tampering.
+
+The append-only ledger requires the exact spec, manuscript, storyboard and
+decision parents. The leased `assemble_delivery_manifest` step commits and
+promotes the artifact idempotently; migration 025 changes only isolated V3
+constraints. The anonymous matrix reaches ten immutable artifacts and replay
+reuses them without regenerating accepted work. Production routing and canary
+activation remain separate and disabled until the final shadow gate.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint
