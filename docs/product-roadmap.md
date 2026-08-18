@@ -160,6 +160,29 @@ graphs in synthetic tests. No production route, V2 project, paid model call,
 credit, environment variable or customer migration is introduced. The next
 brick is a synthetic-only state-machine shadow runner and structural report.
 
+## Narrative V3 synthetic shadow-runner checkpoint
+
+The strict V3 chain can now be exercised end to end without a creative model or
+a customer project. The synthetic runner builds an anonymous CreationIntent,
+parses a deterministic semantic concept fixture, compiles server-owned physical
+mechanics and commits the canonical graph through the real JSON artifact ledger,
+compare-and-set pointers, leased run store and state-machine commit path.
+
+The matrix covers FR, ES and EN across every configured universe and supported
+page count, for 108 complete runs. Each result checks exact scene and act counts,
+one crossing/return pair, immutable parent digests and idempotent replay. A
+second execution of the same fixture reuses exactly three artifacts and leaves
+all current-pointer revisions unchanged.
+
+The emitted report is content-free: stable fixture ids, structural counts and
+canonical artifact digests only. It contains no names, profile references,
+questionnaire text, story prose or images. The runner uses explicit temporary
+local stores, imports no server route, credit or provider client, reads no
+environment variable and records zero provider calls, zero paid calls and zero
+customer routes touched. It is a verification command, not a production shadow
+hook. The next brick is the deterministic released `NarrativeBookSpec`
+compiler; production model traffic remains unauthorized.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

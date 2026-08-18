@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-mechanics-builder`
-- Production/main checkpoint: Narrative V3 canonical creation intent (`1e53c4b`, PR #219)
-- Current focused checkpoint: pure deterministic concept-to-mechanics builder across all supported universes and formats; no production route or model enabled
-- Pull requests: #150 through #219 merged
+- Current branch: `codex/narrative-v3-synthetic-shadow`
+- Production/main checkpoint: Narrative V3 deterministic mechanics builder (`badfec2`, PR #220)
+- Current focused checkpoint: synthetic-only V3 ledger/state-machine runner across all languages, universes and formats; no production route or model enabled
+- Pull requests: #150 through #220 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #219 are merged on `main`. The V3 audit reproduced the root
+PR #55 through #220 are merged on `main`. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
@@ -39,9 +39,32 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: complete and merge the deterministic server mechanics
-builder, then run the state machine in synthetic shadow mode only. No production
-customer route or paid model call is authorized yet.
+Next verification target: complete and merge the synthetic-only state-machine
+shadow runner, then define the deterministic released `NarrativeBookSpec`
+compiler. No production customer route or paid model call is authorized yet.
+
+## Product brick: Narrative V3 synthetic shadow runner
+
+1. A local runner executes the real append-only artifact ledger and durable
+   state machine from `CreationIntent` through `StoryConcept` to
+   `CanonicalStoryGraph` using anonymous in-memory semantics and temporary JSON
+   stores only.
+2. The exhaustive matrix covers FR, ES and EN, all six universes and all six
+   sellable page counts: 108 structural fixtures with exact scene, act,
+   crossing and return cardinality.
+3. Every fixture commits the exact immutable ancestry and promotion pointers.
+   Replaying the same fixture creates no duplicate artifact and leaves all
+   pointer revisions at 1.
+4. Reports contain only fixture identifiers, structural counters and canonical
+   digests. Profile references, story prose and generated content are absent.
+5. The runner imports no route, server, credit or model client, reads no
+   environment variable and reports zero provider/paid calls and zero customer
+   routes touched.
+6. No production worker, V2 project, customer project, series canon, credit,
+   environment variable or Render configuration is changed.
+
+Verification: 4 focused tests and the complete 597-test suite pass. The CLI
+command is `npm run check:narrative-v3-shadow`.
 
 ## Product brick: Narrative V3 deterministic mechanics builder
 

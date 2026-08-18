@@ -9,6 +9,7 @@
     "test": "node --test --test-concurrency=1",
     "benchmark:narrative-models": "node scripts/benchmarkNarrativeModels.js",
     "check:narrative-stability": "node scripts/checkNarrativeStabilityMatrix.js",
+    "check:narrative-v3-shadow": "node scripts/runNarrativeV3SyntheticShadow.js",
     "benchmark:narrative-stability": "node scripts/benchmarkNarrativeStabilityCase.js",
     "sample:typography": "node scripts/renderTypographySamples.js"
   },
