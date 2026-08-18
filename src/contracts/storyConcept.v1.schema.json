@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/story-concept.v1.json",
+  "title": "Calitiki Story Concept canonical artifact",
+  "description": "Immutable semantic story concept parsed from one strict model wire response. It intentionally contains no narrative mechanics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "contractId",
+    "language",
+    "title",
+    "premise",
+    "themeProof",
+    "heroArc",
+    "beats",
+    "validation"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.story-concept.v1" },
+    "language": { "type": "string", "enum": ["FR", "ES", "EN"] },
+    "title": { "type": "string", "minLength": 1, "maxLength": 160 },
+    "premise": { "type": "string", "minLength": 1, "maxLength": 800 },
+    "themeProof": { "type": "string", "minLength": 1, "maxLength": 400 },
+    "heroArc": { "$ref": "#/$defs/heroArc" },
+    "beats": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/beat" }
+    },
+    "validation": { "$ref": "#/$defs/validation" }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$"
+    },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "shortText": { "type": "string", "minLength": 1, "maxLength": 400 },
+    "heroArc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desire", "initialDoubt", "decisiveChoice", "earnedChange"],
+      "properties": {
+        "desire": { "$ref": "#/$defs/shortText" },
+        "initialDoubt": { "$ref": "#/$defs/shortText" },
+        "decisiveChoice": { "$ref": "#/$defs/shortText" },
+        "earnedChange": { "$ref": "#/$defs/shortText" }
+      }
+    },
+    "beat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "beatKey",
+        "purpose",
+        "summary",
+        "emotionalShift",
+        "distinctiveImage",
+        "participantKeys"
+      ],
+      "properties": {
+        "beatKey": { "$ref": "#/$defs/identifier" },
+        "purpose": {
+          "type": "string",
+          "enum": [
+            "opening",
+            "desire",
+            "preparation",
+            "crossing",
+            "attempt",
+            "setback",
+            "choice",
+            "climax",
+            "return",
+            "resolution"
+          ]
+        },
+        "summary": { "type": "string", "minLength": 1, "maxLength": 600 },
+        "emotionalShift": { "$ref": "#/$defs/shortText" },
+        "distinctiveImage": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "participantKeys": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parserVersion", "artifactDigest"],
+      "properties": {
+        "parserVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

@@ -29,6 +29,31 @@ property tests; it does not begin with another recovery policy. Shadow and
 canary rollout are allowed only after the audit's deterministic, restart,
 concurrency, cost and narrative-quality gates pass.
 
+## Narrative V3 strict-contract foundation checkpoint
+
+The first V3 code is deliberately isolated from production orchestration. A
+creative model may emit only `StoryConceptWire.v1`, whose snake-case semantic
+payload contains no topology, movement, presence, object, wardrobe or page
+mechanics. One explicit parser maps it to immutable `StoryConcept.v1`; the wire
+and canonical schemas are strict and intentionally reject one another.
+
+All mechanics enter through the separate server-owned
+`CanonicalStoryMechanics.v1` contract. The pure compiler binds each semantic
+beat exactly once, assigns contiguous scene numbers, and produces
+`CanonicalStoryGraph.v1`. Its validator fails closed on unknown fields,
+non-contiguous acts, broken physical handoffs, incorrect movement origins,
+unregistered passage endpoints, cast/presence mismatches, wardrobe gaps and
+invalid object events. No shared normalizer or model-authored mechanic is used.
+
+Canonical serialization recursively orders object keys while preserving array
+order. SHA-256 artifact digests include parser/compiler versions, loaders verify
+them before returning deeply immutable values, and repeated persisted replays
+are byte-identical. This foundation changes no route, worker, customer project,
+credit, series canon, environment variable or V2 behavior. The next brick is
+append-only V3 artifact persistence with compare-and-set project pointers;
+production model calls remain out of scope until restart and concurrency tests
+pass.
+
 ## Durable object-checkpoint retry entitlement
 
 An older targeted retry can legitimately move the private semantic-checkpoint

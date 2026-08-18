@@ -8,23 +8,22 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/audit-narrative-v3`
-- Production/main checkpoint: whole-checkpoint mechanical refresh (`a323696`, PR #214)
-- Current focused checkpoint: Narrative V3 structural audit; no production behavior changed
-- Pull requests: #150 through #214 merged
+- Current branch: `codex/narrative-v3-foundation`
+- Production/main checkpoint: Narrative V3 structural audit (`2714343`, PR #215)
+- Current focused checkpoint: isolated Narrative V3 strict-contract foundation; no production route or customer project changed
+- Pull requests: #150 through #215 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #214 are merged on `main`. The whole-checkpoint recovery deployed
-in #214 correctly stopped when it detected a creator-visible mutation. The V3
-audit then reproduced the underlying defect locally: passing a canonical
-scenario through the raw-output normalizer erased its locations and physical
-presences. This is a pipeline-boundary failure, not another missing recovery
-rule. The current product direction is therefore the side-by-side V3 artifact
-pipeline documented in `docs/narrative-pipeline-v3-audit.md`; further V2 repair
-bricks are frozen except for security, privacy, commerce and data-loss defects.
+PR #55 through #215 are merged on `main`. The V3 audit reproduced the root
+pipeline-boundary defect locally: passing a canonical scenario through the
+raw-output normalizer erased its locations and physical presences. The first
+side-by-side V3 implementation now establishes strict incompatible model-wire,
+canonical concept, server-mechanics and canonical graph contracts without
+connecting them to a production route. Further V2 repair bricks remain frozen
+except for security, privacy, commerce and data-loss defects.
 
 ## Current architecture decision: Narrative V3
 
@@ -40,10 +39,32 @@ bricks are frozen except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target: approve the audit, then implement only the first
-foundation brick (strict `StoryConcept.v1`/`CanonicalStoryGraph.v1` schemas,
-separate loaders, canonical digest and property tests) with no route, model,
-Render variable or customer migration.
+Next verification target: add append-only Narrative V3 artifact persistence and
+compare-and-set project pointers beside V2, still without a customer route,
+model call, Render variable or implicit migration.
+
+## Product brick: Narrative V3 strict contract foundation
+
+1. The creative-model wire format and canonical `StoryConcept.v1` are separate,
+   strict and intentionally incompatible schemas; only one explicit parser may
+   cross that boundary.
+2. The server owns a separate strict mechanics contract for topology,
+   movements, physical presences, object events, wardrobe and illustration
+   state. Unknown or misspelled fields fail closed instead of being normalized.
+3. `CanonicalStoryGraph.v1` is compiled deterministically from one validated
+   concept plus server mechanics. It enforces exact beat binding, contiguous
+   scenes and acts, physical handoffs, movement origins, visible cast, wardrobe,
+   object and passage integrity.
+4. Canonical JSON serialization and SHA-256 digests bind parser/compiler
+   versions; loaders verify the digest and return deeply immutable artifacts.
+5. Replaying the same persisted inputs is byte-identical and neither compiler
+   nor loader repairs, migrates or mutates its input.
+6. The implementation is isolated under `src/contracts`: no production route,
+   customer project, credit, series canon, environment variable or V2 behavior
+   changes.
+
+Verification: 13 focused V3 tests, the complete 567-test suite and production
+dependency audit pass; `npm audit --omit=dev` reports 0 vulnerabilities.
 
 ## Product brick: whole-checkpoint mechanical refresh
 
@@ -374,16 +395,22 @@ Verification: 129 focused scenario/worker tests and the complete 552-test suite 
 
 - Focused active-wardrobe, scene-plan and image-QA tests: 105/105 passing.
 - Focused scenario transaction, compiler and recovery tests: 94/94 passing.
-- Complete `npm test`: 548/548 passing.
+- Narrative V3 foundation tests: 13/13 passing.
+- Complete `npm test`: 567/567 passing.
+- Production dependency audit: 0 vulnerabilities.
 - `git diff --check`: passing.
 - Narrative stability matrix: 108/108 structurally valid with 0 model calls.
 
 ## Next verification target
 
-1. After publication and Render deployment, create a new starry-space book and confirm every visible traveler keeps the activated space outfit through all cabin and adventure scenes.
-2. Confirm a gross wrong-outfit candidate logs `wardrobe_state_mismatch`, enters one targeted edit and never becomes an adjacent-scene source before repair approval.
-3. Confirm approximate colors, hidden seams, tiny accessories and removed branding do not trigger repair or creator review.
-4. Confirm no pre-existing book is scanned or regenerated, and keep the 108-case zero-model matrix as the mandatory narrative regression gate.
+1. Add an append-only artifact table for V3 payloads, digests, parent digests,
+   schema versions and lifecycle state.
+2. Add compare-and-set pointers so concurrent workers cannot replace a released
+   ancestor or publish two competing descendants.
+3. Prove idempotent replay, restart recovery and concurrency locally before any
+   model or customer route can write V3 artifacts.
+4. Keep every V2 project on its existing path and require an explicit rollout
+   decision before the first V3 canary.
 
 ## Protected local state
 

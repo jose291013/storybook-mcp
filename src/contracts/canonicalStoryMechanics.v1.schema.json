@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/canonical-story-mechanics.v1.json",
+  "title": "Calitiki server-owned canonical story mechanics",
+  "description": "Strict deterministic compiler input. It is server configuration, never model output or a customer artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "book", "registries", "scenes"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.canonical-story-mechanics.v1" },
+    "book": { "$ref": "#/$defs/book" },
+    "registries": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/registries" },
+    "scenes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 24,
+      "items": { "$ref": "#/$defs/scene" }
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$"
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["audienceAge", "pageCount", "universeId"],
+      "properties": {
+        "audienceAge": { "type": "integer", "minimum": 2, "maximum": 17 },
+        "pageCount": { "type": "integer", "enum": [24, 28, 32, 36, 40, 44] },
+        "universeId": { "$ref": "#/$defs/identifier" }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "beatKey",
+        "act",
+        "timeline",
+        "presences",
+        "movements",
+        "objectEvents",
+        "wardrobeStates",
+        "illustration"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "beatKey": { "$ref": "#/$defs/identifier" },
+        "act": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "timeline": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/timeline" },
+        "presences": {
+          "type": "array",
+          "maxItems": 12,
+          "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/presence" }
+        },
+        "movements": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/movement" }
+        },
+        "objectEvents": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" }
+        },
+        "wardrobeStates": {
+          "type": "array",
+          "maxItems": 12,
+          "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" }
+        },
+        "illustration": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration" }
+      }
+    }
+  }
+}
