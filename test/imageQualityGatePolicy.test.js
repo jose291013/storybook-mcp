@@ -166,6 +166,52 @@ test("a low-detail missing-cast suspicion needs high-detail confirmation", async
   }
 });
 
+test("a persistent entity count suspicion needs high-detail confirmation", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-entity-qa-"));
+  const imagePath = path.join(directory, "scene.png");
+  await sharp({
+    create: { width: 32, height: 32, channels: 3, background: "#d7f0ff" },
+  }).png().toFile(imagePath);
+  let calls = 0;
+  const client = {
+    responses: {
+      create: async ({ input }) => {
+        calls += 1;
+        if (calls === 1) {
+          return { output_text: JSON.stringify({ approved: false, issues: ["Persistent visual entity is duplicated. The ball appears in two positions."] }) };
+        }
+        assert.match(input[0].content[0].text, /Count every physical copy across the entire image/);
+        return { output_text: JSON.stringify({
+          confirmed_issues: [{ entity_id: "object_ball", kind: "quantity", observed_quantity: 2 }],
+        }) };
+      },
+    },
+  };
+  try {
+    const result = await inspectSceneFidelity({
+      imagePath,
+      client,
+      sceneContract: {
+        visual_entity_states: [{
+          entity_id: "object_ball",
+          name: "luminous ball",
+          visibility: "required",
+          exact_quantity: 1,
+          state: "visible",
+          location: "workshop floor",
+          appearance_lock: { colors: ["gold"] },
+        }],
+      },
+    });
+    assert.equal(calls, 2);
+    assert.equal(result.approved, false);
+    assert.match(result.issues[0], /requires 1 total and shows 2/);
+    assert.equal(classifyVisualIssue(result.issues[0]).code, "object_state");
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("visual QA policy assigns stable codes and reserves automatic repair for high-confidence defects", () => {
   assert.deepEqual(
     classifyVisualIssue("Required named identity is duplicated. Noa appears twice."),

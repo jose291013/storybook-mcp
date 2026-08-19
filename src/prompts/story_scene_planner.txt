@@ -34,6 +34,10 @@ SCENE CONTRACTS
 - For every generic character, create a local id such as new_friend_1. State that this person is visually distinct from all recurring named characters.
 - Encode the main action as subject, verb and recipient/object. If Nolan shakes a new friend's hand while Matheo watches, the subject is Nolan, the recipient is new_friend_1 and Matheo is an observer.
 - Record required quantities and physical scale literally. "Several children" requires at least three visible children; a "large slide" must dominate the play area and cannot be a small toddler slide.
+- Build one whole-book visual_entity_registry for every unique, recurring, created, manipulated or counted physical element that can appear in more than one illustrated scene. Propose a semantic_key; the deterministic compiler assigns the final immutable entity id.
+- A registry entry has one immutable exact quantity and one immutable appearance lock (size, colors, material and distinguishing features). A group such as three chalk circles is one persistent entity with quantity 3, not an invitation to invent more circles later.
+- Return one visual_entity_states entry for every registered entity in every scene. Use exactly one state and one location. Before creation and whenever absent, quantity is 0. When visible, quantity equals the registry quantity. Never use two positions of the same entity to show motion, time passing or successive actions.
+- A physical transformation creates a new semantic entity; never silently change the quantity or appearance identity of the original entity.
 - Record forbidden substitutions and contradictions explicitly.
 - Keep continuity with the previous and next scene without illustrating a different moment.
 - Treat every scene as a strict before/during/after causal frame. The previous scene's after location is this scene's before location, and this scene's after location is the next scene's inherited location. Never skip discovery, preparation, crossing or arrival.
@@ -46,6 +50,14 @@ SCENE CONTRACTS
 
 OUTPUT
 {
+  "visual_entity_registry": [{
+    "semantic_key": "stable semantic proposal such as training_circles",
+    "name": "reader-neutral physical entity name",
+    "kind": "object | set | fixture | symbol | consumable",
+    "quantity": 3,
+    "appearance": {"size":"immutable relative size","colors":["immutable colors"],"material":"immutable material","distinguishing_features":["immutable visible details"]},
+    "created_scene_number": 1
+  }],
   "page_texts": [{
     "page_number": 2,
     "text": "final reader-visible prose",
@@ -61,7 +73,8 @@ OUTPUT
     "named_characters": [{"name": "exact canonical name", "visual_role": "actor | recipient | observer | background", "action": "exact visible action"}],
     "generic_characters": [{"id": "local stable id", "description": "age-appropriate non-branded description", "visual_role": "actor | recipient | observer | background", "action": "exact visible action", "must_not_resemble": ["canonical names this person must not replace"]}],
     "required_elements": [{"description": "visible object, group or setting", "quantity": "exact/minimum quantity", "scale": "small/large/dominant/etc."}],
-    "object_states": [{"name":"object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind","quantity":1,"instruction":"exact visual rule"}],
+    "object_states": [{"entity_id":"approved stable object id","name":"object","owner":"canonical name","state":"worn | held | carried | stored | visible | absent | left_behind","quantity":1,"instruction":"exact visual rule"}],
+    "visual_entity_states": [{"semantic_key":"registry semantic_key","name":"same registry name","state":"created | present | held | carried | placed | transformed | removed | absent","owner":"canonical name or empty","location":"one exact location","quantity":3}],
     "spatial_relationships": ["who is where relative to whom"],
     "forbidden_elements": ["specific wrong substitution or contradiction"],
     "causal_frame": {"visible_phase":"before | during | after","visible_location":"exact visible location"},

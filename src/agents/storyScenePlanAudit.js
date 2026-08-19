@@ -12,7 +12,7 @@ function list(value, maximum = 20) {
   return (Array.isArray(value) ? value : []).filter(Boolean).slice(0, maximum);
 }
 
-export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 5;
+export const STORY_PLAN_AUDIT_CONTRACT_VERSION = 6;
 
 export function versionedStoryPlanAuditStep(step = "story-plan-audit") {
   const prefix = `audit-contract:v${STORY_PLAN_AUDIT_CONTRACT_VERSION}:`;
@@ -51,11 +51,25 @@ export function authoritativeSceneContractForAudit(contract = {}) {
       scale: clean(element?.scale),
     })),
     object_states: list(contract?.object_states, 20).map((objectState) => ({
+      entity_id: clean(objectState?.entity_id || objectState?.objectId),
       name: clean(objectState?.name),
       owner: clean(objectState?.owner),
       state: clean(objectState?.state),
-      quantity: Math.max(1, Number(objectState?.quantity || 1)),
+      quantity: Math.max(0, Number(objectState?.quantity ?? 1)),
       instruction: clean(objectState?.instruction),
+    })),
+    visual_entity_states: list(contract?.visual_entity_states, 50).map((state) => ({
+      entity_id: clean(state?.entity_id), semantic_key: clean(state?.semantic_key), name: clean(state?.name),
+      state: clean(state?.state), visibility: clean(state?.visibility),
+      exact_quantity: Math.max(0, Number(state?.exact_quantity ?? 0)),
+      owner: clean(state?.owner), location: clean(state?.location),
+      appearance_lock: {
+        size: clean(state?.appearance_lock?.size),
+        colors: list(state?.appearance_lock?.colors, 8).map((item) => clean(item)),
+        material: clean(state?.appearance_lock?.material),
+        distinguishing_features: list(state?.appearance_lock?.distinguishing_features, 8).map((item) => clean(item)),
+      },
+      instruction: clean(state?.instruction),
     })),
     spatial_relationships: list(contract?.spatial_relationships, 12).map((relationship) => clean(relationship)),
     forbidden_elements: list(contract?.forbidden_elements, 12).map((element) => clean(element)),

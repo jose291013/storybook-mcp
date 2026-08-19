@@ -173,18 +173,37 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
   const objectStates = list(contract.object_states, 20)
     .filter((item) => !safetyFallback || normalizedKey(item.state) !== "absent")
     .map((item) => ({
+      entity_id: safe(item.entity_id || item.objectId),
       name: safe(item.name),
       owner: safe(item.owner),
       state: safe(item.state),
       quantity: Number(item.quantity ?? 1),
       instruction: safe(item.instruction),
     }));
+  const visualEntityStates = list(contract.visual_entity_states, 50).map((item) => ({
+    entity_id: safe(item.entity_id),
+    semantic_key: safe(item.semantic_key),
+    name: safe(item.name),
+    state: safe(item.state),
+    visibility: safe(item.visibility),
+    exact_quantity: Math.max(0, Number(item.exact_quantity ?? 0)),
+    owner: safe(item.owner),
+    location: safe(item.location),
+    appearance_lock: {
+      size: safe(item.appearance_lock?.size),
+      colors: list(item.appearance_lock?.colors, 8).map(safe),
+      material: safe(item.appearance_lock?.material),
+      distinguishing_features: list(item.appearance_lock?.distinguishing_features, 8).map(safe),
+    },
+    instruction: safe(item.instruction),
+  }));
   return {
     paired_text_evidence: safe(pairedText).slice(0, 1800),
     visual_evidence: [
       [safe(contract?.main_action?.subject), safe(contract?.main_action?.verb), safe(contract?.main_action?.target)].filter(Boolean).join(" "),
       ...namedCharacters.map((item) => `${item.name}: ${item.action}`),
       ...requiredElements.map((item) => [item.quantity, item.description, item.scale].filter(Boolean).join(" ")),
+      ...visualEntityStates.filter((item) => item.visibility === "required").map((item) => `${item.exact_quantity} ${item.name}: ${item.state}; ${item.location}`),
       ...list(contract.spatial_relationships, 12).map(safe),
     ].filter(Boolean).slice(0, 30),
     main_action: {
@@ -223,6 +242,7 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
     generic_characters: genericCharacters,
     required_elements: requiredElements,
     object_states: objectStates,
+    visual_entity_states: visualEntityStates,
     causal_frame: contract?.causal_frame ? {
       before_location: safe(contract.causal_frame?.before?.location),
       approved_action: safe(contract.causal_frame?.during?.action),
@@ -318,9 +338,18 @@ export function imageContractProjectionIssues(contract = {}, aliases = aliasesFr
     description: safe(item?.description), quantity: safe(item?.quantity), scale: safe(item?.scale),
   })), projected.required_elements);
   check("object states", list(contract.object_states).map((item) => ({
-    name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state),
+    entity_id: safe(item?.entity_id || item?.objectId), name: safe(item?.name), owner: safe(item?.owner), state: safe(item?.state),
     quantity: Number(item?.quantity ?? 1), instruction: safe(item?.instruction),
   })), projected.object_states);
+  check("persistent visual entity states", list(contract.visual_entity_states).map((item) => ({
+    entity_id: safe(item?.entity_id), semantic_key: safe(item?.semantic_key), name: safe(item?.name),
+    state: safe(item?.state), visibility: safe(item?.visibility), exact_quantity: Math.max(0, Number(item?.exact_quantity ?? 0)),
+    owner: safe(item?.owner), location: safe(item?.location),
+    appearance_lock: {
+      size: safe(item?.appearance_lock?.size), colors: list(item?.appearance_lock?.colors, 8).map(safe),
+      material: safe(item?.appearance_lock?.material), distinguishing_features: list(item?.appearance_lock?.distinguishing_features, 8).map(safe),
+    }, instruction: safe(item?.instruction),
+  })), projected.visual_entity_states);
   if (contract.causal_frame) {
     check("causal frame", {
       before_location: safe(contract.causal_frame?.before?.location),

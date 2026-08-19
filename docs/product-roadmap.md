@@ -72,6 +72,30 @@ append-only V3 artifact persistence with compare-and-set project pointers;
 production model calls remain out of scope until restart and concurrency tests
 pass.
 
+## Persistent visual entity-state checkpoint
+
+Persistent visual facts are compiled as data before illustration. The
+whole-book planner proposes semantic entities for unique, recurring, created,
+manipulated or counted elements; a deterministic compiler assigns their stable
+identity and locks exact cardinality, creation scene and visible appearance.
+Every scene receives exactly one state and one location for every registered
+entity. Absence or a hidden/stored state means zero visible instances. A
+visible semantic entity must use its immutable registry quantity. A canonical
+causal event may change a lifecycle object's quantity explicitly; the compiler
+projects that declaration without inventing another change. A transformation
+requires a distinct resulting entity rather than silently changing the original.
+
+Existing causal object ids remain authoritative and absorb matching semantic
+proposals, preventing a named ball from being registered twice. Persistent
+sets are first-class entities: three drawn circles remain exactly three with
+the same size, colors, material and distinguishing details wherever that set is
+carried forward. The compact image contract, adjacent-reference policy,
+story-plan audit and scene-fidelity QA all consume the same ledger. A focused
+high-detail count confirms suspected duplication, absence or appearance
+conflicts; uncertain vision findings cannot create customer work. Gross active
+wardrobe state remains a separate blocking scene contract, while minor garment
+details stay advisory. No environment variable or migration is introduced.
+
 ## Narrative V3 append-only artifact-ledger checkpoint
 
 V3 product artifacts now have a separate PostgreSQL ledger beside the mutable

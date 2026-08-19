@@ -47,6 +47,7 @@ const DUPLICATE_IDENTITY_PATTERN = /(?:required named identity is duplicated|sam
 const PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN = /(?:physical environment is wrong|conditional equipment (?:state conflicts|is duplicated)|multiple causal phases are combined|wrong physical (?:environment|medium)|milieu physique incorrect|equipement conditionnel[^.]{0,60}(?:incorrect|dupliqu)|plusieurs (?:phases|instants)[^.]{0,60}(?:fusionn|combin)|entorno fisico incorrecto|equipo condicional[^.]{0,60}(?:incorrect|duplic)|varias (?:fases|instantes)[^.]{0,60}(?:combin|fusion))/iu;
 const WARDROBE_STATE_CONTRADICTION_PATTERN = /(?:required wardrobe state conflicts|tenue de scene requise[^.]{0,80}(?:incorrect|contradi)|vestuario de escena requerido[^.]{0,80}(?:incorrect|contradi))/iu;
 const UNIQUE_LANDMARK_CONTRADICTION_PATTERN = /(?:unique landmark is duplicated|landmark location is wrong|repere unique[^.]{0,60}dupliqu|emplacement du repere[^.]{0,60}incorrect|hito unico[^.]{0,60}duplic|ubicacion del hito[^.]{0,60}incorrect)/iu;
+const PERSISTENT_VISUAL_ENTITY_CONTRADICTION_PATTERN = /(?:persistent visual entity (?:is duplicated|appearance conflicts|quantity conflicts|state conflicts)|entit[ée] visuelle persistante[^.]{0,80}(?:dupliqu|apparence|quantit[ée]|[ée]tat)[^.]{0,40}(?:incorrect|contradi)|entidad visual persistente[^.]{0,80}(?:duplic|apariencia|cantidad|estado)[^.]{0,40}(?:incorrect|contradi))/iu;
 const REVISION_REGRESSION_PATTERN = /(?:identity likeness regressed from preserved source|unrequested stable visual invariant regressed from preserved source)/iu;
 
 const VISUAL_REPAIR_GUARDRAIL_CODES = new Set([
@@ -164,7 +165,7 @@ export function classifyVisualIssue(issue, { source = "scene" } = {}) {
     code = "landmark_wrong_location";
     severity = "blocking";
     confidence = "high";
-  } else if (OBJECT_STATE_CONTRADICTION_PATTERN.test(String(issue || ""))) {
+  } else if (OBJECT_STATE_CONTRADICTION_PATTERN.test(String(issue || "")) || PERSISTENT_VISUAL_ENTITY_CONTRADICTION_PATTERN.test(String(issue || ""))) {
     code = "object_state";
     severity = "blocking";
     confidence = "high";
@@ -296,6 +297,7 @@ export function objectiveSceneContractIssues(issues = []) {
       || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
       || WARDROBE_STATE_CONTRADICTION_PATTERN.test(issue)
       || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue)
+      || PERSISTENT_VISUAL_ENTITY_CONTRADICTION_PATTERN.test(issue)
       || REVISION_REGRESSION_PATTERN.test(issue))
     .filter((issue) => !WARDROBE_ONLY_PATTERN.test(issue)
       || WARDROBE_STATE_CONTRADICTION_PATTERN.test(issue)
@@ -312,6 +314,7 @@ export function blockingSceneContractIssues(issues = []) {
     || PHYSICAL_SNAPSHOT_CONTRADICTION_PATTERN.test(issue)
     || WARDROBE_STATE_CONTRADICTION_PATTERN.test(issue)
     || UNIQUE_LANDMARK_CONTRADICTION_PATTERN.test(issue)
+    || PERSISTENT_VISUAL_ENTITY_CONTRADICTION_PATTERN.test(issue)
     || REVISION_REGRESSION_PATTERN.test(issue)
   ));
 }
@@ -512,6 +515,9 @@ Judge only objective, clearly visible contradictions:
 - two requested identities are merged, fused, transformed into one another, or exchange a head, face, body, species or anatomy;
 - the same recurring named identity is visibly rendered twice in the same scene, or simultaneously in two different positions, even if both copies otherwise look correct. Allow a visible reflection, portrait, memory, vision or deliberate time montage only when the structured scene contract explicitly requires that representation;
 - a required visible group, object, quantity, spatial relationship or physical scale is plainly absent or contradicted;
+- every visual_entity_states entry is an exact whole-image cardinality contract. Count all copies across foreground, background and alternate positions. A required entity must equal exact_quantity; a forbidden entity must appear zero times;
+- one persistent entity shown in two positions, as a motion trail or as two successive moments is a duplicate even when the total looks narratively plausible. Begin with "Persistent visual entity is duplicated.";
+- a persistent entity's locked size, colors, material or distinguishing features are plainly replaced by a categorically different appearance. Begin with "Persistent visual entity appearance conflicts." Ignore tiny, occluded or uncertain details;
 - an explicitly forbidden substitution is present.
 - the depicted physical environment contradicts render_snapshot.physical_medium or render_snapshot.camera_environment. Begin with "Physical environment is wrong." Judge the characters' camera side separately from any view through a portal or sealed window. A breathable-air room may show water, fish or coral only beyond that clear boundary; it remains dry air around the people and furniture.
 - conditional equipment differs from render_snapshot.equipment. Begin with "Conditional equipment state conflicts."
@@ -581,6 +587,62 @@ Return only JSON: {"confirmed_missing":["exact required cast name"]}.` },
     objectiveIssues = [
       ...objectiveIssues.filter((issue) => !suspectedMissingCast.includes(issue)),
       ...[...new Set(confirmedMissing)].map((name) => `Required named character ${name} is missing after high-detail confirmation.`),
+    ];
+  }
+  const suspectedPersistentEntities = objectiveIssues.filter((issue) => (
+    PERSISTENT_VISUAL_ENTITY_CONTRADICTION_PATTERN.test(issue)
+  ));
+  const entityContracts = (Array.isArray(sceneContract?.visual_entity_states)
+    ? sceneContract.visual_entity_states
+    : []).map((state) => ({
+    entity_id: String(state?.entity_id || "").trim(),
+    name: String(state?.name || "").trim(),
+    visibility: String(state?.visibility || "").trim(),
+    exact_quantity: Math.max(0, Number(state?.exact_quantity ?? 0)),
+    state: String(state?.state || "").trim(),
+    location: String(state?.location || "").trim(),
+    appearance_lock: state?.appearance_lock || {},
+  })).filter((state) => state.entity_id && state.name);
+  if (suspectedPersistentEntities.length && entityContracts.length) {
+    let confirmed = [];
+    try {
+      const confirmationSource = await sharp(await fs.readFile(imagePath))
+        .rotate()
+        .resize(1024, 1024, { fit: "inside", withoutEnlargement: true })
+        .jpeg({ quality: 82 })
+        .toBuffer();
+      const confirmation = await qaClient.responses.create({
+        model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+        input: [{ role: "user", content: [
+          { type: "input_text", text: `A low-detail pass suspected a persistent visual-entity contradiction. Verify only exact, clearly visible violations against this higher-detail image.
+AUTHORITATIVE ENTITY STATES:
+${JSON.stringify(entityContracts)}
+Count every physical copy across the entire image, including alternate positions and background copies. One persistent entity in two positions is a duplicate, not motion. A forbidden entity requires zero copies. Confirm an appearance conflict only when the locked size, colors, material or distinguishing features are categorically different and clearly visible. If counting, identity or appearance is uncertain, confirm no issue.
+Return only JSON: {"confirmed_issues":[{"entity_id":"exact id","kind":"quantity|forbidden|state|appearance","observed_quantity":0}]}.` },
+          { type: "input_image", image_url: `data:image/jpeg;base64,${confirmationSource.toString("base64")}`, detail: "high" },
+        ] }],
+        max_output_tokens: 260,
+      });
+      const result = parseJson(extractText(confirmation));
+      const byId = new Map(entityContracts.map((state) => [state.entity_id, state]));
+      confirmed = (Array.isArray(result?.confirmed_issues) ? result.confirmed_issues : [])
+        .map((issue) => ({ issue, state: byId.get(String(issue?.entity_id || "")) }))
+        .filter(({ state }) => state)
+        .slice(0, 4)
+        .map(({ issue, state }) => {
+          const kind = String(issue?.kind || "state").toLowerCase();
+          const observed = Math.max(0, Number(issue?.observed_quantity ?? 0));
+          if (kind === "appearance") return `Persistent visual entity appearance conflicts: ${state.name} [${state.entity_id}] does not preserve its locked appearance after high-detail confirmation.`;
+          if (kind === "forbidden") return `Persistent visual entity state conflicts: ${state.name} [${state.entity_id}] must be absent but is visible after high-detail confirmation.`;
+          return `Persistent visual entity is duplicated or has the wrong quantity: ${state.name} [${state.entity_id}] requires ${state.exact_quantity} total and shows ${observed} after high-detail confirmation.`;
+        });
+    } catch {
+      // An unconfirmed count or appearance suspicion must not become customer work.
+      confirmed = [];
+    }
+    objectiveIssues = [
+      ...objectiveIssues.filter((issue) => !suspectedPersistentEntities.includes(issue)),
+      ...confirmed,
     ];
   }
   const allowedCodes = new Set([...scopedCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES]);

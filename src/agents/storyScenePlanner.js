@@ -64,6 +64,7 @@ function previousPlanForModel(previousPlan = null) {
       speech_segments: list(previousPlan.speechSegmentsByPage?.[pageNumber], 20),
     })),
     scene_contracts: list(previousPlan.sceneContracts, 30),
+    visual_entity_registry: list(previousPlan.visualEntityRegistry || previousPlan.visualEntityLedger?.entities, 40),
   };
 }
 
@@ -221,11 +222,20 @@ export function normalizeSceneContract(raw, expected, canonicalCharacters) {
         quantity: String(item?.quantity || "").trim(),
         scale: String(item?.scale || "").trim(),
       })).filter((item) => item.description),
+    visual_entity_states: list(raw?.visual_entity_states, 40).map((item) => ({
+      semantic_key: String(item?.semantic_key || item?.entity_id || item?.name || "").trim(),
+      name: String(item?.name || "").trim(),
+      state: String(item?.state || "absent").trim(),
+      owner: canonicalName(item?.owner, canonicalCharacters) || String(item?.owner || "").trim(),
+      location: String(item?.location || "").trim(),
+      quantity: Math.max(0, Number(item?.quantity ?? 0)),
+    })).filter((item) => item.semantic_key),
     object_states: list(expected?.approved_scene?.objectStates?.length ? expected.approved_scene.objectStates : raw?.object_states, 20).map((item) => ({
+      entity_id: String(item?.objectId || item?.object_id || item?.entity_id || "").trim(),
       name: String(item?.name || "").trim(),
       owner: canonicalName(item?.owner, canonicalCharacters) || String(item?.owner || "").trim(),
       state: String(item?.state || "visible").trim(),
-      quantity: Math.max(1, Number(item?.quantity || 1)),
+      quantity: Math.max(0, Number(item?.quantity ?? 1)),
       instruction: String(item?.instruction || "").trim(),
     })).filter((item) => item.name),
     spatial_relationships: list(raw?.spatial_relationships)
@@ -368,6 +378,7 @@ export async function storyScenePlannerAgent({
     pageTexts: finalPageTexts,
     speechSegmentsByPage,
     sceneContracts,
+    visualEntityRegistry: list(candidate?.visual_entity_registry, 40),
   }, {
     canonicalCharacters,
     heroName: blueprint?.hero?.name,
@@ -398,6 +409,9 @@ export function sceneContractImagePrompt({
   const objectStates = list(compact.render_snapshot?.visible_object_states || compact.object_states, 20)
     .map((item) => `${item.name}: state ${item.state}; owner ${item.owner || "none"}; quantity ${item.quantity ?? 1}; ${item.instruction || "keep exactly this state"}`)
     .join(" | ");
+  const visualEntities = list(compact.visual_entity_states, 50)
+    .map((item) => `${item.name} [${item.entity_id}]: ${item.visibility}; exact total ${item.exact_quantity}; state ${item.state}; owner ${item.owner || "none"}; location ${item.location || "declared scene location"}; appearance ${item.appearance_lock?.size || "locked size"}, ${(item.appearance_lock?.colors || []).join(", ") || "locked colors"}, ${item.appearance_lock?.material || "locked material"}; ${item.instruction}`)
+    .join(" | ");
   return [
     safetyFallback
       ? "Create one policy-safe square children's-book illustration from this minimal visual specification. Every character is original and unbranded."
@@ -410,6 +424,7 @@ export function sceneContractImagePrompt({
     generic ? `GENERIC CHARACTERS: ${generic}` : "",
     elements ? `REQUIRED VISIBLE ELEMENTS: ${elements}` : "",
     objectStates ? `AUTHORITATIVE OBJECT STATES: ${objectStates}. Each object has exactly one state. A held wearable is not also worn; never duplicate it.` : "",
+    visualEntities ? `AUTHORITATIVE PERSISTENT VISUAL ENTITIES: ${visualEntities}. Count every instance across the entire image. One entity has one physical state and one location in this instant. Never depict the same entity twice to suggest movement, successive moments or alternate positions.` : "",
     compact.render_snapshot ? `ONLY VISIBLE PHYSICAL SNAPSHOT: phase ${compact.render_snapshot.visible_phase}; location ${compact.render_snapshot.location}; physical medium ${compact.render_snapshot.physical_medium}; action ${compact.render_snapshot.main_action.subject} ${compact.render_snapshot.main_action.verb} ${compact.render_snapshot.main_action.target}. Depict only this instant. Do not combine preparation, crossing, arrival, removal or storage from another phase.` : "",
     compact.render_snapshot?.camera_environment ? `CAMERA-SIDE WORLD TOPOLOGY: camera side ${compact.render_snapshot.camera_environment.camera_side}; camera zone ${compact.render_snapshot.camera_environment.camera_zone}; ambient medium ${compact.render_snapshot.camera_environment.ambient_medium}; other-side zone ${compact.render_snapshot.camera_environment.other_side_zone}; other-side medium ${compact.render_snapshot.camera_environment.other_side_medium}; entry passage ${compact.render_snapshot.camera_environment.entry_passage_id || "not visible"}. ${compact.render_snapshot.camera_environment.boundary_rule}` : "",
     compact.render_snapshot?.equipment?.length ? `CONDITIONAL EQUIPMENT: ${compact.render_snapshot.equipment.map((item) => `${item.owner}: ${item.name} is ${item.state}, exact quantity ${item.quantity}`).join(" | ")}. Equipment state overrides every wardrobe description.` : "",

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { imageContractProjectionIssues } from "./imageVisualContract.js";
+import { compileVisualEntityLedger } from "./visualEntityLedger.js";
 import { compilePhysicalRenderSnapshot } from "./physicalRenderSnapshot.js";
 import { compileSceneDensityPlan, sceneDensityPlanIssues } from "./sceneDensityPlan.js";
 import {
@@ -8,7 +9,7 @@ import {
   wholeBookVisualRhythmIssues,
 } from "./visualCompositionPlan.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 12;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 13;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
@@ -23,11 +24,12 @@ function nameFor(characterMap, id) {
 function objectStateContract(state, objectMap, characterMap) {
   const object = objectMap.get(state.objectId);
   return {
+    entity_id: state.objectId,
     name: object?.name || state.objectId,
     owner: state.ownerCharacterId ? nameFor(characterMap, state.ownerCharacterId) : "",
     state: state.state,
     quantity: state.quantity,
-    instruction: `Canonical state: ${state.state}; exact quantity: ${state.quantity}.`,
+    instruction: `Canonical entity ${state.objectId}; state: ${state.state}; exact whole-image quantity: ${state.quantity}; one location only, never duplicate it to show another moment.`,
   };
 }
 
@@ -51,6 +53,7 @@ function visualBeatCore(contract = {}) {
       named_characters: structuredClone(contract.named_characters || []),
       required_elements: structuredClone(contract.required_elements || []),
       object_states: structuredClone(contract.object_states || []),
+      visual_entity_states: structuredClone(contract.visual_entity_states || []),
       causal_frame: structuredClone(contract.causal_frame || {}),
       render_snapshot: structuredClone(contract.render_snapshot || {}),
       forbidden_elements: structuredClone(contract.forbidden_elements || []),
@@ -193,11 +196,13 @@ export function compileSpecDrivenIllustrationPlan({
           "missing_or_substituted_named_character",
           "wrong_main_action_subject_or_target",
           "object_state_or_quantity_contradiction",
+          "persistent_entity_identity_or_appearance_contradiction",
+          "required_wardrobe_state_contradiction",
           "forbidden_element_present",
         ],
         advisory: [
           "minor_accessory_visibility",
-          "wardrobe_detail",
+          "minor_wardrobe_detail",
           "lighting_or_composition_preference",
           "ambiguous_likeness",
         ],
@@ -223,7 +228,7 @@ export function compileSpecDrivenIllustrationPlan({
     return contract;
   });
 
-  return {
+  const compiled = compileVisualEntityLedger({
     version: SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION,
     storyboardFirstVersion: STORYBOARD_FIRST_CONTRACT_VERSION,
     contractSource: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
@@ -238,7 +243,12 @@ export function compileSpecDrivenIllustrationPlan({
       changedPages: [],
       issueCount: 0,
     },
-  };
+  });
+  compiled.sceneContracts = compiled.sceneContracts.map((contract) => ({
+    ...contract,
+    visual_beat_digest: visualBeatDigest(contract),
+  }));
+  return compiled;
 }
 
 export function bindStoryboardPageTexts(storyboard = {}, pageTexts = {}) {
