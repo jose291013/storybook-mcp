@@ -8,20 +8,19 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-adjacent-state-contract`
-- Production/main checkpoint before this brick: Narrative V3 production shadow (`3ab3ef1`, PR #231)
-- Current focused checkpoint: deterministic `VisualContinuityPlan.v1`; V2 remains the sole visible and credit-bearing path
-- Pull requests before this brick: #150 through #231 merged
+- Main checkpoint: Narrative V3 deterministic `VisualContinuityPlan.v1` (`3004eed`, PR #232)
+- Current focused checkpoint: extend the allowlisted real shadow through manuscript, storyboard and visual continuity without exposing V3 to customers
+- Pull requests: #150 through #232 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #231 are merged on `main`. PRs #224 through #229 published and
+PR #55 through #232 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
-illustration evidence, delivery manifest and guarded-canary checkpoints. Render
-was verified Live on commit `0ac5fc8` after the final merge; intermediate
-auto-deploys were superseded by that final deployment. The V3 audit reproduced the root
+illustration evidence, delivery manifest, guarded-canary, production-shadow and
+visual-continuity checkpoints. Render was last verified Live on commit
+`3ab3ef1`; deployment of `3004eed` follows PR #232. The V3 audit reproduced the root
 pipeline-boundary defect locally: passing a canonical scenario through the
 raw-output normalizer erased its locations and physical presences. The first
 side-by-side V3 implementation now establishes strict incompatible model-wire,
