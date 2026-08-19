@@ -49,6 +49,12 @@ import {
   visualStoryboardDigest,
 } from "../contracts/visualStoryboardV1.js";
 import {
+  VISUAL_CONTINUITY_PLAN_ID,
+  VISUAL_CONTINUITY_PLAN_VERSION,
+  loadVisualContinuityPlan,
+  visualContinuityPlanDigest,
+} from "../contracts/visualContinuityPlanV1.js";
+import {
   IMAGE_CANDIDATE_SET_ID,
   IMAGE_CANDIDATE_SET_VERSION,
   ILLUSTRATION_DECISION_SET_ID,
@@ -130,12 +136,19 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     digest: visualStoryboardDigest,
     parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
   }),
+  visual_continuity_plan: Object.freeze({
+    contractId: VISUAL_CONTINUITY_PLAN_ID,
+    schemaVersion: VISUAL_CONTINUITY_PLAN_VERSION,
+    load: loadVisualContinuityPlan,
+    digest: visualContinuityPlanDigest,
+    parentTypes: Object.freeze(["narrative_book_spec_v3", "visual_storyboard"]),
+  }),
   image_candidate_set: Object.freeze({
     contractId: IMAGE_CANDIDATE_SET_ID,
     schemaVersion: IMAGE_CANDIDATE_SET_VERSION,
     load: loadImageCandidateSet,
     digest: imageCandidateSetDigest,
-    parentTypes: Object.freeze(["visual_storyboard"]),
+    parentTypes: Object.freeze(["visual_storyboard", "visual_continuity_plan"]),
   }),
   illustration_decision_set: Object.freeze({
     contractId: ILLUSTRATION_DECISION_SET_ID,
@@ -289,6 +302,15 @@ function validateArtifactInput(input = {}) {
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual storyboard parents do not match its declared released-spec and manuscript digests.");
   }
+  if (
+    artifactType === "visual_continuity_plan"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.narrativeBookSpec.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.visualStoryboard.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual continuity plan parents do not match its released-spec and storyboard digests.");
+  }
   if (artifactType === "image_candidate_set" && parents[0]?.payloadDigest !== payload.sourceStoryboard.artifactDigest) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The image candidates do not match their declared storyboard digest.");
   }
@@ -389,6 +411,24 @@ function assertReleaseObjectLineage(input, projectionParents) {
     throw new NarrativeV3ArtifactStoreError(
       "artifact_release_object_lineage_mismatch",
       "The released object projection does not descend from the exact CanonicalStoryGraph parent.",
+    );
+  }
+}
+
+function assertCandidateContinuityLineage(input, continuityParents) {
+  if (input.artifactType !== "image_candidate_set") return;
+  const expectedStoryboard = input.parents[0];
+  const planStoryboard = continuityParents[1];
+  if (
+    continuityParents.length !== 2
+    || continuityParents[0]?.artifactType !== "narrative_book_spec_v3"
+    || planStoryboard?.artifactType !== "visual_storyboard"
+    || (planStoryboard.id || planStoryboard.artifactId) !== expectedStoryboard.artifactId
+    || planStoryboard.payloadDigest !== expectedStoryboard.payloadDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError(
+      "artifact_candidate_continuity_lineage_mismatch",
+      "The image candidates do not descend from the exact continuity plan for their storyboard.",
     );
   }
 }
@@ -520,6 +560,10 @@ export class JsonNarrativeV3ArtifactStore {
     if (input.artifactType === "narrative_book_spec_v3") {
       const projectionRecord = ledger.artifacts[input.parents[2].artifactId];
       assertReleaseObjectLineage(input, projectionRecord?.parents || []);
+    }
+    if (input.artifactType === "image_candidate_set") {
+      const continuityRecord = ledger.artifacts[input.parents[1].artifactId];
+      assertCandidateContinuityLineage(input, continuityRecord?.parents || []);
     }
     const revision = Object.values(ledger.artifacts)
       .filter((artifact) => artifact.projectId === input.projectId && artifact.artifactType === input.artifactType)
@@ -668,6 +712,10 @@ export class PostgresNarrativeV3ArtifactStore {
       if (input.artifactType === "narrative_book_spec_v3") {
         const projectionParents = await this.parentsFor(client, input.parents[2].artifactId);
         assertReleaseObjectLineage(input, projectionParents);
+      }
+      if (input.artifactType === "image_candidate_set") {
+        const continuityParents = await this.parentsFor(client, input.parents[1].artifactId);
+        assertCandidateContinuityLineage(input, continuityParents);
       }
       const revisionResult = await client.query(
         `SELECT COALESCE(MAX(revision),0)+1 AS revision FROM narrative_artifacts

@@ -15,11 +15,12 @@ import { parseManuscriptWire } from "../src/contracts/manuscriptV1.js";
 import { compileNarrativeBookSpecV3 } from "../src/contracts/narrativeBookSpecV3.js";
 import { compileObjectLifecycleProjection } from "../src/contracts/objectLifecycleProjection.js";
 import { compileVisualStoryboard } from "../src/contracts/visualStoryboardV1.js";
+import { compileVisualContinuityPlan } from "../src/contracts/visualContinuityPlanV1.js";
 import { buildNarrativeV3ObjectFixture } from "../src/services/narrativeV3ObjectLifecycleMatrix.js";
 import { JsonNarrativeV3RunStore } from "../src/services/narrativeV3StateMachine.js";
 
-function fixture() {
-  const source = buildNarrativeV3ObjectFixture({ language: "FR", universeId: "starry_space" });
+function fixture(raw = {}) {
+  const source = buildNarrativeV3ObjectFixture({ language: "FR", universeId: "starry_space", ...raw });
   const projection = compileObjectLifecycleProjection({ graph: source.graph });
   const spec = compileNarrativeBookSpecV3({ intent: source.intent, graph: source.graph, objectProjection: projection, profileBindings: source.profileBindings });
   const manuscript = parseManuscriptWire({
@@ -36,8 +37,10 @@ function fixture() {
     },
   });
   const storyboard = compileVisualStoryboard({ spec, manuscript });
+  const continuityPlan = compileVisualContinuityPlan({ spec, storyboard });
   const candidates = recordImageCandidateSet({
     storyboard,
+    continuityPlan,
     candidates: storyboard.beats.map((beat) => ({
       sceneNumber: beat.sceneNumber,
       beatDigest: beat.beatDigest,
@@ -54,7 +57,7 @@ function fixture() {
       },
     })),
   });
-  return { storyboard, candidates };
+  return { storyboard, continuityPlan, candidates };
 }
 
 function wireFor(storyboard, candidates) {
@@ -109,10 +112,23 @@ test("subjective review labels and foreign candidates fail at the evaluation bou
 });
 
 test("candidate ingestion rejects exact asset reuse across scenes", () => {
-  const { storyboard, candidates } = fixture();
+  const { storyboard, continuityPlan, candidates } = fixture();
   const raw = candidates.candidates.map((candidate) => ({ ...structuredClone(candidate) }));
   raw[1].asset = structuredClone(raw[0].asset);
-  assert.throws(() => recordImageCandidateSet({ storyboard, candidates: raw }), (error) => error.code === "image_candidate_duplicate");
+  assert.throws(() => recordImageCandidateSet({ storyboard, continuityPlan, candidates: raw }), (error) => error.code === "image_candidate_duplicate");
+});
+
+test("candidate ingestion refuses a continuity plan from another storyboard", () => {
+  const first = fixture({ universeId: "starry_space" });
+  const foreign = fixture({ universeId: "wonder_city" });
+  assert.throws(
+    () => recordImageCandidateSet({
+      storyboard: first.storyboard,
+      continuityPlan: foreign.continuityPlan,
+      candidates: first.candidates.candidates,
+    }),
+    (error) => error.code === "image_candidate_continuity_mismatch",
+  );
 });
 
 test("the decision durable step requires exact ordered storyboard and candidate parents", async () => {

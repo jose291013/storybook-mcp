@@ -322,6 +322,35 @@ route, provider call, paid call, customer project, environment variable or
 Render change. The next checkpoint records immutable image candidates and
 deterministic illustration decisions against these exact beat digests.
 
+## Narrative V3 visual-continuity-plan checkpoint
+
+Before any candidate is accepted, `VisualContinuityPlan.v1` now inserts a
+deterministic previous-current-next window between the storyboard and image
+generation. Its current snapshot is a complete authority for physical medium,
+location, exact visible/forbidden cast, wardrobe, equipment, objects and main
+action. Incoming and outgoing transitions separately enumerate changes in
+cast, outfit, equipment, objects, location and medium and carry reciprocal
+digests, so a local prompt cannot silently erase or reintroduce state.
+
+Canonical visual-identity bindings are the only identity authority. A previous
+accepted illustration is allowed only as secondary continuity evidence for
+identity, established world details and lighting/palette. It is explicitly
+forbidden from controlling cast cardinality, location, medium, wardrobe,
+equipment, object state, action, pose or composition. The following scene is
+prospective constraints only; it prevents the current image from making the
+next scene impossible without asking a not-yet-generated image to become an
+authority.
+
+The append-only ledger stores `visual_continuity_plan` behind the exact released
+spec and storyboard. Image-candidate ingestion requires both the storyboard and
+that plan as exact ordered parents. The leased
+`compile_visual_continuity_plan` step and migration 026 remain isolated from V2,
+customer routes, credits and provider calls.
+
+The anonymous matrix reaches eight immutable artifacts at this boundary. The
+next checkpoint records image candidates only after this exact plan has been
+committed.
+
 ## Narrative V3 illustration-evidence checkpoint
 
 `ImageCandidateSet.v1` records exactly one generated candidate per storyboard
@@ -340,11 +369,12 @@ but cannot reject the page, trigger creator review or expose a paid repair. An
 accepted decision copies the exact private candidate asset; a rejected decision
 exposes no asset.
 
-The ledger stores candidate sets behind their exact storyboard and decision
-sets behind the exact ordered storyboard/candidate parents. The leased
+The ledger stores candidate sets behind their exact storyboard and visual
+continuity plan, and decision sets behind the exact ordered
+storyboard/candidate parents. The leased
 `record_image_candidates` and `decide_illustrations` operations are idempotent;
 migration 024 changes only isolated V3 constraints. The anonymous matrix now
-reaches nine immutable artifacts without a production provider or customer
+reaches ten immutable artifacts without a production provider or customer
 route. The next checkpoint assembles a delivery manifest only when every
 illustration decision is accepted.
 
@@ -366,7 +396,7 @@ on reordering, replacement or tampering.
 The append-only ledger requires the exact spec, manuscript, storyboard and
 decision parents. The leased `assemble_delivery_manifest` step commits and
 promotes the artifact idempotently; migration 025 changes only isolated V3
-constraints. The anonymous matrix reaches ten immutable artifacts and replay
+constraints. The anonymous matrix reaches eleven immutable artifacts and replay
 reuses them without regenerating accepted work. Production routing and canary
 activation remain separate and disabled until the final shadow gate.
 
@@ -374,15 +404,15 @@ activation remain separate and disabled until the final shadow gate.
 
 The complete V3 chain is now exercised by `npm run check:narrative-v3-full`
 across 108 combinations: FR/ES/EN, all six universes and all six sellable page
-counts. Every fixture reaches ten immutable artifacts through the real local
+counts. Every fixture reaches eleven immutable artifacts through the real local
 ledger and leased state machine, ends with a ready delivery manifest and
 rejects five deliberate object-lifecycle corruptions. One fixture is replayed
 against the same stores to prove that completed steps and pointers are reused.
 
-The release evaluator requires all 108 fixtures, ten artifacts per fixture,
+The release evaluator requires all 108 fixtures, eleven artifacts per fixture,
 complete delivery, all adversarial rejections, zero provider/paid calls, no
 customer route and successful replay. The current passing gate digest is
-`849bb68b690840309381de3fadce00f5b4e19ae6f23faad8ad47def0e635a523`.
+`a72882e4497862d7986b2e90d1a77d04d8df9b9a935db22041d68db2677f9d49`.
 This digest is structural synthetic evidence, not permission to spend or deploy.
 
 The deterministic `narrativeV3RolloutAssignment` supports off, shadow, canary

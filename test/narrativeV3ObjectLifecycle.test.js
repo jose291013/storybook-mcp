@@ -111,7 +111,7 @@ test("the object projection is committed through the real ledger and durable ste
     assert.deepEqual(replay, first);
     assert.equal(first.objectCount, 3);
     assert.equal(first.adversarialCases, 5);
-    assert.equal((await artifactStore.listArtifacts(projectId)).length, 10);
+    assert.equal((await artifactStore.listArtifacts(projectId)).length, 11);
     const pointer = await artifactStore.getCurrentPointer(projectId, "object_lifecycle_projection");
     const artifact = await artifactStore.getArtifact(pointer.artifactId);
     assert.equal(pointer.pointerRevision, 1);
@@ -136,9 +136,13 @@ test("the object projection is committed through the real ledger and durable ste
     assert.deepEqual(storyboard.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "manuscript"]);
     assert.equal(storyboard.payload.sources.narrativeBookSpec.artifactDigest, release.payloadDigest);
     assert.equal(storyboard.payload.sources.manuscript.artifactDigest, manuscript.payloadDigest);
+    const continuityPointer = await artifactStore.getCurrentPointer(projectId, "visual_continuity_plan");
+    const continuity = await artifactStore.getArtifact(continuityPointer.artifactId);
+    assert.deepEqual(continuity.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "visual_storyboard"]);
+    assert.equal(continuity.payload.sources.visualStoryboard.artifactDigest, storyboard.payloadDigest);
     const candidatePointer = await artifactStore.getCurrentPointer(projectId, "image_candidate_set");
     const candidates = await artifactStore.getArtifact(candidatePointer.artifactId);
-    assert.deepEqual(candidates.parents.map((parent) => parent.artifactType), ["visual_storyboard"]);
+    assert.deepEqual(candidates.parents.map((parent) => parent.artifactType), ["visual_storyboard", "visual_continuity_plan"]);
     const decisionPointer = await artifactStore.getCurrentPointer(projectId, "illustration_decision_set");
     const decisions = await artifactStore.getArtifact(decisionPointer.artifactId);
     assert.deepEqual(decisions.parents.map((parent) => parent.artifactType), ["visual_storyboard", "image_candidate_set"]);

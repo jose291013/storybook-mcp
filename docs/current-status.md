@@ -8,16 +8,16 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after the live-checkpoint merge
-- Production/main checkpoint before this brick: Narrative V3 live checkpoint (`818bc89`, PR #230)
-- Current focused checkpoint: allowlisted real V3 production shadow through `NarrativeBookSpec.v3`; V2 remains the sole visible and credit-bearing path
-- Pull requests before this brick: #150 through #230 merged
+- Current branch: `codex/narrative-v3-adjacent-state-contract`
+- Production/main checkpoint before this brick: Narrative V3 production shadow (`3ab3ef1`, PR #231)
+- Current focused checkpoint: deterministic `VisualContinuityPlan.v1`; V2 remains the sole visible and credit-bearing path
+- Pull requests before this brick: #150 through #231 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-PR #55 through #230 are merged on `main`. PRs #224 through #229 published and
+PR #55 through #231 are merged on `main`. PRs #224 through #229 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest and guarded-canary checkpoints. Render
 was verified Live on commit `0ac5fc8` after the final merge; intermediate
@@ -43,11 +43,36 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
-Next verification target after deployment: configure one Woo test customer in
-the exact production shadow allowlist, keep V3 invisible, create one new
-32-page book, and compare V2 with the five V3 artifact digests and content-free
-stage logs. Do not activate manuscript, images or canary delivery until this
-real shadow passes across several universes.
+Next verification target after deployment: extend the same allowlisted,
+invisible production shadow from the released spec through its own manuscript,
+visual storyboard and visual continuity plan. Do not generate V3 images or
+move customer-visible traffic until those new shadow artifacts pass on real
+books and remain restart-idempotent.
+
+## Product brick: Narrative V3 previous-current-next visual continuity
+
+1. `VisualContinuityPlan.v1` is compiled deterministically from one exact
+   `NarrativeBookSpec.v3` and `VisualStoryboard.v1`.
+2. Every scene carries one complete current physical/cast/wardrobe/equipment/
+   object/action snapshot plus reciprocal incoming and outgoing transitions.
+3. Transition deltas distinguish visible cast, forbidden cast, outfit,
+   equipment, object, location and physical-medium changes.
+4. Canonical identity bindings remain the only identity authority; the current
+   state is the only scene authority. A previous accepted image is explicitly
+   secondary evidence and cannot determine cast cardinality, place, medium,
+   wardrobe, equipment, objects, action, pose or composition.
+5. The next scene is carried only as prospective constraints, preventing an
+   illustration from making the following scene physically impossible.
+6. Image-candidate ingestion now requires the exact storyboard and continuity
+   plan parents. Migration 026 changes only isolated V3 artifact and step
+   constraints; no V2 route, credit, model call or customer status changes.
+
+Verification: the expanded full shadow passes 108/108 combinations with 1,188
+immutable artifacts, zero provider/paid calls, no customer routes and replay
+verified; the complete repository suite passes 660/660 tests. Its structural gate digest is
+`a72882e4497862d7986b2e90d1a77d04d8df9b9a935db22041d68db2677f9d49`.
+The existing production shadow remains pinned to its earlier five-artifact gate
+until the next separately reviewed integration brick.
 
 ## Product brick: Narrative V3 allowlisted real shadow
 
@@ -72,19 +97,19 @@ isolation, idempotent replay, restart continuation and private failure.
 
 1. `npm run check:narrative-v3-full` executes 108 combinations across all three
    languages, six universes and six sellable formats to the delivery manifest.
-2. Every fixture commits ten real immutable local artifacts and rejects five
+2. Every fixture commits eleven real immutable local artifacts and rejects five
    deliberate lifecycle corruptions; one fixture is replayed on the same stores.
 3. Release eligibility requires 108 ready deliveries, exact artifact counts,
    zero provider/paid calls, no customer route and successful idempotent replay.
-4. The passing gate digest is
-   `849bb68b690840309381de3fadce00f5b4e19ae6f23faad8ad47def0e635a523`.
+4. The expanded passing gate digest is
+   `a72882e4497862d7986b2e90d1a77d04d8df9b9a935db22041d68db2677f9d49`.
 5. V3 rollout assignment is stable per project and cannot enable without a
    syntactically valid gate digest. Existing assignments never change mid-book.
 6. `.env.example` defaults V3 to off, zero percent and no gate digest. No route
    invokes the assignment in this brick, so merge/deploy cannot move customer
    traffic or spend.
 
-Verification: full shadow 108/108, 1,080 artifacts, 540 adversarial rejections,
+Verification: full shadow 108/108, 1,188 artifacts, 540 adversarial rejections,
 zero provider calls, zero paid calls, no customer routes, replay pass; focused
 rollout/gate tests pass. The complete repository suite passes: 650/650 tests.
 
@@ -101,7 +126,7 @@ rollout/gate tests pass. The complete repository suite passes: 650/650 tests.
 5. The append-only ledger enforces all four ordered parents. The leased
    `assemble_delivery_manifest` step is restart-idempotent and migration 025 is
    isolated from V2/customer aggregates.
-6. The anonymous 18-case matrix reaches ten immutable artifacts and replay
+6. The anonymous 18-case matrix reaches eleven immutable artifacts and replay
    preserves every current pointer without provider, credit or route access.
 
 Verification: 13 focused delivery/lifecycle tests and the complete 645-test
@@ -121,7 +146,7 @@ suite pass.
    no asset and remain an internal incomplete-generation state.
 6. Exact storyboard/candidate ancestry is enforced by the append-only ledger;
    two leased idempotent steps and migration 024 remain isolated from V2.
-7. The 18-case anonymous matrix reaches nine immutable artifacts with zero
+7. The 18-case anonymous matrix reaches ten immutable artifacts with zero
    production provider calls, paid calls or customer routes.
 
 Verification: 15 focused illustration/lifecycle tests and the complete

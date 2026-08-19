@@ -1,6 +1,7 @@
 import { canonicalDigest } from "./narrativeV3Canonical.js";
 import { assertNarrativeV3Schema, NarrativeV3ContractError } from "./narrativeV3SchemaRegistry.js";
 import { loadVisualStoryboard } from "./visualStoryboardV1.js";
+import { loadVisualContinuityPlan } from "./visualContinuityPlanV1.js";
 
 export const IMAGE_CANDIDATE_SET_VERSION = 1;
 export const IMAGE_CANDIDATE_SET_ID = "calitiki.image-candidate-set.v1";
@@ -62,8 +63,17 @@ function assertCandidateSet(candidateSet) {
   });
 }
 
-export function recordImageCandidateSet({ storyboard: rawStoryboard, candidates: rawCandidates, revision = 1 } = {}) {
+export function recordImageCandidateSet({
+  storyboard: rawStoryboard,
+  continuityPlan: rawContinuityPlan,
+  candidates: rawCandidates,
+  revision = 1,
+} = {}) {
   const storyboard = loadVisualStoryboard(rawStoryboard);
+  const continuityPlan = loadVisualContinuityPlan(rawContinuityPlan);
+  if (continuityPlan.sources.visualStoryboard.artifactDigest !== storyboard.validation.artifactDigest) {
+    fail("image_candidate_continuity_mismatch", "image_candidate_set_v1", "/sourceStoryboard", "Image candidates must be generated from the exact continuity plan for this storyboard.");
+  }
   if (!Number.isSafeInteger(Number(revision)) || Number(revision) < 1) fail("image_candidate_revision_invalid", "image_candidate_set_v1", "/revision", "A positive candidate-set revision is required.");
   if (!Array.isArray(rawCandidates) || rawCandidates.length !== storyboard.beats.length) {
     fail("image_candidate_count_mismatch", "image_candidate_set_v1", "/candidates", "Every storyboard beat needs exactly one generated candidate.");

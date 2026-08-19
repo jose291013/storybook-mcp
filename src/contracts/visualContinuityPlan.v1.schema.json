@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/visual-continuity-plan.v1.json",
+  "title": "Calitiki Visual Continuity Plan V1",
+  "description": "Deterministic previous-current-next state windows and reference precedence for illustration generation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "identityAnchors", "referencePolicy", "windows", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.visual-continuity-plan.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["narrativeBookSpec", "visualStoryboard"],
+      "properties": {
+        "narrativeBookSpec": { "$ref": "#/$defs/specSource" },
+        "visualStoryboard": { "$ref": "#/$defs/storyboardSource" }
+      }
+    },
+    "identityAnchors": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/identityAnchor" }
+    },
+    "referencePolicy": { "$ref": "#/$defs/referencePolicy" },
+    "windows": {
+      "type": "array",
+      "minItems": 11,
+      "maxItems": 21,
+      "items": { "$ref": "#/$defs/window" }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "reference": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,239}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "specSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.narrative-book-spec.v3" },
+        "schemaVersion": { "const": 3 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "storyboardSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.visual-storyboard.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "identityAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characterId", "visualIdentityRef", "visualIdentityDigest"],
+      "properties": {
+        "characterId": { "$ref": "#/$defs/identifier" },
+        "visualIdentityRef": { "$ref": "#/$defs/reference" },
+        "visualIdentityDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "referencePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityAuthority", "sceneAuthority", "previousAcceptedImageRole", "nextSceneRole", "permittedPreviousImageDomains", "forbiddenPreviousImageDomains"],
+      "properties": {
+        "identityAuthority": { "const": "canonical_identity_only" },
+        "sceneAuthority": { "const": "current_state_only" },
+        "previousAcceptedImageRole": { "const": "secondary_continuity_only" },
+        "nextSceneRole": { "const": "prospective_constraints_only" },
+        "permittedPreviousImageDomains": {
+          "const": ["identity_continuity", "world_detail_continuity", "lighting_palette_continuity"]
+        },
+        "forbiddenPreviousImageDomains": {
+          "const": ["cast_cardinality", "location", "physical_medium", "wardrobe", "equipment", "object_state", "main_action", "pose", "composition"]
+        }
+      }
+    },
+    "stateSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stateDigest", "physical", "cast", "objectStates", "mainAction"],
+      "properties": {
+        "stateDigest": { "$ref": "#/$defs/digest" },
+        "physical": { "$ref": "https://calitiki.com/schemas/visual-storyboard.v1.json#/$defs/physicalFrame" },
+        "cast": { "$ref": "https://calitiki.com/schemas/visual-storyboard.v1.json#/$defs/castFrame" },
+        "objectStates": {
+          "type": "array",
+          "maxItems": 30,
+          "items": { "$ref": "https://calitiki.com/schemas/object-lifecycle-projection.v1.json#/$defs/objectState" }
+        },
+        "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fromSceneNumber", "toSceneNumber", "fromBeatDigest", "toBeatDigest", "fromStateDigest", "toStateDigest", "handoffLocationId", "locationChanged", "physicalMediumChanged", "changedVisibleCharacterIds", "changedForbiddenCharacterIds", "changedOutfitCharacterIds", "changedEquipmentCharacterIds", "changedObjectIds", "transitionDigest"],
+      "properties": {
+        "fromSceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "toSceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "fromBeatDigest": { "$ref": "#/$defs/digest" },
+        "toBeatDigest": { "$ref": "#/$defs/digest" },
+        "fromStateDigest": { "$ref": "#/$defs/digest" },
+        "toStateDigest": { "$ref": "#/$defs/digest" },
+        "handoffLocationId": { "$ref": "#/$defs/identifier" },
+        "locationChanged": { "type": "boolean" },
+        "physicalMediumChanged": { "type": "boolean" },
+        "changedVisibleCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "changedForbiddenCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "changedOutfitCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "changedEquipmentCharacterIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "changedObjectIds": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+        "transitionDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sceneNumber", "beatDigest", "current", "incoming", "outgoing", "windowDigest"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "beatDigest": { "$ref": "#/$defs/digest" },
+        "current": { "$ref": "#/$defs/stateSnapshot" },
+        "incoming": { "anyOf": [{ "$ref": "#/$defs/transition" }, { "type": "null" }] },
+        "outgoing": { "anyOf": [{ "$ref": "#/$defs/transition" }, { "type": "null" }] },
+        "windowDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

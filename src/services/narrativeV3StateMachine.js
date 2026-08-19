@@ -18,6 +18,7 @@ const STEP_TYPES = Object.freeze({
   release_narrative_book_spec_v3: "narrative_book_spec_v3",
   write_manuscript: "manuscript",
   compile_visual_storyboard: "visual_storyboard",
+  compile_visual_continuity_plan: "visual_continuity_plan",
   record_image_candidates: "image_candidate_set",
   decide_illustrations: "illustration_decision_set",
   assemble_delivery_manifest: "delivery_manifest",
@@ -30,7 +31,8 @@ const STEP_INPUT_TYPES = Object.freeze({
   release_narrative_book_spec_v3: Object.freeze(["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]),
   write_manuscript: Object.freeze(["narrative_book_spec_v3"]),
   compile_visual_storyboard: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
-  record_image_candidates: Object.freeze(["visual_storyboard"]),
+  compile_visual_continuity_plan: Object.freeze(["narrative_book_spec_v3", "visual_storyboard"]),
+  record_image_candidates: Object.freeze(["visual_storyboard", "visual_continuity_plan"]),
   decide_illustrations: Object.freeze(["visual_storyboard", "image_candidate_set"]),
   assemble_delivery_manifest: Object.freeze(["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"]),
 });

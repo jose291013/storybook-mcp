@@ -26,6 +26,7 @@ export const narrativeBookSpecV3Schema = readSchema("narrativeBookSpec.v3.schema
 export const manuscriptWireSchema = readSchema("manuscriptWire.v1.schema.json");
 export const manuscriptSchema = readSchema("manuscript.v1.schema.json");
 export const visualStoryboardSchema = readSchema("visualStoryboard.v1.schema.json");
+export const visualContinuityPlanSchema = readSchema("visualContinuityPlan.v1.schema.json");
 export const imageCandidateSetSchema = readSchema("imageCandidateSet.v1.schema.json");
 export const illustrationEvaluationWireSchema = readSchema("illustrationEvaluationWire.v1.schema.json");
 export const illustrationDecisionSetSchema = readSchema("illustrationDecisionSet.v1.schema.json");
@@ -42,6 +43,7 @@ ajv.addSchema(narrativeBookSpecV3Schema);
 ajv.addSchema(manuscriptWireSchema);
 ajv.addSchema(manuscriptSchema);
 ajv.addSchema(visualStoryboardSchema);
+ajv.addSchema(visualContinuityPlanSchema);
 ajv.addSchema(imageCandidateSetSchema);
 ajv.addSchema(illustrationEvaluationWireSchema);
 ajv.addSchema(illustrationDecisionSetSchema);
@@ -59,6 +61,7 @@ const validators = new Map([
   ["manuscript_wire_v1", ajv.getSchema(manuscriptWireSchema.$id)],
   ["manuscript_v1", ajv.getSchema(manuscriptSchema.$id)],
   ["visual_storyboard_v1", ajv.getSchema(visualStoryboardSchema.$id)],
+  ["visual_continuity_plan_v1", ajv.getSchema(visualContinuityPlanSchema.$id)],
   ["image_candidate_set_v1", ajv.getSchema(imageCandidateSetSchema.$id)],
   ["illustration_evaluation_wire_v1", ajv.getSchema(illustrationEvaluationWireSchema.$id)],
   ["illustration_decision_set_v1", ajv.getSchema(illustrationDecisionSetSchema.$id)],
