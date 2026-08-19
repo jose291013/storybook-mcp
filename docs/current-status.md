@@ -9,9 +9,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/fix-idempotent-database-migrations`
-- Main checkpoint: Narrative V3 deterministic `VisualContinuityPlan.v1` (`3004eed`, PR #232)
+- Main checkpoint before the migration hotfix: `bcd56b4` (PRs #232 and #233)
 - Current focused checkpoint: restore Render startup with monotonic PostgreSQL migrations before resuming the allowlisted shadow
-- Pull requests: #150 through #232 merged
+- Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
