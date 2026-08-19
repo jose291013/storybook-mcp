@@ -149,6 +149,8 @@ export function buildSceneContinuity({
       "Its main-action subject must visibly perform the stated verb toward the stated target.",
       "A generic character id is a distinct one-scene person and must never be replaced by a recurring named character or photo reference.",
       "Respect every required quantity and scale literally, and show none of the forbidden substitutions.",
+      "The persistent visual-entity ledger is authoritative: each entity id has one exact whole-image cardinality, one location and one appearance lock. Never duplicate one entity in another position to imply motion or another moment.",
+      "A persistent group keeps its exact member count, size, colors, material and distinguishing features until an explicit new entity replaces it.",
       "Use the paired reader text below as concrete visual evidence for this same scene, while rendering only the single visible phase declared by the render snapshot.",
       "Never turn an abstract plan, memory, feeling, metaphor or future possibility from the prose into a physical object unless required_elements or object_states explicitly makes it visible."
     );

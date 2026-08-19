@@ -26,7 +26,7 @@ function referenceFor(page, blueprintPage, relation) {
     sourcePageNumber: Number(page.page_number),
     relation,
     continuityVersion: ADJACENT_VISUAL_CONTINUITY_VERSION,
-    label: `${relation} approved interior scene (page ${Number(page.page_number)}${blueprintContext(blueprintPage) ? `; ${blueprintContext(blueprintPage)}` : ""}): preserve recurring identity, established rendering details and only the physical states that carry into the current scene. Do not copy its action, pose, composition, camera or obsolete location; the current scene contract is authoritative.`,
+    label: `${relation} approved interior scene (page ${Number(page.page_number)}${blueprintContext(blueprintPage) ? `; ${blueprintContext(blueprintPage)}` : ""}): preserve recurring identity, established rendering details and only the physical states that carry into the current scene. It is secondary evidence: never import an extra copy, obsolete count, obsolete outfit, action, pose, composition, camera or location. The current scene contract is authoritative, including its persistent-entity ledger.`,
   };
 }
 

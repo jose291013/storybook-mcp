@@ -8,7 +8,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/fix-idempotent-database-migrations`
+- Current branch: `codex/visual-entity-state-ledger`
 - Main checkpoint before the migration hotfix: `bcd56b4` (PRs #232 and #233)
 - Current focused checkpoint: restore Render startup with monotonic PostgreSQL migrations before resuming the allowlisted shadow
 - Migration hotfix: PR #234
@@ -51,6 +51,30 @@ except for security, privacy, commerce and data-loss defects.
 5. Vision QA uncertainty remains internal. Only deterministic evidence or
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
+
+## Product brick: persistent visual entity ledger
+
+The whole-book compiler now owns a versioned visual-entity ledger before image
+generation. Creative planning may propose a semantic entity, but the server
+assigns its stable id and locks one exact whole-image quantity, creation scene,
+appearance (size, colors, material and distinguishing features), state and
+location for every illustrated scene. Canonical causal objects keep their
+existing object id; a matching semantic proposal is merged by identity/name
+rather than becoming a second object.
+
+One ball can therefore never be requested in two positions in the same image.
+A created group such as three chalk circles remains one entity with exactly
+three members and one appearance lock in later scenes. Stored or absent
+entities project as zero visible instances. Lifecycle quantities may change
+only through an existing explicit canonical event. The current ledger
+outranks adjacent-image evidence, which may preserve style but cannot import an
+obsolete count, outfit, location or copy. Image QA counts suspected ledger
+violations again at high detail; uncertainty stays internal instead of becoming
+customer review. This adds no environment variable, database migration,
+customer credit or series-canon mutation.
+
+Verification: focused entity/projection/QA tests and the complete repository
+suite pass 671/671 tests.
 
 Next verification target after deployment: extend the same allowlisted,
 invisible production shadow from the released spec through its own manuscript,

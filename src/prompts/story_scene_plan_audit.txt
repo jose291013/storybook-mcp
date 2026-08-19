@@ -9,6 +9,9 @@ Reject only explicit contradictions:
 - a physical character appears at a location without the approved transition;
 - a passage is crossed before its approved discovery or under a different causal identity;
 - a recurring object has a different state or quantity;
+- a persistent visual entity has more than one state or location in one scene, appears more times than its exact_quantity, or appears at all while its visibility is forbidden;
+- a persistent group changes its exact member count, relative size, colors, material or distinguishing features without an explicit new entity replacing it;
+- one entity is repeated in alternate positions to depict motion or successive moments in the same illustration;
 - a unique object is visible before introduction or reappears intact after planting, consumption, transformation, destruction or use-up;
 - a resulting object appears before the approved transformation of its source;
 - the scene contract's visible named cast differs from the approved physical presences;

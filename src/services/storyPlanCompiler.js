@@ -1,6 +1,7 @@
 import { enrichFamilyAddress } from "./characterRelationships.js";
+import { compileVisualEntityLedger, visualEntityLedgerIssues } from "./visualEntityLedger.js";
 
-export const STORY_PLAN_COMPILER_VERSION = 2;
+export const STORY_PLAN_COMPILER_VERSION = 3;
 
 const FAMILY_ADDRESS_CODES = new Set([
   "family_address",
@@ -261,15 +262,22 @@ export function compileStoryPlan(plan = {}, {
     }
   }
 
-  return {
+  const compiled = compileVisualEntityLedger({
     ...plan,
     pageTexts,
     speechSegmentsByPage,
+  });
+  const visualEntityIssues = visualEntityLedgerIssues(compiled);
+  return {
+    ...compiled,
     compiler: {
       version: STORY_PLAN_COMPILER_VERSION,
       replacements,
       changedPages: [...new Set(changedPages)].sort((left, right) => left - right),
       unresolvedIssueKeys: [...unresolvedIssueKeys],
+      visualEntityLedgerVersion: compiled.visualEntityLedger?.version || 0,
+      visualEntityLedgerDigest: compiled.visualEntityLedger?.digest || "",
+      visualEntityIssues,
     },
   };
 }

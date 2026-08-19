@@ -348,10 +348,11 @@ export function applyCausalGraph(input = {}) {
   return scenario;
 }
 
-function ledgerInstruction({ label, state, owner }) {
-  if (state === "absent") return `${label} is absent from this scene.`;
-  if (owner) return `${owner} has the single ${label}; preserve this exact state (${state}).`;
-  return `${label} has one authoritative state in this scene: ${state}.`;
+function ledgerInstruction({ label, state, owner, quantity }) {
+  if (state === "absent" || quantity === 0) return `${label} is absent from this scene; render zero instances.`;
+  const cardinality = quantity === 1 ? "one and only one instance" : `exactly ${quantity} members of one persistent group`;
+  if (owner) return `${owner} has ${cardinality} of ${label}; preserve this exact state (${state}) and do not duplicate it in another position.`;
+  return `${label} has one authoritative state in this scene: ${state}; render ${cardinality} in one location only.`;
 }
 
 export function projectCausalGraphObjectLedger(input = {}) {
@@ -418,6 +419,7 @@ export function projectCausalGraphObjectLedger(input = {}) {
           label: clean(object?.name || entity.label),
           state: current.state,
           owner: current.owner,
+          quantity: current.quantity,
         }) + (current.hiddenWithOwner
           ? ` It remains with ${current.hiddenWithOwner} off-camera; do not invent a transfer, loss or duplicate.`
           : ""),
