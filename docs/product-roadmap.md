@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-19
+Last updated: 2026-08-20
 
 ## Narrative V3 structural replacement direction
 
@@ -28,6 +28,35 @@ graph schemas, separate wire/canonical loaders, canonical serialization and
 property tests; it does not begin with another recovery policy. Shadow and
 canary rollout are allowed only after the audit's deterministic, restart,
 concurrency, cost and narrative-quality gates pass.
+
+## Narrative V3 customer cutover
+
+The synthetic full-chain and real-project shadow gates are complete. New book
+projects are now assigned once at creation to Narrative V3, which is the
+default. The assignment is stored with the project and cannot be changed by a
+retry, deployment or environment-variable update. Unassigned projects are
+treated as V2 legacy projects; derived series drafts inherit the exact engine
+of their purchased source episode. `NARRATIVE_DEFAULT_ENGINE=v2` is therefore
+an emergency pre-creation kill switch, not a migration mechanism.
+
+For a V3 project, the scenario worker obtains only a strict semantic concept.
+If that response violates the semantic wire or story-shape contract, one
+separate bounded correction may run before persistence. No invalid candidate
+is promoted or replayed as a technical retry. The deterministic compiler then
+owns every mechanical fact and persists the five immutable ancestors through
+`NarrativeBookSpec.v3`. The customer-visible scenario is a compatibility view,
+not a second authority; approval binds its audit digest to the exact immutable
+spec. Preview, manuscript and illustration planning consume that spec and its
+identity, location, medium, wardrobe, cast-cardinality and object-state facts.
+The legacy V3 production shadow is skipped for customer V3 projects, avoiding
+one redundant model call and competing artifact pointers.
+
+This cutover introduces no commerce, credit, account, private-asset or series
+canon mutation. A technical failure still releases the preview reservation;
+series canon still changes only after the existing explicit purchase/approval
+rules. The first production acceptance is two new 32-page books in materially
+different universes. Existing V2 projects are compatibility controls and are
+never silently upgraded.
 
 ## Monotonic PostgreSQL migration ledger
 

@@ -18,18 +18,58 @@ function byId(entries = []) {
 }
 
 function nameFor(characterMap, id) {
-  return characterMap.get(id)?.canonicalName || id || "";
+  const character = characterMap.get(id);
+  return character?.canonicalName || character?.displayName || id || "";
 }
 
 function objectStateContract(state, objectMap, characterMap) {
   const object = objectMap.get(state.objectId);
+  const visibility = state.visibility || (state.quantity > 0 ? "required" : "forbidden");
+  const canonicalState = state.state || state.stateId || (visibility === "forbidden" ? "absent" : "visible");
   return {
     entity_id: state.objectId,
     name: object?.name || state.objectId,
     owner: state.ownerCharacterId ? nameFor(characterMap, state.ownerCharacterId) : "",
-    state: state.state,
+    state: canonicalState,
     quantity: state.quantity,
-    instruction: `Canonical entity ${state.objectId}; state: ${state.state}; exact whole-image quantity: ${state.quantity}; one location only, never duplicate it to show another moment.`,
+    visibility,
+    instruction: `Canonical entity ${state.objectId}; state: ${canonicalState}; visibility: ${visibility}; exact whole-image quantity: ${state.quantity}; one location only, never duplicate it to show another moment.`,
+  };
+}
+
+function sceneProjection(scene = {}, index = 0) {
+  const instant = scene.illustration || scene.illustrationInstant || {};
+  const semantic = scene.narrative || scene.semantic || {};
+  const movement = scene.transition || scene.movements?.[0] || null;
+  const mainAction = instant.mainAction || {};
+  return {
+    illustration: {
+      visibleCharacterIds: instant.visibleCharacterIds || [],
+      forbiddenCharacterIds: instant.forbiddenCharacterIds || [],
+      mainAction: {
+        subjectCharacterId: mainAction.subjectCharacterId || "",
+        verb: mainAction.verb || mainAction.action || "",
+        targetId: mainAction.targetId || "",
+      },
+      requiredElements: instant.requiredElements || (semantic.distinctiveImage ? [semantic.distinctiveImage] : []),
+      forbiddenElements: instant.forbiddenElements || [],
+      wardrobeStates: instant.wardrobeStates || [],
+    },
+    narrative: {
+      approvedAction: semantic.approvedAction || semantic.summary || "",
+      function: semantic.function || semantic.purpose || "",
+      storyChange: semantic.storyChange || semantic.emotionalShift || semantic.summary || "",
+    },
+    timeline: {
+      ...scene.timeline,
+      prerequisiteSceneIds: scene.timeline?.prerequisiteSceneIds || (index ? [`scene-${scene.sceneNumber - 1}`] : []),
+      visibleMoment: scene.timeline?.visibleMoment || semantic.distinctiveImage || semantic.summary || "",
+    },
+    transition: movement ? {
+      kind: movement.kind || "none",
+      passageId: movement.passageId || "",
+      travelerCharacterIds: movement.travelerCharacterIds || [],
+    } : { kind: "none", passageId: "", travelerCharacterIds: [] },
   };
 }
 
@@ -97,39 +137,44 @@ export function compileSpecDrivenIllustrationPlan({
   ])));
 
   let previousCompositionId = "";
-  const sceneContracts = spec.scenes.map((scene) => {
+  const sceneContracts = spec.scenes.map((scene, sceneIndex) => {
+    const projected = sceneProjection(scene, sceneIndex);
+    const illustration = projected.illustration;
+    const narrative = projected.narrative;
+    const timeline = projected.timeline;
+    const transition = projected.transition;
     const imagePage = imagePages.get(scene.sceneNumber);
     const textPage = textPages.get(scene.sceneNumber);
-    const visible = new Set(scene.illustration.visibleCharacterIds);
+    const visible = new Set(illustration.visibleCharacterIds);
     const namedCharacters = scene.presences
       .filter((presence) => visible.has(presence.characterId))
       .map((presence) => ({
         name: nameFor(characters, presence.characterId),
-        visual_role: presence.characterId === scene.illustration.mainAction.subjectCharacterId
+        visual_role: presence.characterId === illustration.mainAction.subjectCharacterId
           ? "main actor"
           : travelerCharacterIds.has(presence.characterId)
             ? "visible traveler"
             : "visible local supporter who remains at the departure or arrival location and does not receive traveler equipment",
-        action: presence.action,
+        action: presence.action || narrative.approvedAction,
       }));
-    const mainTarget = objects.get(scene.illustration.mainAction.targetId)?.name
-      || passages.get(scene.illustration.mainAction.targetId)?.name
-      || scene.illustration.mainAction.targetId
+    const mainTarget = objects.get(illustration.mainAction.targetId)?.name
+      || passages.get(illustration.mainAction.targetId)?.name
+      || illustration.mainAction.targetId
       || "";
     const absentObjects = scene.objectStates
-      .filter((state) => state.state === "absent" || state.quantity === 0)
+      .filter((state) => state.state === "absent" || state.visibility === "forbidden" || state.quantity === 0)
       .map((state) => `${objects.get(state.objectId)?.name || state.objectId} must remain absent`);
-    const forbiddenCharacters = scene.illustration.forbiddenCharacterIds
+    const forbiddenCharacters = illustration.forbiddenCharacterIds
       .map((id) => `${nameFor(characters, id)} must not appear physically`);
     const locationAfter = locations.get(scene.timeline.locationAfterId)?.name
       || scene.timeline.locationAfterId;
     const locationBefore = locations.get(scene.timeline.locationBeforeId)?.name || scene.timeline.locationBeforeId;
-    const transitionMechanism = passages.get(scene.transition?.passageId)?.name || scene.transition?.passageId || "";
+    const transitionMechanism = passages.get(transition.passageId)?.name || transition.passageId || "";
     const visualComposition = compileVisualComposition({
       sceneNumber: scene.sceneNumber,
       storyRole: imagePage?.story_role,
-      transitionKind: scene.transition?.kind,
-      visiblePhase: scene.timeline.visiblePhase,
+      transitionKind: transition.kind,
+      visiblePhase: timeline.visiblePhase,
       visibleCharacterCount: namedCharacters.length,
       previousCompositionId,
     });
@@ -142,21 +187,28 @@ export function compileSpecDrivenIllustrationPlan({
       scene_number: scene.sceneNumber,
       text_page_number: Number(textPage?.page_number || scene.pageBinding.textPageNumber),
       image_page_number: Number(imagePage?.page_number || scene.pageBinding.imagePageNumber),
-      story_beat: scene.narrative.approvedAction,
+      story_beat: narrative.approvedAction,
       source_prose: String(pageTexts[textPage?.page_number || scene.pageBinding.textPageNumber] || ""),
-      planned_image_context: scene.timeline.visibleMoment,
+      planned_image_context: timeline.visibleMoment,
       main_action: {
-        subject: nameFor(characters, scene.illustration.mainAction.subjectCharacterId),
-        verb: scene.illustration.mainAction.verb,
+        subject: nameFor(characters, illustration.mainAction.subjectCharacterId),
+        verb: illustration.mainAction.verb,
         target: mainTarget,
       },
       named_characters: namedCharacters,
       generic_characters: [],
-      required_elements: scene.illustration.requiredElements.map((description) => ({
-        description,
-        quantity: "",
-        scale: "",
-      })),
+      required_elements: [
+        ...illustration.requiredElements.map((description) => ({
+          description,
+          quantity: "",
+          scale: "",
+        })),
+        ...illustration.wardrobeStates.map((state) => ({
+          description: `${nameFor(characters, state.characterId)} wears outfit state ${state.outfitStateId}${state.equipmentStateIds?.length ? ` with equipment ${state.equipmentStateIds.join(", ")}` : ""}.`,
+          quantity: "1",
+          scale: "",
+        })),
+      ],
       object_states: scene.objectStates
         .map((state) => objectStateContract(state, objects, characters)),
       spatial_relationships: [
@@ -164,7 +216,7 @@ export function compileSpecDrivenIllustrationPlan({
         ...namedCharacters.map((character) => `${character.name}: ${character.action}`),
       ],
       forbidden_elements: [
-        ...scene.illustration.forbiddenElements,
+        ...illustration.forbiddenElements,
         ...absentObjects,
         ...forbiddenCharacters,
       ],
@@ -172,23 +224,23 @@ export function compileSpecDrivenIllustrationPlan({
       causal_frame: {
         before: { location: locationBefore },
         during: {
-          action: scene.narrative.approvedAction,
-          transition_kind: scene.transition?.kind || "none",
+          action: narrative.approvedAction,
+          transition_kind: transition.kind || "none",
           transition_mechanism: transitionMechanism,
-          transition_mechanism_id: scene.transition?.passageId || "",
+          transition_mechanism_id: transition.passageId || "",
           from: locationBefore,
           to: locationAfter,
         },
         after: { location: locationAfter },
-        visible_phase: scene.timeline.visiblePhase === "start"
+        visible_phase: timeline.visiblePhase === "start"
           ? "before"
-          : scene.timeline.visiblePhase === "end" ? "after" : "during",
-        visible_location: scene.timeline.visiblePhase === "start" ? locationBefore : locationAfter,
+          : timeline.visiblePhase === "end" ? "after" : "during",
+        visible_location: timeline.visiblePhase === "start" ? locationBefore : locationAfter,
       },
-      continuity_from_previous: scene.timeline.prerequisiteSceneIds.length
-        ? `Continue only after ${scene.timeline.prerequisiteSceneIds.join(", ")}.`
+      continuity_from_previous: timeline.prerequisiteSceneIds.length
+        ? `Continue only after ${timeline.prerequisiteSceneIds.join(", ")}.`
         : "Opening canonical scene.",
-      continuity_to_next: `End with canonical state ${scene.narrative.storyChange}.`,
+      continuity_to_next: `End with canonical state ${narrative.storyChange}.`,
       quality_policy: {
         blocking: [
           "technical_corruption",

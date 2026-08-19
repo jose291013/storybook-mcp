@@ -248,7 +248,7 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
         forbiddenCharacterIds: cast.filter((entry) => !visibleSet.has(entry.id)).map((entry) => entry.id),
         mainAction: {
           subjectCharacterId: mainSubject,
-          action: `perform_${beat.purpose}`,
+          action: String(beat.summary || `perform_${beat.purpose}`).slice(0, 240),
           targetId: "",
         },
       },

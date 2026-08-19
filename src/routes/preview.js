@@ -84,6 +84,7 @@ import {
 } from "../services/specDrivenIllustrationPlan.js";
 import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGovernor.js";
 import { enqueueNarrativeV3ProductionShadow } from "../services/narrativeV3ProductionShadow.js";
+import { projectUsesNarrativeV3 } from "../services/narrativeEngineAssignment.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -633,12 +634,14 @@ router.post("/preview", async (req, res) => {
       code: "generation_queue_unavailable",
     });
   }
-  await enqueueNarrativeV3ProductionShadow({ project, identity }).catch((error) => {
-    console.error("[narrative-v3-shadow] enqueue failed", JSON.stringify({
-      projectId,
-      code: String(error?.code || error?.name || "shadow_enqueue_failed").slice(0, 80),
-    }));
-  });
+  if (!projectUsesNarrativeV3(project)) {
+    await enqueueNarrativeV3ProductionShadow({ project, identity }).catch((error) => {
+      console.error("[narrative-v3-shadow] enqueue failed", JSON.stringify({
+        projectId,
+        code: String(error?.code || error?.name || "shadow_enqueue_failed").slice(0, 80),
+      }));
+    });
+  }
   console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
   res.json({ jobId: job.id });
 

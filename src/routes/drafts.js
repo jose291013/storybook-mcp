@@ -29,6 +29,7 @@ import {
   technicalStoryScenarioRetryAvailable,
   technicalStoryScenarioRetryExhausted,
 } from "../services/storyScenarioRetry.js";
+import { createNarrativeEngineAssignment } from "../services/narrativeEngineAssignment.js";
 
 const router = express.Router();
 
@@ -165,6 +166,9 @@ router.post("/drafts", async (req, res) => {
       title: body.title || body.questionnaire?.hero_name || "", locale: body.locale || "FR",
       questionnaire: safety.questionnaire, photoRefs: body.photos || [],
       productConfiguration: body.productConfiguration || {},
+      continuitySnapshot: {
+        narrativeEngine: createNarrativeEngineAssignment(),
+      },
     });
     res.status(201).json({ project: publicProject(project) });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }

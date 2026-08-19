@@ -1,6 +1,7 @@
 import { commerceOrderStore } from "./commerceOrderStore.js";
 import { projectStore } from "./projectStore.js";
 import { seriesStore } from "./seriesStore.js";
+import { narrativeEngineAssignment } from "./narrativeEngineAssignment.js";
 
 export class SeriesPurchaseRequiredError extends Error {
   constructor() {
@@ -133,6 +134,7 @@ export async function createNextAdventure({ sourceProject, stores = {} }) {
   const episodeNumber = Math.max(1, ...episodes.map((item) => Number(item.episodeNumber || 0))) + 1;
   const characters = await activeStores.series.listCharacters(foundation.series.id);
   const continuitySnapshot = {
+    narrativeEngine: narrativeEngineAssignment(sourceProject),
     seriesContext: {
       seriesId: foundation.series.id,
       title: foundation.series.title,

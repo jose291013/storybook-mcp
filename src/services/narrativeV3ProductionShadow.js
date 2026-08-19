@@ -106,7 +106,7 @@ function buildCast(project, normalized) {
   return cast;
 }
 
-export function buildNarrativeV3ShadowSource(project = {}) {
+export function buildNarrativeV3ProjectSource(project = {}) {
   const normalized = normalizeBookRequest({ questionnaire: project.questionnaire, photos: project.photoRefs });
   const cast = buildCast(project, normalized);
   const sceneCount = (normalized.answers.page_count - 2) / 2;
@@ -114,6 +114,7 @@ export function buildNarrativeV3ShadowSource(project = {}) {
   const actTwoEnd = Math.max(actOneCount + 1, Math.min(sceneCount - 1, Math.floor(sceneCount * 0.75)));
   const climaxScene = actTwoEnd + 1;
   const returnScene = Math.min(sceneCount - 1, climaxScene + 1);
+  const previousCanon = project?.continuitySnapshot?.seriesContext?.narrativeCanon || null;
   const semanticSource = {
     language: normalized.answers.language,
     audienceAge: Math.max(2, Math.min(14, Number.parseInt(normalized.answers.age, 10) || 7)),
@@ -161,6 +162,18 @@ export function buildNarrativeV3ShadowSource(project = {}) {
       returnScene,
       resolutionScene: sceneCount,
     },
+    ...(previousCanon ? {
+      seriesContinuity: {
+        previousTitle: clean(previousCanon.title, 200),
+        universeId: clean(previousCanon.universeId, 120),
+        characters: (previousCanon.characters || []).slice(0, 30).map((character) => ({
+          name: clean(character?.name, 120),
+          role: clean(character?.role || character?.storyRole, 80),
+          relationship: clean(character?.relationship, 120),
+        })).filter((character) => character.name),
+        establishedLocations: (previousCanon.locations || []).slice(0, 40).map((value) => clean(value, 160)).filter(Boolean),
+      },
+    } : {}),
   };
   const questionnaireDigest = canonicalDigest(semanticSource);
   const safetyAssessmentDigest = canonicalDigest({
@@ -177,7 +190,7 @@ export function buildNarrativeV3ShadowSource(project = {}) {
     sensitivityLevel: Math.max(1, Math.min(3, Number(project.questionnaire?.story_sensitivity_profile?.level || 1))),
     castRefs: cast.map(({ characterKey, profileRef, role, kind }) => ({ characterKey, profileRef, role, kind })),
     seriesRef: project.seriesId || null,
-    previousCanonDigest: null,
+    previousCanonDigest: previousCanon ? canonicalDigest(previousCanon) : null,
     questionnaireDigest,
     safetyAssessmentDigest,
   });
@@ -192,6 +205,9 @@ export function buildNarrativeV3ShadowSource(project = {}) {
   }));
   return Object.freeze({ normalized, semanticSource, intent, profileBindings });
 }
+
+// Compatibility export for the already deployed, isolated shadow worker.
+export const buildNarrativeV3ShadowSource = buildNarrativeV3ProjectSource;
 
 function artifactRef(artifact) {
   return { artifactId: artifact.id, artifactType: artifact.artifactType, artifactDigest: artifact.payloadDigest };
