@@ -8,13 +8,23 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
+- Current branch: `codex/fix-idempotent-database-migrations`
 - Main checkpoint: Narrative V3 deterministic `VisualContinuityPlan.v1` (`3004eed`, PR #232)
-- Current focused checkpoint: extend the allowlisted real shadow through manuscript, storyboard and visual continuity without exposing V3 to customers
+- Current focused checkpoint: restore Render startup with monotonic PostgreSQL migrations before resuming the allowlisted shadow
 - Pull requests: #150 through #232 merged
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
+
+Render deployment of `bcd56b4` failed before server startup because the legacy
+migration runner replayed every widening V3 constraint from migration 018
+onward. Once production contained newer artifact types, the old narrower check
+could no longer be recreated. The hotfix adds an append-only migration ledger,
+schema-derived baseline through migration 025, SHA-256 checksums, a PostgreSQL
+advisory lock and one transaction per pending migration. Migration 026 is then
+the only pending production migration and a restart becomes a no-op. The exact
+production-upgrade simulation and complete repository suite pass 665/665 tests.
 
 PR #55 through #232 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,

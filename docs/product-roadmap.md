@@ -29,6 +29,24 @@ property tests; it does not begin with another recovery policy. Shadow and
 canary rollout are allowed only after the audit's deterministic, restart,
 concurrency, cost and narrative-quality gates pass.
 
+## Monotonic PostgreSQL migration ledger
+
+Production migrations are append-only operations, not a desired-schema replay.
+The application records every applied SQL filename with its SHA-256 checksum in
+`app_schema_migrations`, runs pending files in filename order inside individual
+transactions and serializes concurrent Render instances with a session-level
+PostgreSQL advisory lock. An applied file whose bytes change, or whose file is
+removed, fails closed before a later migration can run.
+
+Databases created before this ledger are baselined from their actual schema.
+The artifact-type constraint identifies the last successfully deployed V3
+milestone; a production schema containing `delivery_manifest` is therefore
+recorded through migration 025 and executes only migration 026. A genuinely
+empty database executes all migrations once. This replaces the previous startup
+behavior that replayed older widening constraints and could narrow a populated
+artifact table during deployment. It adds no environment variable and changes
+no customer, commerce, credit or narrative behavior.
+
 ## Narrative V3 strict-contract foundation checkpoint
 
 The first V3 code is deliberately isolated from production orchestration. A
