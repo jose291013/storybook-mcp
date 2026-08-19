@@ -13,6 +13,7 @@ import {
 import { compileNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js";
 import { parseManuscriptWire } from "../contracts/manuscriptV1.js";
 import { compileVisualStoryboard } from "../contracts/visualStoryboardV1.js";
+import { compileVisualContinuityPlan } from "../contracts/visualContinuityPlanV1.js";
 import {
   parseIllustrationEvaluationWire,
   recordImageCandidateSet,
@@ -42,6 +43,7 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     release_narrative_book_spec_v3: "narrative_book_spec_v3",
     write_manuscript: "manuscript",
     compile_visual_storyboard: "visual_storyboard",
+    compile_visual_continuity_plan: "visual_continuity_plan",
     record_image_candidates: "image_candidate_set",
     decide_illustrations: "illustration_decision_set",
     assemble_delivery_manifest: "delivery_manifest",
@@ -309,8 +311,18 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [releaseArtifact, manuscriptArtifact],
     payload: storyboard,
   });
+  const continuityPlan = compileVisualContinuityPlan({ spec: releaseSpec, storyboard });
+  const continuityArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-visual-continuity-plan-v1`,
+    stepKey: "compile-object-visual-continuity-plan-v1",
+    stepType: "compile_visual_continuity_plan",
+    inputs: [releaseArtifact, storyboardArtifact],
+    payload: continuityPlan,
+  });
   const candidateSet = recordImageCandidateSet({
     storyboard,
+    continuityPlan,
     candidates: syntheticImageCandidates(storyboard, fixture.fixture.fixtureId),
   });
   const candidateArtifact = await commit({
@@ -318,7 +330,7 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     runKey: `${fixture.fixture.fixtureId}-image-candidates-v1`,
     stepKey: "record-object-image-candidates-v1",
     stepType: "record_image_candidates",
-    inputs: [storyboardArtifact],
+    inputs: [storyboardArtifact, continuityArtifact],
     payload: candidateSet,
   });
   const decisions = parseIllustrationEvaluationWire({
@@ -375,6 +387,7 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       narrativeBookSpecV3: releaseArtifact.payloadDigest,
       manuscript: manuscriptArtifact.payloadDigest,
       visualStoryboard: storyboardArtifact.payloadDigest,
+      visualContinuityPlan: continuityArtifact.payloadDigest,
       imageCandidateSet: candidateArtifact.payloadDigest,
       illustrationDecisionSet: decisionArtifact.payloadDigest,
       deliveryManifest: deliveryArtifact.payloadDigest,

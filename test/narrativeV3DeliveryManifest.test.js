@@ -12,6 +12,7 @@ import { parseManuscriptWire } from "../src/contracts/manuscriptV1.js";
 import { compileNarrativeBookSpecV3 } from "../src/contracts/narrativeBookSpecV3.js";
 import { compileObjectLifecycleProjection } from "../src/contracts/objectLifecycleProjection.js";
 import { compileVisualStoryboard } from "../src/contracts/visualStoryboardV1.js";
+import { compileVisualContinuityPlan } from "../src/contracts/visualContinuityPlanV1.js";
 import { buildNarrativeV3ObjectFixture } from "../src/services/narrativeV3ObjectLifecycleMatrix.js";
 import { JsonNarrativeV3RunStore } from "../src/services/narrativeV3StateMachine.js";
 
@@ -31,8 +32,10 @@ function fixture() {
     },
   });
   const storyboard = compileVisualStoryboard({ spec, manuscript });
+  const continuityPlan = compileVisualContinuityPlan({ spec, storyboard });
   const candidates = recordImageCandidateSet({
     storyboard,
+    continuityPlan,
     candidates: storyboard.beats.map((beat) => ({
       sceneNumber: beat.sceneNumber, beatDigest: beat.beatDigest, attempt: 1,
       providerModel: "synthetic-image-v1", providerResponseId: `delivery-image-${beat.sceneNumber}`,
@@ -50,7 +53,7 @@ function fixture() {
     decisions: candidates.candidates.map((candidate) => ({ scene_number: candidate.sceneNumber, candidate_digest: candidate.candidateDigest, issues: [] })),
   };
   const decisions = parseIllustrationEvaluationWire({ storyboard, candidateSet: candidates, wire: cleanWire });
-  return { spec, manuscript, storyboard, candidates, cleanWire, decisions };
+  return { spec, manuscript, storyboard, continuityPlan, candidates, cleanWire, decisions };
 }
 
 test("DeliveryManifest.v1 covers every physical page from exact immutable text and accepted image decisions", () => {
