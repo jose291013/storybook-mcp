@@ -2,6 +2,7 @@ import { UNIVERSE_OPTIONS } from "../config/bookOptions.js";
 import { outfitOptionsForUniverse } from "../config/outfitOptions.js";
 import { loadCreationIntent } from "./creationIntent.js";
 import { loadStoryConcept } from "./narrativeV3Canonical.js";
+import { loadVisualIntentV1 } from "./visualIntentV1.js";
 import {
   assertNarrativeV3Schema,
   NarrativeV3ContractError,
@@ -122,12 +123,13 @@ function initialLocationFor({ indexes, crossingIndex, returnIndex }) {
   return "location_origin";
 }
 
-function adventureOutfit(intentEntry, universeId) {
+function adventureOutfit(intentEntry, universeId, visualEntry) {
   if (intentEntry.kind !== "human") return "natural_appearance";
+  if (visualEntry) return visualEntry.adventureOutfit.stateId;
   return outfitOptionsForUniverse(universeId)[0]?.id || "universe_outfit";
 }
 
-function wardrobeFor({ intentEntry, universeId, index, crossingIndex, returnIndex }) {
+function wardrobeFor({ intentEntry, universeId, index, crossingIndex, returnIndex, visualEntry }) {
   if (intentEntry.kind !== "human") {
     return { outfitStateId: "natural_appearance", equipmentStateIds: [] };
   }
@@ -138,7 +140,7 @@ function wardrobeFor({ intentEntry, universeId, index, crossingIndex, returnInde
     && index >= crossingIndex
     && index <= returnIndex;
   return {
-    outfitStateId: adventureWindow ? adventureOutfit(intentEntry, universeId) : "ordinary_outfit",
+    outfitStateId: adventureWindow ? adventureOutfit(intentEntry, universeId, visualEntry) : "ordinary_outfit",
     equipmentStateIds: underwaterEquipment ? ["breathing_voice_bubble_worn"] : [],
   };
 }
@@ -162,9 +164,17 @@ function sceneTimeline(index, crossingIndex, returnIndex) {
   return { locationBeforeId: "location_origin", locationAfterId: "location_origin", visiblePhase: "end" };
 }
 
-export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept } = {}) {
+export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null } = {}) {
   const intent = loadCreationIntent(rawIntent);
   const concept = loadStoryConcept(rawConcept);
+  const visualIntent = rawVisualIntent ? loadVisualIntentV1(rawVisualIntent) : null;
+  if (visualIntent && (
+    visualIntent.sourceCreationIntent.artifactDigest !== intent.validation.artifactDigest
+    || visualIntent.universeId !== intent.book.universeId
+  )) {
+    mechanicsError("mechanics_visual_intent_mismatch", "/visualIntent", "Visual intent must be sealed from this exact creation intent and universe.");
+  }
+  const visualByKey = new Map((visualIntent?.characters || []).map((entry) => [entry.characterKey, entry]));
   const { crossingIndex, returnIndex } = validateConceptShape(intent, concept);
   const universe = universeConfiguration(intent.book.universeId);
   const cast = intent.cast.map((entry) => ({
@@ -241,7 +251,14 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
       objectEvents: [],
       wardrobeStates: visibleIds.map((id) => {
         const entry = cast.find((character) => character.id === id);
-        return { characterId: id, ...wardrobeFor({ intentEntry: entry, universeId: intent.book.universeId, index, crossingIndex, returnIndex }) };
+        return { characterId: id, ...wardrobeFor({
+          intentEntry: entry,
+          universeId: intent.book.universeId,
+          index,
+          crossingIndex,
+          returnIndex,
+          visualEntry: visualByKey.get(entry.characterKey),
+        }) };
       }),
       illustration: {
         visibleCharacterIds: visibleIds,

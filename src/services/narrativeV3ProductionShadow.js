@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import { narrativeV3ConceptAgent } from "../agents/narrativeV3Concept.js";
 import { buildCanonicalStoryMechanics } from "../contracts/buildCanonicalStoryMechanics.js";
 import { buildCreationIntent } from "../contracts/creationIntent.js";
+import { buildVisualIntentV1 } from "../contracts/visualIntentV1.js";
 import {
   canonicalDigest,
   compileCanonicalStoryGraph,
@@ -203,7 +204,36 @@ export function buildNarrativeV3ProjectSource(project = {}) {
     visualIdentityRef: `${entry.profileRef}:identity`,
     visualIdentityDigest: canonicalDigest({ profileRef: entry.profileRef, photoId: entry.photo?.id || null, storageKey: entry.photo?.storageKey || null }),
   }));
-  return Object.freeze({ normalized, semanticSource, intent, profileBindings });
+  const visualIntent = buildVisualIntentV1({
+    creationIntent: intent,
+    characters: cast.map((entry) => {
+      if (entry.kind !== "human") {
+        return {
+          characterKey: entry.characterKey,
+          profileRef: entry.profileRef,
+          kind: entry.kind,
+          identityDigest: canonicalDigest({ profileRef: entry.profileRef, photoId: entry.photo?.id || null }),
+          naturalAppearanceDescription: "the exact canonical natural appearance from the private identity reference, with no invented human clothing",
+        };
+      }
+      const preference = entry.photo?.outfit_preference || "preserve_photo";
+      return {
+        characterKey: entry.characterKey,
+        profileRef: entry.profileRef,
+        kind: entry.kind,
+        outfitPreference: preference,
+        ordinaryOutfitDescription: "the exact generic, unbranded everyday clothing established by the private identity reference",
+        ordinaryOutfitDigest: canonicalDigest({
+          profileRef: entry.profileRef,
+          photoId: entry.photo?.id || null,
+          source: "private_identity_reference",
+        }),
+        adventureOutfitId: entry.photo?.outfit_id || "",
+        accommodationIds: [],
+      };
+    }),
+  });
+  return Object.freeze({ normalized, semanticSource, intent, visualIntent, profileBindings });
 }
 
 // Compatibility export for the already deployed, isolated shadow worker.

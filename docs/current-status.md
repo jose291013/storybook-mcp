@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/scene-render-contract-v1`
-- Main checkpoint before this brick: `eb03227` (PR #237)
-- Current focused checkpoint: exhaustive V3 invariant audit and single scene-render authority
+- Current branch: `codex/visual-intent-v1`
+- Main checkpoint before this brick: `7dde2f3` (PR #238)
+- Current focused checkpoint: immutable per-character visual intent
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -18,7 +18,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 The Render migration replay incident is closed by the append-only migration
-ledger. The current brick does not add or rewrite a database migration.
+ledger. This brick adds only append-only migration 027.
 
 PR #55 through #232 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
@@ -97,7 +97,19 @@ composition so later invariant domains extend the same evidence format rather
 than adding another repair loop. The repository verification checkpoint is
 680/680 passing tests, including the full V3 language/universe/format matrices.
 
-## Product brick in progress: SceneRenderContract.v1
+## Product brick: VisualIntent.v1
+
+`VisualIntent.v1` is sealed beside `CreationIntent.v1` before semantic concept
+generation. It retains every character's exact wardrobe preference, selected
+universe outfit or preserved-photo state, ordinary-outfit evidence digest,
+natural appearance and accommodations. Canonical mechanics consumes this
+artifact instead of selecting the first outfit in the universe catalogue.
+
+New V3 customer scenarios persist this sixth immutable artifact. Migration 027
+only widens isolated V3 artifact and pointer constraints. Existing approved
+books and V2 projects are not rewritten. Verification: 688/688 tests pass.
+
+## Product brick: SceneRenderContract.v1
 
 The audit `docs/narrative-v3-universal-invariants-audit.md` inventories every
 required invariant and pipeline gate. Illustration plan version 15 preserves
@@ -107,12 +119,10 @@ shared by the image prompt and evidence controller. Legacy wardrobe fields can
 no longer override an active V3 universe state, and every V3 interior page
 requests focused high-detail cast and wardrobe verification.
 
-This branch does not mutate approved specs, customer data, commerce, credits or
-series canon and adds no database migration or environment variable. The next
-architectural phase after this brick is `VisualIntent.v1`, because the current
-CreationIntent does not yet seal each customer's wardrobe choice.
+This brick does not mutate approved specs, customer data, commerce, credits or
+series canon and adds no environment variable.
 
-Verification: the complete repository suite passes 686/686 tests. The isolated
+Verification at merge: the complete repository suite passed 686/686 tests. The isolated
 V3 full-shadow gate passes all 108 language/universe/format combinations, with
 zero provider calls, zero paid calls, no customer route and idempotent replay.
 
