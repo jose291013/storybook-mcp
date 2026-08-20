@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` (checkpoint recorded from `codex/v3-delivery-checkpoint`)
-- Main checkpoint: `d79a8f6` (PR #244)
-- Current focused checkpoint: production observation of the completed strict V3 artifact chain
+- Current branch: `codex/v3-production-render-authority`
+- Main checkpoint before this brick: `aa3e922` (PR #245)
+- Current focused checkpoint: connect the completed strict V3 artifact chain to the real production preview worker
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -18,7 +18,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 The Render migration replay incident is closed by the append-only migration
-ledger. This brick adds only append-only migration 027.
+ledger. This production-authority brick adds no database migration or
+environment variable.
 
 PR #55 through #244 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
@@ -34,9 +35,23 @@ except for security, privacy, commerce and data-loss defects.
 
 PR #243 adds fail-closed eleven-domain illustration evidence. PR #244 adds the
 five-parent strict delivery manifest and moves the complete V3 shadow matrix to
-the V2 evidence/delivery boundary. Deployment and one new production V3 book
-remain the next observations; no synthetic result is treated as proof of model
-accuracy.
+the V2 evidence/delivery boundary. PR #245 records that closed checkpoint.
+The current brick applies the same authority to the real V3 preview worker:
+every delivered scene must have one accepted private candidate with all eleven
+domains explicitly verified, then the real manuscript, fact evidence,
+storyboard, continuity plan, decision set and delivery manifest are sealed.
+No synthetic result is treated as proof of model accuracy.
+
+Next production verification target: after this branch is merged and Render is
+Live, create one new 32-page portal book (coral or space) and one non-portal
+book (forest or dinosaur). Logs must show
+`[preview] strict V3 production delivery sealed`; the customer must not receive
+a page-review request for uncertain machine evidence. Verify localized scenario
+locations, exact cast cardinality, active outfits, persistent-object counts and
+the physical medium on every illustrated spread.
+
+Repository verification for this branch: 710/710 tests pass, including the
+real production-worker sealing test and the complete V3 counterexample matrix.
 
 ## Current architecture decision: Narrative V3
 

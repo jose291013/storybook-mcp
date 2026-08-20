@@ -33,7 +33,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["storageKey", "sha256", "mimeType", "width", "height", "byteLength"],
       "properties": {
-        "storageKey": { "type": "string", "pattern": "^private/narrative-v3/[A-Za-z0-9/_-]{1,240}\\.(png|webp|jpg)$" },
+        "storageKey": { "type": "string", "pattern": "^(private/narrative-v3|ebooks/previews)/[A-Za-z0-9/_-]{1,240}\\.(png|webp|jpg)$" },
         "sha256": { "$ref": "#/$defs/digest" },
         "mimeType": { "type": "string", "enum": ["image/png", "image/webp", "image/jpeg"] },
         "width": { "type": "integer", "minimum": 512, "maximum": 8192 },

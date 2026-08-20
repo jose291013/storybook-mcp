@@ -10,6 +10,8 @@ import {
   blockingStyleContinuityIssues,
   classifyVisualIssue,
   inspectNamedCastCardinality,
+  inspectStrictV3IllustrationEvidence,
+  normalizeStrictV3IllustrationEvidence,
   inspectRevisionNonRegression,
   reconcileFocusedCastInspection,
   inspectSceneFidelity,
@@ -21,6 +23,51 @@ import {
   requiresFocusedCastVerification,
   targetedVisualRepairPolicy,
 } from "../src/services/imageQualityGate.js";
+
+const STRICT_DOMAINS = [
+  "identity_cardinality", "forbidden_cast", "wardrobe", "equipment",
+  "physical_medium", "location_boundary", "main_action", "object_cardinality",
+  "landmarks", "style_continuity",
+];
+
+test("strict V3 evidence requires explicit verification in all eleven delivery domains", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-strict-v3-image-"));
+  const imagePath = path.join(directory, "scene.png");
+  await sharp({ create: { width: 640, height: 640, channels: 3, background: "#88bbcc" } }).png().toFile(imagePath);
+  let instruction = "";
+  const client = { responses: { create: async ({ input }) => {
+    instruction = input[0].content[0].text;
+    return { output_text: JSON.stringify({
+      domains: Object.fromEntries(STRICT_DOMAINS.map((domain) => [domain, { status: "pass", evidence_code: "verified" }])),
+    }) };
+  } } };
+  try {
+    const evidence = await inspectStrictV3IllustrationEvidence({
+      imagePath,
+      client,
+      sceneContract: { render_snapshot: { physical_medium: "fully_underwater" } },
+    });
+    assert.equal(evidence.approved, true);
+    assert.equal(Object.keys(evidence.domains).length, 11);
+    assert.match(instruction, /gravity or buoyancy/);
+    assert.match(instruction, /One entity in two positions is a duplicate/);
+    assert.match(instruction, /ordinary source-photo clothing is forbidden/);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("missing or malformed strict V3 domains quarantine the candidate instead of guessing", () => {
+  const evidence = normalizeStrictV3IllustrationEvidence({
+    identity_cardinality: { status: "pass", evidence_code: "verified" },
+    physical_medium: { status: "fail", evidence_code: "wrong_physical_medium" },
+  });
+  assert.equal(evidence.approved, false);
+  assert.deepEqual(evidence.failedDomains, ["physical_medium"]);
+  assert.ok(evidence.uncertainDomains.includes("wardrobe"));
+  assert.equal(evidence.domains.wardrobe.evidence_code, "insufficient_evidence");
+  assert.match(evidence.issues.join(" "), /remains private/);
+});
 import {
   buildFinalPrompt,
   prioritizeVisualReferences,

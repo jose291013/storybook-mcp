@@ -1,5 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
+import crypto from "node:crypto";
+import sharp from "sharp";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 
 const SAFE_FILENAME = /^[A-Za-z0-9._-]+$/;
@@ -33,9 +35,19 @@ export async function persistPreviewAsset({
 }) {
   const filename = outputFilename(assetUrl);
   const body = await fs.readFile(path.resolve(outputsDir, filename));
+  const metadata = await sharp(body).metadata();
+  const mimeType = metadata.format === "jpeg" ? "image/jpeg" : `image/${metadata.format || "png"}`;
   const storageKey = previewAssetKey(projectId, filename);
-  await storage.put({ key: storageKey, body, contentType: "image/png" });
-  return { storageKey, previewUrl: privatePreviewAssetUrl(projectId, filename) };
+  await storage.put({ key: storageKey, body, contentType: mimeType });
+  return {
+    storageKey,
+    previewUrl: privatePreviewAssetUrl(projectId, filename),
+    sha256: crypto.createHash("sha256").update(body).digest("hex"),
+    mimeType,
+    width: Number(metadata.width || 0),
+    height: Number(metadata.height || 0),
+    byteLength: body.length,
+  };
 }
 
 export async function storageBodyToBuffer(body) {

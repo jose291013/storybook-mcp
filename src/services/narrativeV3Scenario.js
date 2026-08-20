@@ -82,11 +82,66 @@ async function persistArtifact({
   return created.artifact;
 }
 
-function displayMaps(spec) {
+const CUSTOMER_WORLD_LABELS = Object.freeze({
+  FR: Object.freeze({
+    origin: "Le lieu familier du départ",
+    adventure: "Le monde de l’aventure",
+    passage: "Le passage clairement établi entre les deux mondes",
+  }),
+  ES: Object.freeze({
+    origin: "El lugar familiar de partida",
+    adventure: "El mundo de la aventura",
+    passage: "El paso claramente establecido entre los dos mundos",
+  }),
+  EN: Object.freeze({
+    origin: "The familiar starting place",
+    adventure: "The adventure world",
+    passage: "The clearly established passage between both worlds",
+  }),
+});
+
+const CUSTOMER_ADVENTURE_LABELS = Object.freeze({
+  FR: Object.freeze({
+    enchanted_forest: "La forêt enchantée",
+    starry_space: "Le vaisseau ou l’habitat spatial protégé",
+    coral_ocean: "Le jardin de corail entièrement sous l’eau",
+    cloud_castle: "Le royaume protégé au-dessus des nuages",
+    dinosaur_valley: "La vallée des dinosaures",
+    wonder_city: "La cité merveilleuse",
+  }),
+  ES: Object.freeze({
+    enchanted_forest: "El bosque encantado",
+    starry_space: "La nave o el hábitat espacial protegido",
+    coral_ocean: "El jardín de coral completamente submarino",
+    cloud_castle: "El reino protegido sobre las nubes",
+    dinosaur_valley: "El valle de los dinosaurios",
+    wonder_city: "La ciudad maravillosa",
+  }),
+  EN: Object.freeze({
+    enchanted_forest: "The enchanted forest",
+    starry_space: "The protected spacecraft or space habitat",
+    coral_ocean: "The fully underwater coral garden",
+    cloud_castle: "The protected kingdom above the clouds",
+    dinosaur_valley: "The dinosaur valley",
+    wonder_city: "The wonder city",
+  }),
+});
+
+function displayMaps(spec, normalized) {
+  const language = ["FR", "ES", "EN"].includes(normalized?.answers?.language)
+    ? normalized.answers.language
+    : "FR";
+  const labels = CUSTOMER_WORLD_LABELS[language];
+  const universeId = String(spec?.book?.universeId || normalized?.answers?.universe_id || "");
+  const locationName = (entry) => entry.kind === "origin"
+    ? labels.origin
+    : entry.kind === "adventure"
+      ? CUSTOMER_ADVENTURE_LABELS[language][universeId] || labels.adventure
+      : String(entry.name || labels.adventure);
   return {
     characters: new Map(spec.registries.characters.map((entry) => [entry.id, entry.displayName])),
-    locations: new Map(spec.registries.locations.map((entry) => [entry.id, entry.name])),
-    passages: new Map(spec.registries.passages.map((entry) => [entry.id, entry.name])),
+    locations: new Map(spec.registries.locations.map((entry) => [entry.id, locationName(entry)])),
+    passages: new Map(spec.registries.passages.map((entry) => [entry.id, labels.passage])),
   };
 }
 
@@ -106,8 +161,8 @@ function legacyObjectState(state, names) {
   };
 }
 
-function legacyScenarioInput(spec) {
-  const maps = displayMaps(spec);
+function legacyScenarioInput(spec, normalized) {
+  const maps = displayMaps(spec, normalized);
   maps.objects = new Map(spec.registries.objects.map((entry) => [entry.id, entry]));
   const crossingIndex = spec.scenes.findIndex((scene) => (
     scene.movements.some((movement) => movement.kind === "cross_passage")
@@ -167,7 +222,7 @@ function legacyScenarioInput(spec) {
         character_presences: presences,
         transition: {
           kind: transitionKind,
-          mechanism: passage?.name || "",
+          mechanism: maps.passages.get(passage?.id) || "",
           mechanism_id: passage?.id || "",
           from: maps.locations.get(movement?.fromLocationId || scene.timeline.locationBeforeId) || "",
           to: maps.locations.get(movement?.toLocationId || scene.timeline.locationAfterId) || "",
@@ -193,7 +248,7 @@ function legacyScenarioInput(spec) {
 }
 
 export function projectNarrativeV3Scenario({ spec, normalized }) {
-  const scenario = stabilizeStoryScenario(normalizeStoryScenario(legacyScenarioInput(spec), {
+  const scenario = stabilizeStoryScenario(normalizeStoryScenario(legacyScenarioInput(spec, normalized), {
     pagePlan: createPagePlan(normalized.answers.page_count),
     canonicalCharacters: scenarioCharacterRegistry(normalized),
     creatorClarifications: {},
