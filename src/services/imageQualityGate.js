@@ -978,6 +978,16 @@ const STRICT_V3_DOMAIN_ISSUES = Object.freeze({
   style_continuity: "The rendering style does not match the locked book reference.",
 });
 
+const STRICT_V3_LOCAL_REPAIR_DOMAINS = new Set([
+  "identity_cardinality",
+  "forbidden_cast",
+  "wardrobe",
+  "equipment",
+  "object_cardinality",
+  "landmarks",
+  "style_continuity",
+]);
+
 function strictV3Assessment(value, domain) {
   const status = String(value?.status || "").trim().toLowerCase();
   const evidenceCode = String(value?.evidence_code || "").trim().toLowerCase();
@@ -1013,6 +1023,87 @@ export function normalizeStrictV3IllustrationEvidence(rawDomains = {}, { technic
       ...failedDomains.map((domain) => STRICT_V3_DOMAIN_FAILURE_CODES[domain]),
       ...uncertainDomains.map(() => "insufficient_evidence"),
     ])],
+  };
+}
+
+export function strictV3IllustrationRetryStrategy(
+  evidence = {},
+  {
+    attempt = 1,
+    maximumAttempts = 2,
+    targetedRepairAvailable = false,
+  } = {},
+) {
+  const failedDomains = [...new Set(Array.isArray(evidence?.failedDomains)
+    ? evidence.failedDomains.filter((domain) => STRICT_V3_ILLUSTRATION_DOMAINS.includes(domain))
+    : [])];
+  const uncertainDomains = [...new Set(Array.isArray(evidence?.uncertainDomains)
+    ? evidence.uncertainDomains.filter((domain) => STRICT_V3_ILLUSTRATION_DOMAINS.includes(domain))
+    : [])];
+  const unresolvedDomains = [...new Set([...failedDomains, ...uncertainDomains])];
+  const attemptsRemaining = Math.max(0, Number(maximumAttempts || 0) - Number(attempt || 0));
+  const singleConfirmedLocalDomain = uncertainDomains.length === 0
+    && failedDomains.length === 1
+    && STRICT_V3_LOCAL_REPAIR_DOMAINS.has(failedDomains[0]);
+
+  let mode = "quarantine";
+  let reason = "repair_budget_exhausted";
+  if (unresolvedDomains.length === 0 && evidence?.approved === true) {
+    mode = "accept";
+    reason = "all_domains_verified";
+  } else if (singleConfirmedLocalDomain && targetedRepairAvailable) {
+    mode = "targeted_repair";
+    reason = "single_confirmed_local_defect";
+  } else if (attemptsRemaining > 0) {
+    mode = "regenerate";
+    reason = uncertainDomains.length > 0
+      ? "evidence_incomplete"
+      : unresolvedDomains.length > 1
+        ? "multiple_domains_failed"
+        : "structural_domain_failed";
+  }
+
+  return {
+    version: 1,
+    mode,
+    reason,
+    failedDomains,
+    uncertainDomains,
+    unresolvedDomains,
+    attemptsRemaining,
+    targetDomains: mode === "targeted_repair" ? failedDomains : [],
+    targetCodes: mode === "targeted_repair"
+      ? failedDomains.map((domain) => STRICT_V3_DOMAIN_FAILURE_CODES[domain])
+      : [],
+  };
+}
+
+export function strictV3TargetedRepairPolicy(evidence = {}, options = {}) {
+  const strategy = strictV3IllustrationRetryStrategy(evidence, options);
+  const classifications = strategy.unresolvedDomains.map((domain) => {
+    const confirmedFailure = strategy.failedDomains.includes(domain);
+    const code = confirmedFailure
+      ? STRICT_V3_DOMAIN_FAILURE_CODES[domain]
+      : "insufficient_evidence";
+    return {
+      code,
+      domain,
+      severity: confirmedFailure ? "blocking" : "uncertain",
+      confidence: confirmedFailure ? "high" : "low",
+      automaticRepair: strategy.targetDomains.includes(domain),
+      issue: confirmedFailure
+        ? STRICT_V3_DOMAIN_ISSUES[domain]
+        : `Strict V3 evidence is insufficient for ${domain}; this candidate remains private.`,
+    };
+  });
+  return {
+    version: 5,
+    strategy,
+    classifications,
+    targetCodes: strategy.targetCodes,
+    targetDomains: strategy.targetDomains,
+    automaticRepair: strategy.mode === "targeted_repair",
+    verificationCodes: [...new Set([...strategy.targetCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES])],
   };
 }
 
@@ -1111,6 +1202,7 @@ export async function generateQualityCheckedImage({
   let safetyFallbackActive = false;
   let attemptLimit = maximumAttempts;
   let lastCandidateImageUrl = "";
+  let lastRepairPolicy = null;
   for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
     const referenceImagesForAttempt = omitReferenceImages
       ? generationOptions.referenceImages?.filter((reference) => reference?.kind === "continuity")
@@ -1276,6 +1368,15 @@ export async function generateQualityCheckedImage({
       const automaticRepairPolicy = targetedVisualRepairPolicy(disposition.blocking, {
         source: inspection.approved ? "scene" : "technical",
       });
+      const strictRetryPolicy = strictV3EvidenceRequired
+        ? strictV3TargetedRepairPolicy(strictV3Evidence, {
+          attempt,
+          maximumAttempts: attemptLimit,
+          targetedRepairAvailable,
+        })
+        : null;
+      const effectiveRepairPolicy = strictRetryPolicy || automaticRepairPolicy;
+      lastRepairPolicy = effectiveRepairPolicy;
       if (!strictV3EvidenceRequired &&
         inspection.approved
         && disposition.blocking.length === 0
@@ -1355,10 +1456,12 @@ export async function generateQualityCheckedImage({
           ? "scene"
           : (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
         : "technical";
-      const quarantineImmediately = inspection.approved
-        && targetedRepairAvailable
-        && automaticRepairPolicy.automaticRepair
-        && attempt < attemptLimit;
+      const quarantineImmediately = strictV3EvidenceRequired
+        ? strictRetryPolicy?.strategy?.mode === "targeted_repair"
+        : inspection.approved
+          && targetedRepairAvailable
+          && automaticRepairPolicy.automaticRepair
+          && attempt < attemptLimit;
       await onCandidate?.({
         imageUrl,
         attempt,
@@ -1366,8 +1469,10 @@ export async function generateQualityCheckedImage({
         status: attempt === attemptLimit || quarantineImmediately ? "quarantined" : "rejected",
         rejectionKind: previousRejectionKind,
         issues: previousIssues,
-        issueCodes: disposition.issueCodes,
-        repairPolicy: automaticRepairPolicy,
+        issueCodes: strictV3EvidenceRequired
+          ? strictV3Evidence?.issueCodes || []
+          : disposition.issueCodes,
+        repairPolicy: effectiveRepairPolicy,
         strictEvidence: strictV3Evidence,
         providerModel: model,
       });
@@ -1377,7 +1482,10 @@ export async function generateQualityCheckedImage({
         maximumAttempts: quarantineImmediately ? attempt : attemptLimit,
         pageLabel,
         issues: previousIssues,
-        issueCodes: disposition.issueCodes,
+        issueCodes: strictV3EvidenceRequired
+          ? strictV3Evidence?.issueCodes || []
+          : disposition.issueCodes,
+        retryStrategy: strictRetryPolicy?.strategy || null,
       });
       if (quarantineImmediately) {
         attemptLimit = attempt;
@@ -1411,7 +1519,9 @@ export async function generateQualityCheckedImage({
       throw error;
     }
   }
-  const finalBlockingIssues = previousRejectionKind === "technical"
+  const finalBlockingIssues = strictV3EvidenceRequired
+    ? previousIssues
+    : previousRejectionKind === "technical"
     ? previousIssues
     : previousRejectionKind === "scene"
       ? blockingSceneContractIssues(previousIssues)
@@ -1422,6 +1532,7 @@ export async function generateQualityCheckedImage({
     rejectionKind: previousRejectionKind,
     issues: reportedFailureIssues,
     attemptCount: attemptLimit,
-    repairPolicy: targetedVisualRepairPolicy(reportedFailureIssues, { source: previousRejectionKind }),
+    repairPolicy: lastRepairPolicy
+      || targetedVisualRepairPolicy(reportedFailureIssues, { source: previousRejectionKind }),
   });
 }

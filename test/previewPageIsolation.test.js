@@ -18,6 +18,9 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /createImageCandidateRecorder/);
   assert.match(preview, /page quarantined for repair/);
   assert.match(preview, /qualityStatus = "repair_pending"/);
+  assert.match(preview, /strict_quarantined/);
+  assert.match(preview, /strict_internal_quarantine/);
+  assert.match(preview, /strict-quarantine:page/);
   assert.match(preview, /maximumAttempts: 1/);
   assert.match(preview, /kind: "repair_source"/);
   assert.match(preview, /qualityReviewScope: repairPolicy\.targetCodes/);

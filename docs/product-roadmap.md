@@ -173,6 +173,23 @@ Delivery fails closed on a missing page, uncertain domain or foreign ancestor.
 Previously generated V3 image pages without version-2 strict evidence are
 regenerated rather than silently reused.
 
+The production worker now uses a bounded best-candidate search driven by the
+complete strict domain vector rather than the legacy first matching defect.
+A candidate with several failed domains, any insufficient evidence, or one
+structural world/action/boundary failure consumes the remaining second full
+generation with the exact findings attached. A targeted image edit is allowed
+only after the evidence has converged to one confirmed local cast, wardrobe,
+equipment, object, landmark or style defect. Thus one page can use at most two
+full candidates plus one final local edit; no repair can reopen the scenario,
+manuscript or an unaffected page.
+
+An exhausted V3 page is recorded as a private strict quarantine, not as a
+creator review. Its accepted neighbours and all immutable ancestors remain
+reusable, and recovery resumes only that page. Legacy V2 customer review keeps
+its existing behavior. This orchestration adds no environment variable,
+database migration, commerce change, customer credit use or series-canon
+mutation.
+
 Creator-facing scenario locations and passages now use localized FR/ES/EN
 product wording instead of internal topology labels. The waiting screen states
 that Calitiki is checking characters, clothing, objects and physical laws. This

@@ -21,6 +21,8 @@ import {
   objectiveSceneContractIssues,
   objectiveTechnicalIssues,
   requiresFocusedCastVerification,
+  strictV3IllustrationRetryStrategy,
+  strictV3TargetedRepairPolicy,
   targetedVisualRepairPolicy,
 } from "../src/services/imageQualityGate.js";
 
@@ -67,6 +69,74 @@ test("missing or malformed strict V3 domains quarantine the candidate instead of
   assert.ok(evidence.uncertainDomains.includes("wardrobe"));
   assert.equal(evidence.domains.wardrobe.evidence_code, "insufficient_evidence");
   assert.match(evidence.issues.join(" "), /remains private/);
+});
+
+test("strict V3 retries a full candidate when several independent domains fail", () => {
+  const evidence = normalizeStrictV3IllustrationEvidence(Object.fromEntries(STRICT_DOMAINS.map((domain) => [
+    domain,
+    { status: "pass", evidence_code: "verified" },
+  ])));
+  evidence.approved = false;
+  evidence.failedDomains = ["wardrobe", "equipment", "style_continuity"];
+  evidence.uncertainDomains = [];
+
+  const strategy = strictV3IllustrationRetryStrategy(evidence, {
+    attempt: 1,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+  const policy = strictV3TargetedRepairPolicy(evidence, {
+    attempt: 1,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+
+  assert.equal(strategy.mode, "regenerate");
+  assert.equal(strategy.reason, "multiple_domains_failed");
+  assert.equal(policy.automaticRepair, false);
+  assert.deepEqual(policy.targetCodes, []);
+});
+
+test("strict V3 enters targeted editing only after convergence to one confirmed local defect", () => {
+  const evidence = {
+    approved: false,
+    failedDomains: ["wardrobe"],
+    uncertainDomains: [],
+  };
+  const policy = strictV3TargetedRepairPolicy(evidence, {
+    attempt: 2,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+
+  assert.equal(policy.strategy.mode, "targeted_repair");
+  assert.equal(policy.automaticRepair, true);
+  assert.deepEqual(policy.targetDomains, ["wardrobe"]);
+  assert.deepEqual(policy.targetCodes, ["wardrobe_state_mismatch"]);
+});
+
+test("strict V3 regenerates uncertain or structural evidence and never targets it blindly", () => {
+  assert.equal(strictV3IllustrationRetryStrategy({
+    approved: false,
+    failedDomains: [],
+    uncertainDomains: ["identity_cardinality"],
+  }, {
+    attempt: 1,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  }).mode, "regenerate");
+
+  const exhausted = strictV3TargetedRepairPolicy({
+    approved: false,
+    failedDomains: ["physical_medium"],
+    uncertainDomains: [],
+  }, {
+    attempt: 2,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+  assert.equal(exhausted.strategy.mode, "quarantine");
+  assert.equal(exhausted.automaticRepair, false);
 });
 import {
   buildFinalPrompt,

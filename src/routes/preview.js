@@ -1585,7 +1585,11 @@ router.post("/preview", async (req, res) => {
               issueCodes: qualityRepairPolicy.targetCodes,
               automaticRepair: qualityRepairPolicy.automaticRepair,
             }));
-            qualityStatus = qualityRepairPolicy.automaticRepair ? "repair_pending" : "review_required";
+            qualityStatus = qualityRepairPolicy.automaticRepair
+              ? "repair_pending"
+              : strictV3Rendering
+                ? "strict_quarantined"
+                : "review_required";
           }
           const persistedImage = candidateAssetCache.get(localImageUrl)
             || await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
@@ -1634,7 +1638,8 @@ router.post("/preview", async (req, res) => {
       }
 
       const unresolvedQualityPages = draftPages
-        .filter((page) => page.page_type === "image" && page.qualityStatus === "review_required")
+        .filter((page) => page.page_type === "image"
+          && ["review_required", "strict_quarantined"].includes(page.qualityStatus))
         .map((page) => ({
           pageNumber: Number(page.page_number),
           kind: page.qualityKind || "scene",
@@ -1771,15 +1776,19 @@ router.post("/preview", async (req, res) => {
             ? error.issues
             : [`The image provider could not complete the targeted repair: ${String(error?.message || error)}`];
           const index = draftPages.findIndex((candidate) => Number(candidate.page_number) === Number(page.page_number));
+          const unresolvedStatus = strictV3Rendering ? "strict_quarantined" : "review_required";
+          const unresolvedOutcome = strictV3Rendering
+            ? "strict_internal_quarantine"
+            : "creator_review_required";
           draftPages[index] = {
             ...draftPages[index],
-            qualityStatus: "review_required",
+            qualityStatus: unresolvedStatus,
             qualityIssues: issues,
             qualityIssueCodes: qualityError ? error.issueCodes : repairPolicy.targetCodes,
             qualityKind: qualityError ? error.rejectionKind : "provider",
             qualityRepairPolicy: {
               ...repairPolicy,
-              outcome: "creator_review_required",
+              outcome: unresolvedOutcome,
               remainingIssueCodes: qualityError ? error.issueCodes : [],
             },
           };
@@ -1792,16 +1801,26 @@ router.post("/preview", async (req, res) => {
           await generationRunStore.updateStep(repairStep.id, {
             status: "repair_pending",
             diagnostics: { issues, kind: qualityError ? error.rejectionKind : "provider" },
-            errorCode: qualityError ? "quality_review_required" : "provider_repair_failed",
+            errorCode: strictV3Rendering
+              ? "narrative_v3_illustration_evidence_incomplete"
+              : qualityError
+                ? "quality_review_required"
+                : "provider_repair_failed",
             errorMessage: issues.join(" | "),
           });
           const reviewResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
           updateJob(job.id, { result: reviewResult });
-          await persistCheckpoint({ phase: `review:page:${page.page_number}` }, {
+          await persistCheckpoint({
+            phase: strictV3Rendering
+              ? `strict-quarantine:page:${page.page_number}`
+              : `review:page:${page.page_number}`,
+          }, {
             previewResult: reviewResult,
             finalBlueprint: final_blueprint,
           });
-          console.warn("[preview] page requires quality review", JSON.stringify({
+          console.warn(strictV3Rendering
+            ? "[preview] strict V3 page remains privately quarantined"
+            : "[preview] page requires quality review", JSON.stringify({
             jobId: job.id,
             projectId,
             pageNumber: page.page_number,
