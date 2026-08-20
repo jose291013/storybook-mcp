@@ -378,6 +378,49 @@ test("targeted cast repairs require one high-detail occurrence of every named id
   }
 });
 
+test("the focused V3 verifier rejects one categorically wrong active outfit", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "calitiki-v3-wardrobe-qa-"));
+  const imagePath = path.join(directory, "scene.png");
+  await sharp({
+    create: { width: 32, height: 32, channels: 3, background: "#d7f0ff" },
+  }).png().toFile(imagePath);
+  const sceneContract = {
+    named_characters: [{ name: "hero child", visual_role: "actor", action: "crosses the bridge" }],
+    scene_render_contract: {
+      cast: {
+        required: [{
+          character_id: "character_hero",
+          name: "hero child",
+          outfit: { description: "a moss-green explorer jacket, ochre trousers and brown boots" },
+        }],
+      },
+    },
+  };
+  const client = {
+    responses: {
+      create: async () => ({
+        output_text: JSON.stringify({
+          cast: [{
+            name: "hero child",
+            observed: "one",
+            candidate_ids: ["subject_1"],
+            structural_state: "separate",
+            wardrobe_state: "conflicts",
+          }],
+        }),
+      }),
+    },
+  };
+  try {
+    const result = await inspectNamedCastCardinality({ imagePath, sceneContract, client });
+    assert.equal(result.authoritative, true);
+    assert.deepEqual(result.issueCodes, ["wardrobe_state_mismatch"]);
+    assert.match(result.issues[0], /Required wardrobe state conflicts/u);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("focused identity cardinality replaces contradictory anonymous cast findings", () => {
   const reconciled = reconcileFocusedCastInspection({
     approved: false,

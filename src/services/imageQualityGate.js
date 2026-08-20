@@ -737,6 +737,12 @@ export async function inspectNamedCastCardinality({
   pageLabel = "repaired illustration",
   client = null,
 }) {
+  const renderWardrobeByName = new Map((Array.isArray(sceneContract?.scene_render_contract?.cast?.required)
+    ? sceneContract.scene_render_contract.cast.required
+    : []).map((character) => [
+    normalizedIssueText(character?.name),
+    String(character?.outfit?.description || "").trim(),
+  ]));
   const requiredCast = (Array.isArray(sceneContract?.named_characters)
     ? sceneContract.named_characters
     : []).map((character) => ({
@@ -744,6 +750,7 @@ export async function inspectNamedCastCardinality({
     entity_type: String(character?.entity_type || character?.type || "").trim(),
     visual_role: String(character?.visual_role || "visible").trim(),
     action: String(character?.action || "present in this instant").trim(),
+    required_outfit: renderWardrobeByName.get(normalizedIssueText(character?.name)) || "",
   })).filter((character) => character.name);
   if (!requiredCast.length) return { approved: true, issues: [] };
 
@@ -779,7 +786,7 @@ ${JSON.stringify(requiredCast)}
 Private identity evidence (Image 1 is always the proposed repaired illustration):
 ${referenceLegend}
 
-For every required entry, report whether the illustration visibly contains zero, exactly one, or two-or-more complete instances of that same recurring identity.
+For every required entry, report whether the illustration visibly contains zero, exactly one, or two-or-more complete instances of that same recurring identity, and whether a clearly visible human outfit matches required_outfit.
 - When a private identity image is supplied, match the candidate to that specific face, hair, species, coat and markings before counting. Do not assign the same candidate person to two different required entries.
 - A reflection, portrait, memory, vision or montage counts separately only when the current scene contract explicitly requires it.
 - Two highly similar copies with the same stable face, hair, species, coat, markings and wardrobe count as a duplicated identity, even when placed on opposite sides of the scene.
@@ -788,8 +795,9 @@ For every required entry, report whether the illustration visibly contains zero,
 - If identity, occlusion or scale makes the count uncertain, use "uncertain". Never guess.
 - Give every complete visible individual a stable local candidate id such as "subject_1". Reuse the same candidate id only when two required entries visibly share one body or fused individual.
 - structural_state is "separate" only for a complete independent individual, "fused" when the required identity shares one body with another identity, and "uncertain" when this cannot be proved.
+- wardrobe_state is "matches" when the broad garment category and declared protective/adventure state match required_outfit, "conflicts" only for a clearly different category, and "uncertain" when hidden, small or ambiguous. For a non-human or an empty required_outfit, use "matches".
 
-Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|two_or_more|uncertain","candidate_ids":["subject_1"],"structural_state":"separate|fused|uncertain"}]}. Use an empty candidate_ids array for zero or uncertain.` },
+Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|two_or_more|uncertain","candidate_ids":["subject_1"],"structural_state":"separate|fused|uncertain","wardrobe_state":"matches|conflicts|uncertain"}]}. Use an empty candidate_ids array for zero or uncertain.` },
       { type: "input_image", image_url: `data:image/jpeg;base64,${source.toString("base64")}`, detail: "high" },
       ...identityEvidence.map((reference) => ({
         type: "input_image",
@@ -810,10 +818,15 @@ Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|tw
   }
   const validObservedStates = new Set(["zero", "one", "two_or_more", "uncertain"]);
   const validStructuralStates = new Set(["separate", "fused", "uncertain"]);
+  const validWardrobeStates = new Set(["matches", "conflicts", "uncertain"]);
   const normalizedObservations = observations.map((observation) => {
     const key = normalizedIssueText(observation?.name);
     const observed = normalizedIssueText(observation?.observed);
     const structuralState = normalizedIssueText(observation?.structural_state);
+    const requiredOutfit = renderWardrobeByName.get(key) || "";
+    const wardrobeState = requiredOutfit
+      ? normalizedIssueText(observation?.wardrobe_state)
+      : "matches";
     const candidateIds = [...new Set((Array.isArray(observation?.candidate_ids)
       ? observation.candidate_ids
       : []).map((candidateId) => normalizedIssueText(candidateId)).filter(Boolean))];
@@ -822,6 +835,7 @@ Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|tw
       name: requiredByKey.get(key),
       observed,
       structuralState,
+      wardrobeState,
       candidateIds,
     };
   }).filter((observation) => observation.name);
@@ -829,6 +843,7 @@ Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|tw
     && normalizedObservations.every((observation) => (
       validObservedStates.has(observation.observed)
       && validStructuralStates.has(observation.structuralState)
+      && validWardrobeStates.has(observation.wardrobeState)
       && (observation.observed === "one" ? observation.candidateIds.length === 1 : true)
       && (observation.observed === "two_or_more" ? observation.candidateIds.length >= 2 : true)
     ));
@@ -853,6 +868,10 @@ Return only JSON: {"cast":[{"name":"exact required name","observed":"zero|one|tw
         if (!candidateOwners.has(candidateId)) candidateOwners.set(candidateId, []);
         candidateOwners.get(candidateId).push(observation.name);
       }
+    }
+    if (observation.wardrobeState === "conflicts") {
+      issues.push(`Required wardrobe state conflicts. ${observation.name} wears a categorically different outfit after high-detail verification.`);
+      issueCodes.push("wardrobe_state_mismatch");
     }
   }
   for (const [candidateId, owners] of candidateOwners) {

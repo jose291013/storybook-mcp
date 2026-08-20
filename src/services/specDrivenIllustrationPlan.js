@@ -9,11 +9,12 @@ import {
   wholeBookVisualRhythmIssues,
 } from "./visualCompositionPlan.js";
 
-// Version 14 recompiles every V3 storyboard through the universal invariant
-// engine. This deliberately invalidates a pre-engine checkpoint while keeping
-// its approved immutable NarrativeBookSpec.v3 untouched.
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 14;
-export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
+// Version 15 projects the released cast partition and wardrobe states as
+// first-class ids. SceneRenderContract.v1 resolves them once into concrete
+// render instructions; they must never be reconstructed from prose or a
+// legacy blueprint later in the image path.
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 15;
+export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v3_scene_render_contract_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
 function byId(entries = []) {
@@ -94,6 +95,9 @@ function visualBeatCore(contract = {}) {
       context: String(contract.planned_image_context || ""),
       main_action: structuredClone(contract.main_action || {}),
       named_characters: structuredClone(contract.named_characters || []),
+      visible_character_ids: structuredClone(contract.visible_character_ids || []),
+      forbidden_character_ids: structuredClone(contract.forbidden_character_ids || []),
+      wardrobe_states: structuredClone(contract.wardrobe_states || []),
       required_elements: structuredClone(contract.required_elements || []),
       object_states: structuredClone(contract.object_states || []),
       visual_entity_states: structuredClone(contract.visual_entity_states || []),
@@ -152,6 +156,7 @@ export function compileSpecDrivenIllustrationPlan({
     const namedCharacters = scene.presences
       .filter((presence) => visible.has(presence.characterId))
       .map((presence) => ({
+        character_id: presence.characterId,
         name: nameFor(characters, presence.characterId),
         visual_role: presence.characterId === illustration.mainAction.subjectCharacterId
           ? "main actor"
@@ -186,6 +191,19 @@ export function compileSpecDrivenIllustrationPlan({
       contract_source: SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE,
       storyboard_first_version: STORYBOARD_FIRST_CONTRACT_VERSION,
       artifact_digest: spec.validation.artifactDigest,
+      universe_id: spec.book.universeId,
+      character_registry: spec.registries.characters.map((character) => ({
+        character_id: character.id,
+        name: nameFor(characters, character.id),
+        kind: character.kind,
+      })),
+      visible_character_ids: [...illustration.visibleCharacterIds],
+      forbidden_character_ids: [...illustration.forbiddenCharacterIds],
+      wardrobe_states: illustration.wardrobeStates.map((state) => ({
+        character_id: state.characterId,
+        outfit_state_id: state.outfitStateId,
+        equipment_state_ids: [...(state.equipmentStateIds || [])],
+      })),
       spread_number: Number(imagePage?.spread_number || scene.sceneNumber),
       scene_number: scene.sceneNumber,
       text_page_number: Number(textPage?.page_number || scene.pageBinding.textPageNumber),
@@ -204,11 +222,6 @@ export function compileSpecDrivenIllustrationPlan({
         ...illustration.requiredElements.map((description) => ({
           description,
           quantity: "",
-          scale: "",
-        })),
-        ...illustration.wardrobeStates.map((state) => ({
-          description: `${nameFor(characters, state.characterId)} wears outfit state ${state.outfitStateId}${state.equipmentStateIds?.length ? ` with equipment ${state.equipmentStateIds.join(", ")}` : ""}.`,
-          quantity: "1",
           scale: "",
         })),
       ],
