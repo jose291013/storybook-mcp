@@ -2,6 +2,7 @@ import { loadCreationIntent } from "./creationIntent.js";
 import { canonicalDigest, loadStoryConcept } from "./narrativeV3Canonical.js";
 import { assertNarrativeV3Schema, NarrativeV3ContractError } from "./narrativeV3SchemaRegistry.js";
 import { loadVisualIntentV1 } from "./visualIntentV1.js";
+import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
 
 export const CHARACTER_STATE_TIMELINE_VERSION = 1;
 export const CHARACTER_STATE_TIMELINE_ID = "calitiki.character-state-timeline.v1";
@@ -33,12 +34,16 @@ function event(sceneNumber, characterId, kind, fromStateId, toStateId, cause, or
   return { eventId: `state_${String(sceneNumber).padStart(2, "0")}_${suffix}`, characterId, kind, fromStateId, toStateId, cause };
 }
 
-export function buildCharacterStateTimelineV1({ creationIntent: rawIntent, visualIntent: rawVisual, concept: rawConcept } = {}) {
+export function buildCharacterStateTimelineV1({ creationIntent: rawIntent, visualIntent: rawVisual, concept: rawConcept, worldLaw: rawWorldLaw } = {}) {
   const intent = loadCreationIntent(rawIntent);
   const visual = loadVisualIntentV1(rawVisual);
   const concept = loadStoryConcept(rawConcept);
+  const worldLaw = loadWorldLawContractV1(rawWorldLaw);
   if (visual.sourceCreationIntent.artifactDigest !== intent.validation.artifactDigest) {
     fail("character_timeline_visual_source_mismatch", "/sources", "Visual intent does not belong to this creation intent.");
+  }
+  if (worldLaw.sourceCreationIntent.artifactDigest !== intent.validation.artifactDigest || worldLaw.universeId !== intent.book.universeId) {
+    fail("character_timeline_world_law_source_mismatch", "/sources", "World law does not belong to this creation intent and universe.");
   }
   const crossingIndex = concept.beats.findIndex((beat) => beat.purpose === "crossing");
   const returnIndex = concept.beats.findIndex((beat) => beat.purpose === "return");
@@ -48,6 +53,9 @@ export function buildCharacterStateTimelineV1({ creationIntent: rawIntent, visua
   const travelerKeys = new Set(crossingIndex < 0 ? [] : concept.beats[crossingIndex].participantKeys);
   const visualByKey = new Map(visual.characters.map((entry) => [entry.characterKey, entry]));
   const heroKey = intent.cast.find((entry) => entry.role === "hero")?.characterKey;
+  const adventureZone = worldLaw.zones.find((entry) => entry.kind === "adventure");
+  const requiredMechanisms = worldLaw.survivalMechanisms.filter((entry) => adventureZone.requiredSurvivalMechanismIds.includes(entry.mechanismId));
+  const activeEquipmentStateIds = requiredMechanisms.map((entry) => entry.activeStateId);
 
   const characters = intent.cast.map((entry) => {
     const visualEntry = visualByKey.get(entry.characterKey);
@@ -57,8 +65,8 @@ export function buildCharacterStateTimelineV1({ creationIntent: rawIntent, visua
     const initialOutfit = entry.kind === "human" && adventureResident
       ? visualEntry.adventureOutfit.stateId
       : visualEntry.ordinaryOutfit.stateId;
-    const initialEquipment = intent.book.universeId === "coral_ocean" && adventureResident
-      ? ["breathing_voice_bubble_worn"]
+    const initialEquipment = adventureResident
+      ? [...activeEquipmentStateIds]
       : [];
     return {
       characterId: `character_${entry.characterKey}`,
@@ -78,14 +86,18 @@ export function buildCharacterStateTimelineV1({ creationIntent: rawIntent, visua
         events.push(event(sceneNumber, character.characterId, "don_outfit", state.outfitStateId, character.adventureOutfitId, "story_preparation", ordinal++));
         state.outfitStateId = character.adventureOutfitId;
       }
-      if (index === crossingIndex && travelerKeys.has(character.characterKey) && intent.book.universeId === "coral_ocean" && !state.equipmentStateIds.includes("breathing_voice_bubble_worn")) {
-        events.push(event(sceneNumber, character.characterId, "equip", "equipment_absent", "breathing_voice_bubble_worn", "medium_entry", ordinal++));
-        state.equipmentStateIds = ["breathing_voice_bubble_worn"];
+      if (index === crossingIndex && travelerKeys.has(character.characterKey)) {
+        for (const mechanism of requiredMechanisms) {
+          if (state.equipmentStateIds.includes(mechanism.activeStateId)) continue;
+          events.push(event(sceneNumber, character.characterId, "equip", mechanism.inactiveStateId, mechanism.activeStateId, "medium_entry", ordinal++));
+          state.equipmentStateIds.push(mechanism.activeStateId);
+        }
       }
       if (index === returnIndex && travelerKeys.has(character.characterKey)) {
-        if (state.equipmentStateIds.includes("breathing_voice_bubble_worn")) {
-          events.push(event(sceneNumber, character.characterId, "unequip", "breathing_voice_bubble_worn", "equipment_absent", "medium_exit", ordinal++));
-          state.equipmentStateIds = [];
+        for (const mechanism of requiredMechanisms) {
+          if (!state.equipmentStateIds.includes(mechanism.activeStateId)) continue;
+          events.push(event(sceneNumber, character.characterId, "unequip", mechanism.activeStateId, mechanism.inactiveStateId, "medium_exit", ordinal++));
+          state.equipmentStateIds = state.equipmentStateIds.filter((entry) => entry !== mechanism.activeStateId);
         }
         const ordinary = visualByKey.get(character.characterKey).ordinaryOutfit.stateId;
         if (state.outfitStateId !== ordinary) {
@@ -111,6 +123,7 @@ export function buildCharacterStateTimelineV1({ creationIntent: rawIntent, visua
       creationIntentDigest: intent.validation.artifactDigest,
       visualIntentDigest: visual.validation.artifactDigest,
       storyConceptDigest: concept.validation.artifactDigest,
+      worldLawDigest: worldLaw.validation.artifactDigest,
     },
     characters: characters.map(({ characterId, characterKey, initialState }) => ({ characterId, characterKey, initialState })),
     scenes,

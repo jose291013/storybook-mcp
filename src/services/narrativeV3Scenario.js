@@ -2,6 +2,7 @@ import { narrativeV3ConceptAgent } from "../agents/narrativeV3Concept.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { buildCanonicalStoryMechanics } from "../contracts/buildCanonicalStoryMechanics.js";
 import { buildCharacterStateTimelineV1 } from "../contracts/characterStateTimelineV1.js";
+import { buildWorldLawContractV1 } from "../contracts/worldLawContractV1.js";
 import {
   canonicalDigest,
   compileCanonicalStoryGraph,
@@ -249,6 +250,7 @@ export async function generateNarrativeV3Scenario({
   let concept;
   let mechanics;
   let characterStateTimeline;
+  const worldLaw = buildWorldLawContractV1(source.intent);
   let validationFeedback = null;
   for (let attempt = 1; attempt <= MAX_SEMANTIC_ATTEMPTS; attempt += 1) {
     const checkpointKey = attempt === 1 ? "v3:story-concept" : "v3:story-concept-correction";
@@ -263,8 +265,8 @@ export async function generateNarrativeV3Scenario({
     });
     try {
       concept = parseStoryConceptWire(wire);
-      characterStateTimeline = buildCharacterStateTimelineV1({ creationIntent: source.intent, visualIntent: source.visualIntent, concept });
-      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent, characterStateTimeline });
+      characterStateTimeline = buildCharacterStateTimelineV1({ creationIntent: source.intent, visualIntent: source.visualIntent, concept, worldLaw });
+      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent, characterStateTimeline, worldLaw });
       break;
     } catch (error) {
       if (attempt >= MAX_SEMANTIC_ATTEMPTS) throw error;
@@ -297,13 +299,17 @@ export async function generateNarrativeV3Scenario({
     projectId: project.id, artifactType: "visual_intent", payload: source.visualIntent,
     parents: [artifactRef(intentArtifact)], artifactStore, operationId: "seal_visual_intent", runId,
   });
+  const worldLawArtifact = await persistArtifact({
+    projectId: project.id, artifactType: "world_law_contract", payload: worldLaw,
+    parents: [artifactRef(intentArtifact)], artifactStore, operationId: "compile_world_law_contract", runId,
+  });
   const conceptArtifact = await persistArtifact({
     projectId: project.id, artifactType: "story_concept", payload: concept,
     parents: [artifactRef(intentArtifact)], artifactStore, operationId: "parse_story_concept", runId,
   });
   const characterStateArtifact = await persistArtifact({
     projectId: project.id, artifactType: "character_state_timeline", payload: characterStateTimeline,
-    parents: [artifactRef(visualIntentArtifact), artifactRef(conceptArtifact)], artifactStore,
+    parents: [artifactRef(visualIntentArtifact), artifactRef(conceptArtifact), artifactRef(worldLawArtifact)], artifactStore,
     operationId: "compile_character_state_timeline", runId,
   });
   const graphArtifact = await persistArtifact({
@@ -337,6 +343,8 @@ export async function generateNarrativeV3Scenario({
       visualIntentArtifactId: visualIntentArtifact.id,
       characterStateTimeline,
       characterStateTimelineArtifactId: characterStateArtifact.id,
+      worldLaw,
+      worldLawArtifactId: worldLawArtifact.id,
     },
   };
 }
