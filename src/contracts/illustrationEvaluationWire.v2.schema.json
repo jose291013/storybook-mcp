@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/illustration-evaluation-wire.v2.json",
+  "title": "Calitiki Strict Illustration Evaluation Wire V2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "contract_id", "source_storyboard_digest", "source_candidate_set_digest", "decisions"],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "contract_id": { "const": "calitiki.illustration-evaluation-wire.v2" },
+    "source_storyboard_digest": { "$ref": "#/$defs/digest" },
+    "source_candidate_set_digest": { "$ref": "#/$defs/digest" },
+    "decisions": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/decision" } }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidence_code"],
+      "properties": {
+        "status": { "enum": ["pass", "fail", "uncertain"] },
+        "evidence_code": {
+          "enum": [
+            "verified", "corrupted_asset", "missing_required_character",
+            "duplicated_required_identity", "forbidden_character_present",
+            "wardrobe_state_mismatch", "equipment_state_mismatch",
+            "wrong_physical_medium", "wrong_location_or_boundary",
+            "main_action_mismatch", "object_state_mismatch",
+            "landmark_cardinality_mismatch", "style_continuity_mismatch",
+            "insufficient_evidence"
+          ]
+        }
+      }
+    },
+    "domains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_integrity", "identity_cardinality", "forbidden_cast",
+        "wardrobe", "equipment", "physical_medium", "location_boundary",
+        "main_action", "object_cardinality", "landmarks", "style_continuity"
+      ],
+      "properties": {
+        "asset_integrity": { "$ref": "#/$defs/assessment" },
+        "identity_cardinality": { "$ref": "#/$defs/assessment" },
+        "forbidden_cast": { "$ref": "#/$defs/assessment" },
+        "wardrobe": { "$ref": "#/$defs/assessment" },
+        "equipment": { "$ref": "#/$defs/assessment" },
+        "physical_medium": { "$ref": "#/$defs/assessment" },
+        "location_boundary": { "$ref": "#/$defs/assessment" },
+        "main_action": { "$ref": "#/$defs/assessment" },
+        "object_cardinality": { "$ref": "#/$defs/assessment" },
+        "landmarks": { "$ref": "#/$defs/assessment" },
+        "style_continuity": { "$ref": "#/$defs/assessment" }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scene_number", "candidate_digest", "domains"],
+      "properties": {
+        "scene_number": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "candidate_digest": { "$ref": "#/$defs/digest" },
+        "domains": { "$ref": "#/$defs/domains" }
+      }
+    }
+  }
+}

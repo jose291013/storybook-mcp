@@ -108,9 +108,9 @@ test("an existing pre-ledger production database baselines 001-025 and applies r
   const database = new FakeMigrationPool(client);
   const first = await runDatabaseMigrations({ database });
 
-  assert.deepEqual(first.applied, ["026_narrative_v3_visual_continuity_plan.sql", "027_narrative_v3_visual_intent.sql", "028_narrative_v3_character_state_timeline.sql", "029_narrative_v3_world_law_contract.sql", "030_narrative_v3_manuscript_fact_evidence.sql"]);
-  assert.equal(client.applied.size, 30);
-  assert.equal(client.executedMigrationSql.length, 5);
+  assert.deepEqual(first.applied, ["026_narrative_v3_visual_continuity_plan.sql", "027_narrative_v3_visual_intent.sql", "028_narrative_v3_character_state_timeline.sql", "029_narrative_v3_world_law_contract.sql", "030_narrative_v3_manuscript_fact_evidence.sql", "031_narrative_v3_strict_illustration_evidence.sql"]);
+  assert.equal(client.applied.size, 31);
+  assert.equal(client.executedMigrationSql.length, 6);
   assert.match(client.executedMigrationSql[0], /visual_continuity_plan/);
   assert.doesNotMatch(client.executedMigrationSql[0], /CHECK \(artifact_type IN \('creation_intent','story_concept','canonical_story_graph'\)\)/);
 
@@ -129,10 +129,10 @@ test("a genuinely fresh database applies every migration exactly once", async ()
     hasNarrativeSteps: false,
   });
   const result = await runDatabaseMigrations({ database: new FakeMigrationPool(client) });
-  assert.equal(result.applied.length, 30);
+  assert.equal(result.applied.length, 31);
   assert.equal(result.applied[0], "001_product_foundation.sql");
-  assert.equal(result.applied.at(-1), "030_narrative_v3_manuscript_fact_evidence.sql");
-  assert.equal(client.applied.size, 30);
+  assert.equal(result.applied.at(-1), "031_narrative_v3_strict_illustration_evidence.sql");
+  assert.equal(client.applied.size, 31);
 });
 
 test("an applied migration whose SQL changed fails closed before any pending migration", async () => {

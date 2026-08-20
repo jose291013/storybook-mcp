@@ -43,6 +43,7 @@ export function inferLegacyMigrationBaseline({
 
   const constraint = String(artifactTypeConstraint || "");
   const typeMilestones = [
+    ["illustration_decision_set_v2", 31],
     ["manuscript_fact_evidence", 30],
     ["world_law_contract", 29],
     ["character_state_timeline", 28],
