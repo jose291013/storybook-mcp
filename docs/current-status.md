@@ -9,8 +9,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Main checkpoint: `04dcc64` (PR #246)
-- Current focused checkpoint: verify the production rendering authority on two new 32-page V3 books after Render is Live
+- Main checkpoint: `5a2ea9e` (PR #248)
+- Current focused checkpoint: verify the bounded strict-domain candidate search on a new V3 book after Render is Live
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -21,7 +21,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #246 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #248 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -50,8 +50,17 @@ a page-review request for uncertain machine evidence. Verify localized scenario
 locations, exact cast cardinality, active outfits, persistent-object counts and
 the physical medium on every illustrated spread.
 
-Repository verification for this branch: 710/710 tests pass, including the
-real production-worker sealing test and the complete V3 counterexample matrix.
+PR #248 replaces the legacy first-defect repair shortcut with a
+bounded strict-domain candidate search. Several failures or any uncertainty
+must use the remaining second full generation; only one confirmed local domain
+may enter the final targeted edit. If that edit fails, the page remains an
+internal `strict_quarantined` checkpoint and the customer is not asked to
+diagnose it. Recovery reuses every accepted page and resumes only the affected
+one. There is no migration or new environment variable.
+
+Repository verification for this branch: 713/713 tests pass, including the
+bounded strict-domain retry strategy, real production-worker sealing test and
+the complete V3 counterexample matrix.
 
 ## Current architecture decision: Narrative V3
 
