@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-bounded-candidate-search`
-- Main checkpoint: `e7893ae` (PR #247)
-- Current focused checkpoint: merge and verify the bounded strict-domain candidate search on the failed V3 page-28 pattern
+- Current branch: `main`
+- Main checkpoint: `5a2ea9e` (PR #248)
+- Current focused checkpoint: verify the bounded strict-domain candidate search on a new V3 book after Render is Live
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -21,7 +21,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #247 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #248 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -50,7 +50,7 @@ a page-review request for uncertain machine evidence. Verify localized scenario
 locations, exact cast cardinality, active outfits, persistent-object counts and
 the physical medium on every illustrated spread.
 
-The active branch replaces the legacy first-defect repair shortcut with a
+PR #248 replaces the legacy first-defect repair shortcut with a
 bounded strict-domain candidate search. Several failures or any uncertainty
 must use the remaining second full generation; only one confirmed local domain
 may enter the final targeted edit. If that edit fails, the page remains an
