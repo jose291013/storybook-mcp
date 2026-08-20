@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-delivery-gate-v2`
-- Main checkpoint before this brick: `a192899` (PR #243)
-- Current focused checkpoint: strict V3 delivery authority and complete shadow gate
+- Current branch: `main` (checkpoint recorded from `codex/v3-delivery-checkpoint`)
+- Main checkpoint: `d79a8f6` (PR #244)
+- Current focused checkpoint: production observation of the completed strict V3 artifact chain
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -20,7 +20,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 The Render migration replay incident is closed by the append-only migration
 ledger. This brick adds only append-only migration 027.
 
-PR #55 through #232 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #244 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -31,6 +31,12 @@ side-by-side V3 implementation now establishes strict incompatible model-wire,
 canonical concept, server-mechanics and canonical graph contracts without
 connecting them to a production route. Further V2 repair bricks remain frozen
 except for security, privacy, commerce and data-loss defects.
+
+PR #243 adds fail-closed eleven-domain illustration evidence. PR #244 adds the
+five-parent strict delivery manifest and moves the complete V3 shadow matrix to
+the V2 evidence/delivery boundary. Deployment and one new production V3 book
+remain the next observations; no synthetic result is treated as proof of model
+accuracy.
 
 ## Current architecture decision: Narrative V3
 
