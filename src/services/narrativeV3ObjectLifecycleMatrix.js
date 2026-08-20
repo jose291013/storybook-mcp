@@ -12,6 +12,7 @@ import {
 } from "../contracts/objectLifecycleProjection.js";
 import { compileNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js";
 import { parseManuscriptWire } from "../contracts/manuscriptV1.js";
+import { compileManuscriptFactEvidence } from "../contracts/manuscriptFactEvidenceV1.js";
 import { compileVisualStoryboard } from "../contracts/visualStoryboardV1.js";
 import { compileVisualContinuityPlan } from "../contracts/visualContinuityPlanV1.js";
 import {
@@ -42,6 +43,7 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     compile_object_lifecycle: "object_lifecycle_projection",
     release_narrative_book_spec_v3: "narrative_book_spec_v3",
     write_manuscript: "manuscript",
+    compile_manuscript_fact_evidence: "manuscript_fact_evidence",
     compile_visual_storyboard: "visual_storyboard",
     compile_visual_continuity_plan: "visual_continuity_plan",
     record_image_candidates: "image_candidate_set",
@@ -302,13 +304,22 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [releaseArtifact],
     payload: manuscript,
   });
-  const storyboard = compileVisualStoryboard({ spec: releaseSpec, manuscript });
+  const manuscriptFactEvidence = compileManuscriptFactEvidence({ spec: releaseSpec, manuscript });
+  const manuscriptFactArtifact = await commit({
+    machine, runStore, artifactStore, projectId,
+    runKey: `${fixture.fixture.fixtureId}-manuscript-fact-evidence-v1`,
+    stepKey: "compile-object-manuscript-fact-evidence-v1",
+    stepType: "compile_manuscript_fact_evidence",
+    inputs: [releaseArtifact, manuscriptArtifact],
+    payload: manuscriptFactEvidence,
+  });
+  const storyboard = compileVisualStoryboard({ spec: releaseSpec, manuscript, factEvidence: manuscriptFactEvidence });
   const storyboardArtifact = await commit({
     machine, runStore, artifactStore, projectId,
     runKey: `${fixture.fixture.fixtureId}-visual-storyboard-v1`,
     stepKey: "compile-object-visual-storyboard-v1",
     stepType: "compile_visual_storyboard",
-    inputs: [releaseArtifact, manuscriptArtifact],
+    inputs: [releaseArtifact, manuscriptArtifact, manuscriptFactArtifact],
     payload: storyboard,
   });
   const continuityPlan = compileVisualContinuityPlan({ spec: releaseSpec, storyboard });
@@ -386,6 +397,7 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       objectLifecycleProjection: projectionArtifact.payloadDigest,
       narrativeBookSpecV3: releaseArtifact.payloadDigest,
       manuscript: manuscriptArtifact.payloadDigest,
+      manuscriptFactEvidence: manuscriptFactArtifact.payloadDigest,
       visualStoryboard: storyboardArtifact.payloadDigest,
       visualContinuityPlan: continuityArtifact.payloadDigest,
       imageCandidateSet: candidateArtifact.payloadDigest,

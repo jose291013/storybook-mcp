@@ -16,7 +16,8 @@
       "required": ["narrativeBookSpec", "manuscript"],
       "properties": {
         "narrativeBookSpec": { "$ref": "#/$defs/specSource" },
-        "manuscript": { "$ref": "#/$defs/manuscriptSource" }
+        "manuscript": { "$ref": "#/$defs/manuscriptSource" },
+        "manuscriptFactEvidence": { "$ref": "#/$defs/manuscriptFactEvidenceSource" }
       }
     },
     "book": {
@@ -64,6 +65,16 @@
       "required": ["contractId", "schemaVersion", "artifactDigest"],
       "properties": {
         "contractId": { "const": "calitiki.manuscript.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "manuscriptFactEvidenceSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.manuscript-fact-evidence.v1" },
         "schemaVersion": { "const": 1 },
         "artifactDigest": { "$ref": "#/$defs/digest" }
       }

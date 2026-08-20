@@ -17,6 +17,7 @@ const STEP_TYPES = Object.freeze({
   release_narrative_book_spec: "narrative_book_spec",
   release_narrative_book_spec_v3: "narrative_book_spec_v3",
   write_manuscript: "manuscript",
+  compile_manuscript_fact_evidence: "manuscript_fact_evidence",
   compile_visual_storyboard: "visual_storyboard",
   compile_visual_continuity_plan: "visual_continuity_plan",
   record_image_candidates: "image_candidate_set",
@@ -30,11 +31,18 @@ const STEP_INPUT_TYPES = Object.freeze({
   release_narrative_book_spec: Object.freeze(["creation_intent", "canonical_story_graph"]),
   release_narrative_book_spec_v3: Object.freeze(["creation_intent", "canonical_story_graph", "object_lifecycle_projection"]),
   write_manuscript: Object.freeze(["narrative_book_spec_v3"]),
-  compile_visual_storyboard: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+  compile_manuscript_fact_evidence: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+  compile_visual_storyboard: Object.freeze(["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence"]),
   compile_visual_continuity_plan: Object.freeze(["narrative_book_spec_v3", "visual_storyboard"]),
   record_image_candidates: Object.freeze(["visual_storyboard", "visual_continuity_plan"]),
   decide_illustrations: Object.freeze(["visual_storyboard", "image_candidate_set"]),
   assemble_delivery_manifest: Object.freeze(["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"]),
+});
+const STEP_INPUT_TYPE_VARIANTS = Object.freeze({
+  compile_visual_storyboard: Object.freeze([
+    Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+    Object.freeze(["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence"]),
+  ]),
 });
 
 function now() {
@@ -86,8 +94,8 @@ function normalizeRun(input = {}) {
     const stepType = String(step?.stepType || "");
     if (!STEP_TYPES[stepType]) throw new NarrativeV3StateError("step_type_unsupported", "The step type has no strict artifact output.");
     const inputs = normalizeInputs(step.inputs);
-    const expectedInputs = STEP_INPUT_TYPES[stepType];
-    if (inputs.length !== expectedInputs.length || inputs.some((entry, inputIndex) => entry.artifactType !== expectedInputs[inputIndex])) {
+    const expectedInputVariants = STEP_INPUT_TYPE_VARIANTS[stepType] || [STEP_INPUT_TYPES[stepType]];
+    if (!expectedInputVariants.some((expectedInputs) => inputs.length === expectedInputs.length && inputs.every((entry, inputIndex) => entry.artifactType === expectedInputs[inputIndex]))) {
       throw new NarrativeV3StateError("invalid_step_inputs", "The step does not have its exact ordered artifact inputs.");
     }
     const stepId = String(step.id || crypto.randomUUID());

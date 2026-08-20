@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/world-law-contract-v1`
-- Main checkpoint before this brick: `570e527` (PR #240)
-- Current focused checkpoint: data-driven universe laws and physical media
+- Current branch: `codex/manuscript-fact-evidence-v1`
+- Main checkpoint before this brick: `938f885` (PR #241)
+- Current focused checkpoint: deterministic manuscript facts before storyboard compilation
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -138,6 +138,24 @@ artifact behind the exact CreationIntent parent. Migration 029 only expands the
 isolated V3 artifact/pointer constraints; previously persisted artifacts remain
 readable.
 Verification: the complete repository suite passes 692/692 tests.
+
+## Product brick: ManuscriptFactEvidence.v1
+
+Every new V3 manuscript now receives a separate immutable page-by-page fact
+artifact before visual storyboard compilation. It binds the exact prose digest
+to its released scene and deterministically classifies registered named
+character, location and object mentions. A physical name must be present in the
+scene, a nonphysical character mention must have an explicit evoked presence,
+a place must belong to the current transition, and an object must exist or
+participate in an explicit event.
+
+The same evidence projects the illustration's exact required and forbidden
+cast, wardrobe/equipment states, physical medium, object visibility and main
+action. New storyboard artifacts take this passing evidence as their third
+immutable parent; previously persisted two-parent storyboards remain readable.
+Migration 030 only expands isolated V3 artifact and durable-step constraints.
+No customer project, credit, series canon or legacy V2 artifact is rewritten.
+Verification: the complete repository suite passes 697/697 tests.
 
 ## Product brick: SceneRenderContract.v1
 

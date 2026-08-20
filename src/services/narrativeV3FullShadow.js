@@ -7,7 +7,7 @@ import {
 
 export const NARRATIVE_V3_FULL_SHADOW_VERSION = 1;
 export const NARRATIVE_V3_FULL_SHADOW_EXPECTED_FIXTURES = 108;
-export const NARRATIVE_V3_FULL_SHADOW_ARTIFACTS_PER_FIXTURE = 11;
+export const NARRATIVE_V3_FULL_SHADOW_ARTIFACTS_PER_FIXTURE = 12;
 
 export function narrativeV3FullShadowMatrix() {
   return NARRATIVE_V3_SYNTHETIC_LANGUAGES.flatMap((language) => (
