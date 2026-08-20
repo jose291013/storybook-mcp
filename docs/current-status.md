@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/visual-invariant-engine`
-- Main checkpoint before this brick: `9e908aa` (PR #236)
-- Current focused checkpoint: universal V3 invariant composition and anonymized counterexample memory
+- Current branch: `codex/scene-render-contract-v1`
+- Main checkpoint before this brick: `eb03227` (PR #237)
+- Current focused checkpoint: exhaustive V3 invariant audit and single scene-render authority
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -96,6 +96,25 @@ topology, cast cardinality, wardrobe/equipment, object lifecycle and visual
 composition so later invariant domains extend the same evidence format rather
 than adding another repair loop. The repository verification checkpoint is
 680/680 passing tests, including the full V3 language/universe/format matrices.
+
+## Product brick in progress: SceneRenderContract.v1
+
+The audit `docs/narrative-v3-universal-invariants-audit.md` inventories every
+required invariant and pipeline gate. Illustration plan version 15 preserves
+the exact released universe, cast partition and wardrobe/equipment ids.
+`SceneRenderContract.v1` resolves these once into concrete instructions and is
+shared by the image prompt and evidence controller. Legacy wardrobe fields can
+no longer override an active V3 universe state, and every V3 interior page
+requests focused high-detail cast and wardrobe verification.
+
+This branch does not mutate approved specs, customer data, commerce, credits or
+series canon and adds no database migration or environment variable. The next
+architectural phase after this brick is `VisualIntent.v1`, because the current
+CreationIntent does not yet seal each customer's wardrobe choice.
+
+Verification: the complete repository suite passes 686/686 tests. The isolated
+V3 full-shadow gate passes all 108 language/universe/format combinations, with
+zero provider calls, zero paid calls, no customer route and idempotent replay.
 
 ## Product brick: persistent visual entity ledger
 

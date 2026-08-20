@@ -1545,6 +1545,7 @@ router.post("/preview", async (req, res) => {
               model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
               retryRepairableFindings: economicDecision.optionalVisualRetry,
               targetedRepairAvailable: true,
+              verifyExactCast: Boolean(sceneContinuity.sceneFidelityContract?.scene_render_contract),
             });
           } catch (error) {
             if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;

@@ -1,6 +1,7 @@
 import path from "path";
 import { buildImageCharacterAliases, compactImageSceneContract, neutralizeImageText } from "./imageVisualContract.js";
 import { wardrobeForPhysicalSnapshot } from "./physicalRenderSnapshot.js";
+import { compileSceneRenderContractV1 } from "../contracts/sceneRenderContractV1.js";
 
 const UPLOAD_DIR = path.resolve("data/uploads");
 
@@ -77,6 +78,38 @@ export function buildSceneContinuity({
   const characterFingerprints = [];
   const wardrobeContracts = [];
   const identityReferenceImages = [];
+  const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
+  const ordinaryOutfits = new Map();
+  for (const character of selected) {
+    const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
+    const photoCanon = findPhotoCanon(characterCanons, character.name, role);
+    const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
+    const identityOrdinaryOutfit = role === "child"
+      ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
+      : (character.outfit_lock || photoCanon?.outfit_lock || "");
+    const ordinaryOutfit = strictRenderInputs
+      ? identityOrdinaryOutfit
+      : (sceneWardrobe || identityOrdinaryOutfit);
+    ordinaryOutfits.set(
+      character.name,
+      ordinaryOutfit || "the exact generic, unbranded clothing visible in the private identity reference",
+    );
+  }
+  const sceneRenderContract = strictRenderInputs
+    ? compileSceneRenderContractV1({ sceneContract: structuredSceneContract, aliases: visualAliases, ordinaryOutfits })
+    : null;
+  if (sceneRenderContract) {
+    const expectedNames = structuredSceneContract.named_characters?.map((entry) => entry.name) || [];
+    const selectedNames = selected.map((entry) => entry.name);
+    if (
+      expectedNames.length !== selectedNames.length
+      || expectedNames.some((name) => !selectedNames.some((selectedName) => sameCharacter(name, selectedName)))
+    ) {
+      const error = new Error("The legacy page cast does not match the immutable V3 scene cast.");
+      error.code = "scene_render_selected_cast_mismatch";
+      throw error;
+    }
+  }
 
   for (const character of selected) {
     const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
@@ -86,13 +119,14 @@ export function buildSceneContinuity({
     const rawOutfit = sceneWardrobe || (role === "child"
       ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
       : (character.outfit_lock || photoCanon?.outfit_lock || ""));
-    const outfit = wardrobeForPhysicalSnapshot(
+    const visualAlias = aliasFor(character.name);
+    const visualIdentity = identityFor(character.name);
+    const strictCharacterState = sceneRenderContract?.cast.required.find((entry) => entry.name === visualAlias);
+    const outfit = strictCharacterState?.outfit?.description || wardrobeForPhysicalSnapshot(
       rawOutfit,
       character.name,
       structuredSceneContract?.render_snapshot,
     );
-    const visualAlias = aliasFor(character.name);
-    const visualIdentity = identityFor(character.name);
     const rules = [
       `[${role.toUpperCase()} ${visualAlias}]`,
       visualIdentity?.entity_type === "animal"
@@ -141,7 +175,9 @@ export function buildSceneContinuity({
   // outvote the book's approved visual language or the current scene contract.
   const referenceImages = [continuityReference, ...adjacentReferenceImages, ...identityReferenceImages].filter(Boolean);
 
-  const castNames = selected.map((character) => aliasFor(character.name)).filter(Boolean);
+  const castNames = sceneRenderContract
+    ? sceneRenderContract.cast.required.map((character) => character.name)
+    : selected.map((character) => aliasFor(character.name)).filter(Boolean);
   const sceneRules = [];
   if (structuredSceneContract) {
     sceneRules.push(
@@ -154,6 +190,12 @@ export function buildSceneContinuity({
       "Use the paired reader text below as concrete visual evidence for this same scene, while rendering only the single visible phase declared by the render snapshot.",
       "Never turn an abstract plan, memory, feeling, metaphor or future possibility from the prose into a physical object unless required_elements or object_states explicitly makes it visible."
     );
+    if (sceneRenderContract) {
+      sceneRules.push(
+        "SCENE RENDER CONTRACT V1 IS THE SOLE VISUAL AUTHORITY. Never infer cast, wardrobe, equipment, location or object count from a photo, adjacent image, prose convention or generic universe styling when it conflicts with this JSON.",
+        `SCENE RENDER CONTRACT V1 JSON: ${JSON.stringify(sceneRenderContract)}`,
+      );
+    }
     if (pairedText) {
       sceneRules.push(`PAIRED READER TEXT EVIDENCE: ${safe(pairedText).slice(0, 1800)}`);
     }
@@ -208,6 +250,7 @@ export function buildSceneContinuity({
       ? {
           ...compactImageSceneContract(structuredSceneContract, visualAliases, { pairedText }),
           wardrobe_contracts: wardrobeContracts,
+          ...(sceneRenderContract ? { scene_render_contract: sceneRenderContract } : {}),
         }
       : null,
     visualAliases,

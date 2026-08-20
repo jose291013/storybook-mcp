@@ -84,6 +84,33 @@ approved immutable spec. The scenario and manuscript stay unchanged and no
 additional model or credit is consumed. Existing V2 projects retain their
 legacy plan path.
 
+## Narrative V3 single scene-render authority
+
+The structural audit is maintained in
+`docs/narrative-v3-universal-invariants-audit.md`. It defines the complete
+world, narrative, chronology, cast, wardrobe/equipment, object, scene, prose,
+visual, evidence, repair and operational invariant catalogue. The release goal
+is not a subjective promise that a generative model always produces the most
+beautiful image; it is the enforceable guarantee that a confirmed objective
+contradiction cannot enter delivery and that internal uncertainty does not
+become customer work.
+
+Spec-driven illustration plan version 15 now projects the exact V3 character
+registry, required/forbidden cast ids and structured wardrobe/equipment states.
+`SceneRenderContract.v1` resolves every active outfit into one concrete
+renderable description, validates the full cast partition and signs the exact
+physical/cast/wardrobe/object state supplied to both image generation and QA.
+The V3 adapter may no longer reconstruct an active adventure outfit from a
+photo or legacy blueprint. Every V3 interior page receives a focused
+high-detail identity-cardinality and categorical wardrobe check.
+
+This closes the competing-authority image boundary but intentionally does not
+rewrite an approved immutable book. Remaining V3 phases are a sealed
+`VisualIntent`, explicit character-state transition events, a fully typed
+`WorldLawContract`, manuscript fact evidence and strict non-fail-open
+illustration evidence. They are architecture phases, not book-specific repair
+policies.
+
 ## Monotonic PostgreSQL migration ledger
 
 Production migrations are append-only operations, not a desired-schema replay.

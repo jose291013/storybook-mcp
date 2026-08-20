@@ -130,8 +130,10 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
     assert.equal(visualPlan.sceneContracts.length, 15);
     assert.equal(visualPlan.sceneContracts[0].named_characters[0].name, "Lina");
     assert.ok(visualPlan.sceneContracts.every((contract) => contract.main_action.verb));
+    assert.ok(visualPlan.sceneContracts.every((contract) => contract.wardrobe_states.length > 0));
     assert.ok(visualPlan.sceneContracts.every((contract) => (
-      contract.required_elements.some((entry) => /outfit state/u.test(entry.description))
+      contract.visible_character_ids.length + contract.forbidden_character_ids.length
+      === contract.character_registry.length
     )));
     const approvedProject = {
       ...sourceProject,
