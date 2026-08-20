@@ -155,6 +155,30 @@ storyboard and strict-decision ancestry, and every physical page cites its exact
 fact evidence. Rejected and quarantined scenes cannot expose an asset or compile
 a deliverable book.
 
+The V3 production rendering authority now applies that same chain inside the
+real authenticated preview worker. Every interior candidate is checked at high
+detail against its immutable scene render contract and private identity,
+cover/style and adjacent-continuity references. All eleven domains must be
+explicitly verified; missing or ambiguous evidence remains private and is not
+turned into a vague customer review request. Legacy V2 projects retain their
+existing review workflow.
+
+An accepted production candidate retains its private storage key, content
+digest, MIME type, dimensions, byte length, provider model and versioned domain
+evidence in the durable generation ledger. Before credit capture or delivery,
+the worker recompiles the real page text into the immutable manuscript, fact
+evidence, visual storyboard and continuity plan, then records the exact image
+candidate set, strict decision set and five-parent `DeliveryManifest.v2`.
+Delivery fails closed on a missing page, uncertain domain or foreign ancestor.
+Previously generated V3 image pages without version-2 strict evidence are
+regenerated rather than silently reused.
+
+Creator-facing scenario locations and passages now use localized FR/ES/EN
+product wording instead of internal topology labels. The waiting screen states
+that Calitiki is checking characters, clothing, objects and physical laws. This
+adds no environment variable, migration, commerce rule or series-canon change.
+Repository verification for this integration checkpoint: 710/710 tests pass.
+
 The complete counterexample matrix now exercises this strict chain over all 108
 language, universe and format combinations. Its current passing gate digest is
 `080038fde2b50651b729d584ae79e04c0f00f2a108f71c9d9895af8e65a84fe9`,

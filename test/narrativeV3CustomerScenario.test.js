@@ -109,6 +109,16 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
     assert.equal(first.validation.valid, true);
     assert.equal(validateStoryScenario(first.scenario).valid, true);
     assert.equal(first.scenario.scenes.length, 15);
+    assert.ok(first.scenario.scenes.every((scene) => !/\bthe established\b|\bthe fully\b/iu.test(
+      `${scene.locationBefore || ""} ${scene.locationAfter || ""}`,
+    )));
+    assert.ok(
+      first.scenario.scenes.some((scene) => (
+        scene.locationBefore === "La vallée des dinosaures"
+        || scene.locationAfter === "La vallée des dinosaures"
+      )),
+      JSON.stringify(first.scenario.scenes.map((scene) => [scene.locationBefore, scene.locationAfter])),
+    );
     assert.equal(first.canonicalCandidateEvidence.version, 3);
     assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 8);
     assert.equal(first.narrativeV3Artifacts.visualIntent.characters[0].outfitPreference, "preserve_photo");

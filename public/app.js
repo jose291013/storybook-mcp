@@ -1339,7 +1339,7 @@ async function requestStoryScenario({ includeEdits = false, retry = false } = {}
     state.jobId = payload.jobId;
     const project = await pollStoryScenarioJob(payload.jobId);
     const scenario = project.continuitySnapshot?.storyScenario;
-    if (!scenario) throw new Error("Scenario result unavailable");
+    if (!scenario) throw new Error(tr("scenarioRevisionError"));
     elements.scenarioFeedback.value = "";
     state.storyScenarioRetryAvailable = false;
     state.storyScenarioAutomaticRepairFailure = null;
@@ -1356,7 +1356,9 @@ async function requestStoryScenario({ includeEdits = false, retry = false } = {}
     state.storyScenarioUpdateFailed = true;
     state.storyScenarioRejectedCandidateFailure = error?.rejectedCandidateFailure || null;
     renderRejectedCandidateFailure();
-    setScenarioStatus(error.message || tr("scenarioRevisionError"), "error");
+    setScenarioStatus(error instanceof TypeError
+      ? tr("scenarioRevisionError")
+      : error.message || tr("scenarioRevisionError"), "error");
   } finally {
     setStoryScenarioBusy(false);
   }
@@ -2777,6 +2779,7 @@ function friendlyStep(step = "") {
   if (step.includes("cover")) return tr("progressCover");
   if (step.includes("quality:repair:page")) return tr("progressQualityRepair");
   if (step.includes("draft:repair:page")) return tr("progressAutomaticQualityRepair");
+  if (step.includes("draft:v3-delivery-authority")) return tr("progressStrictV3Evidence");
   const match = step.match(/^(?:draft:)?page:(\d+)/);
   return match ? tr("pageOf", { page: match[1], total: state.pageCount }) : tr("progressPreparing");
 }

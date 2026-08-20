@@ -86,6 +86,7 @@ import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGove
 import { enqueueNarrativeV3ProductionShadow } from "../services/narrativeV3ProductionShadow.js";
 import { projectUsesNarrativeV3 } from "../services/narrativeEngineAssignment.js";
 import { buildInvariantCounterexampleReport } from "../services/universalInvariantEngine.js";
+import { sealNarrativeV3ProductionPreview } from "../services/narrativeV3ProductionRenderingAuthority.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -149,6 +150,8 @@ function createImageCandidateRecorder({
     warning = false,
     issueCodes = [],
     repairPolicy = null,
+    strictEvidence = null,
+    providerModel = "",
   }) => {
     const persisted = await persistPreviewAsset({ projectId, assetUrl: imageUrl });
     assetCache.set(imageUrl, persisted);
@@ -179,6 +182,15 @@ function createImageCandidateRecorder({
         })),
         repairPolicyVersion: repairPolicy?.version || null,
         automaticRepair: repairPolicy?.automaticRepair === true,
+        asset: {
+          sha256: persisted.sha256,
+          mimeType: persisted.mimeType,
+          width: persisted.width,
+          height: persisted.height,
+          byteLength: persisted.byteLength,
+        },
+        ...(strictEvidence ? { strictEvidence } : {}),
+        providerModel: String(providerModel || "gpt-image-2").slice(0, 128),
       },
     });
     await generationRunStore.updateStep(step.id, {
@@ -658,6 +670,7 @@ router.post("/preview", async (req, res) => {
       const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
       const { answers, photos } = normalized;
       const candidateAssetCache = new Map();
+      const strictV3Rendering = projectUsesNarrativeV3(project);
 
       const persistCheckpoint = async (patch, projectPatch = {}) => {
         const latest = await projectStore.get(job.projectId);
@@ -1433,7 +1446,12 @@ router.post("/preview", async (req, res) => {
         return;
       }
 
-      const draftPages = (priorResult.draftPages || []).filter(isReusableDraftPage);
+      const draftPages = (priorResult.draftPages || []).filter((page) => (
+        isReusableDraftPage(page)
+        && (!strictV3Rendering
+          || page.page_type !== "image"
+          || Number(page.strictEvidenceVersion || 0) === 2)
+      ));
       const completedPageNumbers = new Set(draftPages.map((page) => Number(page.page_number)));
       const estimatedInteriorImageUsdMicros = Math.round(
         generationCostPolicy().estimatedInteriorImageUsd * 1_000_000,
@@ -1483,7 +1501,7 @@ router.post("/preview", async (req, res) => {
         let imageUrl = "";
         let imageStorageKey = "";
         let localImageUrl = "";
-        let qualityStatus = "accepted";
+        let qualityStatus = strictV3Rendering ? "strict_accepted" : "accepted";
         let qualityIssues = [];
         let qualityIssueCodes = [];
         let qualityKind = "";
@@ -1546,6 +1564,7 @@ router.post("/preview", async (req, res) => {
               retryRepairableFindings: economicDecision.optionalVisualRetry,
               targetedRepairAvailable: true,
               verifyExactCast: Boolean(sceneContinuity.sceneFidelityContract?.scene_render_contract),
+              strictV3EvidenceRequired: strictV3Rendering,
             });
           } catch (error) {
             if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;
@@ -1604,6 +1623,7 @@ router.post("/preview", async (req, res) => {
             qualityRepairPolicy,
             adjacentVisualContinuityVersion: ADJACENT_VISUAL_CONTINUITY_VERSION,
             adjacentSourcePageNumbers: adjacentContinuityPageNumbers(adjacentReferenceImages),
+            ...(qualityStatus === "strict_accepted" ? { strictEvidenceVersion: 2 } : {}),
           } : {}),
         });
         draftPages.sort((left, right) => Number(left.page_number) - Number(right.page_number));
@@ -1690,6 +1710,7 @@ router.post("/preview", async (req, res) => {
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
             qualityReviewScope: repairPolicy.targetCodes,
             revisionInstruction: (pendingPage.qualityIssues || []).join("; "),
+            strictV3EvidenceRequired: strictV3Rendering,
           });
           const persistedImage = candidateAssetCache.get(repairedLocalImageUrl)
             || await persistPreviewAsset({ projectId, assetUrl: repairedLocalImageUrl });
@@ -1720,6 +1741,7 @@ router.post("/preview", async (req, res) => {
               outcome: "accepted_after_targeted_edit",
             },
             repairedAt: new Date().toISOString(),
+            ...(strictV3Rendering ? { strictEvidenceVersion: 2 } : {}),
           };
           await generationRunStore.updateStep(repairStep.id, {
             status: "completed",
@@ -1789,6 +1811,18 @@ router.post("/preview", async (req, res) => {
         }
       }
 
+      if (unresolvedQualityPages.length && strictV3Rendering) {
+        const error = new Error(`Strict Narrative V3 kept ${unresolvedQualityPages.length} illustration candidate(s) private because delivery evidence is incomplete.`);
+        error.code = "narrative_v3_illustration_evidence_incomplete";
+        error.pages = unresolvedQualityPages.map((item) => item.pageNumber);
+        console.warn("[preview] strict V3 delivery quarantined", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          pages: error.pages,
+        }));
+        throw error;
+      }
+
       if (unresolvedQualityPages.length) {
         const reviewResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
         const qualityReview = {
@@ -1853,6 +1887,27 @@ router.post("/preview", async (req, res) => {
         return;
       }
 
+      let narrativeV3Delivery = null;
+      if (strictV3Rendering) {
+        updateJob(job.id, { step: "draft:v3-delivery-authority" });
+        await updateGenerationRun(job.id, {
+          status: "running",
+          currentStep: "draft:v3-delivery-authority",
+        });
+        narrativeV3Delivery = await sealNarrativeV3ProductionPreview({
+          projectId,
+          runId: job.id,
+          spec: narrativeBookSpec,
+          draftPages,
+        });
+        console.info("[preview] strict V3 production delivery sealed", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          sceneCount: narrativeV3Delivery.sceneCount,
+          artifactDigest: narrativeV3Delivery.artifactDigest.slice(0, 12),
+        }));
+      }
+
       updateJob(job.id, {
         status: "done",
         step: "draft:done",
@@ -1879,6 +1934,7 @@ router.post("/preview", async (req, res) => {
           continuitySnapshot: mergeGenerationCheckpoint({
             ...(latest?.continuitySnapshot || project.continuitySnapshot),
             characterCanons,
+            ...(narrativeV3Delivery ? { narrativeV3Delivery } : {}),
             ...(isTechnicalReferenceRecovery ? {
               referenceRecovery: {
                 ...referenceRecovery,

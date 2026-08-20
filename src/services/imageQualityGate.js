@@ -936,6 +936,158 @@ Return only JSON: {"approved":true,"issues":[]} or {"approved":false,"issues":["
   return { approved, issues: approved ? [] : (issues.length ? issues : ["The generated subject does not preserve the supplied identity."]) };
 }
 
+export const STRICT_V3_ILLUSTRATION_DOMAINS = Object.freeze([
+  "asset_integrity",
+  "identity_cardinality",
+  "forbidden_cast",
+  "wardrobe",
+  "equipment",
+  "physical_medium",
+  "location_boundary",
+  "main_action",
+  "object_cardinality",
+  "landmarks",
+  "style_continuity",
+]);
+
+const STRICT_V3_DOMAIN_FAILURE_CODES = Object.freeze({
+  asset_integrity: "corrupted_asset",
+  identity_cardinality: "duplicated_required_identity",
+  forbidden_cast: "forbidden_character_present",
+  wardrobe: "wardrobe_state_mismatch",
+  equipment: "equipment_state_mismatch",
+  physical_medium: "wrong_physical_medium",
+  location_boundary: "wrong_location_or_boundary",
+  main_action: "main_action_mismatch",
+  object_cardinality: "object_state_mismatch",
+  landmarks: "landmark_cardinality_mismatch",
+  style_continuity: "style_continuity_mismatch",
+});
+
+const STRICT_V3_DOMAIN_ISSUES = Object.freeze({
+  asset_integrity: "The private image asset is incomplete or corrupted.",
+  identity_cardinality: "Required named identity cardinality is wrong: a required character is missing, duplicated, fused, or substituted.",
+  forbidden_cast: "A forbidden or out-of-phase recurring character is visible.",
+  wardrobe: "Required wardrobe state conflicts with the current scene.",
+  equipment: "Conditional equipment state or cardinality conflicts with the current scene.",
+  physical_medium: "Physical environment is wrong: gravity, buoyancy, posture, locomotion, breathing, or wet/dry behavior conflicts with the current world medium.",
+  location_boundary: "Landmark location is wrong or the dry/wet, inside/outside, or portal boundary is not respected.",
+  main_action: "The main action, its subject, or its target does not match the illustrated instant.",
+  object_cardinality: "Persistent visual entity is duplicated or has the wrong quantity, state, owner, or appearance.",
+  landmarks: "Unique landmark is duplicated, missing, or shown outside its canonical location.",
+  style_continuity: "The rendering style does not match the locked book reference.",
+});
+
+function strictV3Assessment(value, domain) {
+  const status = String(value?.status || "").trim().toLowerCase();
+  const evidenceCode = String(value?.evidence_code || "").trim().toLowerCase();
+  if (status === "pass" && evidenceCode === "verified") return { status, evidence_code: evidenceCode };
+  if (status === "fail" && evidenceCode === STRICT_V3_DOMAIN_FAILURE_CODES[domain]) {
+    return { status, evidence_code: evidenceCode };
+  }
+  return { status: "uncertain", evidence_code: "insufficient_evidence" };
+}
+
+export function normalizeStrictV3IllustrationEvidence(rawDomains = {}, { technicalApproved = true } = {}) {
+  const domains = Object.fromEntries(STRICT_V3_ILLUSTRATION_DOMAINS.map((domain) => [
+    domain,
+    domain === "asset_integrity"
+      ? technicalApproved
+        ? { status: "pass", evidence_code: "verified" }
+        : { status: "fail", evidence_code: "corrupted_asset" }
+      : strictV3Assessment(rawDomains?.[domain], domain),
+  ]));
+  const failedDomains = STRICT_V3_ILLUSTRATION_DOMAINS.filter((domain) => domains[domain].status === "fail");
+  const uncertainDomains = STRICT_V3_ILLUSTRATION_DOMAINS.filter((domain) => domains[domain].status === "uncertain");
+  return {
+    version: 2,
+    approved: failedDomains.length === 0 && uncertainDomains.length === 0,
+    domains,
+    failedDomains,
+    uncertainDomains,
+    issues: [
+      ...failedDomains.map((domain) => STRICT_V3_DOMAIN_ISSUES[domain]),
+      ...uncertainDomains.map((domain) => `Strict V3 evidence is insufficient for ${domain}; this candidate remains private.`),
+    ],
+    issueCodes: [...new Set([
+      ...failedDomains.map((domain) => STRICT_V3_DOMAIN_FAILURE_CODES[domain]),
+      ...uncertainDomains.map(() => "insufficient_evidence"),
+    ])],
+  };
+}
+
+export async function inspectStrictV3IllustrationEvidence({
+  imagePath,
+  sceneContract = null,
+  referenceImages = [],
+  pageLabel = "illustration",
+  technicalApproved = true,
+  client = null,
+}) {
+  if (!technicalApproved) return normalizeStrictV3IllustrationEvidence({}, { technicalApproved: false });
+  const candidate = await sharp(await fs.readFile(imagePath))
+    .rotate()
+    .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 88 })
+    .toBuffer();
+  const selectedReferences = (Array.isArray(referenceImages) ? referenceImages : [])
+    .filter((reference) => ["identity", "continuity", "adjacent_continuity"].includes(reference?.kind))
+    .slice(0, 7);
+  const evidence = (await Promise.all(selectedReferences.map(async (reference) => {
+    const source = await referenceSource(reference);
+    if (!source) return null;
+    return {
+      label: String(reference?.label || reference?.kind || "private reference").slice(0, 180),
+      kind: String(reference?.kind || "reference"),
+      buffer: await sharp(source).rotate().resize(720, 720, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer(),
+    };
+  }))).filter(Boolean);
+  const legend = evidence.length
+    ? evidence.map((entry, index) => `Image ${index + 2}: ${entry.kind} — ${entry.label}`).join("\n")
+    : "No additional pixel reference is available; use the immutable structured scene contract.";
+  const qaClient = client || getClient();
+  const response = await qaClient.responses.create({
+    model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
+    input: [{ role: "user", content: [
+      { type: "input_text", text: `You are Calitiki's final strict V3 illustration arbiter for one personalized children's-book ${pageLabel}.
+Image 1 is the candidate. It may remain private unless every objective domain is explicitly verified. Other images are authoritative identity, cover/style, or immediately adjacent continuity references:
+${legend}
+
+Evaluate exactly these domains independently. Never infer one domain from another:
+- identity_cardinality: every required named identity appears exactly once as a complete separate individual; no required identity is missing, duplicated, fused, substituted, or assigned to two bodies.
+- forbidden_cast: no forbidden, out-of-phase, departure-only, arrival-only, or merely mentioned recurring identity is visible.
+- wardrobe: each visible named person wears the exact active outfit state for this instant, including changes established in earlier scenes; ordinary source-photo clothing is forbidden when a scene outfit is active.
+- equipment: breathing, protective, space, underwater, vehicle, or other conditional equipment has the required state and exactly one instance per wearer.
+- physical_medium: apply the universe laws around the characters, not just the background. Verify gravity or buoyancy, posture, locomotion, hair/fabric behavior, breathing and wet/dry behavior. Underwater characters must behave underwater; dry protected interiors remain dry even when water is visible through a window.
+- location_boundary: dry/wet, inside/outside, vehicle/world, portal, window and passage boundaries are explicit and topologically coherent. A background view cannot change the medium around the cast.
+- main_action: the exact subject, target and single illustrated instant match the contract. Do not combine preparation, crossing, arrival, removal, storage, or later consequences.
+- object_cardinality: each persistent object/entity has its exact total quantity, owner, state, location, scale, colors, material and distinguishing appearance. One entity in two positions is a duplicate, not motion. Created composites such as a set of three circles remain one tracked entity with exactly three component circles.
+- landmarks: every unique fixed landmark has the required cardinality and canonical side/location.
+- style_continuity: broad rendering family, character design language and book medium match the locked continuity references.
+
+Use status=pass only for directly visible, sufficiently clear evidence. Use uncertain when occlusion, crop, scale, ambiguity, or missing reference prevents proof. Use fail only for a confirmed objective contradiction and exactly the prescribed failure code for that domain.
+Allowed failure codes by domain:
+${JSON.stringify(STRICT_V3_DOMAIN_FAILURE_CODES)}
+Use evidence_code=verified only with pass and insufficient_evidence only with uncertain.
+
+IMMUTABLE SCENE RENDER CONTRACT:
+${JSON.stringify(sceneContract || {})}
+
+Return only JSON with all ten model-assessed keys (asset_integrity is deterministic and must be omitted):
+{"domains":{"identity_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|duplicated_required_identity|insufficient_evidence"},"forbidden_cast":{"status":"pass|fail|uncertain","evidence_code":"verified|forbidden_character_present|insufficient_evidence"},"wardrobe":{"status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence"},"equipment":{"status":"pass|fail|uncertain","evidence_code":"verified|equipment_state_mismatch|insufficient_evidence"},"physical_medium":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_physical_medium|insufficient_evidence"},"location_boundary":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_location_or_boundary|insufficient_evidence"},"main_action":{"status":"pass|fail|uncertain","evidence_code":"verified|main_action_mismatch|insufficient_evidence"},"object_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|object_state_mismatch|insufficient_evidence"},"landmarks":{"status":"pass|fail|uncertain","evidence_code":"verified|landmark_cardinality_mismatch|insufficient_evidence"},"style_continuity":{"status":"pass|fail|uncertain","evidence_code":"verified|style_continuity_mismatch|insufficient_evidence"}}}.` },
+      { type: "input_image", image_url: `data:image/jpeg;base64,${candidate.toString("base64")}`, detail: "high" },
+      ...evidence.map((entry) => ({
+        type: "input_image",
+        image_url: `data:image/jpeg;base64,${entry.buffer.toString("base64")}`,
+        detail: entry.kind === "identity" ? "high" : "low",
+      })),
+    ] }],
+    max_output_tokens: 700,
+  });
+  const result = parseJson(extractText(response));
+  return normalizeStrictV3IllustrationEvidence(result?.domains || {}, { technicalApproved: true });
+}
+
 export async function generateQualityCheckedImage({
   prompt,
   safetyFallbackPrompt = "",
@@ -950,6 +1102,7 @@ export async function generateQualityCheckedImage({
   verifyExactCast = false,
   targetedRepairAvailable = false,
   revisionInstruction = "",
+  strictV3EvidenceRequired = false,
   ...generationOptions
 }) {
   let previousIssues = [];
@@ -1084,7 +1237,19 @@ export async function generateQualityCheckedImage({
           sceneInspection.issues = [...sceneInspection.issues, ...remainingRevisionIssues];
         }
       }
-      if (inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved) {
+      const strictV3Evidence = strictV3EvidenceRequired
+        ? await inspectStrictV3IllustrationEvidence({
+          imagePath: outputImagePath(imageUrl),
+          sceneContract: sceneFidelityContract,
+          referenceImages: referenceImagesForAttempt || [],
+          pageLabel,
+          technicalApproved: inspection.approved,
+        })
+        : null;
+      const acceptedByAuthority = strictV3EvidenceRequired
+        ? inspection.approved && strictV3Evidence?.approved === true
+        : inspection.approved && styleInspection.approved && sceneInspection.approved && identityInspection.approved;
+      if (acceptedByAuthority) {
         await onCandidate?.({
           imageUrl,
           attempt,
@@ -1092,6 +1257,8 @@ export async function generateQualityCheckedImage({
           status: "accepted",
           rejectionKind: "",
           issues: [],
+          strictEvidence: strictV3Evidence,
+          providerModel: model,
         });
         onAttempt?.({ phase: "approved", attempt, maximumAttempts: attemptLimit, pageLabel });
         return imageUrl;
@@ -1102,14 +1269,14 @@ export async function generateQualityCheckedImage({
       const disposition = visualQualityDisposition({
         technicalApproved: inspection.approved,
         technicalIssues: inspection.issues,
-        sceneIssues: sceneInspection.issues,
-        styleIssues: styleInspection.issues,
+        sceneIssues: strictV3EvidenceRequired ? strictV3Evidence?.issues || [] : sceneInspection.issues,
+        styleIssues: strictV3EvidenceRequired ? [] : styleInspection.issues,
         identityIssues: identityInspection.issues,
       });
       const automaticRepairPolicy = targetedVisualRepairPolicy(disposition.blocking, {
         source: inspection.approved ? "scene" : "technical",
       });
-      if (
+      if (!strictV3EvidenceRequired &&
         inspection.approved
         && disposition.blocking.length === 0
         && disposition.repairable.length === 0
@@ -1133,7 +1300,7 @@ export async function generateQualityCheckedImage({
         });
         return imageUrl;
       }
-      if (
+      if (!strictV3EvidenceRequired &&
         inspection.approved
         && disposition.blocking.length === 0
         && disposition.repairable.length > 0
@@ -1156,7 +1323,7 @@ export async function generateQualityCheckedImage({
         });
         return imageUrl;
       }
-      if (inspection.approved
+      if (!strictV3EvidenceRequired && inspection.approved
         && attempt === attemptLimit
         && disposition.blocking.length === 0) {
         const warningIssues = [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues];
@@ -1178,9 +1345,15 @@ export async function generateQualityCheckedImage({
         });
         return imageUrl;
       }
-      previousIssues = inspection.approved ? [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues] : inspection.issues;
+      previousIssues = inspection.approved
+        ? strictV3EvidenceRequired
+          ? strictV3Evidence?.issues || ["Strict V3 illustration evidence is incomplete."]
+          : [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues]
+        : inspection.issues;
       previousRejectionKind = inspection.approved
-        ? (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
+        ? strictV3EvidenceRequired
+          ? "scene"
+          : (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
         : "technical";
       const quarantineImmediately = inspection.approved
         && targetedRepairAvailable
@@ -1195,6 +1368,8 @@ export async function generateQualityCheckedImage({
         issues: previousIssues,
         issueCodes: disposition.issueCodes,
         repairPolicy: automaticRepairPolicy,
+        strictEvidence: strictV3Evidence,
+        providerModel: model,
       });
       onAttempt?.({
         phase: quarantineImmediately ? "quarantined-for-targeted-repair" : "rejected",

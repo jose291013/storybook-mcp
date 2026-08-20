@@ -652,6 +652,11 @@ test("paid and zero-total WooCommerce orders use the same signed ebook fulfillme
     const storage = new LocalDeliveryStorage(path.join(directory, "private"));
     const coverAsset = await persistPreviewAsset({ projectId: project.id, assetUrl: "/outputs/cover.png", outputsDir, storage });
     const pageAsset = await persistPreviewAsset({ projectId: project.id, assetUrl: "/outputs/page-1.png", outputsDir, storage });
+    assert.equal(coverAsset.mimeType, "image/png");
+    assert.equal(coverAsset.width, 240);
+    assert.equal(coverAsset.height, 240);
+    assert.match(coverAsset.sha256, /^[a-f0-9]{64}$/);
+    assert.ok(coverAsset.byteLength > 0);
     assert.equal((await storageBodyToBuffer((await storage.get(coverAsset.storageKey)).body)).length > 0, true);
     project = await projects.update(project.id, {
       previewResult: {
