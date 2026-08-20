@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { buildCanonicalStoryMechanics } from "../src/contracts/buildCanonicalStoryMechanics.js";
+import { buildCharacterStateTimelineV1 } from "../src/contracts/characterStateTimelineV1.js";
 import { buildCreationIntent } from "../src/contracts/creationIntent.js";
 import { parseStoryConceptWire } from "../src/contracts/narrativeV3Canonical.js";
 import { buildVisualIntentV1, loadVisualIntentV1 } from "../src/contracts/visualIntentV1.js";
@@ -18,7 +19,7 @@ function intent() {
   });
 }
 
-function concept() {
+function concept(participantKeysFor = () => ["hero", "parent"]) {
   const purposes = ["opening", "desire", "preparation", "crossing", "attempt", "attempt", "attempt", "attempt", "climax", "return", "resolution"];
   return parseStoryConceptWire({
     schema_version: 1, contract_id: "calitiki.story-concept-wire.v1", language: "FR",
@@ -27,7 +28,7 @@ function concept() {
     beats: purposes.map((purpose, index) => ({
       beat_key: `beat_${String(index + 1).padStart(2, "0")}`, purpose,
       summary: `Action stable ${index + 1}`, emotional_shift: `Émotion ${index + 1}`,
-      distinctive_image: `Image ${index + 1}`, participant_keys: ["hero", "parent"],
+      distinctive_image: `Image ${index + 1}`, participant_keys: participantKeysFor(index, purpose),
     })),
   });
 }
@@ -66,4 +67,24 @@ test("VisualIntent rejects an outfit from a different universe instead of guessi
       { characterKey: "parent", profileRef: "profile:parent", kind: "human", outfitPreference: "preserve_photo", ordinaryOutfitDescription: "photo outfit" },
     ],
   }), (error) => error.code === "visual_intent_universe_outfit_unknown");
+});
+
+test("CharacterStateTimeline changes only travelers and records explicit don/remove events", () => {
+  const creationIntent = intent();
+  const visualIntent = buildVisualIntentV1({
+    creationIntent,
+    characters: [
+      { characterKey: "hero", profileRef: "profile:hero", kind: "human", outfitPreference: "selected", ordinaryOutfitDescription: "blue photo outfit", adventureOutfitId: "cosmic_pilot" },
+      { characterKey: "parent", profileRef: "profile:parent", kind: "human", outfitPreference: "selected", ordinaryOutfitDescription: "green photo outfit", adventureOutfitId: "space_explorer" },
+    ],
+  });
+  const storyConcept = concept((index, purpose) => (["opening", "preparation", "resolution"].includes(purpose) || index === 1 ? ["hero", "parent"] : ["hero"]));
+  const timeline = buildCharacterStateTimelineV1({ creationIntent, visualIntent, concept: storyConcept });
+  const preparation = timeline.scenes.find((scene) => scene.events.some((entry) => entry.kind === "don_outfit"));
+  const returning = timeline.scenes.find((scene) => scene.events.some((entry) => entry.kind === "remove_outfit"));
+  assert.deepEqual(preparation.events.filter((entry) => entry.kind === "don_outfit").map((entry) => entry.characterId), ["character_hero"]);
+  assert.deepEqual(returning.events.filter((entry) => entry.kind === "remove_outfit").map((entry) => entry.characterId), ["character_hero"]);
+  assert.equal(preparation.statesAfter.find((entry) => entry.characterId === "character_parent").outfitStateId, "ordinary_outfit");
+  const mechanics = buildCanonicalStoryMechanics({ intent: creationIntent, concept: storyConcept, visualIntent, characterStateTimeline: timeline });
+  assert.equal(mechanics.scenes[2].wardrobeStates.find((entry) => entry.characterId === "character_parent").outfitStateId, "ordinary_outfit");
 });
