@@ -3,6 +3,7 @@ import { outfitOptionsForUniverse } from "../config/outfitOptions.js";
 import { loadCreationIntent } from "./creationIntent.js";
 import { loadStoryConcept } from "./narrativeV3Canonical.js";
 import { loadVisualIntentV1 } from "./visualIntentV1.js";
+import { loadCharacterStateTimelineV1 } from "./characterStateTimelineV1.js";
 import {
   assertNarrativeV3Schema,
   NarrativeV3ContractError,
@@ -164,7 +165,7 @@ function sceneTimeline(index, crossingIndex, returnIndex) {
   return { locationBeforeId: "location_origin", locationAfterId: "location_origin", visiblePhase: "end" };
 }
 
-export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null } = {}) {
+export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null, characterStateTimeline: rawCharacterTimeline = null } = {}) {
   const intent = loadCreationIntent(rawIntent);
   const concept = loadStoryConcept(rawConcept);
   const visualIntent = rawVisualIntent ? loadVisualIntentV1(rawVisualIntent) : null;
@@ -175,6 +176,13 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
     mechanicsError("mechanics_visual_intent_mismatch", "/visualIntent", "Visual intent must be sealed from this exact creation intent and universe.");
   }
   const visualByKey = new Map((visualIntent?.characters || []).map((entry) => [entry.characterKey, entry]));
+  const characterTimeline = rawCharacterTimeline ? loadCharacterStateTimelineV1(rawCharacterTimeline) : null;
+  if (characterTimeline && (
+    characterTimeline.sources.creationIntentDigest !== intent.validation.artifactDigest
+    || characterTimeline.sources.storyConceptDigest !== concept.validation.artifactDigest
+    || (visualIntent && characterTimeline.sources.visualIntentDigest !== visualIntent.validation.artifactDigest)
+  )) mechanicsError("mechanics_character_timeline_mismatch", "/characterStateTimeline", "Character timeline must bind these exact immutable sources.");
+  const timelineSceneByBeat = new Map((characterTimeline?.scenes || []).map((scene) => [scene.beatKey, scene]));
   const { crossingIndex, returnIndex } = validateConceptShape(intent, concept);
   const universe = universeConfiguration(intent.book.universeId);
   const cast = intent.cast.map((entry) => ({
@@ -251,6 +259,9 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
       objectEvents: [],
       wardrobeStates: visibleIds.map((id) => {
         const entry = cast.find((character) => character.id === id);
+        const sealedState = timelineSceneByBeat.get(beat.beatKey)?.statesAfter.find((state) => state.characterId === id);
+        if (characterTimeline && !sealedState) mechanicsError("mechanics_character_state_missing", `/characterStateTimeline/scenes/${index}`, `No sealed state exists for ${id}.`);
+        if (sealedState) return { characterId: id, outfitStateId: sealedState.outfitStateId, equipmentStateIds: [...sealedState.equipmentStateIds] };
         return { characterId: id, ...wardrobeFor({
           intentEntry: entry,
           universeId: intent.book.universeId,

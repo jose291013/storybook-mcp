@@ -119,6 +119,14 @@ phase is `CharacterStateTimeline.v1`; until it lands, the chosen state is
 authoritative but its don/remove transition still follows the existing
 deterministic scene window.
 
+`CharacterStateTimeline.v1` is now compiled from the exact visual intent and
+semantic concept before the canonical graph. It gives every character a full
+state after every scene and records explicit causal don/remove/equip/unequip
+events. Only the cast that actually crosses receives travel wardrobe changes;
+departure witnesses no longer inherit the travelers' clothes. Knowledge and
+emotion advances are explicit hero events bound to each semantic beat. The
+next structural phase is the data-driven `WorldLawContract.v1`.
+
 ## Monotonic PostgreSQL migration ledger
 
 Production migrations are append-only operations, not a desired-schema replay.

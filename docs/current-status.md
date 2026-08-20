@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/visual-intent-v1`
-- Main checkpoint before this brick: `7dde2f3` (PR #238)
-- Current focused checkpoint: immutable per-character visual intent
+- Current branch: `codex/character-state-timeline-v1`
+- Main checkpoint before this brick: `b0d5764` (PR #239)
+- Current focused checkpoint: explicit per-character state transitions
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -108,6 +108,20 @@ artifact instead of selecting the first outfit in the universe catalogue.
 New V3 customer scenarios persist this sixth immutable artifact. Migration 027
 only widens isolated V3 artifact and pointer constraints. Existing approved
 books and V2 projects are not rewritten. Verification: 688/688 tests pass.
+
+## Product brick: CharacterStateTimeline.v1
+
+The server compiles one complete per-scene state timeline from the exact
+CreationIntent, VisualIntent and StoryConcept. Outfit and equipment changes are
+explicit causal events (`don`, `remove`, `equip`, `unequip`); mechanics reads
+the sealed result instead of an index window. A departure witness who does not
+cross therefore stays in ordinary clothing. Underwater equipment is individual
+and changes only at the corresponding medium boundary.
+
+New V3 customer graphs record the timeline as a second immutable graph parent;
+legacy one-parent graphs remain readable. Migration 028 only expands isolated
+V3 artifact and pointer constraints. Existing books are never rewritten.
+Verification: the complete repository suite passes 689/689 tests.
 
 ## Product brick: SceneRenderContract.v1
 

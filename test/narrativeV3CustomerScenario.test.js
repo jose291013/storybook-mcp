@@ -110,7 +110,7 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
     assert.equal(validateStoryScenario(first.scenario).valid, true);
     assert.equal(first.scenario.scenes.length, 15);
     assert.equal(first.canonicalCandidateEvidence.version, 3);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 6);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 7);
     assert.equal(first.narrativeV3Artifacts.visualIntent.characters[0].outfitPreference, "preserve_photo");
     const blueprint = {
       pages: first.narrativeV3Artifacts.spec.scenes.flatMap((scene) => ([{
@@ -173,7 +173,7 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
 
     const replay = await generateNarrativeV3Scenario(input);
     assert.equal(replay.canonicalCandidateEvidence.artifactDigest, first.canonicalCandidateEvidence.artifactDigest);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 6);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 7);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -199,7 +199,7 @@ test("one invalid semantic response is corrected before any immutable artifact i
     });
     assert.equal(result.validation.valid, true);
     assert.equal(calls, 2);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 6);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 7);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

@@ -1,6 +1,7 @@
 import { narrativeV3ConceptAgent } from "../agents/narrativeV3Concept.js";
 import { createPagePlan } from "../config/bookStructure.js";
 import { buildCanonicalStoryMechanics } from "../contracts/buildCanonicalStoryMechanics.js";
+import { buildCharacterStateTimelineV1 } from "../contracts/characterStateTimelineV1.js";
 import {
   canonicalDigest,
   compileCanonicalStoryGraph,
@@ -247,6 +248,7 @@ export async function generateNarrativeV3Scenario({
 
   let concept;
   let mechanics;
+  let characterStateTimeline;
   let validationFeedback = null;
   for (let attempt = 1; attempt <= MAX_SEMANTIC_ATTEMPTS; attempt += 1) {
     const checkpointKey = attempt === 1 ? "v3:story-concept" : "v3:story-concept-correction";
@@ -261,7 +263,8 @@ export async function generateNarrativeV3Scenario({
     });
     try {
       concept = parseStoryConceptWire(wire);
-      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent });
+      characterStateTimeline = buildCharacterStateTimelineV1({ creationIntent: source.intent, visualIntent: source.visualIntent, concept });
+      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent, characterStateTimeline });
       break;
     } catch (error) {
       if (attempt >= MAX_SEMANTIC_ATTEMPTS) throw error;
@@ -298,9 +301,14 @@ export async function generateNarrativeV3Scenario({
     projectId: project.id, artifactType: "story_concept", payload: concept,
     parents: [artifactRef(intentArtifact)], artifactStore, operationId: "parse_story_concept", runId,
   });
+  const characterStateArtifact = await persistArtifact({
+    projectId: project.id, artifactType: "character_state_timeline", payload: characterStateTimeline,
+    parents: [artifactRef(visualIntentArtifact), artifactRef(conceptArtifact)], artifactStore,
+    operationId: "compile_character_state_timeline", runId,
+  });
   const graphArtifact = await persistArtifact({
     projectId: project.id, artifactType: "canonical_story_graph", payload: graph,
-    parents: [artifactRef(conceptArtifact)], artifactStore, operationId: "compile_story_graph", runId,
+    parents: [artifactRef(conceptArtifact), artifactRef(characterStateArtifact)], artifactStore, operationId: "compile_story_graph", runId,
   });
   const projectionArtifact = await persistArtifact({
     projectId: project.id, artifactType: "object_lifecycle_projection", payload: projection,
@@ -323,6 +331,12 @@ export async function generateNarrativeV3Scenario({
       graphDigest: graph.validation.artifactDigest,
       conceptDigest: concept.validation.artifactDigest,
     },
-    narrativeV3Artifacts: { spec, visualIntent: source.visualIntent, visualIntentArtifactId: visualIntentArtifact.id },
+    narrativeV3Artifacts: {
+      spec,
+      visualIntent: source.visualIntent,
+      visualIntentArtifactId: visualIntentArtifact.id,
+      characterStateTimeline,
+      characterStateTimelineArtifactId: characterStateArtifact.id,
+    },
   };
 }

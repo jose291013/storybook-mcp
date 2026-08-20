@@ -25,6 +25,12 @@ import {
   visualIntentDigest,
 } from "../contracts/visualIntentV1.js";
 import {
+  CHARACTER_STATE_TIMELINE_ID,
+  CHARACTER_STATE_TIMELINE_VERSION,
+  characterStateTimelineDigest,
+  loadCharacterStateTimelineV1,
+} from "../contracts/characterStateTimelineV1.js";
+import {
   NARRATIVE_BOOK_SPEC_V2_ID,
   NARRATIVE_BOOK_SPEC_V2_VERSION,
   loadNarrativeBookSpecV2,
@@ -100,6 +106,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     digest: visualIntentDigest,
     parentTypes: Object.freeze(["creation_intent"]),
   }),
+  character_state_timeline: Object.freeze({
+    contractId: CHARACTER_STATE_TIMELINE_ID,
+    schemaVersion: CHARACTER_STATE_TIMELINE_VERSION,
+    load: loadCharacterStateTimelineV1,
+    digest: characterStateTimelineDigest,
+    parentTypes: Object.freeze(["visual_intent", "story_concept"]),
+  }),
   story_concept: Object.freeze({
     contractId: STORY_CONCEPT_ID,
     schemaVersion: STORY_CONCEPT_VERSION,
@@ -113,6 +126,7 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadCanonicalStoryGraph,
     digest: canonicalStoryGraphDigest,
     parentTypes: Object.freeze(["story_concept"]),
+    parentTypeVariants: Object.freeze([Object.freeze(["story_concept"]), Object.freeze(["story_concept", "character_state_timeline"])]),
   }),
   object_lifecycle_projection: Object.freeze({
     contractId: OBJECT_LIFECYCLE_PROJECTION_ID,
@@ -262,12 +276,27 @@ function validateArtifactInput(input = {}) {
   }
   const payloadDigest = definition.digest(payload);
   const parents = normalizeParents(input.parents);
-  const expectedParentTypes = definition.parentTypes;
-  if (
-    parents.length !== expectedParentTypes.length
-    || parents.some((parent, index) => parent.artifactType !== expectedParentTypes[index])
-  ) {
+  const parentContracts = definition.parentTypeVariants || [definition.parentTypes];
+  if (!parentContracts.some((expectedParentTypes) => (
+    parents.length === expectedParentTypes.length
+    && parents.every((parent, index) => parent.artifactType === expectedParentTypes[index])
+  ))) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_contract_invalid", "The artifact does not have its exact ordered parent contract.");
+  }
+  if (
+    artifactType === "visual_intent"
+    && parents[0]?.payloadDigest !== payload.sourceCreationIntent.artifactDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual intent parent does not match its declared creation-intent digest.");
+  }
+  if (
+    artifactType === "character_state_timeline"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.visualIntentDigest
+      || parents[1]?.payloadDigest !== payload.sources.storyConceptDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The character timeline parents do not match its declared visual-intent and concept digests.");
   }
   if (
     artifactType === "canonical_story_graph"
@@ -397,7 +426,7 @@ function assertReleaseIntentLineage(input, graphParents, conceptParents) {
   const graphConcept = graphParents[0];
   const conceptIntent = conceptParents[0];
   if (
-    graphParents.length !== 1
+    ![1, 2].includes(graphParents.length)
     || graphConcept?.artifactType !== "story_concept"
     || conceptParents.length !== 1
     || conceptIntent?.artifactType !== "creation_intent"
