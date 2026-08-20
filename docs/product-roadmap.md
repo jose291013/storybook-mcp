@@ -127,6 +127,14 @@ departure witnesses no longer inherit the travelers' clothes. Knowledge and
 emotion advances are explicit hero events bound to each semantic beat. The
 next structural phase is the data-driven `WorldLawContract.v1`.
 
+`WorldLawContract.v1` is now the structured authority for universe topology and
+physical rendering constraints. The same compiler consumes data for all six
+universes: zones and media, passage geometry and camera side, gravity and
+locomotion, per-person survival equipment, time continuity, scale, native and
+forbidden elements, capabilities and landmark cardinality. Character equipment
+is derived from the declared medium rather than from a universe id or prose
+keyword. The next phase is `ManuscriptFactEvidence.v1`.
+
 ## Monotonic PostgreSQL migration ledger
 
 Production migrations are append-only operations, not a desired-schema replay.

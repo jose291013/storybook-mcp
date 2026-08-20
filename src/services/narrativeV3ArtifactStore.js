@@ -31,6 +31,12 @@ import {
   loadCharacterStateTimelineV1,
 } from "../contracts/characterStateTimelineV1.js";
 import {
+  WORLD_LAW_CONTRACT_ID,
+  WORLD_LAW_CONTRACT_VERSION,
+  loadWorldLawContractV1,
+  worldLawContractDigest,
+} from "../contracts/worldLawContractV1.js";
+import {
   NARRATIVE_BOOK_SPEC_V2_ID,
   NARRATIVE_BOOK_SPEC_V2_VERSION,
   loadNarrativeBookSpecV2,
@@ -106,12 +112,23 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     digest: visualIntentDigest,
     parentTypes: Object.freeze(["creation_intent"]),
   }),
+  world_law_contract: Object.freeze({
+    contractId: WORLD_LAW_CONTRACT_ID,
+    schemaVersion: WORLD_LAW_CONTRACT_VERSION,
+    load: loadWorldLawContractV1,
+    digest: worldLawContractDigest,
+    parentTypes: Object.freeze(["creation_intent"]),
+  }),
   character_state_timeline: Object.freeze({
     contractId: CHARACTER_STATE_TIMELINE_ID,
     schemaVersion: CHARACTER_STATE_TIMELINE_VERSION,
     load: loadCharacterStateTimelineV1,
     digest: characterStateTimelineDigest,
-    parentTypes: Object.freeze(["visual_intent", "story_concept"]),
+    parentTypes: Object.freeze(["visual_intent", "story_concept", "world_law_contract"]),
+    parentTypeVariants: Object.freeze([
+      Object.freeze(["visual_intent", "story_concept"]),
+      Object.freeze(["visual_intent", "story_concept", "world_law_contract"]),
+    ]),
   }),
   story_concept: Object.freeze({
     contractId: STORY_CONCEPT_ID,
@@ -290,10 +307,17 @@ function validateArtifactInput(input = {}) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual intent parent does not match its declared creation-intent digest.");
   }
   if (
+    artifactType === "world_law_contract"
+    && parents[0]?.payloadDigest !== payload.sourceCreationIntent.artifactDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The world-law parent does not match its declared creation-intent digest.");
+  }
+  if (
     artifactType === "character_state_timeline"
     && (
       parents[0]?.payloadDigest !== payload.sources.visualIntentDigest
       || parents[1]?.payloadDigest !== payload.sources.storyConceptDigest
+      || (parents[2] && parents[2].payloadDigest !== payload.sources.worldLawDigest)
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The character timeline parents do not match its declared visual-intent and concept digests.");

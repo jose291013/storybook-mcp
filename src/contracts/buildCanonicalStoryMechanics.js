@@ -4,6 +4,7 @@ import { loadCreationIntent } from "./creationIntent.js";
 import { loadStoryConcept } from "./narrativeV3Canonical.js";
 import { loadVisualIntentV1 } from "./visualIntentV1.js";
 import { loadCharacterStateTimelineV1 } from "./characterStateTimelineV1.js";
+import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
 import {
   assertNarrativeV3Schema,
   NarrativeV3ContractError,
@@ -165,7 +166,7 @@ function sceneTimeline(index, crossingIndex, returnIndex) {
   return { locationBeforeId: "location_origin", locationAfterId: "location_origin", visiblePhase: "end" };
 }
 
-export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null, characterStateTimeline: rawCharacterTimeline = null } = {}) {
+export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null, characterStateTimeline: rawCharacterTimeline = null, worldLaw: rawWorldLaw = null } = {}) {
   const intent = loadCreationIntent(rawIntent);
   const concept = loadStoryConcept(rawConcept);
   const visualIntent = rawVisualIntent ? loadVisualIntentV1(rawVisualIntent) : null;
@@ -176,15 +177,25 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
     mechanicsError("mechanics_visual_intent_mismatch", "/visualIntent", "Visual intent must be sealed from this exact creation intent and universe.");
   }
   const visualByKey = new Map((visualIntent?.characters || []).map((entry) => [entry.characterKey, entry]));
+  const worldLaw = rawWorldLaw ? loadWorldLawContractV1(rawWorldLaw) : null;
+  if (worldLaw && (
+    worldLaw.sourceCreationIntent.artifactDigest !== intent.validation.artifactDigest
+    || worldLaw.universeId !== intent.book.universeId
+  )) mechanicsError("mechanics_world_law_mismatch", "/worldLaw", "World law must bind this exact creation intent and universe.");
   const characterTimeline = rawCharacterTimeline ? loadCharacterStateTimelineV1(rawCharacterTimeline) : null;
   if (characterTimeline && (
     characterTimeline.sources.creationIntentDigest !== intent.validation.artifactDigest
     || characterTimeline.sources.storyConceptDigest !== concept.validation.artifactDigest
     || (visualIntent && characterTimeline.sources.visualIntentDigest !== visualIntent.validation.artifactDigest)
+    || (worldLaw && characterTimeline.sources.worldLawDigest !== worldLaw.validation.artifactDigest)
   )) mechanicsError("mechanics_character_timeline_mismatch", "/characterStateTimeline", "Character timeline must bind these exact immutable sources.");
+  if (characterTimeline && !worldLaw) mechanicsError("mechanics_world_law_required", "/worldLaw", "A sealed character timeline requires its exact world-law contract.");
   const timelineSceneByBeat = new Map((characterTimeline?.scenes || []).map((scene) => [scene.beatKey, scene]));
   const { crossingIndex, returnIndex } = validateConceptShape(intent, concept);
   const universe = universeConfiguration(intent.book.universeId);
+  const originZone = worldLaw?.zones.find((entry) => entry.kind === "origin");
+  const adventureZone = worldLaw?.zones.find((entry) => entry.kind === "adventure");
+  const boundaryZone = worldLaw?.zones.find((entry) => entry.kind === "boundary");
   const cast = intent.cast.map((entry) => ({
     ...entry,
     id: characterId(entry.characterKey),
@@ -300,13 +311,13 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
         initialLocationId: initialLocations.get(entry.id),
       })),
       locations: [
-        { id: "location_origin", name: universe.storyContract.physicalTopology.originZone, kind: "origin" },
-        { id: "location_adventure", name: universe.storyContract.physicalTopology.adventureZone, kind: "adventure" },
+        { id: "location_origin", name: originZone?.name || universe.storyContract.physicalTopology.originZone, kind: "origin" },
+        { id: "location_adventure", name: adventureZone?.name || universe.storyContract.physicalTopology.adventureZone, kind: "adventure" },
       ],
       objects: [],
       passages: crossingIndex < 0 ? [] : [{
         id: "passage_primary",
-        name: universe.storyContract.physicalTopology.transitionZone,
+        name: boundaryZone?.name || universe.storyContract.physicalTopology.transitionZone,
         sideALocationId: "location_origin",
         sideBLocationId: "location_adventure",
       }],

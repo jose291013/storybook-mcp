@@ -14,7 +14,8 @@
       "properties": {
         "creationIntentDigest": { "$ref": "#/$defs/digest" },
         "visualIntentDigest": { "$ref": "#/$defs/digest" },
-        "storyConceptDigest": { "$ref": "#/$defs/digest" }
+        "storyConceptDigest": { "$ref": "#/$defs/digest" },
+        "worldLawDigest": { "$ref": "#/$defs/digest" }
       }
     },
     "characters": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/character" } },

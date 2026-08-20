@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/world-law-contract.v1.schema.json",
+  "title": "WorldLawContract.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "sourceCreationIntent", "universeId", "zones", "passages", "survivalMechanisms", "time", "scaleRules", "nativeElementIds", "forbiddenElementIds", "capabilities", "landmarks", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.world-law-contract.v1" },
+    "sourceCreationIntent": { "type": "object", "additionalProperties": false, "required": ["artifactDigest"], "properties": { "artifactDigest": { "$ref": "#/$defs/digest" } } },
+    "universeId": { "$ref": "#/$defs/id" },
+    "zones": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/zone" } },
+    "passages": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/$defs/passage" } },
+    "survivalMechanisms": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/mechanism" } },
+    "time": { "type": "object", "additionalProperties": false, "required": ["flow", "lightingContinuity"], "properties": { "flow": { "enum": ["linear"] }, "lightingContinuity": { "enum": ["scene_monotonic"] } } },
+    "scaleRules": { "type": "array", "minItems": 1, "maxItems": 12, "items": { "$ref": "#/$defs/scale" } },
+    "nativeElementIds": { "$ref": "#/$defs/idList" },
+    "forbiddenElementIds": { "$ref": "#/$defs/idList" },
+    "capabilities": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/capability" } },
+    "landmarks": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/landmark" } },
+    "validation": { "type": "object", "additionalProperties": false, "required": ["builderVersion", "artifactDigest"], "properties": { "builderVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } } }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "idList": { "type": "array", "uniqueItems": true, "maxItems": 30, "items": { "$ref": "#/$defs/id" } },
+    "zone": { "type": "object", "additionalProperties": false, "required": ["zoneId", "kind", "name", "mediumId", "gravityModelId", "locomotionIds", "allowedPostureIds", "requiredSurvivalMechanismIds"], "properties": {
+      "zoneId": { "$ref": "#/$defs/id" }, "kind": { "enum": ["origin", "adventure", "boundary"] }, "name": { "type": "string", "minLength": 1, "maxLength": 240 }, "mediumId": { "$ref": "#/$defs/id" }, "gravityModelId": { "$ref": "#/$defs/id" }, "locomotionIds": { "$ref": "#/$defs/idList" }, "allowedPostureIds": { "$ref": "#/$defs/idList" }, "requiredSurvivalMechanismIds": { "$ref": "#/$defs/idList" }
+    }},
+    "passage": { "type": "object", "additionalProperties": false, "required": ["passageId", "originZoneId", "adventureZoneId", "boundaryZoneId", "direction", "capacity", "geometryId", "cameraSideRule", "revealsOppositeMediumWithoutExposure"], "properties": {
+      "passageId": { "$ref": "#/$defs/id" }, "originZoneId": { "$ref": "#/$defs/id" }, "adventureZoneId": { "$ref": "#/$defs/id" }, "boundaryZoneId": { "$ref": "#/$defs/id" }, "direction": { "enum": ["bidirectional"] }, "capacity": { "enum": ["declared_travelers"] }, "geometryId": { "$ref": "#/$defs/id" }, "cameraSideRule": { "enum": ["single_ambient_medium_per_scene"] }, "revealsOppositeMediumWithoutExposure": { "type": "boolean" }
+    }},
+    "mechanism": { "type": "object", "additionalProperties": false, "required": ["mechanismId", "scope", "activeStateId", "inactiveStateId", "requiredMediumIds"], "properties": {
+      "mechanismId": { "$ref": "#/$defs/id" }, "scope": { "enum": ["per_character"] }, "activeStateId": { "$ref": "#/$defs/id" }, "inactiveStateId": { "$ref": "#/$defs/id" }, "requiredMediumIds": { "$ref": "#/$defs/idList" }
+    }},
+    "scale": { "type": "object", "additionalProperties": false, "required": ["entityClassId", "minimumMeters", "maximumMeters"], "properties": { "entityClassId": { "$ref": "#/$defs/id" }, "minimumMeters": { "type": "number", "exclusiveMinimum": 0 }, "maximumMeters": { "type": "number", "exclusiveMinimum": 0 } } },
+    "capability": { "type": "object", "additionalProperties": false, "required": ["capabilityId", "kind", "limitationId"], "properties": { "capabilityId": { "$ref": "#/$defs/id" }, "kind": { "$ref": "#/$defs/id" }, "limitationId": { "$ref": "#/$defs/id" } } },
+    "landmark": { "type": "object", "additionalProperties": false, "required": ["landmarkId", "homeZoneId", "maximumVisibleInstances"], "properties": { "landmarkId": { "$ref": "#/$defs/id" }, "homeZoneId": { "$ref": "#/$defs/id" }, "maximumVisibleInstances": { "const": 1 } } }
+  }
+}

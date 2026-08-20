@@ -88,6 +88,12 @@ test("legacy migration baseline is inferred from the schema that really reached 
     hasNarrativeSteps: true,
     artifactTypeConstraint: "CHECK ((artifact_type = ANY (ARRAY['visual_intent', 'character_state_timeline'])))",
   }), 28);
+  assert.equal(inferLegacyMigrationBaseline({
+    hasBookProjects: true,
+    hasNarrativeArtifacts: true,
+    hasNarrativeSteps: true,
+    artifactTypeConstraint: "CHECK ((artifact_type = ANY (ARRAY['character_state_timeline', 'world_law_contract'])))",
+  }), 29);
 });
 
 test("migration checksums bind the exact immutable SQL", () => {
@@ -102,9 +108,9 @@ test("an existing pre-ledger production database baselines 001-025 and applies r
   const database = new FakeMigrationPool(client);
   const first = await runDatabaseMigrations({ database });
 
-  assert.deepEqual(first.applied, ["026_narrative_v3_visual_continuity_plan.sql", "027_narrative_v3_visual_intent.sql", "028_narrative_v3_character_state_timeline.sql"]);
-  assert.equal(client.applied.size, 28);
-  assert.equal(client.executedMigrationSql.length, 3);
+  assert.deepEqual(first.applied, ["026_narrative_v3_visual_continuity_plan.sql", "027_narrative_v3_visual_intent.sql", "028_narrative_v3_character_state_timeline.sql", "029_narrative_v3_world_law_contract.sql"]);
+  assert.equal(client.applied.size, 29);
+  assert.equal(client.executedMigrationSql.length, 4);
   assert.match(client.executedMigrationSql[0], /visual_continuity_plan/);
   assert.doesNotMatch(client.executedMigrationSql[0], /CHECK \(artifact_type IN \('creation_intent','story_concept','canonical_story_graph'\)\)/);
 
@@ -123,10 +129,10 @@ test("a genuinely fresh database applies every migration exactly once", async ()
     hasNarrativeSteps: false,
   });
   const result = await runDatabaseMigrations({ database: new FakeMigrationPool(client) });
-  assert.equal(result.applied.length, 28);
+  assert.equal(result.applied.length, 29);
   assert.equal(result.applied[0], "001_product_foundation.sql");
-  assert.equal(result.applied.at(-1), "028_narrative_v3_character_state_timeline.sql");
-  assert.equal(client.applied.size, 28);
+  assert.equal(result.applied.at(-1), "029_narrative_v3_world_law_contract.sql");
+  assert.equal(client.applied.size, 29);
 });
 
 test("an applied migration whose SQL changed fails closed before any pending migration", async () => {

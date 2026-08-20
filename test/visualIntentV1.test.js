@@ -6,6 +6,7 @@ import { buildCharacterStateTimelineV1 } from "../src/contracts/characterStateTi
 import { buildCreationIntent } from "../src/contracts/creationIntent.js";
 import { parseStoryConceptWire } from "../src/contracts/narrativeV3Canonical.js";
 import { buildVisualIntentV1, loadVisualIntentV1 } from "../src/contracts/visualIntentV1.js";
+import { buildWorldLawContractV1 } from "../src/contracts/worldLawContractV1.js";
 
 function intent() {
   return buildCreationIntent({
@@ -79,12 +80,13 @@ test("CharacterStateTimeline changes only travelers and records explicit don/rem
     ],
   });
   const storyConcept = concept((index, purpose) => (["opening", "preparation", "resolution"].includes(purpose) || index === 1 ? ["hero", "parent"] : ["hero"]));
-  const timeline = buildCharacterStateTimelineV1({ creationIntent, visualIntent, concept: storyConcept });
+  const worldLaw = buildWorldLawContractV1(creationIntent);
+  const timeline = buildCharacterStateTimelineV1({ creationIntent, visualIntent, concept: storyConcept, worldLaw });
   const preparation = timeline.scenes.find((scene) => scene.events.some((entry) => entry.kind === "don_outfit"));
   const returning = timeline.scenes.find((scene) => scene.events.some((entry) => entry.kind === "remove_outfit"));
   assert.deepEqual(preparation.events.filter((entry) => entry.kind === "don_outfit").map((entry) => entry.characterId), ["character_hero"]);
   assert.deepEqual(returning.events.filter((entry) => entry.kind === "remove_outfit").map((entry) => entry.characterId), ["character_hero"]);
   assert.equal(preparation.statesAfter.find((entry) => entry.characterId === "character_parent").outfitStateId, "ordinary_outfit");
-  const mechanics = buildCanonicalStoryMechanics({ intent: creationIntent, concept: storyConcept, visualIntent, characterStateTimeline: timeline });
+  const mechanics = buildCanonicalStoryMechanics({ intent: creationIntent, concept: storyConcept, visualIntent, characterStateTimeline: timeline, worldLaw });
   assert.equal(mechanics.scenes[2].wardrobeStates.find((entry) => entry.characterId === "character_parent").outfitStateId, "ordinary_outfit");
 });

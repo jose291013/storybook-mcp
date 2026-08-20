@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/character-state-timeline-v1`
-- Main checkpoint before this brick: `b0d5764` (PR #239)
-- Current focused checkpoint: explicit per-character state transitions
+- Current branch: `codex/world-law-contract-v1`
+- Main checkpoint before this brick: `570e527` (PR #240)
+- Current focused checkpoint: data-driven universe laws and physical media
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -122,6 +122,22 @@ New V3 customer graphs record the timeline as a second immutable graph parent;
 legacy one-parent graphs remain readable. Migration 028 only expands isolated
 V3 artifact and pointer constraints. Existing books are never rewritten.
 Verification: the complete repository suite passes 689/689 tests.
+
+## Product brick: WorldLawContract.v1
+
+Every sellable universe now compiles through one strict immutable world-law
+artifact. The contract declares its three zones, ambient media, gravity,
+locomotion, allowed postures, passage geometry and camera-side rule, survival
+equipment, scale ranges, native and forbidden elements, capabilities, time flow
+and fixed-landmark limits. These values are versioned data consumed by generic
+compilers; story wording and universe-name keyword tests are not authorities.
+
+CharacterStateTimeline derives per-person equipment from the adventure medium
+and WorldLaw survival requirements. New customer runs persist this eighth
+artifact behind the exact CreationIntent parent. Migration 029 only expands the
+isolated V3 artifact/pointer constraints; previously persisted artifacts remain
+readable.
+Verification: the complete repository suite passes 692/692 tests.
 
 ## Product brick: SceneRenderContract.v1
 
