@@ -58,6 +58,32 @@ rules. The first production acceptance is two new 32-page books in materially
 different universes. Existing V2 projects are compatibility controls and are
 never silently upgraded.
 
+## Narrative V3 universal invariant engine
+
+V3 structural validity is expressed as the conjunction of independent domains,
+not as an ordered list of mutually replacing templates. Narrative role owns
+dramatic energy, physical topology owns spatial geometry, the canonical graph
+owns cast and movement, wardrobe/equipment owns worn state, and the object
+lifecycle owns quantity, identity and location. A valid scene must satisfy all
+applicable constraints simultaneously. In particular, `climax + passage`
+retains the unique narrative peak and overlays readable boundary geometry;
+`attempt + passage` retains attempt energy instead of becoming a weaker generic
+threshold scene.
+
+Every unexpected invariant failure creates a content-free counterexample
+fingerprint before image generation. The durable checkpoint may contain only
+stage, stable issue codes and bounded structural enums/numbers; customer prose,
+names, photos and asset locations are forbidden. These fingerprints drive a
+permanent generated regression corpus rather than another book-specific repair
+policy. The initial exhaustive corpus covers all sellable lengths, every scene
+position and every supported transition, including the production-discovered
+climax/passage collision.
+
+Storyboard plan version 14 recompiles older failed V3 plans locally from their
+approved immutable spec. The scenario and manuscript stay unchanged and no
+additional model or credit is consumed. Existing V2 projects retain their
+legacy plan path.
+
 ## Monotonic PostgreSQL migration ledger
 
 Production migrations are append-only operations, not a desired-schema replay.

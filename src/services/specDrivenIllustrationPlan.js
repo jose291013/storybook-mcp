@@ -9,7 +9,10 @@ import {
   wholeBookVisualRhythmIssues,
 } from "./visualCompositionPlan.js";
 
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 13;
+// Version 14 recompiles every V3 storyboard through the universal invariant
+// engine. This deliberately invalidates a pre-engine checkpoint while keeping
+// its approved immutable NarrativeBookSpec.v3 untouched.
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 14;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v1_visible_cast_roles_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 

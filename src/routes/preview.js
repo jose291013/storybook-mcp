@@ -85,6 +85,7 @@ import {
 import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGovernor.js";
 import { enqueueNarrativeV3ProductionShadow } from "../services/narrativeV3ProductionShadow.js";
 import { projectUsesNarrativeV3 } from "../services/narrativeEngineAssignment.js";
+import { buildInvariantCounterexampleReport } from "../services/universalInvariantEngine.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -1255,9 +1256,23 @@ router.post("/preview", async (req, res) => {
           ...storyboardAdjacentHandoffIssues(storyScenePlan),
         ];
         if (bindingIssues.length) {
+          const invariantCounterexample = buildInvariantCounterexampleReport({
+            stage: "storyboard_binding",
+            issues: bindingIssues,
+            sceneContracts: storyScenePlan.sceneContracts,
+          });
+          await persistCheckpoint({ invariantCounterexample });
+          console.error("[visual-invariant-engine] counterexample", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            fingerprint: invariantCounterexample.fingerprint,
+            issueCodes: invariantCounterexample.issueCodes,
+            caseCount: invariantCounterexample.cases.length,
+          }));
           const bindingError = new Error(`Storyboard binding failed: ${bindingIssues.join(" | ")}`);
           bindingError.code = "storyboard_binding_invalid";
           bindingError.issues = bindingIssues;
+          bindingError.invariantCounterexample = invariantCounterexample;
           throw bindingError;
         }
       }

@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-customer-cutover`
-- Main checkpoint before this brick: `a473c2d` (PR #235)
-- Current focused checkpoint: finish and release the immutable V3 customer cutover for newly created projects
+- Current branch: `codex/visual-invariant-engine`
+- Main checkpoint before this brick: `9e908aa` (PR #236)
+- Current focused checkpoint: universal V3 invariant composition and anonymized counterexample memory
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -70,6 +70,32 @@ Live, create one new 32-page book in a non-portal universe and one in a portal
 universe. Logs must show `[narrative-v3] approved immutable contract`; they must
 not show V2 canonical repair activity for those new project ids. Existing
 books remain valid V2 controls.
+
+## Product brick: universal V3 invariant engine
+
+Narrative role, physical topology, visible phase and adjacent composition are
+now independent inputs to one deterministic visual constraint policy. A
+passage can no longer replace the story role's energy or composition: it adds
+departure/passage/destination geometry as an orthogonal overlay. The climax
+therefore remains the book's unique energy-5 peak even when it crosses a
+passage, while attempts keep their own energy and final settled returns remain
+low-energy. This removes the conflicting priority chain that allowed one local
+rule to invalidate another after the manuscript had already been generated.
+
+Spec-driven storyboard version 14 forces a failed pre-engine V3 checkpoint to
+recompile locally from its unchanged approved `NarrativeBookSpec.v3`; no new
+scenario, manuscript or provider call is needed. Any remaining storyboard
+invariant failure is persisted and logged as a stable structural fingerprint:
+only enum-like roles, transitions, phases, composition ids, energy and issue
+codes are retained. Story text, names, photos and asset references are absent.
+
+The permanent counterexample matrix enumerates all six sellable page counts,
+every scene position and every supported single-scene transition: 384 complete
+book configurations. It also binds the engine registry to narrative role,
+topology, cast cardinality, wardrobe/equipment, object lifecycle and visual
+composition so later invariant domains extend the same evidence format rather
+than adding another repair loop. The repository verification checkpoint is
+680/680 passing tests, including the full V3 language/universe/format matrices.
 
 ## Product brick: persistent visual entity ledger
 
