@@ -1,3 +1,8 @@
+import {
+  compileVisualInvariantPolicy,
+  universalVisualInvariantIssues,
+} from "./universalInvariantEngine.js";
+
 export const VISUAL_COMPOSITION_PLAN_VERSION = 3;
 
 const COMPOSITIONS = Object.freeze({
@@ -172,23 +177,30 @@ const FALLBACK_SEQUENCE = Object.freeze([
   "layered_resolution",
 ]);
 
-function selectCompositionId({
+function selectComposition({
   sceneNumber,
   storyRole,
   transitionKind,
   visiblePhase,
   previousCompositionId,
 }) {
-  const crossesBoundary = transitionKind === "cross_passage" || transitionKind === "return_travel";
-  const showsSettledReturn = storyRole === "return_home_and_moral" && visiblePhase === "end";
-  let id = crossesBoundary && !showsSettledReturn
-    ? transitionKind === "return_travel" || previousCompositionId === "threshold_profile"
-      ? "threshold_reverse_profile"
-      : "threshold_profile"
-    : ROLE_COMPOSITION[String(storyRole || "").trim()]
-      || FALLBACK_SEQUENCE[(Math.max(1, Number(sceneNumber) || 1) - 1) % FALLBACK_SEQUENCE.length];
+  const roleCompositionId = ROLE_COMPOSITION[String(storyRole || "").trim()]
+    || FALLBACK_SEQUENCE[(Math.max(1, Number(sceneNumber) || 1) - 1) % FALLBACK_SEQUENCE.length];
+  const policy = compileVisualInvariantPolicy({
+    sceneNumber,
+    storyRole,
+    transitionKind,
+    visiblePhase,
+    previousCompositionId,
+    roleCompositionId,
+  });
+  let id = policy.compositionId;
   if (id === previousCompositionId) {
-    if (showsSettledReturn) {
+    if (policy.uniquePeakRequired) {
+      // Two adjacent climaxes are a structural story defect. Do not hide it by
+      // weakening either peak into an unrelated fallback composition.
+      id = policy.compositionId;
+    } else if (policy.settledReturnRequired) {
       id = "layered_resolution";
     } else {
       const start = Math.max(0, FALLBACK_SEQUENCE.indexOf(id));
@@ -196,7 +208,7 @@ function selectCompositionId({
       id = FALLBACK_SEQUENCE[(start + offset) % FALLBACK_SEQUENCE.length];
     }
   }
-  return id;
+  return { compositionId: id, policy };
 }
 
 export function compileVisualComposition({
@@ -207,7 +219,7 @@ export function compileVisualComposition({
   visibleCharacterCount = 1,
   previousCompositionId = "",
 } = {}) {
-  const compositionId = selectCompositionId({
+  const { compositionId, policy } = selectComposition({
     sceneNumber,
     storyRole,
     transitionKind,
@@ -215,16 +227,32 @@ export function compileVisualComposition({
     previousCompositionId,
   });
   const template = COMPOSITIONS[compositionId] || COMPOSITIONS.establishing_environment;
+  const topologyOverlayRequired = Boolean(
+    policy.topologyCompositionId && compositionId !== policy.topologyCompositionId,
+  );
+  const topologyTemplate = topologyOverlayRequired
+    ? COMPOSITIONS[policy.topologyCompositionId]
+    : null;
   return {
     version: VISUAL_COMPOSITION_PLAN_VERSION,
     composition_id: compositionId,
     story_role: String(storyRole || ""),
     framing: "single square illustration",
     ...template,
+    ...(topologyTemplate ? {
+      viewpoint: `${template.viewpoint}; preserve the passage as ${topologyTemplate.viewpoint}`,
+      subject_placement: `${template.subject_placement}; ${topologyTemplate.subject_placement}`,
+      depth_plan: topologyTemplate.depth_plan,
+    } : {}),
     cast_readability: Number(visibleCharacterCount || 0) > 2
       ? "keep every required character complete and separately readable; never crop or merge a group member"
       : "keep every required character complete, separate and readable",
     action_readability: "composition may vary, but the signed main action, physical phase, cast, location and object states may not change",
+    invariant_engine: {
+      ...policy,
+      topologyOverlayRequired,
+      resolvedCompositionId: compositionId,
+    },
   };
 }
 
@@ -258,6 +286,8 @@ export function visualCompositionPlanIssues(sceneContracts = [], {
         issues.push(`scene ${sceneNumber} visual composition energy is invalid`);
       }
     }
+    issues.push(...universalVisualInvariantIssues(composition)
+      .map((issue) => `scene ${sceneNumber} ${issue}`));
     previous = String(composition?.composition_id || "");
   }
   return [...new Set(issues)];
@@ -292,6 +322,11 @@ export function wholeBookVisualRhythmIssues(sceneContracts = []) {
       issues.push("whole-book visual rhythm does not release after the climax");
     }
   }
+  const nonClimaxPeaks = contracts.filter((contract) => (
+    contract?.visual_composition?.story_role !== "climax"
+    && Number(contract?.visual_composition?.energy_level || 0) >= 5
+  ));
+  if (nonClimaxPeaks.length) issues.push("whole-book visual rhythm has peak intensity outside the climax");
   const attempts = contracts.filter((contract) => ["first_attempt", "second_attempt", "third_attempt"]
     .includes(contract?.visual_composition?.story_role));
   if (attempts.length && !attempts.some((contract) => Number(contract?.visual_composition?.energy_level || 0) >= 4)) {

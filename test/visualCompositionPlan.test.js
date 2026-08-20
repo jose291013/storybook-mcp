@@ -48,15 +48,17 @@ test("whole-book rhythm rejects a flattened climax and four identical scales", (
   assert.ok(issues.some((issue) => /repeats one scale family four times/u.test(issue)));
 });
 
-test("a real world crossing receives a spatial threshold composition", () => {
+test("a real world crossing overlays threshold topology without erasing narrative energy", () => {
   const composition = compileVisualComposition({
     sceneNumber: 5,
     storyRole: "first_attempt",
     transitionKind: "cross_passage",
     visibleCharacterCount: 3,
   });
-  assert.equal(composition.composition_id, "threshold_profile");
+  assert.equal(composition.composition_id, "diagonal_action");
+  assert.equal(composition.energy_level, 4);
   assert.match(composition.depth_plan, /departure side.*passage.*destination side/iu);
+  assert.equal(composition.invariant_engine.topologyOverlayRequired, true);
   assert.match(composition.cast_readability, /never crop or merge/iu);
 
   const adjacentReturn = compileVisualComposition({
@@ -67,7 +69,8 @@ test("a real world crossing receives a spatial threshold composition", () => {
     visibleCharacterCount: 3,
     previousCompositionId: composition.composition_id,
   });
-  assert.equal(adjacentReturn.composition_id, "threshold_reverse_profile");
+  assert.equal(adjacentReturn.composition_id, "intimate_reflection");
+  assert.equal(adjacentReturn.energy_level, 1);
   assert.match(adjacentReturn.depth_plan, /departure side.*passage.*destination side/iu);
 });
 
@@ -93,8 +96,9 @@ test("a completed final return illustrates the settled moral rather than the cro
     visiblePhase: "during",
     visibleCharacterCount: 2,
   });
-  assert.equal(crossingReturn.composition_id, "threshold_reverse_profile");
-  assert.equal(crossingReturn.energy_level, 3);
+  assert.equal(crossingReturn.composition_id, "intimate_reflection");
+  assert.equal(crossingReturn.energy_level, 1);
+  assert.match(crossingReturn.depth_plan, /departure side.*passage.*destination side/iu);
 
   const settledAfterReflection = compileVisualComposition({
     sceneNumber: 15,
