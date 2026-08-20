@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-production-render-authority`
-- Main checkpoint before this brick: `aa3e922` (PR #245)
-- Current focused checkpoint: connect the completed strict V3 artifact chain to the real production preview worker
+- Current branch: `main`
+- Main checkpoint: `04dcc64` (PR #246)
+- Current focused checkpoint: verify the production rendering authority on two new 32-page V3 books after Render is Live
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -21,7 +21,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #244 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #246 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
