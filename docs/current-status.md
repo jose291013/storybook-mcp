@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/strict-illustration-evidence-v2`
-- Main checkpoint before this brick: `14a5c81` (PR #242)
-- Current focused checkpoint: strict objective illustration evidence before delivery
+- Current branch: `codex/v3-delivery-gate-v2`
+- Main checkpoint before this brick: `a192899` (PR #243)
+- Current focused checkpoint: strict V3 delivery authority and complete shadow gate
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -172,6 +172,26 @@ so a retry cannot silently evaluate another scene contract or candidate.
 Migration 031 widens only isolated V3 artifact and durable-step constraints;
 approved books, V2 projects, commerce, credits and series canon are unchanged.
 Verification: the complete repository suite passes 702/702 tests.
+
+## Product brick: DeliveryManifest.v2
+
+The final V3 delivery authority now has five exact immutable parents: released
+specification, manuscript, manuscript fact evidence, visual storyboard and
+strict illustration decisions. Every physical page cites its exact fact
+evidence; every image page additionally cites the strict decision digest and
+may expose only that decision's accepted private asset.
+
+Compilation fails closed if a single scene is rejected, quarantined, missing
+one of the eleven objective evidence domains or bound to a foreign ancestor.
+The legacy V1 manifest remains readable but the V3 shadow matrix now produces
+only `illustration_decision_set_v2` and `delivery_manifest_v2` at its delivery
+boundary. Migration 032 widens only isolated V3 artifact and step constraints.
+
+The complete 108-fixture language/universe/format shadow passes with 12
+immutable artifacts per fixture, five adversarial object rejections per book,
+zero provider calls, zero paid calls, no customer route and idempotent replay.
+Gate digest: `080038fde2b50651b729d584ae79e04c0f00f2a108f71c9d9895af8e65a84fe9`.
+Verification: the complete repository suite passes 707/707 tests.
 
 ## Product brick: SceneRenderContract.v1
 
@@ -923,14 +943,13 @@ Verification: 129 focused scenario/worker tests and the complete 552-test suite 
 
 ## Next verification target
 
-1. Compile `DeliveryManifest.v2` from the exact released spec, manuscript,
-   manuscript facts, storyboard and strict illustration decisions.
-2. Refuse delivery whenever any scene is rejected, quarantined, missing an
-   objective domain or bound to a foreign parent digest.
-3. Move the complete 108-fixture V3 matrix to the strict decision and delivery
-   path, including idempotent replay and adversarial counterexamples.
-4. Keep every V2 project readable and unchanged while the V3 delivery boundary
-   is verified before production use.
+1. Deploy migration 032 and verify Render reaches Live without narrowing any
+   previously populated artifact constraint.
+2. Create one new 32-page V3 book in a non-portal universe and confirm its logs
+   retain the immutable V3 ancestry through manuscript and storyboard.
+3. Observe strict image evidence in production before allowing a real V3
+   delivery manifest to become customer-visible.
+4. Keep legacy V1 manifests and every V2 project readable and unchanged.
 
 ## Protected local state
 

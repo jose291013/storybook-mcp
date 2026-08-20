@@ -37,6 +37,7 @@ export const illustrationDecisionSetSchema = readSchema("illustrationDecisionSet
 export const illustrationEvaluationWireV2Schema = readSchema("illustrationEvaluationWire.v2.schema.json");
 export const illustrationDecisionSetV2Schema = readSchema("illustrationDecisionSet.v2.schema.json");
 export const deliveryManifestSchema = readSchema("deliveryManifest.v1.schema.json");
+export const deliveryManifestV2Schema = readSchema("deliveryManifest.v2.schema.json");
 
 ajv.addSchema(creationIntentSchema);
 ajv.addSchema(visualIntentSchema);
@@ -60,6 +61,7 @@ ajv.addSchema(illustrationDecisionSetSchema);
 ajv.addSchema(illustrationEvaluationWireV2Schema);
 ajv.addSchema(illustrationDecisionSetV2Schema);
 ajv.addSchema(deliveryManifestSchema);
+ajv.addSchema(deliveryManifestV2Schema);
 
 const validators = new Map([
   ["creation_intent", ajv.getSchema(creationIntentSchema.$id)],
@@ -84,6 +86,7 @@ const validators = new Map([
   ["illustration_evaluation_wire_v2", ajv.getSchema(illustrationEvaluationWireV2Schema.$id)],
   ["illustration_decision_set_v2", ajv.getSchema(illustrationDecisionSetV2Schema.$id)],
   ["delivery_manifest_v1", ajv.getSchema(deliveryManifestSchema.$id)],
+  ["delivery_manifest_v2", ajv.getSchema(deliveryManifestV2Schema.$id)],
 ]);
 
 function boundedErrors(errors = []) {

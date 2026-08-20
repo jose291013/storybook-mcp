@@ -24,6 +24,7 @@ const STEP_TYPES = Object.freeze({
   decide_illustrations: "illustration_decision_set",
   decide_illustrations_strict: "illustration_decision_set_v2",
   assemble_delivery_manifest: "delivery_manifest",
+  assemble_delivery_manifest_v2: "delivery_manifest_v2",
 });
 const STEP_INPUT_TYPES = Object.freeze({
   parse_story_concept: Object.freeze(["creation_intent"]),
@@ -39,6 +40,7 @@ const STEP_INPUT_TYPES = Object.freeze({
   decide_illustrations: Object.freeze(["visual_storyboard", "image_candidate_set"]),
   decide_illustrations_strict: Object.freeze(["visual_storyboard", "image_candidate_set"]),
   assemble_delivery_manifest: Object.freeze(["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"]),
+  assemble_delivery_manifest_v2: Object.freeze(["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence", "visual_storyboard", "illustration_decision_set_v2"]),
 });
 const STEP_INPUT_TYPE_VARIANTS = Object.freeze({
   compile_visual_storyboard: Object.freeze([

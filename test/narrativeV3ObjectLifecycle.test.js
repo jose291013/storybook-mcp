@@ -147,15 +147,16 @@ test("the object projection is committed through the real ledger and durable ste
     const candidatePointer = await artifactStore.getCurrentPointer(projectId, "image_candidate_set");
     const candidates = await artifactStore.getArtifact(candidatePointer.artifactId);
     assert.deepEqual(candidates.parents.map((parent) => parent.artifactType), ["visual_storyboard", "visual_continuity_plan"]);
-    const decisionPointer = await artifactStore.getCurrentPointer(projectId, "illustration_decision_set");
+    const decisionPointer = await artifactStore.getCurrentPointer(projectId, "illustration_decision_set_v2");
     const decisions = await artifactStore.getArtifact(decisionPointer.artifactId);
     assert.deepEqual(decisions.parents.map((parent) => parent.artifactType), ["visual_storyboard", "image_candidate_set"]);
     assert.equal(decisions.payload.validation.rejectedCount, 0);
-    const deliveryPointer = await artifactStore.getCurrentPointer(projectId, "delivery_manifest");
+    assert.equal(decisions.payload.validation.quarantinedCount, 0);
+    const deliveryPointer = await artifactStore.getCurrentPointer(projectId, "delivery_manifest_v2");
     const delivery = await artifactStore.getArtifact(deliveryPointer.artifactId);
     assert.deepEqual(
       delivery.parents.map((parent) => parent.artifactType),
-      ["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"],
+      ["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence", "visual_storyboard", "illustration_decision_set_v2"],
     );
     assert.equal(delivery.payload.book.ready, true);
   });

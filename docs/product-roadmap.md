@@ -149,10 +149,18 @@ cardinality, landmarks and style continuity. A confirmed defect rejects the
 candidate; insufficient evidence quarantines it internally. Neither outcome
 exposes an asset or becomes unpaid customer review work.
 
-The next phase is `DeliveryManifest.v2`. It will accept only strict V2
-decisions whose eleven domains all pass, bind the exact manuscript-fact and
-storyboard ancestry, and become the sole V3 delivery authority exercised by the
-complete counterexample matrix.
+`DeliveryManifest.v2` now accepts only strict V2 decisions whose eleven domains
+all pass. It binds the exact released spec, manuscript, manuscript-fact,
+storyboard and strict-decision ancestry, and every physical page cites its exact
+fact evidence. Rejected and quarantined scenes cannot expose an asset or compile
+a deliverable book.
+
+The complete counterexample matrix now exercises this strict chain over all 108
+language, universe and format combinations. Its current passing gate digest is
+`080038fde2b50651b729d584ae79e04c0f00f2a108f71c9d9895af8e65a84fe9`,
+with zero provider calls, zero paid calls, no customer route and successful
+idempotent replay. Production observation remains required after deployment;
+the synthetic gate proves structure and durability, not model accuracy.
 
 ## Monotonic PostgreSQL migration ledger
 
