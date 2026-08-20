@@ -142,10 +142,17 @@ physical, evoked, transition and lifecycle facts, and projects exact visual
 requirements for the next stage. A new storyboard must cite this evidence as
 an immutable parent; the old two-parent lineage is read-only compatibility.
 
-The next phase is `StrictIllustrationEvidence.v2`: every objective visual
-domain must return deterministic passing evidence, while uncertain vision
-results remain an internal retry/quarantine condition and never become unpaid
-customer review work.
+`StrictIllustrationEvidence.v2` now requires explicit evidence for all eleven
+objective image domains: asset integrity, identity cardinality, forbidden cast,
+wardrobe, equipment, physical medium, location boundary, main action, object
+cardinality, landmarks and style continuity. A confirmed defect rejects the
+candidate; insufficient evidence quarantines it internally. Neither outcome
+exposes an asset or becomes unpaid customer review work.
+
+The next phase is `DeliveryManifest.v2`. It will accept only strict V2
+decisions whose eleven domains all pass, bind the exact manuscript-fact and
+storyboard ancestry, and become the sole V3 delivery authority exercised by the
+complete counterexample matrix.
 
 ## Monotonic PostgreSQL migration ledger
 

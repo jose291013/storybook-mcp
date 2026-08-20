@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/manuscript-fact-evidence-v1`
-- Main checkpoint before this brick: `938f885` (PR #241)
-- Current focused checkpoint: deterministic manuscript facts before storyboard compilation
+- Current branch: `codex/strict-illustration-evidence-v2`
+- Main checkpoint before this brick: `14a5c81` (PR #242)
+- Current focused checkpoint: strict objective illustration evidence before delivery
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -156,6 +156,22 @@ immutable parent; previously persisted two-parent storyboards remain readable.
 Migration 030 only expands isolated V3 artifact and durable-step constraints.
 No customer project, credit, series canon or legacy V2 artifact is rewritten.
 Verification: the complete repository suite passes 697/697 tests.
+
+## Product brick: StrictIllustrationEvidence.v2
+
+Every V3 image candidate is now evaluated through one strict versioned wire
+covering all eleven objective domains: asset integrity, identity cardinality,
+forbidden cast, wardrobe, equipment, physical medium, location boundary, main
+action, object cardinality, landmarks and style continuity. A domain passes
+only with explicit `verified` evidence; a confirmed defect rejects the asset
+and insufficient evidence quarantines it internally.
+
+The resulting immutable decision set never exposes a rejected or quarantined
+asset. Its exact parents are the released visual storyboard and candidate set,
+so a retry cannot silently evaluate another scene contract or candidate.
+Migration 031 widens only isolated V3 artifact and durable-step constraints;
+approved books, V2 projects, commerce, credits and series canon are unchanged.
+Verification: the complete repository suite passes 702/702 tests.
 
 ## Product brick: SceneRenderContract.v1
 
@@ -907,14 +923,14 @@ Verification: 129 focused scenario/worker tests and the complete 552-test suite 
 
 ## Next verification target
 
-1. Compile a strict versioned manuscript artifact only from one sealed
-   `NarrativeBookSpec.v3` parent.
-2. Bind every text page to its exact scene, page and released object-state
-   digest without reading legacy scenario or blueprint state.
-3. Prove deterministic batching, idempotent restart and language/age bounds on
-   synthetic fixtures before introducing any provider call.
-4. Keep every V2 project on its existing path and require an explicit rollout
-   decision before the first V3 canary.
+1. Compile `DeliveryManifest.v2` from the exact released spec, manuscript,
+   manuscript facts, storyboard and strict illustration decisions.
+2. Refuse delivery whenever any scene is rejected, quarantined, missing an
+   objective domain or bound to a foreign parent digest.
+3. Move the complete 108-fixture V3 matrix to the strict decision and delivery
+   path, including idempotent replay and adversarial counterexamples.
+4. Keep every V2 project readable and unchanged while the V3 delivery boundary
+   is verified before production use.
 
 ## Protected local state
 

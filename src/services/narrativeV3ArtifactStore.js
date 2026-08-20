@@ -89,6 +89,12 @@ import {
   loadIllustrationDecisionSet,
 } from "../contracts/illustrationEvidenceV1.js";
 import {
+  ILLUSTRATION_DECISION_SET_V2_ID,
+  ILLUSTRATION_DECISION_SET_V2_VERSION,
+  illustrationDecisionSetV2Digest,
+  loadIllustrationDecisionSetV2,
+} from "../contracts/illustrationEvidenceV2.js";
+import {
   DELIVERY_MANIFEST_ID,
   DELIVERY_MANIFEST_VERSION,
   deliveryManifestDigest,
@@ -216,6 +222,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     schemaVersion: ILLUSTRATION_DECISION_SET_VERSION,
     load: loadIllustrationDecisionSet,
     digest: illustrationDecisionSetDigest,
+    parentTypes: Object.freeze(["visual_storyboard", "image_candidate_set"]),
+  }),
+  illustration_decision_set_v2: Object.freeze({
+    contractId: ILLUSTRATION_DECISION_SET_V2_ID,
+    schemaVersion: ILLUSTRATION_DECISION_SET_V2_VERSION,
+    load: loadIllustrationDecisionSetV2,
+    digest: illustrationDecisionSetV2Digest,
     parentTypes: Object.freeze(["visual_storyboard", "image_candidate_set"]),
   }),
   delivery_manifest: Object.freeze({
@@ -415,6 +428,15 @@ function validateArtifactInput(input = {}) {
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The illustration decisions do not match their declared storyboard and candidate-set digests.");
+  }
+  if (
+    artifactType === "illustration_decision_set_v2"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.visualStoryboard.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.imageCandidateSet.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The strict illustration decisions do not match their declared storyboard and candidate-set digests.");
   }
   if (
     artifactType === "delivery_manifest"

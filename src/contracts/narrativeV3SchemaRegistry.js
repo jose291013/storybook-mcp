@@ -34,6 +34,8 @@ export const visualContinuityPlanSchema = readSchema("visualContinuityPlan.v1.sc
 export const imageCandidateSetSchema = readSchema("imageCandidateSet.v1.schema.json");
 export const illustrationEvaluationWireSchema = readSchema("illustrationEvaluationWire.v1.schema.json");
 export const illustrationDecisionSetSchema = readSchema("illustrationDecisionSet.v1.schema.json");
+export const illustrationEvaluationWireV2Schema = readSchema("illustrationEvaluationWire.v2.schema.json");
+export const illustrationDecisionSetV2Schema = readSchema("illustrationDecisionSet.v2.schema.json");
 export const deliveryManifestSchema = readSchema("deliveryManifest.v1.schema.json");
 
 ajv.addSchema(creationIntentSchema);
@@ -55,6 +57,8 @@ ajv.addSchema(visualContinuityPlanSchema);
 ajv.addSchema(imageCandidateSetSchema);
 ajv.addSchema(illustrationEvaluationWireSchema);
 ajv.addSchema(illustrationDecisionSetSchema);
+ajv.addSchema(illustrationEvaluationWireV2Schema);
+ajv.addSchema(illustrationDecisionSetV2Schema);
 ajv.addSchema(deliveryManifestSchema);
 
 const validators = new Map([
@@ -77,6 +81,8 @@ const validators = new Map([
   ["image_candidate_set_v1", ajv.getSchema(imageCandidateSetSchema.$id)],
   ["illustration_evaluation_wire_v1", ajv.getSchema(illustrationEvaluationWireSchema.$id)],
   ["illustration_decision_set_v1", ajv.getSchema(illustrationDecisionSetSchema.$id)],
+  ["illustration_evaluation_wire_v2", ajv.getSchema(illustrationEvaluationWireV2Schema.$id)],
+  ["illustration_decision_set_v2", ajv.getSchema(illustrationDecisionSetV2Schema.$id)],
   ["delivery_manifest_v1", ajv.getSchema(deliveryManifestSchema.$id)],
 ]);
 

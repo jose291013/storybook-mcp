@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/illustration-decision-set.v2.json",
+  "title": "Calitiki Strict Illustration Decision Set V2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "decisions", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "contractId": { "const": "calitiki.illustration-decision-set.v2" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visualStoryboard", "imageCandidateSet"],
+      "properties": {
+        "visualStoryboard": { "$ref": "#/$defs/source" },
+        "imageCandidateSet": { "$ref": "#/$defs/source" }
+      }
+    },
+    "decisions": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/decision" } },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parserVersion", "acceptedCount", "rejectedCount", "quarantinedCount", "artifactDigest"],
+      "properties": {
+        "parserVersion": { "const": 2 },
+        "acceptedCount": { "type": "integer", "minimum": 0, "maximum": 21 },
+        "rejectedCount": { "type": "integer", "minimum": 0, "maximum": 21 },
+        "quarantinedCount": { "type": "integer", "minimum": 0, "maximum": 21 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "evidenceCode"],
+      "properties": {
+        "status": { "enum": ["pass", "fail", "uncertain"] },
+        "evidenceCode": { "type": "string", "minLength": 1, "maxLength": 80 }
+      }
+    },
+    "domains": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assetIntegrity", "identityCardinality", "forbiddenCast",
+        "wardrobe", "equipment", "physicalMedium", "locationBoundary",
+        "mainAction", "objectCardinality", "landmarks", "styleContinuity"
+      ],
+      "properties": {
+        "assetIntegrity": { "$ref": "#/$defs/assessment" },
+        "identityCardinality": { "$ref": "#/$defs/assessment" },
+        "forbiddenCast": { "$ref": "#/$defs/assessment" },
+        "wardrobe": { "$ref": "#/$defs/assessment" },
+        "equipment": { "$ref": "#/$defs/assessment" },
+        "physicalMedium": { "$ref": "#/$defs/assessment" },
+        "locationBoundary": { "$ref": "#/$defs/assessment" },
+        "mainAction": { "$ref": "#/$defs/assessment" },
+        "objectCardinality": { "$ref": "#/$defs/assessment" },
+        "landmarks": { "$ref": "#/$defs/assessment" },
+        "styleContinuity": { "$ref": "#/$defs/assessment" }
+      }
+    },
+    "asset": { "$ref": "https://calitiki.com/schemas/image-candidate-set.v1.json#/$defs/asset" },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sceneNumber", "beatDigest", "candidateDigest", "outcome", "domains", "acceptedAsset", "decisionDigest"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "beatDigest": { "$ref": "#/$defs/digest" },
+        "candidateDigest": { "$ref": "#/$defs/digest" },
+        "outcome": { "enum": ["accepted", "rejected", "quarantined"] },
+        "domains": { "$ref": "#/$defs/domains" },
+        "acceptedAsset": { "anyOf": [{ "$ref": "#/$defs/asset" }, { "type": "null" }] },
+        "decisionDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
