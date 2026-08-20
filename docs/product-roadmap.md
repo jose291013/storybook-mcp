@@ -133,7 +133,19 @@ universes: zones and media, passage geometry and camera side, gravity and
 locomotion, per-person survival equipment, time continuity, scale, native and
 forbidden elements, capabilities and landmark cardinality. Character equipment
 is derived from the declared medium rather than from a universe id or prose
-keyword. The next phase is `ManuscriptFactEvidence.v1`.
+keyword.
+
+`ManuscriptFactEvidence.v1` is now compiled after the immutable manuscript and
+before the visual storyboard. It binds every page text digest to one released
+scene, checks all registered named character/location/object mentions against
+physical, evoked, transition and lifecycle facts, and projects exact visual
+requirements for the next stage. A new storyboard must cite this evidence as
+an immutable parent; the old two-parent lineage is read-only compatibility.
+
+The next phase is `StrictIllustrationEvidence.v2`: every objective visual
+domain must return deterministic passing evidence, while uncertain vision
+results remain an internal retry/quarantine condition and never become unpaid
+customer review work.
 
 ## Monotonic PostgreSQL migration ledger
 

@@ -18,7 +18,7 @@ function passingReport(index) {
     status: "passed",
     deliveryReady: true,
     adversarialCases: 5,
-    artifactDigests: Object.fromEntries(Array.from({ length: 11 }, (_, artifact) => [`artifact${artifact}`, String(artifact).padStart(64, "0")])),
+    artifactDigests: Object.fromEntries(Array.from({ length: 12 }, (_, artifact) => [`artifact${artifact}`, String(artifact).padStart(64, "0")])),
     providerCalls: 0,
     paidModelCalls: 0,
     customerRoutesTouched: false,

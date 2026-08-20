@@ -61,6 +61,12 @@ import {
   manuscriptDigest,
 } from "../contracts/manuscriptV1.js";
 import {
+  MANUSCRIPT_FACT_EVIDENCE_ID,
+  MANUSCRIPT_FACT_EVIDENCE_VERSION,
+  loadManuscriptFactEvidence,
+  manuscriptFactEvidenceDigest,
+} from "../contracts/manuscriptFactEvidenceV1.js";
+import {
   VISUAL_STORYBOARD_ID,
   VISUAL_STORYBOARD_VERSION,
   loadVisualStoryboard,
@@ -173,12 +179,23 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     digest: manuscriptDigest,
     parentTypes: Object.freeze(["narrative_book_spec_v3"]),
   }),
+  manuscript_fact_evidence: Object.freeze({
+    contractId: MANUSCRIPT_FACT_EVIDENCE_ID,
+    schemaVersion: MANUSCRIPT_FACT_EVIDENCE_VERSION,
+    load: loadManuscriptFactEvidence,
+    digest: manuscriptFactEvidenceDigest,
+    parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+  }),
   visual_storyboard: Object.freeze({
     contractId: VISUAL_STORYBOARD_ID,
     schemaVersion: VISUAL_STORYBOARD_VERSION,
     load: loadVisualStoryboard,
     digest: visualStoryboardDigest,
-    parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+    parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence"]),
+    parentTypeVariants: Object.freeze([
+      Object.freeze(["narrative_book_spec_v3", "manuscript"]),
+      Object.freeze(["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence"]),
+    ]),
   }),
   visual_continuity_plan: Object.freeze({
     contractId: VISUAL_CONTINUITY_PLAN_ID,
@@ -360,10 +377,20 @@ function validateArtifactInput(input = {}) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The manuscript parent does not match its declared released-spec digest.");
   }
   if (
+    artifactType === "manuscript_fact_evidence"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.narrativeBookSpec.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.manuscript.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The manuscript fact evidence parents do not match its declared released-spec and manuscript digests.");
+  }
+  if (
     artifactType === "visual_storyboard"
     && (
       parents[0]?.payloadDigest !== payload.sources.narrativeBookSpec.artifactDigest
       || parents[1]?.payloadDigest !== payload.sources.manuscript.artifactDigest
+      || (parents[2] && parents[2].payloadDigest !== payload.sources.manuscriptFactEvidence?.artifactDigest)
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The visual storyboard parents do not match its declared released-spec and manuscript digests.");

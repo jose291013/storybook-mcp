@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/manuscript-fact-evidence.v1.json",
+  "title": "Calitiki Manuscript Fact Evidence V1",
+  "description": "Deterministic page-by-page evidence proving that registered manuscript mentions and visual requirements descend from one released V3 scene.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "revision", "sources", "book", "pages", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.manuscript-fact-evidence.v1" },
+    "revision": { "type": "integer", "minimum": 1 },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["narrativeBookSpec", "manuscript"],
+      "properties": {
+        "narrativeBookSpec": { "$ref": "#/$defs/specSource" },
+        "manuscript": { "$ref": "#/$defs/manuscriptSource" }
+      }
+    },
+    "book": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "pageCount", "sceneCount"],
+      "properties": {
+        "language": { "enum": ["FR", "ES", "EN"] },
+        "pageCount": { "enum": [24, 28, 32, 36, 40, 44] },
+        "sceneCount": { "type": "integer", "minimum": 11, "maximum": 21 }
+      }
+    },
+    "pages": {
+      "type": "array",
+      "minItems": 13,
+      "maxItems": 23,
+      "items": { "$ref": "#/$defs/pageEvidence" }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["compilerVersion", "artifactDigest"],
+      "properties": {
+        "compilerVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "identifierArray": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/identifier" } },
+    "specSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.narrative-book-spec.v3" },
+        "schemaVersion": { "const": 3 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "manuscriptSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contractId", "schemaVersion", "artifactDigest"],
+      "properties": {
+        "contractId": { "const": "calitiki.manuscript.v1" },
+        "schemaVersion": { "const": 1 },
+        "artifactDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ancestry", "characterMentions", "locationMentions", "objectMentions", "visualProjection"],
+      "properties": {
+        "ancestry": { "const": "pass" },
+        "characterMentions": { "const": "pass" },
+        "locationMentions": { "const": "pass" },
+        "objectMentions": { "const": "pass" },
+        "visualProjection": { "const": "pass" }
+      }
+    },
+    "visualRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locationId", "physicalMediumId", "requiredCharacterIds", "forbiddenCharacterIds", "wardrobeStates", "requiredObjectIds", "forbiddenObjectIds", "mainAction"],
+      "properties": {
+        "locationId": { "$ref": "#/$defs/identifier" },
+        "physicalMediumId": { "$ref": "#/$defs/identifier" },
+        "requiredCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "forbiddenCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "wardrobeStates": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" } },
+        "requiredObjectIds": { "$ref": "#/$defs/identifierArray" },
+        "forbiddenObjectIds": { "$ref": "#/$defs/identifierArray" },
+        "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" }
+      }
+    },
+    "pageEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pageNumber", "kind", "sceneNumber", "textDigest", "sourceSceneDigest", "allowedPhysicalCharacterIds", "allowedEvokedCharacterIds", "allowedLocationIds", "availableObjectIds", "observedCharacterMentionIds", "observedLocationMentionIds", "observedObjectMentionIds", "visualRequirements", "checks", "evidenceDigest"],
+      "properties": {
+        "pageNumber": { "type": "integer", "minimum": 1, "maximum": 44 },
+        "kind": { "enum": ["opening_text", "scene_text", "closing_text"] },
+        "sceneNumber": { "anyOf": [{ "type": "integer", "minimum": 1, "maximum": 21 }, { "type": "null" }] },
+        "textDigest": { "$ref": "#/$defs/digest" },
+        "sourceSceneDigest": { "anyOf": [{ "$ref": "#/$defs/digest" }, { "type": "null" }] },
+        "allowedPhysicalCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "allowedEvokedCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "allowedLocationIds": { "$ref": "#/$defs/identifierArray" },
+        "availableObjectIds": { "$ref": "#/$defs/identifierArray" },
+        "observedCharacterMentionIds": { "$ref": "#/$defs/identifierArray" },
+        "observedLocationMentionIds": { "$ref": "#/$defs/identifierArray" },
+        "observedObjectMentionIds": { "$ref": "#/$defs/identifierArray" },
+        "visualRequirements": { "anyOf": [{ "$ref": "#/$defs/visualRequirements" }, { "type": "null" }] },
+        "checks": { "$ref": "#/$defs/checks" },
+        "evidenceDigest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}

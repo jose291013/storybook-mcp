@@ -1,4 +1,5 @@
 import { loadManuscript, manuscriptDigest } from "./manuscriptV1.js";
+import { loadManuscriptFactEvidence, manuscriptFactEvidenceDigest } from "./manuscriptFactEvidenceV1.js";
 import { canonicalDigest } from "./narrativeV3Canonical.js";
 import { loadNarrativeBookSpecV3 } from "./narrativeBookSpecV3.js";
 import { assertNarrativeV3Schema, NarrativeV3ContractError } from "./narrativeV3SchemaRegistry.js";
@@ -92,9 +93,15 @@ function compileComposition(scene, previousCompositionId) {
   };
 }
 
-function assertSources(spec, manuscript) {
+function assertSources(spec, manuscript, evidence = null) {
   if (manuscript.sourceSpec.artifactDigest !== spec.validation.artifactDigest) {
     fail("storyboard_manuscript_spec_mismatch", "/sources", "The manuscript and visual storyboard must descend from the same exact released spec.");
+  }
+  if (evidence && (
+    evidence.sources.narrativeBookSpec.artifactDigest !== spec.validation.artifactDigest
+    || evidence.sources.manuscript.artifactDigest !== manuscriptDigest(manuscript)
+  )) {
+    fail("storyboard_fact_evidence_mismatch", "/sources", "The fact evidence does not descend from this exact released spec and manuscript.");
   }
 }
 
@@ -134,16 +141,27 @@ function assertInvariants(storyboard) {
   if (rhythms.length) fail("storyboard_visual_rhythm_invalid", "/beats", rhythms[0]);
 }
 
-export function compileVisualStoryboard({ spec: rawSpec, manuscript: rawManuscript, revision = 1 } = {}) {
+export function compileVisualStoryboard({ spec: rawSpec, manuscript: rawManuscript, factEvidence: rawFactEvidence = null, revision = 1 } = {}) {
   const spec = loadNarrativeBookSpecV3(rawSpec);
   const manuscript = loadManuscript(rawManuscript);
-  assertSources(spec, manuscript);
+  const factEvidence = rawFactEvidence ? loadManuscriptFactEvidence(rawFactEvidence) : null;
+  assertSources(spec, manuscript, factEvidence);
   if (!Number.isSafeInteger(Number(revision)) || Number(revision) < 1) fail("storyboard_revision_invalid", "/revision", "A positive storyboard revision is required.");
   let previousCompositionId = "";
   const beats = spec.scenes.map((scene) => {
     const page = manuscriptPageByScene(manuscript, scene.sceneNumber);
     if (!page || page.pageNumber !== scene.pageBinding.textPageNumber || page.sourceSceneDigest !== scene.sourceSceneDigest || page.objectStateDigest !== scene.objectStateDigest) {
       fail("storyboard_manuscript_page_mismatch", `/beats/${scene.sceneNumber - 1}`, "The paired prose page is not bound to this exact scene and object state.");
+    }
+    const pageEvidence = factEvidence?.pages.find((entry) => entry.sceneNumber === scene.sceneNumber);
+    if (factEvidence && (
+      !pageEvidence
+      || pageEvidence.textDigest !== canonicalDigest(page.text)
+      || pageEvidence.sourceSceneDigest !== scene.sourceSceneDigest
+      || pageEvidence.visualRequirements.locationId !== scene.illustrationInstant.locationId
+      || canonicalDigest(pageEvidence.visualRequirements.requiredCharacterIds) !== canonicalDigest([...scene.illustrationInstant.visibleCharacterIds].sort())
+    )) {
+      fail("storyboard_fact_evidence_page_mismatch", `/beats/${scene.sceneNumber - 1}`, "The storyboard cannot proceed without exact passing page fact evidence.");
     }
     const composition = compileComposition(scene, previousCompositionId);
     previousCompositionId = composition.compositionId;
@@ -191,6 +209,7 @@ export function compileVisualStoryboard({ spec: rawSpec, manuscript: rawManuscri
     sources: {
       narrativeBookSpec: { contractId: spec.contractId, schemaVersion: spec.schemaVersion, artifactDigest: spec.validation.artifactDigest },
       manuscript: { contractId: manuscript.contractId, schemaVersion: manuscript.schemaVersion, artifactDigest: manuscriptDigest(manuscript) },
+      ...(factEvidence ? { manuscriptFactEvidence: { contractId: factEvidence.contractId, schemaVersion: factEvidence.schemaVersion, artifactDigest: manuscriptFactEvidenceDigest(factEvidence) } } : {}),
     },
     book: { language: spec.book.language, pageCount: spec.book.pageCount, sceneCount: spec.scenes.length },
     beats,

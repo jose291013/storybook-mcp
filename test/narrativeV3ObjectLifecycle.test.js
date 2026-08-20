@@ -111,7 +111,7 @@ test("the object projection is committed through the real ledger and durable ste
     assert.deepEqual(replay, first);
     assert.equal(first.objectCount, 3);
     assert.equal(first.adversarialCases, 5);
-    assert.equal((await artifactStore.listArtifacts(projectId)).length, 11);
+    assert.equal((await artifactStore.listArtifacts(projectId)).length, 12);
     const pointer = await artifactStore.getCurrentPointer(projectId, "object_lifecycle_projection");
     const artifact = await artifactStore.getArtifact(pointer.artifactId);
     assert.equal(pointer.pointerRevision, 1);
@@ -130,12 +130,16 @@ test("the object projection is committed through the real ledger and durable ste
     assert.equal(manuscriptPointer.pointerRevision, 1);
     assert.deepEqual(manuscript.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3"]);
     assert.equal(manuscript.payload.sourceSpec.artifactDigest, release.payloadDigest);
+    const factPointer = await artifactStore.getCurrentPointer(projectId, "manuscript_fact_evidence");
+    const factEvidence = await artifactStore.getArtifact(factPointer.artifactId);
+    assert.deepEqual(factEvidence.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "manuscript"]);
     const storyboardPointer = await artifactStore.getCurrentPointer(projectId, "visual_storyboard");
     const storyboard = await artifactStore.getArtifact(storyboardPointer.artifactId);
     assert.equal(storyboardPointer.pointerRevision, 1);
-    assert.deepEqual(storyboard.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "manuscript"]);
+    assert.deepEqual(storyboard.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence"]);
     assert.equal(storyboard.payload.sources.narrativeBookSpec.artifactDigest, release.payloadDigest);
     assert.equal(storyboard.payload.sources.manuscript.artifactDigest, manuscript.payloadDigest);
+    assert.equal(storyboard.payload.sources.manuscriptFactEvidence.artifactDigest, factEvidence.payloadDigest);
     const continuityPointer = await artifactStore.getCurrentPointer(projectId, "visual_continuity_plan");
     const continuity = await artifactStore.getArtifact(continuityPointer.artifactId);
     assert.deepEqual(continuity.parents.map((parent) => parent.artifactType), ["narrative_book_spec_v3", "visual_storyboard"]);

@@ -28,6 +28,7 @@ export const objectLifecycleProjectionSchema = readSchema("objectLifecycleProjec
 export const narrativeBookSpecV3Schema = readSchema("narrativeBookSpec.v3.schema.json");
 export const manuscriptWireSchema = readSchema("manuscriptWire.v1.schema.json");
 export const manuscriptSchema = readSchema("manuscript.v1.schema.json");
+export const manuscriptFactEvidenceSchema = readSchema("manuscriptFactEvidence.v1.schema.json");
 export const visualStoryboardSchema = readSchema("visualStoryboard.v1.schema.json");
 export const visualContinuityPlanSchema = readSchema("visualContinuityPlan.v1.schema.json");
 export const imageCandidateSetSchema = readSchema("imageCandidateSet.v1.schema.json");
@@ -48,6 +49,7 @@ ajv.addSchema(objectLifecycleProjectionSchema);
 ajv.addSchema(narrativeBookSpecV3Schema);
 ajv.addSchema(manuscriptWireSchema);
 ajv.addSchema(manuscriptSchema);
+ajv.addSchema(manuscriptFactEvidenceSchema);
 ajv.addSchema(visualStoryboardSchema);
 ajv.addSchema(visualContinuityPlanSchema);
 ajv.addSchema(imageCandidateSetSchema);
@@ -69,6 +71,7 @@ const validators = new Map([
   ["narrative_book_spec_v3", ajv.getSchema(narrativeBookSpecV3Schema.$id)],
   ["manuscript_wire_v1", ajv.getSchema(manuscriptWireSchema.$id)],
   ["manuscript_v1", ajv.getSchema(manuscriptSchema.$id)],
+  ["manuscript_fact_evidence_v1", ajv.getSchema(manuscriptFactEvidenceSchema.$id)],
   ["visual_storyboard_v1", ajv.getSchema(visualStoryboardSchema.$id)],
   ["visual_continuity_plan_v1", ajv.getSchema(visualContinuityPlanSchema.$id)],
   ["image_candidate_set_v1", ajv.getSchema(imageCandidateSetSchema.$id)],
