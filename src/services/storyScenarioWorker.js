@@ -21,6 +21,8 @@ import {
 } from "./storyScenarioAutoRepair.js";
 import { buildStoryScenarioRepairDirectives } from "./storyScenarioRepairs.js";
 import { seriesScenarioContract } from "./seriesService.js";
+import { projectUsesNarrativeV3 } from "./narrativeEngineAssignment.js";
+import { generateNarrativeV3Scenario } from "./narrativeV3Scenario.js";
 
 const WORKER_KIND = "story_scenario";
 const DEFAULT_LEASE_MS = 120000;
@@ -357,6 +359,7 @@ async function completeScenario({
   scenario,
   validation,
   canonicalCandidateEvidence,
+  narrativeV3Artifacts = null,
   notifyMilestone,
 }) {
   if (!validation?.valid) {
@@ -396,7 +399,12 @@ async function completeScenario({
         startedAt: previous?.createdAt || createdAt,
       },
       storyScenario: storedScenario,
-      narrativeV2Candidate: canonicalCandidateEvidence,
+      ...(Number(canonicalCandidateEvidence?.version) === 3 ? {
+        narrativeV3Candidate: canonicalCandidateEvidence,
+        narrativeBookSpecV3: narrativeV3Artifacts?.spec || null,
+      } : {
+        narrativeV2Candidate: canonicalCandidateEvidence,
+      }),
       storyScenarioGeneration: {
         ...generation,
         status: "completed",
@@ -590,7 +598,6 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
   const workerId = dependencies.workerId || `scenario-${process.pid}-${crypto.randomUUID()}`;
   const leaseMs = dependencies.leaseMs || DEFAULT_LEASE_MS;
   const heartbeatMs = dependencies.heartbeatMs || DEFAULT_HEARTBEAT_MS;
-  const generate = dependencies.generate || generateValidatedScenario;
   const notifyMilestone = dependencies.notifyMilestone || notifyPreviewMilestone;
   const startedAt = Date.now();
   const stopHeartbeat = startHeartbeat(runs, run.id, workerId, leaseMs, heartbeatMs);
@@ -599,6 +606,14 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
     project = await projects.get(run.projectId);
     if (!project) throw new Error("Scenario project not found");
     const generation = scenarioGenerationSnapshot(project);
+    const generate = dependencies.generate || (projectUsesNarrativeV3(project)
+      ? (input) => generateNarrativeV3Scenario({
+          ...input,
+          project,
+          runId: run.id,
+          ...(dependencies.narrativeV3 || {}),
+        })
+      : generateValidatedScenario);
     if (generation?.runId === run.id && generation.status === "completed") {
       await runs.updateRun(run.id, {
         status: "completed",
@@ -729,7 +744,12 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       }
       throw error;
     }
-    let { scenario, validation, canonicalCandidateEvidence } = generated;
+    let {
+      scenario,
+      validation,
+      canonicalCandidateEvidence,
+      narrativeV3Artifacts = null,
+    } = generated;
     let repairProgress = generated.repairProgress || null;
     if (automaticRepair && !validation.valid && repairProgress?.improved) {
       const nextSummary = summarizeStoryScenarioValidation(validation);
@@ -817,6 +837,7 @@ export async function processStoryScenarioRun(run, dependencies = {}) {
       scenario,
       validation,
       canonicalCandidateEvidence,
+      narrativeV3Artifacts,
       notifyMilestone,
     });
   } catch (error) {

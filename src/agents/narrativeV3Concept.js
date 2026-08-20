@@ -13,6 +13,9 @@ function compactSource(source = {}) {
     story_seed: source.storySeed,
     cast: source.cast,
     required_structure: source.requiredStructure,
+    ...(source.seriesContinuity ? { series_continuity: source.seriesContinuity } : {}),
+    ...(source.revisionRequest ? { revision_request: source.revisionRequest } : {}),
+    ...(source.validationFeedback ? { validation_feedback: source.validationFeedback } : {}),
   };
 }
 
@@ -42,9 +45,16 @@ Hard structural rules:
 8. Each beat must advance action or emotion. Avoid repeated trials, duplicate landmarks and unexplained state changes.
 9. distinctive_image describes only the meaningful instant, not technical rendering instructions.
 10. Keep all strings within the supplied contract bounds and return no additional fields.`;
+  const seriesRule = source.seriesContinuity
+    ? "\n11. This is a series episode. Preserve the supplied stable character relationships and universe continuity, while creating a new conflict, action sequence and earned resolution."
+    : "";
+
+  const validationRule = source.validationFeedback
+    ? "\n12. The preceding semantic candidate was rejected before persistence. Correct every supplied validation_feedback item; do not copy an invalid field merely to preserve the earlier draft."
+    : "";
 
   return chatJson({
-    system,
+    system: `${system}${seriesRule}${validationRule}`,
     user: JSON.stringify(compactSource(source)),
     temperature: 0.2,
     clientKind: "background",

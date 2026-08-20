@@ -14,6 +14,8 @@ import {
   NARRATIVE_V2_PIPELINE_VERSION,
 } from "../services/narrativeBookSpecLifecycle.js";
 import { narrativeV2RolloutAssignment } from "../services/narrativeV2Rollout.js";
+import { projectUsesNarrativeV3 } from "../services/narrativeEngineAssignment.js";
+import { loadNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js";
 import {
   clarificationAnswersForApproval,
   hasCurrentStoryScenarioAuditEvidence,
@@ -481,9 +483,34 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
       approvedAt: new Date().toISOString(),
     };
     const continuitySnapshot = { ...project.continuitySnapshot, storyScenario: approved };
+    const usesNarrativeV3 = projectUsesNarrativeV3(project);
     const narrativeV2Rollout = narrativeV2RolloutAssignment(project);
-    continuitySnapshot.narrativeV2Rollout = narrativeV2Rollout;
-    if (Number(approved.version) === 2 && narrativeV2Rollout.enabled) {
+    if (usesNarrativeV3) {
+      const narrativeBookSpecV3 = loadNarrativeBookSpecV3(
+        project.continuitySnapshot?.narrativeBookSpecV3,
+      );
+      const candidateDigest = String(project.continuitySnapshot?.narrativeV3Candidate?.artifactDigest || "");
+      if (!candidateDigest || candidateDigest !== narrativeBookSpecV3.validation.artifactDigest) {
+        const error = new Error("The approved Narrative V3 contract changed after deterministic compilation");
+        error.code = "narrative_v3_candidate_mismatch";
+        throw error;
+      }
+      continuitySnapshot.narrativeV3PipelineVersion = 3;
+      continuitySnapshot.narrativeV3Approval = {
+        version: 1,
+        scenarioAuditDigest: approved.auditEvidence.digest,
+        artifactDigest: narrativeBookSpecV3.validation.artifactDigest,
+        approvedAt: approved.approvedAt,
+      };
+      console.info("[narrative-v3] approved immutable contract", JSON.stringify({
+        projectId: project.id,
+        artifactDigest: narrativeBookSpecV3.validation.artifactDigest.slice(0, 12),
+        sceneCount: narrativeBookSpecV3.scenes.length,
+      }));
+    } else {
+      continuitySnapshot.narrativeV2Rollout = narrativeV2Rollout;
+    }
+    if (!usesNarrativeV3 && Number(approved.version) === 2 && narrativeV2Rollout.enabled) {
       const narrativeBookSpec = approveNarrativeBookSpec({ project, scenario: approved });
       const candidateDigest = project.continuitySnapshot?.narrativeV2Candidate?.artifactDigest;
       if (candidateDigest && candidateDigest !== narrativeBookSpec.validation.artifactDigest) {
@@ -500,7 +527,7 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
         artifactDigest: narrativeBookSpec.validation.artifactDigest.slice(0, 12),
         sceneCount: narrativeBookSpec.scenes.length,
       }));
-    } else {
+    } else if (!usesNarrativeV3) {
       console.info("[narrative-v2] legacy downstream assigned", JSON.stringify({
         projectId: project.id,
         rolloutMode: narrativeV2Rollout.mode,

@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-19
+Last updated: 2026-08-20
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,23 +8,17 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/visual-entity-state-ledger`
-- Main checkpoint before the migration hotfix: `bcd56b4` (PRs #232 and #233)
-- Current focused checkpoint: restore Render startup with monotonic PostgreSQL migrations before resuming the allowlisted shadow
+- Current branch: `codex/narrative-v3-customer-cutover`
+- Main checkpoint before this brick: `a473c2d` (PR #235)
+- Current focused checkpoint: finish and release the immutable V3 customer cutover for newly created projects
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-Render deployment of `bcd56b4` failed before server startup because the legacy
-migration runner replayed every widening V3 constraint from migration 018
-onward. Once production contained newer artifact types, the old narrower check
-could no longer be recreated. The hotfix adds an append-only migration ledger,
-schema-derived baseline through migration 025, SHA-256 checksums, a PostgreSQL
-advisory lock and one transaction per pending migration. Migration 026 is then
-the only pending production migration and a restart becomes a no-op. The exact
-production-upgrade simulation and complete repository suite pass 665/665 tests.
+The Render migration replay incident is closed by the append-only migration
+ledger. The current brick does not add or rewrite a database migration.
 
 PR #55 through #232 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
@@ -52,6 +46,31 @@ except for security, privacy, commerce and data-loss defects.
    focused confirmed objective defects can block a page.
 6. Existing V2 projects are not implicitly migrated or used as V3 canaries.
 
+## Product brick: Narrative V3 customer cutover
+
+New drafts receive an immutable engine assignment at creation. V3 is the
+default; `NARRATIVE_DEFAULT_ENGINE=v2` is an emergency switch for drafts that
+do not yet exist. Projects without an assignment are legacy V2 forever, and a
+series episode inherits its source book's assignment.
+
+The story-scenario worker now asks the model only for strict semantic beats.
+A bounded second semantic response may correct an invalid wire contract before
+any artifact is persisted. The server then owns acts, pages, locations,
+passages, movements, presence cardinality, wardrobe/equipment and physical
+handoffs. It commits the creation intent, concept, canonical graph, object
+projection and released `NarrativeBookSpec.v3` as immutable artifacts. The
+creator review is only a projection of that exact graph; approval binds its
+audit digest to the released spec digest. The existing manuscript and visual
+generation consumes that exact V3 spec, including display identities,
+wardrobe, physical medium and object visibility. A V3 customer job never
+starts a duplicate V3 comparison shadow.
+
+Next production verification target: after the merged Render deployment is
+Live, create one new 32-page book in a non-portal universe and one in a portal
+universe. Logs must show `[narrative-v3] approved immutable contract`; they must
+not show V2 canonical repair activity for those new project ids. Existing
+books remain valid V2 controls.
+
 ## Product brick: persistent visual entity ledger
 
 The whole-book compiler now owns a versioned visual-entity ledger before image
@@ -74,13 +93,9 @@ customer review. This adds no environment variable, database migration,
 customer credit or series-canon mutation.
 
 Verification: focused entity/projection/QA tests and the complete repository
-suite pass 671/671 tests.
-
-Next verification target after deployment: extend the same allowlisted,
-invisible production shadow from the released spec through its own manuscript,
-visual storyboard and visual continuity plan. Do not generate V3 images or
-move customer-visible traffic until those new shadow artifacts pass on real
-books and remain restart-idempotent.
+suite pass 674/674 tests. The earlier shadow-only restriction is superseded by
+the engine-assigned customer cutover above; real-book acceptance remains the
+next production check, not an additional architecture brick.
 
 ## Product brick: Narrative V3 previous-current-next visual continuity
 
