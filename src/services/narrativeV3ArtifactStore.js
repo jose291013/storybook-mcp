@@ -100,6 +100,12 @@ import {
   deliveryManifestDigest,
   loadDeliveryManifest,
 } from "../contracts/deliveryManifestV1.js";
+import {
+  DELIVERY_MANIFEST_V2_ID,
+  DELIVERY_MANIFEST_V2_VERSION,
+  deliveryManifestV2Digest,
+  loadDeliveryManifestV2,
+} from "../contracts/deliveryManifestV2.js";
 import { databaseEnabled, getDatabasePool } from "./database.js";
 
 const LOCAL_PATH = path.resolve("data/narrative-v3-artifacts.json");
@@ -237,6 +243,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadDeliveryManifest,
     digest: deliveryManifestDigest,
     parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript", "visual_storyboard", "illustration_decision_set"]),
+  }),
+  delivery_manifest_v2: Object.freeze({
+    contractId: DELIVERY_MANIFEST_V2_ID,
+    schemaVersion: DELIVERY_MANIFEST_V2_VERSION,
+    load: loadDeliveryManifestV2,
+    digest: deliveryManifestV2Digest,
+    parentTypes: Object.freeze(["narrative_book_spec_v3", "manuscript", "manuscript_fact_evidence", "visual_storyboard", "illustration_decision_set_v2"]),
   }),
 });
 
@@ -448,6 +461,18 @@ function validateArtifactInput(input = {}) {
     )
   ) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The delivery manifest does not match its four declared source digests.");
+  }
+  if (
+    artifactType === "delivery_manifest_v2"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.narrativeBookSpec.artifactDigest
+      || parents[1]?.payloadDigest !== payload.sources.manuscript.artifactDigest
+      || parents[2]?.payloadDigest !== payload.sources.manuscriptFactEvidence.artifactDigest
+      || parents[3]?.payloadDigest !== payload.sources.visualStoryboard.artifactDigest
+      || parents[4]?.payloadDigest !== payload.sources.illustrationDecisions.artifactDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The strict delivery manifest does not match its five declared source digests.");
   }
   const state = String(input.state || "sealed");
   if (!ARTIFACT_STATES.has(state)) {

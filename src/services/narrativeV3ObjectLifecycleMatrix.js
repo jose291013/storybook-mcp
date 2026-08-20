@@ -16,10 +16,13 @@ import { compileManuscriptFactEvidence } from "../contracts/manuscriptFactEviden
 import { compileVisualStoryboard } from "../contracts/visualStoryboardV1.js";
 import { compileVisualContinuityPlan } from "../contracts/visualContinuityPlanV1.js";
 import {
-  parseIllustrationEvaluationWire,
   recordImageCandidateSet,
 } from "../contracts/illustrationEvidenceV1.js";
-import { compileDeliveryManifest } from "../contracts/deliveryManifestV1.js";
+import {
+  STRICT_ILLUSTRATION_DOMAINS,
+  parseStrictIllustrationEvaluationWire,
+} from "../contracts/illustrationEvidenceV2.js";
+import { compileDeliveryManifestV2 } from "../contracts/deliveryManifestV2.js";
 import {
   buildNarrativeV3SyntheticFixture,
   NARRATIVE_V3_SYNTHETIC_LANGUAGES,
@@ -47,8 +50,8 @@ async function commit({ machine, runStore, artifactStore, projectId, runKey, ste
     compile_visual_storyboard: "visual_storyboard",
     compile_visual_continuity_plan: "visual_continuity_plan",
     record_image_candidates: "image_candidate_set",
-    decide_illustrations: "illustration_decision_set",
-    assemble_delivery_manifest: "delivery_manifest",
+    decide_illustrations_strict: "illustration_decision_set_v2",
+    assemble_delivery_manifest_v2: "delivery_manifest_v2",
   };
   const outputType = outputTypes[stepType];
   const pointer = await artifactStore.getCurrentPointer(projectId, outputType);
@@ -126,15 +129,16 @@ function syntheticImageCandidates(storyboard, fixtureId) {
 }
 
 function syntheticEvaluationWire(storyboard, candidateSet) {
+  const domains = Object.fromEntries(STRICT_ILLUSTRATION_DOMAINS.map(([wireKey]) => [wireKey, { status: "pass", evidence_code: "verified" }]));
   return {
-    schema_version: 1,
-    contract_id: "calitiki.illustration-evaluation-wire.v1",
+    schema_version: 2,
+    contract_id: "calitiki.illustration-evaluation-wire.v2",
     source_storyboard_digest: storyboard.validation.artifactDigest,
     source_candidate_set_digest: candidateSet.validation.artifactDigest,
     decisions: candidateSet.candidates.map((candidate) => ({
       scene_number: candidate.sceneNumber,
       candidate_digest: candidate.candidateDigest,
-      issues: [],
+      domains,
     })),
   };
 }
@@ -344,31 +348,32 @@ export async function runNarrativeV3ObjectLifecycleFixture({
     inputs: [storyboardArtifact, continuityArtifact],
     payload: candidateSet,
   });
-  const decisions = parseIllustrationEvaluationWire({
+  const decisions = parseStrictIllustrationEvaluationWire({
     storyboard,
     candidateSet,
     wire: syntheticEvaluationWire(storyboard, candidateSet),
   });
   const decisionArtifact = await commit({
     machine, runStore, artifactStore, projectId,
-    runKey: `${fixture.fixture.fixtureId}-illustration-decisions-v1`,
-    stepKey: "decide-object-illustrations-v1",
-    stepType: "decide_illustrations",
+    runKey: `${fixture.fixture.fixtureId}-illustration-decisions-v2`,
+    stepKey: "decide-object-illustrations-v2",
+    stepType: "decide_illustrations_strict",
     inputs: [storyboardArtifact, candidateArtifact],
     payload: decisions,
   });
-  const deliveryManifest = compileDeliveryManifest({
+  const deliveryManifest = compileDeliveryManifestV2({
     spec: releaseSpec,
     manuscript,
+    factEvidence: manuscriptFactEvidence,
     storyboard,
     decisions,
   });
   const deliveryArtifact = await commit({
     machine, runStore, artifactStore, projectId,
-    runKey: `${fixture.fixture.fixtureId}-delivery-manifest-v1`,
-    stepKey: "assemble-object-delivery-manifest-v1",
-    stepType: "assemble_delivery_manifest",
-    inputs: [releaseArtifact, manuscriptArtifact, storyboardArtifact, decisionArtifact],
+    runKey: `${fixture.fixture.fixtureId}-delivery-manifest-v2`,
+    stepKey: "assemble-object-delivery-manifest-v2",
+    stepType: "assemble_delivery_manifest_v2",
+    inputs: [releaseArtifact, manuscriptArtifact, manuscriptFactArtifact, storyboardArtifact, decisionArtifact],
     payload: deliveryManifest,
   });
   const adversarial = narrativeV3ObjectAdversarialCases(fixture.graph, fixture.indexes).map((entry) => {
@@ -401,8 +406,8 @@ export async function runNarrativeV3ObjectLifecycleFixture({
       visualStoryboard: storyboardArtifact.payloadDigest,
       visualContinuityPlan: continuityArtifact.payloadDigest,
       imageCandidateSet: candidateArtifact.payloadDigest,
-      illustrationDecisionSet: decisionArtifact.payloadDigest,
-      deliveryManifest: deliveryArtifact.payloadDigest,
+      illustrationDecisionSetV2: decisionArtifact.payloadDigest,
+      deliveryManifestV2: deliveryArtifact.payloadDigest,
     },
     providerCalls: 0,
     paidModelCalls: 0,
