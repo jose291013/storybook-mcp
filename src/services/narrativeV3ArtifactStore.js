@@ -19,6 +19,12 @@ import {
   loadCreationIntent,
 } from "../contracts/creationIntent.js";
 import {
+  VISUAL_INTENT_ID,
+  VISUAL_INTENT_VERSION,
+  loadVisualIntentV1,
+  visualIntentDigest,
+} from "../contracts/visualIntentV1.js";
+import {
   NARRATIVE_BOOK_SPEC_V2_ID,
   NARRATIVE_BOOK_SPEC_V2_VERSION,
   loadNarrativeBookSpecV2,
@@ -86,6 +92,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadCreationIntent,
     digest: creationIntentDigest,
     parentTypes: Object.freeze([]),
+  }),
+  visual_intent: Object.freeze({
+    contractId: VISUAL_INTENT_ID,
+    schemaVersion: VISUAL_INTENT_VERSION,
+    load: loadVisualIntentV1,
+    digest: visualIntentDigest,
+    parentTypes: Object.freeze(["creation_intent"]),
   }),
   story_concept: Object.freeze({
     contractId: STORY_CONCEPT_ID,

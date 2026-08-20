@@ -261,7 +261,7 @@ export async function generateNarrativeV3Scenario({
     });
     try {
       concept = parseStoryConceptWire(wire);
-      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept });
+      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent });
       break;
     } catch (error) {
       if (attempt >= MAX_SEMANTIC_ATTEMPTS) throw error;
@@ -289,6 +289,10 @@ export async function generateNarrativeV3Scenario({
   const intentArtifact = await persistArtifact({
     projectId: project.id, artifactType: "creation_intent", payload: source.intent,
     artifactStore, operationId: "seal_intent", runId,
+  });
+  const visualIntentArtifact = await persistArtifact({
+    projectId: project.id, artifactType: "visual_intent", payload: source.visualIntent,
+    parents: [artifactRef(intentArtifact)], artifactStore, operationId: "seal_visual_intent", runId,
   });
   const conceptArtifact = await persistArtifact({
     projectId: project.id, artifactType: "story_concept", payload: concept,
@@ -319,6 +323,6 @@ export async function generateNarrativeV3Scenario({
       graphDigest: graph.validation.artifactDigest,
       conceptDigest: concept.validation.artifactDigest,
     },
-    narrativeV3Artifacts: { spec },
+    narrativeV3Artifacts: { spec, visualIntent: source.visualIntent, visualIntentArtifactId: visualIntentArtifact.id },
   };
 }

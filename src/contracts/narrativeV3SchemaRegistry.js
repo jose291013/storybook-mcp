@@ -20,6 +20,7 @@ export const storyConceptSchema = readSchema("storyConcept.v1.schema.json");
 export const canonicalStoryGraphSchema = readSchema("canonicalStoryGraph.v1.schema.json");
 export const canonicalStoryMechanicsSchema = readSchema("canonicalStoryMechanics.v1.schema.json");
 export const creationIntentSchema = readSchema("creationIntent.v1.schema.json");
+export const visualIntentSchema = readSchema("visualIntent.v1.schema.json");
 export const narrativeBookSpecV2Schema = readSchema("narrativeBookSpec.v2.schema.json");
 export const objectLifecycleProjectionSchema = readSchema("objectLifecycleProjection.v1.schema.json");
 export const narrativeBookSpecV3Schema = readSchema("narrativeBookSpec.v3.schema.json");
@@ -33,6 +34,7 @@ export const illustrationDecisionSetSchema = readSchema("illustrationDecisionSet
 export const deliveryManifestSchema = readSchema("deliveryManifest.v1.schema.json");
 
 ajv.addSchema(creationIntentSchema);
+ajv.addSchema(visualIntentSchema);
 ajv.addSchema(storyConceptWireSchema);
 ajv.addSchema(storyConceptSchema);
 ajv.addSchema(canonicalStoryGraphSchema);
@@ -51,6 +53,7 @@ ajv.addSchema(deliveryManifestSchema);
 
 const validators = new Map([
   ["creation_intent", ajv.getSchema(creationIntentSchema.$id)],
+  ["visual_intent", ajv.getSchema(visualIntentSchema.$id)],
   ["story_concept_wire", ajv.getSchema(storyConceptWireSchema.$id)],
   ["story_concept", ajv.getSchema(storyConceptSchema.$id)],
   ["canonical_story_graph", ajv.getSchema(canonicalStoryGraphSchema.$id)],

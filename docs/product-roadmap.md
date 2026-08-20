@@ -111,6 +111,14 @@ rewrite an approved immutable book. Remaining V3 phases are a sealed
 illustration evidence. They are architecture phases, not book-specific repair
 policies.
 
+`VisualIntent.v1` is now implemented for new V3 scenarios as an immutable
+artifact parented by the exact `CreationIntent.v1`. The mechanical compiler
+uses the selected or preserved wardrobe state and fails closed on an outfit
+from another universe. Existing approved artifacts remain immutable. The next
+phase is `CharacterStateTimeline.v1`; until it lands, the chosen state is
+authoritative but its don/remove transition still follows the existing
+deterministic scene window.
+
 ## Monotonic PostgreSQL migration ledger
 
 Production migrations are append-only operations, not a desired-schema replay.
