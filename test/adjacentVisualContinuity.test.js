@@ -45,6 +45,21 @@ test("a revision may compare the nearest accepted scene on both sides", () => {
   assert.deepEqual(references.map((reference) => reference.relation), ["previous", "next"]);
 });
 
+test("a resumed missing page uses accepted bounds but never a quarantined candidate", () => {
+  const references = adjacentApprovedIllustrationReferences({
+    blueprintPages,
+    draftPages: [
+      { page_number: 3, page_type: "image", imageStorageKey: "private/page-3", qualityStatus: "accepted" },
+      { page_number: 5, page_type: "image", imageStorageKey: "private/rejected-page-5", qualityStatus: "strict_quarantined" },
+      { page_number: 7, page_type: "image", imageStorageKey: "private/page-7", qualityStatus: "strict_accepted" },
+    ],
+    currentPageNumber: 5,
+    includeNext: true,
+  });
+  assert.deepEqual(references.map((reference) => reference.storageKey), ["private/page-3", "private/page-7"]);
+  assert.ok(references.every((reference) => reference.storageKey !== "private/rejected-page-5"));
+});
+
 test("paired reader text becomes bounded visual evidence beside the structured scene contract", () => {
   const continuity = buildSceneContinuity({
     blueprint: { hero: { name: "Bastien" }, approved_scenario: { characters: [{ name: "Bastien", role: "child" }] } },

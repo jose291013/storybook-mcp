@@ -400,6 +400,44 @@ export class IllustrationQualityError extends Error {
   }
 }
 
+export const IMAGE_SAFETY_FALLBACK_STAGES = Object.freeze({
+  FULL_REFERENCES: "full_references",
+  CONTINUITY_ONLY: "continuity_only",
+  CONTRACT_ONLY: "contract_only",
+});
+
+export function imageSafetyFallbackReferences(referenceImages = [], stage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES) {
+  const references = Array.isArray(referenceImages) ? referenceImages : [];
+  if (stage === IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY) return [];
+  if (stage === IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY) {
+    return references.filter((reference) => reference?.kind === "continuity");
+  }
+  return references;
+}
+
+export function nextImageSafetyFallbackStage(referenceImages = [], stage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES) {
+  if (stage === IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES) {
+    return imageSafetyFallbackReferences(referenceImages, IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY).length
+      ? IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY
+      : IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY;
+  }
+  if (stage === IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY) {
+    return IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY;
+  }
+  return null;
+}
+
+export class IllustrationSafetyQuarantineError extends Error {
+  constructor({ attemptCount = 0 } = {}) {
+    super("The image provider could not produce a policy-safe candidate for this page. The page remains private and the rest of the book can continue.");
+    this.name = "IllustrationSafetyQuarantineError";
+    this.code = "illustration_provider_safety_quarantine";
+    this.rejectionKind = "provider_safety";
+    this.attemptCount = attemptCount;
+    this.issueCodes = ["provider_safety_rejection"];
+  }
+}
+
 async function referenceSource(reference) {
   if (!reference) return null;
   if (Buffer.isBuffer(reference.buffer)) return reference.buffer;
@@ -1198,19 +1236,28 @@ export async function generateQualityCheckedImage({
 }) {
   let previousIssues = [];
   let previousRejectionKind = "technical";
-  let omitReferenceImages = false;
-  let safetyFallbackActive = false;
+  let safetyFallbackStage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
   let attemptLimit = maximumAttempts;
   let lastCandidateImageUrl = "";
   let lastRepairPolicy = null;
   for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
-    const referenceImagesForAttempt = omitReferenceImages
-      ? generationOptions.referenceImages?.filter((reference) => reference?.kind === "continuity")
-      : generationOptions.referenceImages;
+    const referenceImagesForAttempt = imageSafetyFallbackReferences(
+      generationOptions.referenceImages,
+      safetyFallbackStage,
+    );
+    const safetyFallbackActive = safetyFallbackStage !== IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
     const model = referenceImagesForAttempt?.length
       ? (process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2")
       : (generationOptions.model || process.env.IMAGE_MODEL || "gpt-image-2");
-    onAttempt?.({ phase: "started", attempt, maximumAttempts: attemptLimit, pageLabel, model, safetyFallback: safetyFallbackActive });
+    onAttempt?.({
+      phase: "started",
+      attempt,
+      maximumAttempts: attemptLimit,
+      pageLabel,
+      model,
+      safetyFallback: safetyFallbackActive,
+      safetyFallbackStage,
+    });
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
@@ -1333,7 +1380,11 @@ export async function generateQualityCheckedImage({
         ? await inspectStrictV3IllustrationEvidence({
           imagePath: outputImagePath(imageUrl),
           sceneContract: sceneFidelityContract,
-          referenceImages: referenceImagesForAttempt || [],
+          // Provider-safety fallback may omit source pixels from generation,
+          // but the separate private QA boundary must still compare the result
+          // with every canonical identity/style reference. Generation input and
+          // acceptance evidence are intentionally independent authorities.
+          referenceImages: generationOptions.referenceImages || [],
           pageLabel,
           technicalApproved: inspection.approved,
         })
@@ -1493,21 +1544,23 @@ export async function generateQualityCheckedImage({
       }
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts: attemptLimit, pageLabel, error: String(error?.message || error) });
-      if (isImageSafetyRejection(error) && !omitReferenceImages && generationOptions.referenceImages?.length) {
-        const continuityReferences = generationOptions.referenceImages.filter((reference) => reference?.kind === "continuity");
-        if (!continuityReferences.length) {
-          throw new Error("The identity reference could not be used safely. Upload a clear, non-branded portrait before regenerating the visual proof.");
+      if (isImageSafetyRejection(error)) {
+        const nextFallbackStage = nextImageSafetyFallbackStage(
+          generationOptions.referenceImages,
+          safetyFallbackStage,
+        );
+        if (!nextFallbackStage) {
+          throw new IllustrationSafetyQuarantineError({ attemptCount: attempt });
         }
-        // Do not retry the rejected input unchanged. Keep the textual identity
-        // canon, but omit source pixels that may contain a logo or protected
-        // character. This makes the next request safer without bypassing policy.
-        omitReferenceImages = true;
-        safetyFallbackActive = true;
+        // Never replay an identical rejected request. First keep only the
+        // approved cover/style anchor; then use the immutable text contract
+        // alone. Identity pixels remain available to the separate QA boundary,
+        // but no rejected/generated image becomes continuity evidence.
+        safetyFallbackStage = nextFallbackStage;
         previousRejectionKind = "technical";
         previousIssues = [];
-        // A rejected request returned no image. If it happened on the final
-        // normal attempt, allow exactly one continuity-only replacement call.
-        // `omitReferenceImages` prevents this bounded extension from repeating.
+        // A provider rejection returned no candidate. Give each distinct safer
+        // input exactly one bounded call even when the normal budget ended.
         if (attempt === attemptLimit) attemptLimit += 1;
         continue;
       }

@@ -8,7 +8,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/v3-safety-page-isolation`
 - Main checkpoint: `5544593` (PR #251, NarrativeBrief.v1)
 - Current focused checkpoint: verify that one new portal book and one new non-portal book preserve the selected adult intention, exact travelers, preparation/crossing order and typed world laws from scenario through delivery
 - Migration hotfix: PR #234
@@ -96,6 +96,29 @@ or series-canon change.
 Repository verification for this brick: the focused NarrativeBrief, customer
 scenario, artifact-store and migration suites pass 25/25, and the complete
 repository suite passes 722/722.
+
+## Product brick: V3 provider-safety page isolation
+
+Image generation now uses three monotonic provider-safety inputs: the complete
+approved reference set, the approved cover/style reference only, then the
+immutable text render contract without source pixels. Acceptance QA remains a
+separate authority and always compares a generated result with the complete
+private canonical identity/style reference set, even when those pixels were
+omitted from the generation call.
+
+If all three inputs are refused before a candidate exists, only that image page
+is checkpointed as a private provider-safety gap. No rejected image becomes an
+adjacent reference; independent later pages continue and remain reusable. A
+free checkpoint resume regenerates only the missing page and may use the nearest
+accepted illustration on both sides. `strict_accepted` V3 pages are now
+recognized as valid secondary continuity evidence. Retry policy version 17
+opens this one bounded resume for books exhausted before the isolation rule.
+There is no migration, environment variable, commerce, credit or series-canon
+change.
+
+Repository verification for this brick: the focused provider-safety,
+checkpoint-resume and adjacent-continuity suites pass 57/57, and the complete
+repository suite passes 724/724.
 
 ## Current architecture decision: Narrative V3
 
