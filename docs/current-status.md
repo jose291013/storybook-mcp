@@ -10,7 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/v3-preflight-delivery-authority-v20`
 - Main checkpoint before V20: `82fe9d7`
-- Current focused checkpoint: publish and merge V20, then after Render is Live resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. The prepared manuscript authority must be sealed before any new cover or illustration work, accepted pages from prior runs must be reused only through an exact retained storage-key match, and the final delivery step must not recompile prose
+- Current focused checkpoint: PR #259 contains V20. After merge and once Render is Live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. The prepared manuscript authority must be sealed before any new cover or illustration work, accepted pages from prior runs must be reused only through an exact retained storage-key match, and the final delivery step must not recompile prose
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
