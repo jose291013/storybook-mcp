@@ -3,6 +3,7 @@ import { createJob, getJob, updateJob } from "../services/jobStore.js";
 import {
   generateQualityCheckedImage,
   IllustrationQualityError,
+  IllustrationSafetyQuarantineError,
   outputImagePath,
   targetedVisualRepairPolicy,
 } from "../services/imageQualityGate.js";
@@ -272,7 +273,16 @@ function isActiveDurableRun(run) {
 }
 
 function reportImageAttempt(jobId, stepPrefix) {
-  return ({ phase, attempt, maximumAttempts, error = "", issues = [], model = "", safetyFallback = false }) => {
+  return ({
+    phase,
+    attempt,
+    maximumAttempts,
+    error = "",
+    issues = [],
+    model = "",
+    safetyFallback = false,
+    safetyFallbackStage = "",
+  }) => {
     const step = `${stepPrefix}:attempt:${attempt}/${maximumAttempts}:${phase}`;
     updateJob(jobId, { step });
     console.info("[preview] image", JSON.stringify({
@@ -280,6 +290,7 @@ function reportImageAttempt(jobId, stepPrefix) {
       step,
       model: model || undefined,
       safetyFallback: safetyFallback || undefined,
+      safetyFallbackStage: safetyFallbackStage || undefined,
       error: error || undefined,
       issues: issues.length ? issues : undefined,
     }));
@@ -1452,6 +1463,17 @@ router.post("/preview", async (req, res) => {
           || page.page_type !== "image"
           || Number(page.strictEvidenceVersion || 0) === 2)
       ));
+      const deferredIllustrationPages = [];
+      const previewResultSnapshot = () => ({
+        coverImageUrl,
+        coverImageStorageKey,
+        coverPreviewUrl,
+        coverStorageKey,
+        draftPages: [...draftPages],
+        ...(deferredIllustrationPages.length ? {
+          deferredIllustrationPages: deferredIllustrationPages.map((item) => ({ ...item })),
+        } : {}),
+      });
       const completedPageNumbers = new Set(draftPages.map((page) => Number(page.page_number)));
       const estimatedInteriorImageUsdMicros = Math.round(
         generationCostPolicy().estimatedInteriorImageUsd * 1_000_000,
@@ -1468,6 +1490,11 @@ router.post("/preview", async (req, res) => {
           blueprintPages: final_blueprint.pages,
           draftPages,
           currentPageNumber: page.page_number,
+          // During ordinary forward generation no later accepted page exists.
+          // On a checkpoint resume, however, a previously isolated gap may be
+          // repaired between two accepted neighbours; both are then safe,
+          // secondary visual evidence for the immutable current contract.
+          includeNext: true,
         });
         const sceneContinuity = buildSceneContinuity({
           blueprint: final_blueprint,
@@ -1507,6 +1534,7 @@ router.post("/preview", async (req, res) => {
         let qualityKind = "";
         let qualityRepairPolicy = null;
         let adjacentReferenceImages = [];
+        let deferForProviderSafety = false;
 
         if (["text", "opening_text", "closing_text"].includes(page.page_type)) {
           text = draftTextByPage.get(page.page_number) || "";
@@ -1567,29 +1595,56 @@ router.post("/preview", async (req, res) => {
               strictV3EvidenceRequired: strictV3Rendering,
             });
           } catch (error) {
-            if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;
-            localImageUrl = error.candidateImageUrl;
-            qualityStatus = "repair_pending";
-            qualityIssues = error.issues;
-            qualityKind = error.rejectionKind;
-            qualityRepairPolicy = error.repairPolicy
-              || targetedVisualRepairPolicy(error.issues, { source: error.rejectionKind });
-            qualityIssueCodes = Array.isArray(error.issueCodes) && error.issueCodes.length
-              ? error.issueCodes
-              : qualityRepairPolicy.targetCodes;
-            console.warn("[preview] page quarantined for repair", JSON.stringify({
-              jobId: job.id,
-              projectId,
-              pageNumber: page.page_number,
-              rejectionKind: qualityKind,
-              issueCodes: qualityRepairPolicy.targetCodes,
-              automaticRepair: qualityRepairPolicy.automaticRepair,
-            }));
-            qualityStatus = qualityRepairPolicy.automaticRepair
-              ? "repair_pending"
-              : strictV3Rendering
-                ? "strict_quarantined"
-                : "review_required";
+            if (error instanceof IllustrationSafetyQuarantineError) {
+              deferForProviderSafety = true;
+              deferredIllustrationPages.push({
+                pageNumber: Number(page.page_number),
+                kind: error.rejectionKind,
+                issueCodes: [...error.issueCodes],
+              });
+              console.warn("[preview] page isolated after provider safety rejection", JSON.stringify({
+                jobId: job.id,
+                projectId,
+                pageNumber: page.page_number,
+                issueCodes: error.issueCodes,
+              }));
+            } else {
+              if (!(error instanceof IllustrationQualityError) || !error.candidateImageUrl) throw error;
+              localImageUrl = error.candidateImageUrl;
+              qualityStatus = "repair_pending";
+              qualityIssues = error.issues;
+              qualityKind = error.rejectionKind;
+              qualityRepairPolicy = error.repairPolicy
+                || targetedVisualRepairPolicy(error.issues, { source: error.rejectionKind });
+              qualityIssueCodes = Array.isArray(error.issueCodes) && error.issueCodes.length
+                ? error.issueCodes
+                : qualityRepairPolicy.targetCodes;
+              console.warn("[preview] page quarantined for repair", JSON.stringify({
+                jobId: job.id,
+                projectId,
+                pageNumber: page.page_number,
+                rejectionKind: qualityKind,
+                issueCodes: qualityRepairPolicy.targetCodes,
+                automaticRepair: qualityRepairPolicy.automaticRepair,
+              }));
+              qualityStatus = qualityRepairPolicy.automaticRepair
+                ? "repair_pending"
+                : strictV3Rendering
+                  ? "strict_quarantined"
+                  : "review_required";
+            }
+          }
+          if (deferForProviderSafety) {
+            const partialResult = previewResultSnapshot();
+            updateJob(job.id, { result: partialResult });
+            await persistCheckpoint({ phase: `provider-safety-quarantine:page:${page.page_number}` }, {
+              previewResult: partialResult,
+              finalBlueprint: final_blueprint,
+            });
+            // This page has no candidate and therefore cannot become a visual
+            // anchor. Continue manufacturing every independent page so a free
+            // resume later targets only this gap and can use accepted bounds.
+            continue;
           }
           const persistedImage = candidateAssetCache.get(localImageUrl)
             || await persistPreviewAsset({ projectId, assetUrl: localImageUrl });
@@ -1632,7 +1687,7 @@ router.post("/preview", async (req, res) => {
         });
         draftPages.sort((left, right) => Number(left.page_number) - Number(right.page_number));
         completedPageNumbers.add(Number(page.page_number));
-        const partialResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+        const partialResult = previewResultSnapshot();
         updateJob(job.id, { result: partialResult });
         await persistCheckpoint({ phase: `page:${page.page_number}` }, { previewResult: partialResult, finalBlueprint: final_blueprint });
       }
@@ -1757,7 +1812,7 @@ router.post("/preview", async (req, res) => {
               previewUrl: persistedPage.previewUrl,
             },
           });
-          const repairedResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+          const repairedResult = previewResultSnapshot();
           updateJob(job.id, { result: repairedResult });
           await persistCheckpoint({ phase: `repair:page:${page.page_number}` }, {
             previewResult: repairedResult,
@@ -1808,7 +1863,7 @@ router.post("/preview", async (req, res) => {
                 : "provider_repair_failed",
             errorMessage: issues.join(" | "),
           });
-          const reviewResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+          const reviewResult = previewResultSnapshot();
           updateJob(job.id, { result: reviewResult });
           await persistCheckpoint({
             phase: strictV3Rendering
@@ -1830,6 +1885,18 @@ router.post("/preview", async (req, res) => {
         }
       }
 
+      if (deferredIllustrationPages.length) {
+        const error = new Error(`The image provider could not produce a policy-safe candidate for ${deferredIllustrationPages.length} page(s). Accepted pages remain checkpointed.`);
+        error.code = "preview_provider_safety_quarantine";
+        error.pages = deferredIllustrationPages.map((item) => item.pageNumber);
+        console.warn("[preview] completed independent pages with provider-safety gaps", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          pages: error.pages,
+        }));
+        throw error;
+      }
+
       if (unresolvedQualityPages.length && strictV3Rendering) {
         const error = new Error(`Strict Narrative V3 kept ${unresolvedQualityPages.length} illustration candidate(s) private because delivery evidence is incomplete.`);
         error.code = "narrative_v3_illustration_evidence_incomplete";
@@ -1843,7 +1910,7 @@ router.post("/preview", async (req, res) => {
       }
 
       if (unresolvedQualityPages.length) {
-        const reviewResult = { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages: [...draftPages] };
+        const reviewResult = previewResultSnapshot();
         const qualityReview = {
           status: "required",
           pages: unresolvedQualityPages,
@@ -1986,10 +2053,13 @@ router.post("/preview", async (req, res) => {
       console.info("[preview] completed", JSON.stringify({ jobId: job.id, projectId, pageCount: draftPages.length }));
     } catch (error) {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
+      const boundedErrorCode = error?.code === "preview_provider_safety_quarantine"
+        ? "preview_provider_safety_quarantine"
+        : "preview_generation_failed";
       await updateGenerationRun(job.id, {
         status: "failed",
         currentStep: getJob(job.id)?.step || checkpoint?.phase || "unknown",
-        errorCode: "preview_generation_failed",
+        errorCode: boundedErrorCode,
         errorMessage: String(error?.message || error),
         completedAt: new Date().toISOString(),
         leaseOwner: "",
@@ -2020,7 +2090,7 @@ router.post("/preview", async (req, res) => {
           retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
           retryAvailable: !retryWasConsumed,
           retryExhausted: retryWasConsumed,
-          failureReason: "preview_generation_failed",
+          failureReason: boundedErrorCode,
           failedAt: new Date().toISOString(),
         });
         await projectStore.update(job.projectId, {

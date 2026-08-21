@@ -285,6 +285,22 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the targeted text recovery policy is version sixteen", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 16);
+test("the isolated provider-safety page recovery policy is version seventeen", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 17);
+});
+
+test("a book exhausted before provider-safety page isolation receives one checkpoint resume", () => {
+  const exhaustedBeforeIsolation = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "provider-safety-gap-book",
+      retryPolicyVersion: 16,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-21T09:00:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "page:10",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedBeforeIsolation), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedBeforeIsolation), false);
 });

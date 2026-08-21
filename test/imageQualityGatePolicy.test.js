@@ -15,9 +15,13 @@ import {
   inspectRevisionNonRegression,
   reconcileFocusedCastInspection,
   inspectSceneFidelity,
+  IMAGE_SAFETY_FALLBACK_STAGES,
+  imageSafetyFallbackReferences,
   IllustrationQualityError,
+  IllustrationSafetyQuarantineError,
   isImageSafetyRejection,
   isTransientImageGenerationError,
+  nextImageSafetyFallbackStage,
   objectiveSceneContractIssues,
   objectiveTechnicalIssues,
   requiresFocusedCastVerification,
@@ -859,14 +863,52 @@ test("the failed page 12 becomes a compact neutral visual contract without dialo
   assert.doesNotMatch(fallback, /coq en or|FORBIDDEN/iu);
 });
 
-test("a final-attempt safety rejection receives one bounded continuity-only replacement", async () => {
+test("provider safety fallback removes risky pixels monotonically and ends in private quarantine", async () => {
+  const references = [
+    { kind: "continuity", storageKey: "cover" },
+    { kind: "adjacent_scene", storageKey: "page-3" },
+    { kind: "identity", storageKey: "child" },
+  ];
+  assert.deepEqual(
+    imageSafetyFallbackReferences(references, IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES),
+    references,
+  );
+  assert.deepEqual(
+    imageSafetyFallbackReferences(references, IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY),
+    [references[0]],
+  );
+  assert.deepEqual(
+    imageSafetyFallbackReferences(references, IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY),
+    [],
+  );
+  assert.equal(
+    nextImageSafetyFallbackStage(references, IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES),
+    IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY,
+  );
+  assert.equal(
+    nextImageSafetyFallbackStage(references, IMAGE_SAFETY_FALLBACK_STAGES.CONTINUITY_ONLY),
+    IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY,
+  );
+  assert.equal(
+    nextImageSafetyFallbackStage(references, IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY),
+    null,
+  );
+  assert.equal(
+    nextImageSafetyFallbackStage([{ kind: "identity" }], IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES),
+    IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY,
+  );
+  const quarantine = new IllustrationSafetyQuarantineError({ attemptCount: 3 });
+  assert.equal(quarantine.code, "illustration_provider_safety_quarantine");
+  assert.deepEqual(quarantine.issueCodes, ["provider_safety_rejection"]);
+
   const [qualityGate, app] = await Promise.all([
     fs.readFile("src/services/imageQualityGate.js", "utf8"),
     fs.readFile("public/app.js", "utf8"),
   ]);
   assert.match(qualityGate, /let attemptLimit = maximumAttempts/);
   assert.match(qualityGate, /if \(attempt === attemptLimit\) attemptLimit \+= 1/);
-  assert.match(qualityGate, /omitReferenceImages/);
-  assert.match(qualityGate, /filter\(\(reference\) => reference\?\.kind === "continuity"\)/);
+  assert.match(qualityGate, /IMAGE_SAFETY_FALLBACK_STAGES\.CONTINUITY_ONLY/);
+  assert.match(qualityGate, /IMAGE_SAFETY_FALLBACK_STAGES\.CONTRACT_ONLY/);
+  assert.match(qualityGate, /referenceImages: generationOptions\.referenceImages \|\| \[\]/);
   assert.match(app, /if \(error\?\.technical\) \{\s*await showGenerationFailure\(\)/);
 });

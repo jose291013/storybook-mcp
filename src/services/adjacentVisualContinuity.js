@@ -4,6 +4,7 @@ function acceptedIllustration(page) {
   if (!page || page.page_type !== "image" || !page.imageStorageKey) return false;
   const status = String(page.qualityStatus || "accepted").toLowerCase();
   return status.startsWith("accepted")
+    || status === "strict_accepted"
     || status === "approved"
     || status === "creator_approved";
 }

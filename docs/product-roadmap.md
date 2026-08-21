@@ -253,6 +253,20 @@ its existing behavior. This orchestration adds no environment variable,
 database migration, commerce change, customer credit use or series-canon
 mutation.
 
+Provider-safety refusal is also isolated at the page boundary. Generation may
+move only through three strictly safer, bounded requests: full approved
+references, approved cover/style reference only, then the immutable render
+contract without source pixels. The independent QA boundary still uses every
+private canonical identity/style reference, so making the generation request
+safer cannot weaken delivery proof. If no candidate exists after those stages,
+the worker checkpoints a private missing-page coordinate, continues every
+independent page and never exposes or propagates a rejected asset. A resume
+targets only that gap and may use the nearest accepted previous and following
+illustrations as secondary continuity evidence. Retry policy version 17 grants
+one migration resume to books exhausted before this page-isolation rule. This
+adds no environment variable, migration, commerce, credit or series-canon
+change.
+
 Creator-facing scenario locations and passages now use localized FR/ES/EN
 product wording instead of internal topology labels. The waiting screen states
 that Calitiki is checking characters, clothing, objects and physical laws. This

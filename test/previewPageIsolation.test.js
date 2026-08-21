@@ -10,6 +10,7 @@ test("preview generation quarantines one page, continues the book and performs a
   ]);
 
   assert.match(qualityGate, /class IllustrationQualityError extends Error/);
+  assert.match(qualityGate, /class IllustrationSafetyQuarantineError extends Error/);
   assert.match(qualityGate, /candidateImageUrl/);
   assert.match(qualityGate, /onCandidate/);
   assert.match(qualityGate, /status: attempt === attemptLimit \|\| quarantineImmediately \? "quarantined" : "rejected"/);
@@ -20,6 +21,11 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /qualityStatus = "repair_pending"/);
   assert.match(preview, /strict_quarantined/);
   assert.match(preview, /strict_internal_quarantine/);
+  assert.match(preview, /page isolated after provider safety rejection/);
+  assert.match(preview, /provider-safety-quarantine:page/);
+  assert.match(preview, /deferredIllustrationPages/);
+  assert.match(preview, /preview_provider_safety_quarantine/);
+  assert.match(preview, /Continue manufacturing every independent page|Continue manufacturing every independent page/i);
   assert.match(preview, /strict-quarantine:page/);
   assert.match(preview, /maximumAttempts: 1/);
   assert.match(preview, /kind: "repair_source"/);
