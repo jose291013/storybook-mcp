@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-safety-page-isolation`
-- Main checkpoint: `5544593` (PR #251, NarrativeBrief.v1)
-- Current focused checkpoint: verify that one new portal book and one new non-portal book preserve the selected adult intention, exact travelers, preparation/crossing order and typed world laws from scenario through delivery
+- Current branch: `main`
+- Main checkpoint: `8788e62` (PR #253, V3 provider-safety page isolation)
+- Current focused checkpoint: after Render is live, resume the interrupted book once and verify that only the provider-safety gap is regenerated while its accepted scenario, cover and surrounding pages remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
