@@ -13,6 +13,38 @@ const blueprintPages = [
   { page_number: 7, page_type: "image", scene_number: 3, scene_title: "Arrivée", cast_present: ["Bastien", "Marie"] },
 ];
 
+function strictPage(pageNumber, {
+  location = "reef workshop",
+  medium = "fully_underwater",
+  outfit = "reef_explorer",
+  equipment = ["breathing_voice_bubble_worn"],
+} = {}) {
+  return {
+    page_number: pageNumber,
+    page_type: "image",
+    scene_number: (pageNumber - 1) / 2,
+    cast_present: ["Mathéo"],
+    scene_contract: {
+      contract_source: "narrative_book_spec_v3_scene_render_contract_v1",
+      visible_character_ids: ["character_hero"],
+      wardrobe_states: [{
+        character_id: "character_hero",
+        outfit_state_id: outfit,
+        equipment_state_ids: equipment,
+      }],
+      render_snapshot: {
+        location,
+        physical_medium: medium,
+        visible_phase: "during",
+        camera_environment: {
+          camera_zone: location,
+          ambient_medium: medium,
+        },
+      },
+    },
+  };
+}
+
 test("initial generation uses only the nearest previously accepted illustration", () => {
   const references = adjacentApprovedIllustrationReferences({
     blueprintPages,
@@ -58,6 +90,25 @@ test("a resumed missing page uses accepted bounds but never a quarantined candid
   });
   assert.deepEqual(references.map((reference) => reference.storageKey), ["private/page-3", "private/page-7"]);
   assert.ok(references.every((reference) => reference.storageKey !== "private/rejected-page-5"));
+});
+
+test("strict V3 skips a nearer adjacent scene whose wardrobe or physical state conflicts", () => {
+  const strictPages = [
+    strictPage(3),
+    strictPage(5, { location: "dry preparation room", medium: "breathable_air", outfit: "ordinary_outfit", equipment: [] }),
+    strictPage(7),
+  ];
+  const references = adjacentApprovedIllustrationReferences({
+    blueprintPages: strictPages,
+    draftPages: [
+      { page_number: 3, page_type: "image", imageStorageKey: "private/page-3", qualityStatus: "strict_accepted" },
+      { page_number: 5, page_type: "image", imageStorageKey: "private/page-5", qualityStatus: "strict_accepted" },
+    ],
+    currentPageNumber: 7,
+  });
+  assert.deepEqual(references.map((reference) => reference.sourcePageNumber), [3]);
+  assert.equal(references[0].stateCompatibility, "same_render_state");
+  assert.equal(references[0].referencePolicyVersion, 19);
 });
 
 test("paired reader text becomes bounded visual evidence beside the structured scene contract", () => {

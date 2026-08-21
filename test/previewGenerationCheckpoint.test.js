@@ -285,8 +285,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the strict V3 quarantine recovery policy is version eighteen", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 18);
+test("the strict V3 visual reference arbitration policy is version nineteen", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 19);
+});
+
+test("a book exhausted under V18 receives one visual-reference arbitration resume", () => {
+  const exhaustedBeforeReferenceArbitration = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v18-wardrobe-book",
+      retryPolicyVersion: 18,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-21T16:30:00.000Z",
+      failureReason: "narrative_v3_illustration_evidence_incomplete",
+      phase: "strict-quarantine:page:11",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedBeforeReferenceArbitration), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedBeforeReferenceArbitration), false);
 });
 
 test("a book exhausted before strict V3 quarantine recovery receives one checkpoint resume", () => {

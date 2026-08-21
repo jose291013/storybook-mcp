@@ -6,6 +6,12 @@ import { createOpenAIClient } from "./openaiClient.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
 import { isTransientOpenAIError } from "./openaiErrorPolicy.js";
+import {
+  VISUAL_REFERENCE_POLICY_STAGES,
+  nextVisualReferencePolicyStage,
+  referencesForVisualPolicy,
+  visualReferencePolicyKinds,
+} from "./visualReferenceArbitration.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "qa" });
@@ -1070,6 +1076,7 @@ export function strictV3IllustrationRetryStrategy(
     attempt = 1,
     maximumAttempts = 2,
     targetedRepairAvailable = false,
+    referenceArbitrationAvailable = false,
   } = {},
 ) {
   const failedDomains = [...new Set(Array.isArray(evidence?.failedDomains)
@@ -1089,7 +1096,8 @@ export function strictV3IllustrationRetryStrategy(
   if (unresolvedDomains.length === 0 && evidence?.approved === true) {
     mode = "accept";
     reason = "all_domains_verified";
-  } else if (singleConfirmedLocalDomain && targetedRepairAvailable) {
+  } else if (singleConfirmedLocalDomain && targetedRepairAvailable
+    && !(referenceArbitrationAvailable && attemptsRemaining > 0)) {
     mode = "targeted_repair";
     reason = "single_confirmed_local_defect";
   } else if (attemptsRemaining > 0) {
@@ -1160,7 +1168,7 @@ export async function inspectStrictV3IllustrationEvidence({
     .jpeg({ quality: 88 })
     .toBuffer();
   const selectedReferences = (Array.isArray(referenceImages) ? referenceImages : [])
-    .filter((reference) => ["identity", "continuity", "adjacent_continuity"].includes(reference?.kind))
+    .filter((reference) => ["identity", "continuity", "adjacent_scene", "adjacent_continuity"].includes(reference?.kind))
     .slice(0, 7);
   const evidence = (await Promise.all(selectedReferences.map(async (reference) => {
     const source = await referenceSource(reference);
@@ -1237,12 +1245,17 @@ export async function generateQualityCheckedImage({
   let previousIssues = [];
   let previousRejectionKind = "technical";
   let safetyFallbackStage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
+  let visualReferencePolicyStage = VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE;
   let attemptLimit = maximumAttempts;
   let lastCandidateImageUrl = "";
   let lastRepairPolicy = null;
   for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
-    const referenceImagesForAttempt = imageSafetyFallbackReferences(
+    const semanticReferences = referencesForVisualPolicy(
       generationOptions.referenceImages,
+      visualReferencePolicyStage,
+    );
+    const referenceImagesForAttempt = imageSafetyFallbackReferences(
+      semanticReferences,
       safetyFallbackStage,
     );
     const safetyFallbackActive = safetyFallbackStage !== IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
@@ -1257,6 +1270,8 @@ export async function generateQualityCheckedImage({
       model,
       safetyFallback: safetyFallbackActive,
       safetyFallbackStage,
+      referencePolicyStage: visualReferencePolicyStage,
+      referenceKinds: visualReferencePolicyKinds(generationOptions.referenceImages, visualReferencePolicyStage),
     });
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
@@ -1419,11 +1434,22 @@ export async function generateQualityCheckedImage({
       const automaticRepairPolicy = targetedVisualRepairPolicy(disposition.blocking, {
         source: inspection.approved ? "scene" : "technical",
       });
+      const candidateIssueCodes = strictV3EvidenceRequired
+        ? strictV3Evidence?.issueCodes || []
+        : disposition.issueCodes;
+      const nextReferencePolicyStage = attempt < attemptLimit
+        ? nextVisualReferencePolicyStage(
+          generationOptions.referenceImages,
+          visualReferencePolicyStage,
+          candidateIssueCodes,
+        )
+        : null;
       const strictRetryPolicy = strictV3EvidenceRequired
         ? strictV3TargetedRepairPolicy(strictV3Evidence, {
           attempt,
           maximumAttempts: attemptLimit,
           targetedRepairAvailable,
+          referenceArbitrationAvailable: Boolean(nextReferencePolicyStage),
         })
         : null;
       const effectiveRepairPolicy = strictRetryPolicy || automaticRepairPolicy;
@@ -1507,6 +1533,9 @@ export async function generateQualityCheckedImage({
           ? "scene"
           : (!sceneInspection.approved ? "scene" : !identityInspection.approved ? "identity" : "style")
         : "technical";
+      if (nextReferencePolicyStage) {
+        visualReferencePolicyStage = nextReferencePolicyStage;
+      }
       const quarantineImmediately = strictV3EvidenceRequired
         ? strictRetryPolicy?.strategy?.mode === "targeted_repair"
         : inspection.approved
@@ -1537,6 +1566,7 @@ export async function generateQualityCheckedImage({
           ? strictV3Evidence?.issueCodes || []
           : disposition.issueCodes,
         retryStrategy: strictRetryPolicy?.strategy || null,
+        referencePolicyStage: visualReferencePolicyStage,
       });
       if (quarantineImmediately) {
         attemptLimit = attempt;

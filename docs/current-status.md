@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/v3-visual-reference-arbitration-v19`
 - Main checkpoint: `6d6fd8c` (PR #255, V3 quarantine recovery V18)
-- Current focused checkpoint: after Render is live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once and verify that pages 3, 11, 12, 20 and 31 are queued by V18 while its accepted scenario, cover and other pages remain unchanged
+- Current focused checkpoint: publish V19, then after Render is Live resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Pages 3, 11 and 12 must regenerate through distinct `referencePolicyStage` values while accepted pages 20 and 31, the scenario, cover and all other pages remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -140,6 +140,29 @@ private-asset exposure or series-canon change.
 Repository verification for this brick: the focused quarantine, checkpoint,
 continuity and image-policy suites pass 62/62, and the complete repository suite
 passes 729/729.
+
+## Product brick: V3 visual-reference arbitration V19
+
+Strict V3 no longer retries a wardrobe, equipment, physical-medium, location,
+action, object, cast or style conflict with the same pixel authorities. An
+accepted adjacent image is eligible only after deterministic comparison of its
+sealed render state with the target scene: physical/ambient medium, camera zone,
+location and every shared character's wardrobe and equipment must agree.
+
+Generation then moves monotonically from all compatible references to
+compatible adjacent scenes plus face identities, cover/style plus identities,
+and finally the exact scene contract plus identities. QA remains independent
+and still compares every candidate with the full canonical reference set. A
+targeted local edit is attempted only after a genuinely different generation
+input has been exhausted. Identity crops mask more source clothing, and prompt
+authority now preserves clothes only inside their declared timeline interval.
+Retry policy 19 grants one bounded resume to version-18 quarantines. No accepted
+page or immutable narrative ancestor is rewritten, and there is no migration,
+environment variable, commerce, credit, private-asset or series-canon change.
+
+Repository verification for this brick: focused arbitration, continuity,
+checkpoint, image-policy and structure assertions pass, and the complete
+repository suite passes 734/734.
 
 ## Current architecture decision: Narrative V3
 
