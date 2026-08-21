@@ -8,8 +8,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-v3-physical-scene-chronology`
-- Main checkpoint: `5a2ea9e` (PR #248)
+- Current branch: `main`
+- Main checkpoint: `8891ae3` (PR #249)
 - Current focused checkpoint: verify the sealed V3 physical chronology on one new portal book and one new non-portal book after Render is Live
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
@@ -21,7 +21,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #248 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #249 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
