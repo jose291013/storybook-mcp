@@ -50,11 +50,11 @@ export function buildFinalPrompt({
     "Print-ready, clean square composition for a premium children's book.",
     renderingRule,
     `Identity fidelity target: ${likenessGoal}. The selected medium may change; the person's identity may not be replaced by a generic child.`,
-    "Treat every visual character role as a locked model sheet: never change face, species, colors, body markings, generic outfit or accessories between pages.",
+    "Treat every visual character role as a locked model sheet: never change face, species, stable colors or body markings. Wardrobe and conditional equipment remain stable only inside the exact state interval declared by the current scene contract, and change only when that contract changes them.",
     "A child must remain the same human child. An animal mascot must remain the exact same animal species and must never become another creature.",
     "Each identity reference belongs to one complete separate individual. Never fuse, splice, morph or exchange heads, faces, bodies, limbs, species, clothing or markings between two references; never create a human-animal hybrid unless the current scene explicitly requests that exact fantasy being.",
     "Scene action, pose, expression, camera angle and lighting may change. Identity may not change. Wardrobe follows the current scene directive and remains exact within that declared state.",
-    "Reference photos may contain printed words, labels or commercial logos on clothing. Remove all of them and replace them with a plain, non-branded fabric or simple generic motif while preserving garment type and color.",
+    "Reference photos may contain printed words, labels or commercial logos on clothing. When the current scene explicitly requires the ordinary source outfit, remove those marks while preserving its broad garment type and color. When another scene outfit is active, do not preserve or copy the source-photo clothing.",
   ];
 
   const combinedFingerprints = sanitizeBrandSensitiveText(characterFingerprints.length
@@ -93,9 +93,9 @@ async function normalizeIdentityReference(source, normalizationMode = "full_and_
       .toBuffer();
     return sharp(faceFocus)
       .composite([{
-        input: { create: { width: 1024, height: 220, channels: 4, background: "#f7f4ee" } },
+        input: { create: { width: 1024, height: 360, channels: 4, background: "#f7f4ee" } },
         left: 0,
-        top: 804,
+        top: 664,
       }])
       .png()
       .toBuffer();

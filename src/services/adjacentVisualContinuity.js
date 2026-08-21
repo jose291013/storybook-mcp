@@ -1,4 +1,9 @@
-export const ADJACENT_VISUAL_CONTINUITY_VERSION = 1;
+import {
+  VISUAL_REFERENCE_ARBITRATION_VERSION,
+  visualReferenceCompatibility,
+} from "./visualReferenceArbitration.js";
+
+export const ADJACENT_VISUAL_CONTINUITY_VERSION = 2;
 
 function acceptedIllustration(page) {
   if (!page || page.page_type !== "image" || !page.imageStorageKey) return false;
@@ -20,13 +25,15 @@ function blueprintContext(page = {}) {
   ].filter(Boolean).join("; ");
 }
 
-function referenceFor(page, blueprintPage, relation) {
+function referenceFor(page, blueprintPage, relation, compatibility) {
   return {
     kind: "adjacent_scene",
     storageKey: page.imageStorageKey,
     sourcePageNumber: Number(page.page_number),
     relation,
     continuityVersion: ADJACENT_VISUAL_CONTINUITY_VERSION,
+    referencePolicyVersion: VISUAL_REFERENCE_ARBITRATION_VERSION,
+    stateCompatibility: compatibility.compatibility,
     label: `${relation} approved interior scene (page ${Number(page.page_number)}${blueprintContext(blueprintPage) ? `; ${blueprintContext(blueprintPage)}` : ""}): preserve recurring identity, established rendering details and only the physical states that carry into the current scene. It is secondary evidence: never import an extra copy, obsolete count, obsolete outfit, action, pose, composition, camera or location. The current scene contract is authoritative, including its persistent-entity ledger.`,
   };
 }
@@ -42,11 +49,21 @@ export function adjacentApprovedIllustrationReferences({
   if (!Number.isFinite(current)) return [];
   const blueprintByNumber = new Map((Array.isArray(blueprintPages) ? blueprintPages : [])
     .map((page) => [Number(page.page_number), page]));
+  const targetBlueprintPage = blueprintByNumber.get(current) || {};
   const candidates = (Array.isArray(draftPages) ? draftPages : [])
     .filter(acceptedIllustration)
     .filter((page) => Number(page.page_number) !== current)
-    .map((page) => ({ page, number: Number(page.page_number) }))
-    .filter((item) => Number.isFinite(item.number));
+    .map((page) => ({
+      page,
+      number: Number(page.page_number),
+      blueprintPage: blueprintByNumber.get(Number(page.page_number)) || {},
+    }))
+    .filter((item) => Number.isFinite(item.number))
+    .map((item) => ({
+      ...item,
+      compatibility: visualReferenceCompatibility(item.blueprintPage, targetBlueprintPage),
+    }))
+    .filter((item) => item.compatibility.compatible);
   const previous = candidates
     .filter((item) => item.number < current)
     .sort((left, right) => right.number - left.number)[0];
@@ -54,8 +71,8 @@ export function adjacentApprovedIllustrationReferences({
     ? candidates.filter((item) => item.number > current).sort((left, right) => left.number - right.number)[0]
     : null;
   return [
-    previous ? referenceFor(previous.page, blueprintByNumber.get(previous.number), "previous") : null,
-    next ? referenceFor(next.page, blueprintByNumber.get(next.number), "next") : null,
+    previous ? referenceFor(previous.page, previous.blueprintPage, "previous", previous.compatibility) : null,
+    next ? referenceFor(next.page, next.blueprintPage, "next", next.compatibility) : null,
   ].filter(Boolean).slice(0, Math.max(0, Number(maximumReferences) || 0));
 }
 

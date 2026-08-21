@@ -279,6 +279,25 @@ resume for books exhausted before this rule. This recovery never rewrites the
 scenario, manuscript, accepted illustrations, commerce, credits or series
 canon and adds no migration or environment variable.
 
+Visual-reference arbitration version 19 makes each remaining generation
+attempt materially different instead of replaying the same conflicting source
+pixels. A strict V3 adjacent illustration is eligible only when its sealed
+physical medium, ambient/camera zone, location and every shared character's
+wardrobe and equipment state are compatible with the current render contract.
+After a confirmed state, identity or style rejection, the worker follows one
+monotonic authority ladder: compatible full references, then compatible
+adjacent scenes plus face-focused identities, then the approved style anchor
+plus identities, and finally the immutable render contract plus identities.
+The independent delivery QA always retains the complete canonical reference
+set. A one-domain targeted edit is therefore deferred until the available
+distinct generation input has been tried; it is no longer the first response
+to a local wardrobe defect. Source-photo clothing is not copied while a
+different contract outfit is active, and face-focused identity crops suppress
+more non-authoritative garment pixels. Retry policy version 19 opens one bounded
+resume for books exhausted under version 18. Accepted pages and immutable story
+ancestors remain unchanged. This adds no migration, environment variable,
+commerce, credit, private-asset exposure or series-canon change.
+
 Creator-facing scenario locations and passages now use localized FR/ES/EN
 product wording instead of internal topology labels. The waiting screen states
 that Calitiki is checking characters, clothing, objects and physical laws. This

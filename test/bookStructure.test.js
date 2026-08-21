@@ -1205,7 +1205,7 @@ test("scene continuity locks child outfit and mascot species while attaching the
     referenceImages: continuity.referenceImages,
     sceneContract: continuity.sceneContract,
   });
-  assert.match(prompt, /never change face, species.*outfit/i);
+  assert.match(prompt, /never change face, species.*Wardrobe.*current scene contract/i);
   assert.match(prompt, /private identity-only reference/i);
   assert.match(prompt, /MANDATORY VISIBLE CAST \(2\): hero child, original unbranded non-human fox animal companion 2/);
   assert.match(prompt, /NON-HUMAN CAST LOCK \(1\).*fox/i);

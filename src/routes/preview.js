@@ -286,6 +286,8 @@ function reportImageAttempt(jobId, stepPrefix) {
     model = "",
     safetyFallback = false,
     safetyFallbackStage = "",
+    referencePolicyStage = "",
+    referenceKinds = [],
   }) => {
     const step = `${stepPrefix}:attempt:${attempt}/${maximumAttempts}:${phase}`;
     updateJob(jobId, { step });
@@ -295,6 +297,8 @@ function reportImageAttempt(jobId, stepPrefix) {
       model: model || undefined,
       safetyFallback: safetyFallback || undefined,
       safetyFallbackStage: safetyFallbackStage || undefined,
+      referencePolicyStage: referencePolicyStage || undefined,
+      referenceKinds: referenceKinds.length ? referenceKinds : undefined,
       error: error || undefined,
       issues: issues.length ? issues : undefined,
     }));
