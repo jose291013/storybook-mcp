@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-manuscript-preflight-normalizer-v21`
-- Main checkpoint before V21: `a25d196` (PR #260 records merged V20)
-- Current focused checkpoint: publish and merge V21, then after Render is Live resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Logs must show a successful `[preview] strict V3 manuscript word preflight` for the affected physical page before `[preview] strict V3 text authority prepared`; accepted images must remain unchanged
+- Current branch after publication: `main`
+- Main checkpoint after publication: PR #261 (V3 manuscript word preflight normalizer V21; merge commit assigned by GitHub)
+- Current focused checkpoint: after Render is Live on PR #261, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Logs must show a successful `[preview] strict V3 manuscript word preflight` for the affected physical page before `[preview] strict V3 text authority prepared`; accepted images must remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
