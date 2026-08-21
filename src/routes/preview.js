@@ -91,7 +91,10 @@ import { evaluatePreviewEconomicGovernor } from "../services/previewEconomicGove
 import { enqueueNarrativeV3ProductionShadow } from "../services/narrativeV3ProductionShadow.js";
 import { projectUsesNarrativeV3 } from "../services/narrativeEngineAssignment.js";
 import { buildInvariantCounterexampleReport } from "../services/universalInvariantEngine.js";
-import { sealNarrativeV3ProductionPreview } from "../services/narrativeV3ProductionRenderingAuthority.js";
+import {
+  prepareNarrativeV3ProductionTextAuthority,
+  sealNarrativeV3ProductionPreview,
+} from "../services/narrativeV3ProductionRenderingAuthority.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -1360,6 +1363,35 @@ router.post("/preview", async (req, res) => {
           phase: "scene-contracts",
         }, { finalBlueprint: final_blueprint });
       }
+      let narrativeV3TextAuthority = null;
+      if (strictV3Rendering) {
+        updateJob(job.id, { step: "draft:v3-text-authority" });
+        await updateGenerationRun(job.id, {
+          status: "running",
+          currentStep: "draft:v3-text-authority",
+        });
+        narrativeV3TextAuthority = await prepareNarrativeV3ProductionTextAuthority({
+          projectId,
+          runId: job.id,
+          spec: narrativeBookSpec,
+          pageTexts: Object.fromEntries(draftTextByPage),
+        });
+        await persistCheckpoint({
+          phase: "v3-text-authority",
+          narrativeV3TextAuthority: {
+            version: narrativeV3TextAuthority.version,
+            status: narrativeV3TextAuthority.status,
+            sourceSpecDigest: narrativeV3TextAuthority.sourceSpecDigest,
+            artifactDigest: narrativeV3TextAuthority.artifactDigest,
+          },
+        });
+        console.info("[preview] strict V3 text authority prepared", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          sceneCount: narrativeV3TextAuthority.storyboard.beats.length,
+          artifactDigest: narrativeV3TextAuthority.artifactDigest.slice(0, 12),
+        }));
+      }
       updateJob(job.id, { step: "draft:cover" });
       const storedProject = await projectStore.get(job.projectId);
       const priorResult = existingCheckpoint ? (storedProject?.previewResult || {}) : {};
@@ -2001,6 +2033,7 @@ router.post("/preview", async (req, res) => {
           runId: job.id,
           spec: narrativeBookSpec,
           draftPages,
+          textAuthority: narrativeV3TextAuthority,
         });
         console.info("[preview] strict V3 production delivery sealed", JSON.stringify({
           jobId: job.id,
@@ -2087,6 +2120,14 @@ router.post("/preview", async (req, res) => {
         projectId,
         step: failedJob?.step || checkpoint?.phase || "unknown",
         checkpointPhase: checkpoint?.phase || null,
+        errorCode: String(error?.code || boundedErrorCode),
+        artifactType: String(error?.artifactType || ""),
+        pageNumber: Number.isInteger(Number(error?.pageNumber)) ? Number(error.pageNumber) : null,
+        issues: (Array.isArray(error?.issues) ? error.issues : []).slice(0, 12).map((issue) => ({
+          keyword: String(issue?.keyword || ""),
+          path: String(issue?.path || ""),
+          message: String(issue?.message || issue || "").slice(0, 300),
+        })),
         error: String(error?.message || error),
       }));
       if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);

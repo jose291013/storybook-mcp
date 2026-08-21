@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Main checkpoint: `d22827f` (PR #257, V3 visual-reference arbitration V19)
-- Current focused checkpoint: after Render is Live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Pages 3, 11 and 12 must regenerate through distinct `referencePolicyStage` values while accepted pages 20 and 31, the scenario, cover and all other pages remain unchanged
+- Current branch: `codex/v3-preflight-delivery-authority-v20`
+- Main checkpoint before V20: `82fe9d7`
+- Current focused checkpoint: PR #259 contains V20. After merge and once Render is Live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. The prepared manuscript authority must be sealed before any new cover or illustration work, accepted pages from prior runs must be reused only through an exact retained storage-key match, and the final delivery step must not recompile prose
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -163,6 +163,28 @@ environment variable, commerce, credit, private-asset or series-canon change.
 Repository verification for this brick: focused arbitration, continuity,
 checkpoint, image-policy and structure assertions pass, and the complete
 repository suite passes 734/734.
+
+## Product brick: V3 preflight delivery authority V20
+
+Strict V3 now prepares and persists the final manuscript, page-level fact
+evidence, visual storyboard and continuity plan before cover or illustration
+generation begins. The delivery seal receives these exact prepared pointers;
+it may validate visual evidence but cannot rebuild or silently replace the text
+authority after image spend.
+
+Checkpoint recovery may reuse a previously accepted strict candidate from any
+run of the same project only when its private storage key exactly equals the
+image retained on that draft page. This permits an interrupted run to keep good
+pages without admitting an older foreign candidate. An invalid derived current
+artifact may be superseded by a new immutable valid revision; the released
+specification and every approved ancestor remain unchanged. Final failures now
+identify the artifact type, stable error code, page when applicable and bounded
+issue evidence. Retry policy version 20 grants one bounded recovery to projects
+exhausted before this ordering existed.
+
+There is no migration, environment-variable, commerce, credit, private-asset
+exposure or series-canon change. Repository verification: focused V20 authority
+and checkpoint suites pass 22/22, and the complete suite passes 735/735.
 
 ## Current architecture decision: Narrative V3
 
