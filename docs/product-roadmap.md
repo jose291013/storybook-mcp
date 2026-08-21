@@ -267,6 +267,18 @@ one migration resume to books exhausted before this page-isolation rule. This
 adds no environment variable, migration, commerce, credit or series-canon
 change.
 
+Strict V3 quality quarantine is a non-terminal page state. Checkpoint reuse may
+consider an image complete only when its persisted page has accepted version-2
+evidence. A quarantined, repair-pending or legacy-unverified image stays private
+and is queued for full regeneration from its unchanged render contract; the
+cover and nearest accepted pages on both sides remain reusable continuity
+evidence. Recovery uses three bounded full candidates while ordinary new pages
+retain two, then atomically replaces the same page number. Empty targeted scopes
+cannot erase the exact failed-domain codes. Retry policy version 18 opens one
+resume for books exhausted before this rule. This recovery never rewrites the
+scenario, manuscript, accepted illustrations, commerce, credits or series
+canon and adds no migration or environment variable.
+
 Creator-facing scenario locations and passages now use localized FR/ES/EN
 product wording instead of internal topology labels. The waiting screen states
 that Calitiki is checking characters, clothing, objects and physical laws. This

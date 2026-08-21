@@ -45,12 +45,16 @@ import {
 } from "../services/referencePhotoStorage.js";
 import {
   generationCheckpoint,
-  isReusableDraftPage,
   mergeGenerationCheckpoint,
   PREVIEW_RETRY_POLICY_VERSION,
   previewRequestFingerprint,
   technicalPreviewRetryAvailable,
 } from "../services/previewGenerationCheckpoint.js";
+import {
+  partitionPreviewDraftPages,
+  strictPageIssueCodes,
+  upsertPreviewDraftPage,
+} from "../services/previewPageRecovery.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 import { generationRunStore } from "../services/generationRunStore.js";
@@ -1457,12 +1461,19 @@ router.post("/preview", async (req, res) => {
         return;
       }
 
-      const draftPages = (priorResult.draftPages || []).filter((page) => (
-        isReusableDraftPage(page)
-        && (!strictV3Rendering
-          || page.page_type !== "image"
-          || Number(page.strictEvidenceVersion || 0) === 2)
-      ));
+      const {
+        acceptedPages: draftPages,
+        recoveryPageNumbers,
+      } = partitionPreviewDraftPages(priorResult.draftPages || [], { strictV3Rendering });
+      const strictRecoveryPageNumbers = new Set(recoveryPageNumbers);
+      if (strictRecoveryPageNumbers.size) {
+        console.info("[preview] strict V3 quarantine recovery queued", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          pages: [...strictRecoveryPageNumbers],
+          policyVersion: PREVIEW_RETRY_POLICY_VERSION,
+        }));
+      }
       const deferredIllustrationPages = [];
       const previewResultSnapshot = () => ({
         coverImageUrl,
@@ -1575,6 +1586,7 @@ router.post("/preview", async (req, res) => {
               outName: `draft-page${page.page_number}-${job.id}`,
               castPresent: page.cast_present || [],
               pageLabel: `interior illustration for page ${page.page_number}`,
+              maximumAttempts: strictRecoveryPageNumbers.has(Number(page.page_number)) ? 3 : 2,
               onAttempt: reportImageAttempt(job.id, `draft:page:${page.page_number}`),
               onCandidate: createImageCandidateRecorder({
                 jobId: job.id,
@@ -1624,7 +1636,7 @@ router.post("/preview", async (req, res) => {
                 projectId,
                 pageNumber: page.page_number,
                 rejectionKind: qualityKind,
-                issueCodes: qualityRepairPolicy.targetCodes,
+                issueCodes: qualityIssueCodes,
                 automaticRepair: qualityRepairPolicy.automaticRepair,
               }));
               qualityStatus = qualityRepairPolicy.automaticRepair
@@ -1664,7 +1676,7 @@ router.post("/preview", async (req, res) => {
           dpi: 150,
         });
         const persistedPage = await persistPreviewAsset({ projectId, assetUrl: localPreviewUrl });
-        draftPages.push({
+        upsertPreviewDraftPage(draftPages, {
           page_number: page.page_number,
           page_type: page.page_type,
           spread_number: page.spread_number,
@@ -1699,7 +1711,7 @@ router.post("/preview", async (req, res) => {
           pageNumber: Number(page.page_number),
           kind: page.qualityKind || "scene",
           issues: page.qualityIssues || [],
-          issueCodes: page.qualityIssueCodes || page.qualityRepairPolicy?.remainingIssueCodes || page.qualityRepairPolicy?.targetCodes || [],
+          issueCodes: strictPageIssueCodes(page),
         }));
       const pendingRepairPages = draftPages.filter((page) => (
         page.page_type === "image" && page.qualityStatus === "repair_pending"
