@@ -1519,6 +1519,28 @@ environment variable, commerce, credit, private-asset exposure or series-canon
 change. Focused V21/V20/checkpoint verification passes 29/29.
 The complete repository suite passes 742/742.
 
+## Product brick: V3 scene prose authority V22
+
+The released scene presence ledger is now the single prose-cast authority. For
+each scene it projects physical characters, evoked characters and the complete
+forbidden remainder of the immutable character registry. Movement or passage
+participation is contextual mechanical evidence only; it cannot authorize a
+name on a page whose exact scene presence does not contain that character.
+
+The manuscript writer receives only this page authority, and
+ManuscriptFactEvidence uses the same canonical-name and family-address matcher.
+Strict production runs a bounded scene-cast preflight before word-range
+normalization, text persistence, cover generation or illustration spend. It
+leaves valid prose byte-stable and rewrites only pages with a confirmed absent
+named character, while preserving every authorized mention, action, location,
+object, quantity, physical medium, wardrobe and emotional outcome.
+
+Retry policy version 22 grants one resumable attempt to V21 failures. No
+approved scenario ancestor, accepted image, customer credit, commerce state,
+private asset or series canon is changed. There is no migration or new
+environment variable. Verification: 45/45 focused and 750/750 complete tests
+pass.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

@@ -8,6 +8,13 @@ family_address in dialogue and reader-visible references whenever it is provided
 Never invent an event between canonical scenes. The artifact_digest must remain
 identical across every canonical_scene in the batch.
 
+canonical_scene.prose_authority is the only authority for named people on that
+page. Only allowed_characters may be named or addressed. A character listed only
+as a contextual traveler, transition traveler, witness elsewhere or global cast
+member is absent from this page and must not be named, described by relationship,
+or hidden behind a pronoun. An evoked character may be mentioned but never made
+physically visible. A physical character may be described only in the current scene.
+
 When a page includes visual_beat, it was compiled before the manuscript and is
 immutable. Write the text from that exact single visible instant: same location,
 phase, physical cast, main action, object states, physical medium and world zone.

@@ -285,8 +285,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the strict V3 manuscript word preflight policy is version twenty-one", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 21);
+test("the strict V3 scene-prose authority policy is version twenty-two", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 22);
+});
+
+test("a book exhausted under V21 receives one scene-cast authority resume", () => {
+  const exhaustedBeforeSceneCastPreflight = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v21-scene-cast-book",
+      retryPolicyVersion: 21,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-21T22:15:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "scene-contracts",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedBeforeSceneCastPreflight), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedBeforeSceneCastPreflight), false);
 });
 
 test("a book exhausted under V20 receives one manuscript word-preflight resume", () => {

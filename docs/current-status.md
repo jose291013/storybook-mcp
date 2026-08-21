@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch after publication: `main`
-- Main checkpoint after publication: PR #261 (V3 manuscript word preflight normalizer V21; merge commit assigned by GitHub)
-- Current focused checkpoint: after Render is Live on PR #261, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Logs must show a successful `[preview] strict V3 manuscript word preflight` for the affected physical page before `[preview] strict V3 text authority prepared`; accepted images must remain unchanged
+- Current branch before publication: `codex/v3-scene-prose-authority-v22`
+- Main checkpoint before publication: PR #261 (V3 manuscript word preflight normalizer V21; merge commit assigned by GitHub)
+- Current focused checkpoint: publish and merge V22, wait for Render Live, then resume project `b0608ff9-c041-426c-bc82-e80854db4edc` once. Logs must show `[preview] strict V3 manuscript scene-cast preflight` before the V21 word preflight and V20 text authority; accepted images must remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -210,6 +210,27 @@ their exact private storage keys. There is no migration, environment variable,
 commerce, credit, private-asset exposure or series-canon change. Focused V21,
 V20 authority and checkpoint verification passes 29/29; the complete repository
 suite passes 742/742.
+
+## Product brick: V3 scene prose authority V22
+
+The exact physical and evoked presences of each released scene are now the sole
+authority for named people in that scene's prose. Transition travelers,
+movement participants, global cast members and witnesses from other scenes no
+longer enter the writer's page registry merely because they exist elsewhere in
+the book. The writer prompt, page contract and ManuscriptFactEvidence consume
+the same projection, including canonical names and family forms of address.
+
+Before V21 word normalization and before V20 immutable text authority, strict
+V3 scans every scene-text page against that projection. Only pages that name an
+absent character receive up to two bounded language-only repairs; valid pages
+and accepted images remain unchanged. A repair must preserve every already
+authorized named mention and cannot import a person from adjacent prose. Retry
+policy version 22 opens one bounded resume for V21-exhausted projects. There is
+no database migration, environment variable, commerce, credit, private-asset
+or series-canon change.
+
+Repository verification for V22: 45/45 focused tests and 750/750 complete tests
+pass.
 
 ## Current architecture decision: Narrative V3
 
