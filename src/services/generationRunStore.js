@@ -319,6 +319,12 @@ export class JsonGenerationRunStore {
       .filter((candidate) => candidate.stepId === stepId)
       .sort((left, right) => Number(left.candidateNumber) - Number(right.candidateNumber));
   }
+
+  async listCandidatesForProject(projectId) {
+    return Object.values(this.read().candidates)
+      .filter((candidate) => candidate.projectId === projectId)
+      .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)));
+  }
 }
 
 export class PostgresGenerationRunStore {
@@ -556,6 +562,14 @@ export class PostgresGenerationRunStore {
     const { rows } = await this.database.query(
       "SELECT * FROM generation_candidates WHERE step_id=$1 ORDER BY candidate_number ASC",
       [stepId],
+    );
+    return rows.map(candidateFromRow);
+  }
+
+  async listCandidatesForProject(projectId) {
+    const { rows } = await this.database.query(
+      "SELECT * FROM generation_candidates WHERE project_id=$1 ORDER BY created_at ASC",
+      [projectId],
     );
     return rows.map(candidateFromRow);
   }

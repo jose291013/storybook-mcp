@@ -6,10 +6,14 @@ import path from "node:path";
 import test from "node:test";
 
 import { getWordsTargetByAge } from "../src/config/readingGuidance.js";
+import { manuscriptDigest } from "../src/contracts/manuscriptV1.js";
 import { JsonGenerationRunStore } from "../src/services/generationRunStore.js";
 import { JsonNarrativeV3ArtifactStore } from "../src/services/narrativeV3ArtifactStore.js";
 import { runNarrativeV3ObjectLifecycleFixture } from "../src/services/narrativeV3ObjectLifecycleMatrix.js";
-import { sealNarrativeV3ProductionPreview } from "../src/services/narrativeV3ProductionRenderingAuthority.js";
+import {
+  prepareNarrativeV3ProductionTextAuthority,
+  sealNarrativeV3ProductionPreview,
+} from "../src/services/narrativeV3ProductionRenderingAuthority.js";
 import { JsonNarrativeV3RunStore } from "../src/services/narrativeV3StateMachine.js";
 
 const DOMAIN_NAMES = [
@@ -35,18 +39,18 @@ test("the real production worker seals a V3 manifest only from accepted private 
     const storyboardPointer = await artifactStore.getCurrentPointer(projectId, "visual_storyboard");
     const storyboard = (await artifactStore.getArtifact(storyboardPointer.artifactId)).payload;
     const runStore = new JsonGenerationRunStore(path.join(directory, "generation-runs.json"));
-    const runId = crypto.randomUUID();
-    await runStore.createRun({ id: runId, projectId, kind: "preview", status: "running" });
+    const imageRunId = crypto.randomUUID();
+    await runStore.createRun({ id: imageRunId, projectId, kind: "preview", status: "failed" });
     const domains = Object.fromEntries(DOMAIN_NAMES.map((domain) => [domain, { status: "pass", evidence_code: "verified" }]));
     for (const beat of storyboard.beats) {
-      const { step } = await runStore.upsertStep(runId, {
+      const { step } = await runStore.upsertStep(imageRunId, {
         stepKey: `image:page:${beat.imagePageNumber}`,
         stepType: "page_image",
         status: "completed",
         maxAttempts: 2,
       });
       await runStore.recordCandidate({
-        runId,
+        runId: imageRunId,
         stepId: step.id,
         projectId,
         pageNumber: beat.imagePageNumber,
@@ -77,11 +81,60 @@ test("the real production worker seals a V3 manifest only from accepted private 
           text: Array(guidance.target).fill("aventure").join(" "),
         };
       });
-    const sealed = await sealNarrativeV3ProductionPreview({
+    for (const beat of storyboard.beats) {
+      draftPages.push({
+        page_number: beat.imagePageNumber,
+        page_type: "image",
+        imageStorageKey: `ebooks/previews/${projectId}/scene-${beat.sceneNumber}.png`,
+        storageKey: `ebooks/previews/${projectId}/spread-${beat.sceneNumber}.png`,
+        previewUrl: `/api/projects/${projectId}/preview-assets/spread-${beat.sceneNumber}.png`,
+        strictEvidenceVersion: 2,
+      });
+    }
+    const deliveryRunId = crypto.randomUUID();
+    await runStore.createRun({ id: deliveryRunId, projectId, kind: "preview", status: "running" });
+    await assert.rejects(
+      sealNarrativeV3ProductionPreview({
+        projectId,
+        runId: deliveryRunId,
+        spec,
+        draftPages,
+        artifactStore,
+        runStore,
+      }),
+      (error) => error.code === "narrative_v3_text_authority_required",
+    );
+    const staleTextAuthority = await prepareNarrativeV3ProductionTextAuthority({
       projectId,
-      runId,
+      runId: deliveryRunId,
       spec,
       draftPages,
+      artifactStore,
+    });
+    const rawLedger = JSON.parse(await fs.readFile(path.join(directory, "artifacts.json"), "utf8"));
+    const staleRecord = rawLedger.artifacts[staleTextAuthority.artifacts.manuscript.id];
+    delete staleRecord.payload.book.audienceAge;
+    staleRecord.payload.validation.artifactDigest = manuscriptDigest(staleRecord.payload);
+    staleRecord.payloadDigest = staleRecord.payload.validation.artifactDigest;
+    rawLedger.pointers[`${projectId}:manuscript`].artifactDigest = staleRecord.payloadDigest;
+    await fs.writeFile(path.join(directory, "artifacts.json"), JSON.stringify(rawLedger, null, 2), "utf8");
+    const recoveredDraftPages = structuredClone(draftPages);
+    const revisedTextPage = recoveredDraftPages.find((page) => page.page_type !== "image");
+    revisedTextPage.text = `${revisedTextPage.text} ensemble`;
+    const textAuthority = await prepareNarrativeV3ProductionTextAuthority({
+      projectId,
+      runId: deliveryRunId,
+      spec,
+      draftPages: recoveredDraftPages,
+      artifactStore,
+    });
+    assert.notEqual(textAuthority.artifacts.manuscript.id, staleTextAuthority.artifacts.manuscript.id);
+    const sealed = await sealNarrativeV3ProductionPreview({
+      projectId,
+      runId: deliveryRunId,
+      spec,
+      draftPages: recoveredDraftPages,
+      textAuthority,
       artifactStore,
       runStore,
     });

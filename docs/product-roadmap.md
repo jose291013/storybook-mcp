@@ -1466,6 +1466,33 @@ quality-review and private cost metrics reviewed at each step.
 - `data/jobs.json` remains a local development store and must not be committed.
 - Permanent deletion of an unpaid creation is intentionally a separate product brick. It must remove the project and its private assets idempotently, preserve purchased books and commerce records, and require explicit confirmation in the customer library.
 
+## Product brick: V3 preflight delivery authority V20
+
+The final text authority is now a precondition rather than an end-of-run
+reconstruction. Before any cover or interior image call, production compiles
+and persists the exact `manuscript`, `manuscript_fact_evidence`,
+`visual_storyboard` and `visual_continuity_plan` derived from the released V3
+specification and final reviewed page text. The delivery stage consumes those
+prepared pointers verbatim and is limited to binding accepted visual evidence;
+it cannot regenerate prose or replace a textual ancestor after image spend.
+
+Resume evidence is project-wide but fail-closed. A strict accepted candidate
+from an earlier run is reusable only when its private storage key is identical
+to the image storage key retained by the current draft page. This preserves
+approved pages across interruption while excluding stale or foreign images.
+If an existing derived pointer is invalid under the current strict contract,
+production records a new immutable valid revision and advances only that
+derived pointer; it never mutates the released specification, approved
+scenario, cover or source artifact. Structured terminal diagnostics name the
+artifact, error code, affected page and bounded issues so another generic patch
+is not inferred from an opaque final failure.
+
+Retry policy version 20 allows one bounded resume for projects exhausted under
+V19. There is no migration, environment-variable, commerce, credit,
+private-asset exposure or series-canon change. Verification: focused V20
+authority and checkpoint suites pass 22/22; the complete repository suite
+passes 735/735.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

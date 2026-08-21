@@ -285,8 +285,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the strict V3 visual reference arbitration policy is version nineteen", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 19);
+test("the strict V3 preflight delivery authority policy is version twenty", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 20);
+});
+
+test("a book exhausted under V19 receives one preflight delivery-authority resume", () => {
+  const exhaustedBeforeTextPreflight = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v19-final-authority-book",
+      retryPolicyVersion: 19,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-21T20:45:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "draft:v3-delivery-authority",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedBeforeTextPreflight), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedBeforeTextPreflight), false);
 });
 
 test("a book exhausted under V18 receives one visual-reference arbitration resume", () => {
