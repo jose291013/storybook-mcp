@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-visual-reference-arbitration-v19`
-- Main checkpoint: `6d6fd8c` (PR #255, V3 quarantine recovery V18)
-- Current focused checkpoint: publish V19, then after Render is Live resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Pages 3, 11 and 12 must regenerate through distinct `referencePolicyStage` values while accepted pages 20 and 31, the scenario, cover and all other pages remain unchanged
+- Current branch: `main`
+- Main checkpoint: `d22827f` (PR #257, V3 visual-reference arbitration V19)
+- Current focused checkpoint: after Render is Live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Pages 3, 11 and 12 must regenerate through distinct `referencePolicyStage` values while accepted pages 20 and 31, the scenario, cover and all other pages remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
