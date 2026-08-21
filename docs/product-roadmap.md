@@ -1493,6 +1493,32 @@ private-asset exposure or series-canon change. Verification: focused V20
 authority and checkpoint suites pass 22/22; the complete repository suite
 passes 735/735.
 
+## Product brick: V3 manuscript word preflight normalizer V21
+
+Every strict V3 manuscript now passes an explicit physical-page word-range
+preflight after final storyboard text binding and before the V20 immutable text
+authority or any image generation. The gate derives its target and tolerance
+from the released book age and page kind, reports the physical page plus actual,
+minimum and maximum word counts, and leaves every already-valid page byte
+unchanged.
+
+Only out-of-range pages enter the economical manuscript-editor route, with two
+bounded attempts maximum. The request contains the existing text, adjacent
+prose, canonical scene and exact visual beat. A response must return the exact
+requested page set and preserve all canonical named-character and family-form
+mentions. The normalized text is rebound to the same storyboard and must still
+pass language, child safety, visual binding, fact evidence and strict V20
+authority before a cover or illustration can be requested. Checkpoint evidence
+contains only page numbers and word counts; it does not duplicate manuscript
+prose.
+
+Retry policy version 21 opens one bounded recovery for V20 projects stopped at
+the early manuscript authority. Their accepted illustrations remain eligible
+only through the exact retained private storage-key rule. There is no migration,
+environment variable, commerce, credit, private-asset exposure or series-canon
+change. Focused V21/V20/checkpoint verification passes 29/29.
+The complete repository suite passes 742/742.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.
