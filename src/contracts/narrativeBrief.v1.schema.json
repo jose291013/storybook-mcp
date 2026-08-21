@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/narrative-brief.v1.schema.json",
+  "title": "NarrativeBrief.v1",
+  "description": "Immutable deterministic semantic authority compiled before creative story generation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "sources", "language", "audienceAge", "sceneCount", "hero", "narrativeAuthority", "ageProfile", "worldRules", "castPlan", "milestones", "scenePlan", "provenance", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.narrative-brief.v1" },
+    "sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["creationIntentDigest", "worldLawDigest", "questionnaireDigest"],
+      "properties": {
+        "creationIntentDigest": { "$ref": "#/$defs/digest" },
+        "worldLawDigest": { "$ref": "#/$defs/digest" },
+        "questionnaireDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "language": { "enum": ["FR", "ES", "EN"] },
+    "audienceAge": { "type": "integer", "minimum": 2, "maximum": 14 },
+    "sceneCount": { "type": "integer", "minimum": 11, "maximum": 21 },
+    "hero": {
+      "type": "object", "additionalProperties": false,
+      "required": ["characterKey", "name", "personality", "interests", "dream", "challenge"],
+      "properties": {
+        "characterKey": { "$ref": "#/$defs/id" },
+        "name": { "$ref": "#/$defs/text" },
+        "personality": { "$ref": "#/$defs/text" },
+        "interests": { "$ref": "#/$defs/text" },
+        "dream": { "$ref": "#/$defs/text" },
+        "challenge": { "$ref": "#/$defs/text" }
+      }
+    },
+    "narrativeAuthority": {
+      "type": "object", "additionalProperties": false,
+      "required": ["situation", "understanding", "desiredChange", "protectiveDoubt", "accessibleFirstStep", "motivation", "earnedReward", "message", "storyStartingPoint", "progressiveEffort", "childOwnedAction", "adventureAdaptation", "peakMoment", "resolution", "transformation", "emotionalTone"],
+      "properties": {
+        "situation": { "$ref": "#/$defs/text" },
+        "understanding": { "$ref": "#/$defs/text" },
+        "desiredChange": { "$ref": "#/$defs/text" },
+        "protectiveDoubt": { "$ref": "#/$defs/text" },
+        "accessibleFirstStep": { "$ref": "#/$defs/text" },
+        "motivation": { "$ref": "#/$defs/text" },
+        "earnedReward": { "$ref": "#/$defs/text" },
+        "message": { "$ref": "#/$defs/text" },
+        "storyStartingPoint": { "$ref": "#/$defs/text" },
+        "progressiveEffort": { "$ref": "#/$defs/text" },
+        "childOwnedAction": { "$ref": "#/$defs/text" },
+        "adventureAdaptation": { "$ref": "#/$defs/text" },
+        "peakMoment": { "$ref": "#/$defs/text" },
+        "resolution": { "$ref": "#/$defs/text" },
+        "transformation": { "$ref": "#/$defs/text" },
+        "emotionalTone": { "$ref": "#/$defs/text" }
+      }
+    },
+    "ageProfile": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "conceptualComplexity", "metaphorMode", "emotionalReasoning", "maximumConcurrentGoals", "maximumCausalStepsPerScene", "guideMay", "guideMustNot", "demonstrateMessageBeforeStatement", "maximumExplicitMessageFormulations"],
+      "properties": {
+        "id": { "enum": ["early", "emerging", "independent", "advanced", "preteen"] },
+        "conceptualComplexity": { "$ref": "#/$defs/id" },
+        "metaphorMode": { "$ref": "#/$defs/id" },
+        "emotionalReasoning": { "$ref": "#/$defs/id" },
+        "maximumConcurrentGoals": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "maximumCausalStepsPerScene": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "guideMay": { "$ref": "#/$defs/idList" },
+        "guideMustNot": { "$ref": "#/$defs/idList" },
+        "demonstrateMessageBeforeStatement": { "const": true },
+        "maximumExplicitMessageFormulations": { "const": 1 }
+      }
+    },
+    "worldRules": {
+      "type": "object", "additionalProperties": false,
+      "required": ["universeId", "origin", "adventure", "boundary", "passage", "survivalMechanisms", "nativeElementIds", "forbiddenElementIds", "capabilities"],
+      "properties": {
+        "universeId": { "$ref": "#/$defs/id" },
+        "origin": { "$ref": "#/$defs/zone" },
+        "adventure": { "$ref": "#/$defs/zone" },
+        "boundary": { "$ref": "#/$defs/zone" },
+        "passage": { "$ref": "#/$defs/passage" },
+        "survivalMechanisms": { "type": "array", "maxItems": 8, "items": { "$ref": "#/$defs/mechanism" } },
+        "nativeElementIds": { "$ref": "#/$defs/idList" },
+        "forbiddenElementIds": { "$ref": "#/$defs/idList" },
+        "capabilities": { "type": "array", "maxItems": 12, "items": { "$ref": "#/$defs/capability" } }
+      }
+    },
+    "castPlan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["characters", "travelerKeys", "originWitnessKeys", "localAdventureKeys"],
+      "properties": {
+        "characters": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/character" } },
+        "travelerKeys": { "$ref": "#/$defs/idList" },
+        "originWitnessKeys": { "$ref": "#/$defs/idList" },
+        "localAdventureKeys": { "$ref": "#/$defs/idList" }
+      }
+    },
+    "milestones": { "type": "array", "minItems": 8, "maxItems": 8, "items": { "$ref": "#/$defs/milestone" } },
+    "scenePlan": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/scene" } },
+    "provenance": { "type": "array", "minItems": 16, "maxItems": 16, "items": { "$ref": "#/$defs/provenance" } },
+    "validation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["builderVersion", "artifactDigest"],
+      "properties": { "builderVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "text": { "type": "string", "minLength": 1, "maxLength": 1600 },
+    "idList": { "type": "array", "uniqueItems": true, "maxItems": 30, "items": { "$ref": "#/$defs/id" } },
+    "zone": {
+      "type": "object", "additionalProperties": false,
+      "required": ["zoneId", "name", "mediumId", "gravityModelId", "locomotionIds", "allowedPostureIds", "requiredSurvivalMechanismIds"],
+      "properties": {
+        "zoneId": { "$ref": "#/$defs/id" }, "name": { "$ref": "#/$defs/text" }, "mediumId": { "$ref": "#/$defs/id" }, "gravityModelId": { "$ref": "#/$defs/id" },
+        "locomotionIds": { "$ref": "#/$defs/idList" }, "allowedPostureIds": { "$ref": "#/$defs/idList" }, "requiredSurvivalMechanismIds": { "$ref": "#/$defs/idList" }
+      }
+    },
+    "passage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["passageId", "originZoneId", "adventureZoneId", "boundaryZoneId", "geometryId", "cameraSideRule"],
+      "properties": {
+        "passageId": { "$ref": "#/$defs/id" }, "originZoneId": { "$ref": "#/$defs/id" }, "adventureZoneId": { "$ref": "#/$defs/id" }, "boundaryZoneId": { "$ref": "#/$defs/id" }, "geometryId": { "$ref": "#/$defs/id" }, "cameraSideRule": { "$ref": "#/$defs/id" }
+      }
+    },
+    "mechanism": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mechanismId", "scope", "activeStateId", "requiredMediumIds"],
+      "properties": { "mechanismId": { "$ref": "#/$defs/id" }, "scope": { "$ref": "#/$defs/id" }, "activeStateId": { "$ref": "#/$defs/id" }, "requiredMediumIds": { "$ref": "#/$defs/idList" } }
+    },
+    "capability": {
+      "type": "object", "additionalProperties": false,
+      "required": ["capabilityId", "kind", "limitationId"],
+      "properties": { "capabilityId": { "$ref": "#/$defs/id" }, "kind": { "$ref": "#/$defs/id" }, "limitationId": { "$ref": "#/$defs/id" } }
+    },
+    "character": {
+      "type": "object", "additionalProperties": false,
+      "required": ["characterKey", "name", "role", "kind", "relationship", "participation"],
+      "properties": {
+        "characterKey": { "$ref": "#/$defs/id" }, "name": { "$ref": "#/$defs/text" }, "role": { "$ref": "#/$defs/id" }, "kind": { "$ref": "#/$defs/id" }, "relationship": { "$ref": "#/$defs/text" },
+        "participation": { "enum": ["traveler", "origin_witness", "local_adventure"] }
+      }
+    },
+    "milestone": {
+      "type": "object", "additionalProperties": false,
+      "required": ["milestoneId", "sourceText", "sourceField", "sceneNumbers"],
+      "properties": { "milestoneId": { "$ref": "#/$defs/id" }, "sourceText": { "$ref": "#/$defs/text" }, "sourceField": { "$ref": "#/$defs/id" }, "sceneNumbers": { "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true, "items": { "type": "integer", "minimum": 1, "maximum": 21 } } }
+    },
+    "scene": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sceneNumber", "beatKey", "storyRole", "purpose", "participantKeys", "milestoneIds"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 }, "beatKey": { "$ref": "#/$defs/id" }, "storyRole": { "$ref": "#/$defs/id" },
+        "purpose": { "enum": ["opening", "desire", "preparation", "crossing", "attempt", "setback", "choice", "climax", "return", "resolution"] },
+        "participantKeys": { "$ref": "#/$defs/idList" }, "milestoneIds": { "$ref": "#/$defs/idList" }
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["authorityKey", "sourceField"],
+      "properties": { "authorityKey": { "$ref": "#/$defs/id" }, "sourceField": { "$ref": "#/$defs/id" } }
+    }
+  }
+}

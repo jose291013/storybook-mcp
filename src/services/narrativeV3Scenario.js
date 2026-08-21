@@ -4,6 +4,11 @@ import { buildCanonicalStoryMechanics } from "../contracts/buildCanonicalStoryMe
 import { buildCharacterStateTimelineV1 } from "../contracts/characterStateTimelineV1.js";
 import { buildWorldLawContractV1 } from "../contracts/worldLawContractV1.js";
 import {
+  assertStoryConceptFollowsNarrativeBrief,
+  buildNarrativeBriefV1,
+  narrativeBriefForModel,
+} from "../contracts/narrativeBriefV1.js";
+import {
   canonicalDigest,
   compileCanonicalStoryGraph,
   parseStoryConceptWire,
@@ -312,7 +317,7 @@ function revisionRequest({ previousScenario, feedback, sceneEdits }) {
 
 export async function generateNarrativeV3Scenario({
   project,
-  normalized,
+  normalized: requestedNormalized,
   previousScenario = null,
   feedback = "",
   sceneEdits = [],
@@ -323,15 +328,32 @@ export async function generateNarrativeV3Scenario({
   conceptAgent = narrativeV3ConceptAgent,
 } = {}) {
   const source = buildNarrativeV3ProjectSource(project);
+  const normalized = source.normalized;
+  if (
+    requestedNormalized
+    && canonicalDigest(requestedNormalized.answers || {}) !== canonicalDigest(normalized.answers || {})
+  ) {
+    const error = new Error("The scenario request does not match the questionnaire sealed for this project.");
+    error.code = "narrative_v3_questionnaire_source_mismatch";
+    throw error;
+  }
   const revision = revisionRequest({ previousScenario, feedback, sceneEdits });
-  const semanticSource = revision
-    ? { ...source.semanticSource, revisionRequest: revision }
-    : source.semanticSource;
+  const worldLaw = buildWorldLawContractV1(source.intent);
+  const narrativeBrief = buildNarrativeBriefV1({
+    creationIntent: source.intent,
+    worldLaw,
+    normalized,
+    semanticSource: source.semanticSource,
+  });
+  const semanticSource = {
+    narrativeBrief: narrativeBriefForModel(narrativeBrief),
+    ...(source.semanticSource.seriesContinuity ? { seriesContinuity: source.semanticSource.seriesContinuity } : {}),
+    ...(revision ? { revisionRequest: revision } : {}),
+  };
 
   let concept;
   let mechanics;
   let characterStateTimeline;
-  const worldLaw = buildWorldLawContractV1(source.intent);
   let validationFeedback = null;
   for (let attempt = 1; attempt <= MAX_SEMANTIC_ATTEMPTS; attempt += 1) {
     const checkpointKey = attempt === 1 ? "v3:story-concept" : "v3:story-concept-correction";
@@ -346,6 +368,7 @@ export async function generateNarrativeV3Scenario({
     });
     try {
       concept = parseStoryConceptWire(wire);
+      assertStoryConceptFollowsNarrativeBrief(narrativeBrief, concept);
       characterStateTimeline = buildCharacterStateTimelineV1({ creationIntent: source.intent, visualIntent: source.visualIntent, concept, worldLaw });
       mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent, characterStateTimeline, worldLaw });
       break;
@@ -384,9 +407,14 @@ export async function generateNarrativeV3Scenario({
     projectId: project.id, artifactType: "world_law_contract", payload: worldLaw,
     parents: [artifactRef(intentArtifact)], artifactStore, operationId: "compile_world_law_contract", runId,
   });
+  const narrativeBriefArtifact = await persistArtifact({
+    projectId: project.id, artifactType: "narrative_brief", payload: narrativeBrief,
+    parents: [artifactRef(intentArtifact), artifactRef(worldLawArtifact)], artifactStore,
+    operationId: "compile_narrative_brief", runId,
+  });
   const conceptArtifact = await persistArtifact({
     projectId: project.id, artifactType: "story_concept", payload: concept,
-    parents: [artifactRef(intentArtifact)], artifactStore, operationId: "parse_story_concept", runId,
+    parents: [artifactRef(intentArtifact), artifactRef(narrativeBriefArtifact)], artifactStore, operationId: "parse_story_concept", runId,
   });
   const characterStateArtifact = await persistArtifact({
     projectId: project.id, artifactType: "character_state_timeline", payload: characterStateTimeline,
@@ -426,6 +454,8 @@ export async function generateNarrativeV3Scenario({
       characterStateTimelineArtifactId: characterStateArtifact.id,
       worldLaw,
       worldLawArtifactId: worldLawArtifact.id,
+      narrativeBrief,
+      narrativeBriefArtifactId: narrativeBriefArtifact.id,
     },
   };
 }

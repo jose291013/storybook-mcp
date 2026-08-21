@@ -3,6 +3,14 @@ import { chatJson } from "../services/openai.js";
 const PURPOSES = "opening, desire, preparation, crossing, attempt, setback, choice, climax, return, resolution";
 
 function compactSource(source = {}) {
+  if (source.narrativeBrief) {
+    return {
+      narrative_brief: source.narrativeBrief,
+      ...(source.seriesContinuity ? { series_continuity: source.seriesContinuity } : {}),
+      ...(source.revisionRequest ? { revision_request: source.revisionRequest } : {}),
+      ...(source.validationFeedback ? { validation_feedback: source.validationFeedback } : {}),
+    };
+  }
   return {
     language: source.language,
     audience_age: source.audienceAge,
@@ -35,8 +43,8 @@ Return exactly one JSON object matching calitiki.story-concept-wire.v1:
 
 Hard structural rules:
 1. The first purpose is opening and the last purpose is resolution.
-2. Use exactly one preparation before the crossing, exactly one crossing in act 2, exactly one climax in act 3, and exactly one return in act 3 after the climax and before resolution.
-   Follow required_structure: crossing must be inside crossingSceneRange, climax must use climaxScene, return must use returnScene, and resolution must use resolutionScene (scene numbers are one-based).
+2. Use exactly one preparation before the crossing, exactly one crossing, exactly one climax, exactly one return after the climax, and exactly one final resolution.
+   When narrative_brief is supplied, its scene_plan is authoritative: copy every beat_key, purpose and participant_keys exactly in scene order. Otherwise follow required_structure exactly (scene numbers are one-based).
    The preparation beat explicitly shows the future travelers changing into their adventure clothing and preparing any universe-required individual equipment while they are still on the origin side. The crossing beat then shows those same travelers entering; witnesses who stay behind never receive traveler clothing or equipment.
 3. Beat purposes must come only from: ${PURPOSES}.
 4. Every beat contains the hero key. Participant keys come only from the supplied cast.
@@ -45,13 +53,16 @@ Hard structural rules:
 7. The crossing and return describe the same bounded passage in opposite directions, without naming endpoints as if they were multiple passages. The return ends back on the origin side; removal or storage of conditional equipment is explicit before the resolution.
 8. Each beat must advance action or emotion. Avoid repeated trials, duplicate landmarks and unexplained state changes.
 9. distinctive_image describes only the meaningful instant, not technical rendering instructions.
-10. Keep all strings within the supplied contract bounds and return no additional fields.`;
+10. When narrative_brief is supplied, copy hero_arc.desire from narrative_authority.desiredChange, initial_doubt from protectiveDoubt, decisive_choice from childOwnedAction and earned_change from transformation without paraphrasing. Each scene must dramatize its assigned milestone_ids using the corresponding milestone sourceText; do not replace the selected intention with a new interpretation.
+11. World rules are facts, not inspiration. Actions, posture, locomotion, medium, passage, equipment, native elements and forbidden elements must remain feasible under narrative_brief.world_rules from the first beat onward.
+12. Respect age_profile limits for concurrent goals, causal steps, guide behavior and message delivery.
+13. Keep all strings within the supplied contract bounds and return no additional fields.`;
   const seriesRule = source.seriesContinuity
-    ? "\n11. This is a series episode. Preserve the supplied stable character relationships and universe continuity, while creating a new conflict, action sequence and earned resolution."
+    ? "\n14. This is a series episode. Preserve the supplied stable character relationships and universe continuity, while creating a new conflict, action sequence and earned resolution."
     : "";
 
   const validationRule = source.validationFeedback
-    ? "\n12. The preceding semantic candidate was rejected before persistence. Correct every supplied validation_feedback item; do not copy an invalid field merely to preserve the earlier draft."
+    ? "\n15. The preceding semantic candidate was rejected before persistence. Correct every supplied validation_feedback item; do not copy an invalid field merely to preserve the earlier draft."
     : "";
 
   return chatJson({

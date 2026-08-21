@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Main checkpoint: `8891ae3` (PR #249)
-- Current focused checkpoint: verify the sealed V3 physical chronology on one new portal book and one new non-portal book after Render is Live
+- Current branch: `codex/narrative-brief-v1`
+- Main checkpoint before this brick: `1e18f49` (PR #250)
+- Current focused checkpoint: verify that one new portal book and one new non-portal book preserve the selected adult intention, exact travelers, preparation/crossing order and typed world laws from scenario through delivery
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -21,7 +21,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #249 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #250 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -68,9 +68,34 @@ of reconstructing them independently. A real passage requires an explicit
 preparation beat before crossing. Non-travelling witnesses remain in ordinary
 clothing and are displayed as such in scenario review.
 
-Repository verification for this branch: 716/716 tests pass, including the
-sealed physical chronology, exact creator wardrobe projection, production
-shadow, release compatibility and complete V3 counterexample matrices.
+Repository verification before the NarrativeBrief brick: 716/716 tests pass,
+including the sealed physical chronology, exact creator wardrobe projection,
+production shadow, release compatibility and complete V3 counterexample
+matrices.
+
+## Product brick: NarrativeBrief.v1
+
+The inputs feeding new V3 scenario creation now pass through one deterministic
+semantic authority before the creative model is called. `NarrativeBrief.v1`
+binds the exact CreationIntent and WorldLaw digests, preserves all sixteen
+selected intention/story-seed authorities with their source-field provenance,
+and seals the hero profile, age limits, typed universe rules, traveler versus
+origin-witness partition, eight emotional milestones and one complete scene
+spine for every sellable book length.
+
+The model receives this brief instead of the loose questionnaire projection.
+It may invent titles, scene action and expressive imagery, but must copy the
+approved hero arc, beat ids, purposes and participant keys exactly. Any
+reinterpretation, missing traveler, changed scene purpose or questionnaire
+source mismatch is rejected before mechanics or persistence. StoryConcept now
+records the brief as its second immutable parent; legacy one-parent concepts
+remain readable. Migration 033 widens only isolated V3 artifact/pointer type
+constraints. There is no environment variable, commerce, credit, private-asset
+or series-canon change.
+
+Repository verification for this brick: the focused NarrativeBrief, customer
+scenario, artifact-store and migration suites pass 25/25, and the complete
+repository suite passes 722/722.
 
 ## Current architecture decision: Narrative V3
 
