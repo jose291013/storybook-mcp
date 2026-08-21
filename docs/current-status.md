@@ -8,8 +8,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-quarantine-recovery-v18`
-- Main checkpoint: `8e49455` (PR #254, V3 provider-safety checkpoint)
+- Current branch: `main`
+- Main checkpoint: `6d6fd8c` (PR #255, V3 quarantine recovery V18)
 - Current focused checkpoint: after Render is live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once and verify that pages 3, 11, 12, 20 and 31 are queued by V18 while its accepted scenario, cover and other pages remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
