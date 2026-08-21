@@ -8,8 +8,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/narrative-brief-v1`
-- Main checkpoint before this brick: `1e18f49` (PR #250)
+- Current branch: `main`
+- Main checkpoint: `5544593` (PR #251, NarrativeBrief.v1)
 - Current focused checkpoint: verify that one new portal book and one new non-portal book preserve the selected adult intention, exact travelers, preparation/crossing order and typed world laws from scenario through delivery
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
