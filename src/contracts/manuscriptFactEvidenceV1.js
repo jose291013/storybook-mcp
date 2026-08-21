@@ -1,6 +1,7 @@
 import { canonicalDigest } from "./narrativeV3Canonical.js";
 import { loadNarrativeBookSpecV3 } from "./narrativeBookSpecV3.js";
 import { loadManuscript, manuscriptDigest } from "./manuscriptV1.js";
+import { compileSceneProseAuthority, mentionedCharacterIds } from "./sceneProseAuthorityV1.js";
 import { assertNarrativeV3Schema, NarrativeV3ContractError } from "./narrativeV3SchemaRegistry.js";
 
 export const MANUSCRIPT_FACT_EVIDENCE_VERSION = 1;
@@ -42,15 +43,13 @@ function normalized(value) {
   return String(value || "").normalize("NFKC").toLocaleLowerCase().replace(/\s+/gu, " ").trim();
 }
 
-function exactNamedMention(text, name) {
-  const candidate = normalized(name);
-  if (!candidate) return false;
-  const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "u").test(normalized(text));
-}
-
 function mentionedIds(text, registry) {
-  return registry.filter((entry) => exactNamedMention(text, entry.displayName || entry.name)).map((entry) => entry.id).sort();
+  return registry.filter((entry) => {
+    const candidate = normalized(entry.displayName || entry.name);
+    if (!candidate) return false;
+    const escaped = candidate.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+    return new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "u").test(normalized(text));
+  }).map((entry) => entry.id).sort();
 }
 
 function unique(values) {
@@ -63,8 +62,9 @@ function assertSubset(observed, allowed, code, path, label) {
 }
 
 function sceneEvidence(spec, manuscriptPage, scene, index) {
-  const physicalIds = unique(scene.presences.filter((entry) => entry.mode === "physical").map((entry) => entry.characterId));
-  const evokedIds = unique(scene.presences.filter((entry) => entry.mode === "evoked").map((entry) => entry.characterId));
+  const proseAuthority = compileSceneProseAuthority({ spec, sceneNumber: scene.sceneNumber });
+  const physicalIds = proseAuthority.allowed_physical_character_ids;
+  const evokedIds = proseAuthority.allowed_evoked_character_ids;
   const allowedLocationIds = unique([
     scene.timeline.locationBeforeId,
     scene.illustrationInstant.locationId,
@@ -76,7 +76,7 @@ function sceneEvidence(spec, manuscriptPage, scene, index) {
     ...scene.objectStates.filter((entry) => entry.quantity === 1).map((entry) => entry.objectId),
     ...eventObjectIds,
   ]);
-  const characterMentions = mentionedIds(manuscriptPage.text, spec.registries.characters);
+  const characterMentions = mentionedCharacterIds(manuscriptPage.text, spec.registries.characters);
   const locationMentions = mentionedIds(manuscriptPage.text, spec.registries.locations);
   const objectMentions = mentionedIds(manuscriptPage.text, spec.registries.objects);
   assertSubset(characterMentions, unique([...physicalIds, ...evokedIds]), "manuscript_character_fact_unregistered", `/pages/${index}/observedCharacterMentionIds`, "Named character mentions");

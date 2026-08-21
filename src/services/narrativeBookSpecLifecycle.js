@@ -5,6 +5,7 @@ import {
   narrativeV2BookConfiguration,
 } from "./narrativeV2Shadow.js";
 import { loadNarrativeBookSpecV3 } from "../contracts/narrativeBookSpecV3.js";
+import { compileSceneProseAuthority } from "../contracts/sceneProseAuthorityV1.js";
 import { projectUsesNarrativeV3 } from "./narrativeEngineAssignment.js";
 
 export const NARRATIVE_V2_PIPELINE_VERSION = 2;
@@ -105,11 +106,8 @@ export function manuscriptSceneContract(spec = null, sceneNumber = 0) {
   if (!spec) return null;
   const scene = spec.scenes.find((entry) => entry.sceneNumber === Number(sceneNumber));
   if (!scene) return null;
-  const characterIds = new Set([
-    ...scene.presences.map((presence) => presence.characterId),
-    ...(scene.transition?.travelerCharacterIds || []),
-    ...scene.movements.flatMap((movement) => movement.travelerCharacterIds || []),
-  ]);
+  const proseAuthority = compileSceneProseAuthority({ spec, sceneNumber });
+  const characterIds = new Set(proseAuthority.allowed_character_ids);
   const locationIds = new Set([
     scene.timeline.locationBeforeId,
     scene.timeline.locationAfterId,
@@ -123,6 +121,7 @@ export function manuscriptSceneContract(spec = null, sceneNumber = 0) {
   return {
     artifact_digest: spec.validation.artifactDigest,
     scene,
+    prose_authority: proseAuthority,
     registry: {
       characters: selectRegistryEntries(spec.registries.characters, characterIds),
       locations: selectRegistryEntries(spec.registries.locations, locationIds),

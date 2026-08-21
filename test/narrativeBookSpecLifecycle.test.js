@@ -86,8 +86,11 @@ test("manuscript batches receive only their canonical scene contracts", () => {
   assert.ok(page.canonical_scene.registry.characters.length > 0);
   assert.ok(page.canonical_scene.registry.characters.every((character) => (
     page.canonical_scene.scene.presences.some((presence) => presence.characterId === character.id)
-    || page.canonical_scene.scene.transition.travelerCharacterIds.includes(character.id)
   )));
+  assert.deepEqual(
+    page.canonical_scene.prose_authority.allowed_character_ids,
+    page.canonical_scene.scene.presences.map((presence) => presence.characterId).sort(),
+  );
   assert.equal(page.visual_beat.artifact_digest, example.validation.artifactDigest);
   assert.equal(page.visual_beat.scene_number, page.scene_number);
   assert.deepEqual(page.visual_beat.visible_instant.main_action, visualStoryboard.sceneContracts[0].main_action);

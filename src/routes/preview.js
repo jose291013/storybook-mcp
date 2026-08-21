@@ -30,6 +30,7 @@ import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
 import { manuscriptPreflightNormalizerAgent } from "../agents/manuscriptPreflightNormalizer.js";
+import { manuscriptSceneCastNormalizerAgent } from "../agents/manuscriptSceneCastNormalizer.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { storySceneTextRepairAgent } from "../agents/storySceneTextRepair.js";
@@ -101,6 +102,10 @@ import {
   manuscriptWordRepairRequestPages,
   normalizeManuscriptWordTargets,
 } from "../services/manuscriptWordPreflight.js";
+import {
+  MANUSCRIPT_SCENE_CAST_PREFLIGHT_VERSION,
+  normalizeManuscriptSceneCast,
+} from "../services/manuscriptSceneCastPreflight.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -1287,6 +1292,55 @@ router.post("/preview", async (req, res) => {
         draftTextByPage.set(Number(pageNumber), String(text || ""));
       });
       if (strictV3Rendering) {
+        const normalizedSceneCast = await normalizeManuscriptSceneCast({
+          spec: narrativeBookSpec,
+          pageTexts: Object.fromEntries(draftTextByPage),
+          storyScenePlan,
+          repair: async ({ attempt, pages, priorFailure }) => {
+            updateJob(job.id, { step: `draft:manuscript:scene-cast-preflight:${attempt}` });
+            await updateGenerationRun(job.id, {
+              status: "running",
+              currentStep: `draft:manuscript:scene-cast-preflight:${attempt}`,
+            });
+            return manuscriptSceneCastNormalizerAgent({
+              language: final_blueprint.language,
+              pages,
+              priorFailure,
+            }, {
+              backgroundExecution: providerBackgroundExecution,
+              backgroundStep: `manuscript:scene-cast-preflight:v${MANUSCRIPT_SCENE_CAST_PREFLIGHT_VERSION}:attempt:${attempt}`,
+            });
+          },
+        });
+        if (normalizedSceneCast.changed) {
+          draftTextByPage.clear();
+          Object.entries(normalizedSceneCast.pageTexts).forEach(([pageNumber, text]) => {
+            draftTextByPage.set(Number(pageNumber), String(text || ""));
+          });
+          storyScenePlan = bindStoryboardPageTexts(storyScenePlan, normalizedSceneCast.pageTexts);
+        }
+        if (normalizedSceneCast.changed
+          || Number(checkpoint.manuscriptSceneCastPreflightVersion || 0) < MANUSCRIPT_SCENE_CAST_PREFLIGHT_VERSION) {
+          await persistCheckpoint({
+            draftTexts: Object.fromEntries(draftTextByPage),
+            storyScenePlan,
+            manuscriptSceneCastPreflightVersion: MANUSCRIPT_SCENE_CAST_PREFLIGHT_VERSION,
+            manuscriptSceneCastPreflight: {
+              version: normalizedSceneCast.version,
+              status: normalizedSceneCast.status,
+              attemptCount: normalizedSceneCast.attemptCount,
+              changedPageNumbers: normalizedSceneCast.changedPageNumbers,
+            },
+            phase: "manuscript:scene-cast-preflight",
+          });
+          console.info("[preview] strict V3 manuscript scene-cast preflight", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            status: normalizedSceneCast.status,
+            attemptCount: normalizedSceneCast.attemptCount,
+            changedPageNumbers: normalizedSceneCast.changedPageNumbers,
+          }));
+        }
         const manuscriptCanonicalNames = [...new Set([
           final_blueprint.hero?.name,
           ...(narrativeBookSpec?.registries?.characters || []).map((character) => character?.displayName),
