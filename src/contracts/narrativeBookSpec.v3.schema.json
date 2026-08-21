@@ -94,6 +94,7 @@
         "wardrobeStates": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" } },
         "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
         "objectStateDigest": { "$ref": "#/$defs/digest" },
+        "physicalState": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/physicalState" },
         "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" }
       }
     },
@@ -119,6 +120,7 @@
           "items": { "$ref": "https://calitiki.com/schemas/object-lifecycle-projection.v1.json#/$defs/objectState" }
         },
         "objectStateDigest": { "$ref": "#/$defs/digest" },
+        "physicalState": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/physicalState" },
         "illustrationInstant": { "$ref": "#/$defs/illustrationInstant" }
       }
     },
@@ -127,7 +129,7 @@
       "additionalProperties": false,
       "required": ["compilerVersion", "artifactDigest"],
       "properties": {
-        "compilerVersion": { "const": 1 },
+        "compilerVersion": { "type": "integer", "enum": [1, 2] },
         "artifactDigest": { "$ref": "#/$defs/digest" }
       }
     }

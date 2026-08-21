@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/narrative-v3-physical-scene-chronology`
 - Main checkpoint: `5a2ea9e` (PR #248)
-- Current focused checkpoint: verify the bounded strict-domain candidate search on a new V3 book after Render is Live
+- Current focused checkpoint: verify the sealed V3 physical chronology on one new portal book and one new non-portal book after Render is Live
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -58,9 +58,19 @@ internal `strict_quarantined` checkpoint and the customer is not asked to
 diagnose it. Recovery reuses every accepted page and resumes only the affected
 one. There is no migration or new environment variable.
 
-Repository verification for this branch: 713/713 tests pass, including the
-bounded strict-domain retry strategy, real production-worker sealing test and
-the complete V3 counterexample matrix.
+The current brick adds `ScenePhysicalState.v1` as an exact per-scene projection
+of the immutable world law, character timeline and illustrated instant. New V3
+graphs/specs use compiler version 2 only when every scene carries this state;
+legacy graphs without it remain compiler version 1. The creator review,
+manuscript/visual contracts and image evidence consume the same medium,
+gravity, locomotion, posture, survival-equipment and wardrobe interval instead
+of reconstructing them independently. A real passage requires an explicit
+preparation beat before crossing. Non-travelling witnesses remain in ordinary
+clothing and are displayed as such in scenario review.
+
+Repository verification for this branch: 716/716 tests pass, including the
+sealed physical chronology, exact creator wardrobe projection, production
+shadow, release compatibility and complete V3 counterexample matrices.
 
 ## Current architecture decision: Narrative V3
 

@@ -1199,7 +1199,16 @@ function renderStoryScenario(scenario, { scroll = true } = {}) {
       : state.locale === "EN"
         ? "Clothing changes before entering the universe and then remains stable."
         : "La tenue change avant l’entrée dans l’univers, puis reste stable.";
-    elements.scenarioWorldContract.insertAdjacentHTML("beforeend", `<div class="scenario-wardrobe"><h3>${escapeHtml(wardrobeTitle)}</h3><p>${escapeHtml(wardrobeLead)}</p>${wardrobePlan.map((item) => `<div><strong>${escapeHtml(item.characterName)}</strong><span>${escapeHtml(item.preference === "preserve_photo" ? outfitUi().preserve_photo : `${outfitName(item.outfitId)} · ${sceneWord} ${Number(item.activationSceneNumber || 1)}`)}</span></div>`).join("")}</div>`);
+    const ordinaryOnly = state.locale === "ES" ? "Ropa habitual · no cruza" : state.locale === "EN" ? "Usual clothing · does not cross" : "Tenue habituelle · ne traverse pas";
+    const untilScene = state.locale === "ES" ? "hasta la escena" : state.locale === "EN" ? "until scene" : "jusqu’à la scène";
+    elements.scenarioWorldContract.insertAdjacentHTML("beforeend", `<div class="scenario-wardrobe"><h3>${escapeHtml(wardrobeTitle)}</h3><p>${escapeHtml(wardrobeLead)}</p>${wardrobePlan.map((item) => {
+      const label = item.activationMode === "never_activate"
+        ? ordinaryOnly
+        : item.preference === "preserve_photo"
+          ? outfitUi().preserve_photo
+          : `${outfitName(item.outfitId)} · ${sceneWord} ${Number(item.activationSceneNumber || 1)}${Number(item.deactivationSceneNumber || 0) ? ` ${untilScene} ${Number(item.deactivationSceneNumber) - 1}` : ""}`;
+      return `<div><strong>${escapeHtml(item.characterName)}</strong><span>${escapeHtml(label)}</span></div>`;
+    }).join("")}</div>`);
   }
   const clarifications = scenario.clarifications || [];
   const validation = scenario.validation || { valid: true, categories: [], sceneNumbers: [], categoryScenes: {} };

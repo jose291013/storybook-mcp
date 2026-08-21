@@ -369,12 +369,20 @@ export function normalizeStoryScenario(candidate = {}, {
         && scene.transition.characters.some((name) => key(name) === key(character.name))
       ));
       const requestedActivation = Number(supplied?.activation_scene_number || supplied?.activationSceneNumber);
+      const requestedDeactivation = Number(supplied?.deactivation_scene_number || supplied?.deactivationSceneNumber);
+      const suppliedActiveScenes = [...new Set(list(supplied?.active_scene_numbers || supplied?.activeSceneNumbers, 30)
+        .map(Number)
+        .filter((sceneNumber) => scenes.some((scene) => scene.sceneNumber === sceneNumber)))];
+      const neverActivate = supplied?.never_activate === true || supplied?.neverActivate === true
+        || text(supplied?.activation_mode || supplied?.activationMode) === "never_activate";
       const fallbackActivation = preference === "preserve_photo"
         ? (visibleScenes[0]?.sceneNumber || 1)
         : crossing
           ? Math.max(1, crossing.sceneNumber - 1)
           : (visibleScenes[0]?.sceneNumber || 1);
-      const activationSceneNumber = scenes.some((scene) => scene.sceneNumber === requestedActivation)
+      const activationSceneNumber = neverActivate
+        ? 0
+        : scenes.some((scene) => scene.sceneNumber === requestedActivation)
         ? requestedActivation
         : fallbackActivation;
       return {
@@ -383,8 +391,15 @@ export function normalizeStoryScenario(candidate = {}, {
         outfitId: text(character.outfitId || character.outfit_id),
         initialDescription: "reference_photo_outfit",
         adventureDescription: text(character.outfitContract || character.outfit_contract),
-        activationMode: preference === "preserve_photo" ? "from_start" : "before_universe_entry",
+        activationMode: neverActivate
+          ? "never_activate"
+          : text(supplied?.activation_mode || supplied?.activationMode)
+            || (preference === "preserve_photo" ? "from_start" : "before_universe_entry"),
         activationSceneNumber,
+        deactivationSceneNumber: scenes.some((scene) => scene.sceneNumber === requestedDeactivation)
+          ? requestedDeactivation
+          : 0,
+        activeSceneNumbers: neverActivate ? [] : suppliedActiveScenes,
       };
     });
   const causalGraph = normalizeCausalGraph(

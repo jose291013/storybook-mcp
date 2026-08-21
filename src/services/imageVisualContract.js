@@ -257,6 +257,11 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       visible_phase: safe(contract.render_snapshot?.visible_phase),
       location: safe(contract.render_snapshot?.location),
       physical_medium: safe(contract.render_snapshot?.physical_medium),
+      world_law_digest: safe(contract.render_snapshot?.world_law_digest),
+      gravity_model: safe(contract.render_snapshot?.gravity_model),
+      allowed_locomotion: list(contract.render_snapshot?.allowed_locomotion, 20).map(safe),
+      allowed_postures: list(contract.render_snapshot?.allowed_postures, 20).map(safe),
+      required_survival_mechanisms: list(contract.render_snapshot?.required_survival_mechanisms, 20).map(safe),
       camera_environment: contract.render_snapshot?.camera_environment ? {
         camera_side: safe(contract.render_snapshot.camera_environment?.camera_side),
         camera_zone: safe(contract.render_snapshot.camera_environment?.camera_zone),
@@ -381,6 +386,9 @@ export function imageContractProjectionIssues(contract = {}, aliases = aliasesFr
   if (contract.render_snapshot) {
     for (const field of ["visible_phase", "location", "physical_medium"]) {
       check(`render snapshot ${field}`, safe(contract.render_snapshot?.[field]), projected.render_snapshot?.[field]);
+    }
+    for (const field of ["world_law_digest", "gravity_model", "allowed_locomotion", "allowed_postures", "required_survival_mechanisms"]) {
+      check(`render snapshot ${field}`, contract.render_snapshot?.[field] || (Array.isArray(projected.render_snapshot?.[field]) ? [] : ""), projected.render_snapshot?.[field]);
     }
     check("render main action", {
       subject: safe(contract.render_snapshot?.main_action?.subject),

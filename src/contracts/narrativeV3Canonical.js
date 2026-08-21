@@ -14,7 +14,7 @@ export const STORY_CONCEPT_ID = "calitiki.story-concept.v1";
 export const STORY_CONCEPT_PARSER_VERSION = 1;
 export const CANONICAL_STORY_GRAPH_VERSION = 1;
 export const CANONICAL_STORY_GRAPH_ID = "calitiki.canonical-story-graph.v1";
-export const CANONICAL_STORY_GRAPH_COMPILER_VERSION = 1;
+export const CANONICAL_STORY_GRAPH_COMPILER_VERSION = 2;
 
 function canonicalValue(value, ancestors = new WeakSet(), path = "$") {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
@@ -281,6 +281,30 @@ export function validateCanonicalStoryGraph(graph, { verifyDigest = true } = {})
     if (!unique(wardrobeIds) || !sameSet(new Set(wardrobeIds), visible)) {
       graphIssue(issues, "wardrobe_state_cardinality", `${path}/wardrobeStates`, "Every visible character needs exactly one wardrobe state and no invisible character may receive one.");
     }
+    if (scene.physicalState) {
+      const visibleLocationId = scene.timeline.visiblePhase === "start"
+        ? scene.timeline.locationBeforeId
+        : scene.timeline.visiblePhase === "during" && scene.timeline.locationBeforeId !== scene.timeline.locationAfterId
+          ? "location_transition"
+          : scene.timeline.locationAfterId;
+      if (scene.physicalState.visibleLocationId !== visibleLocationId) {
+        graphIssue(issues, "physical_state_location_mismatch", `${path}/physicalState/visibleLocationId`, "The physical state must describe the exact illustrated timeline instant.");
+      }
+      if (scene.physicalState.requiredSurvivalMechanismIds.length) {
+        const activeStateByMechanism = new Map([
+          ["breathing_voice_bubble", "breathing_voice_bubble_worn"],
+        ]);
+        for (const wardrobe of scene.wardrobeStates) {
+          const missing = scene.physicalState.requiredSurvivalMechanismIds.find((mechanismId) => {
+            const stateId = activeStateByMechanism.get(mechanismId);
+            return stateId && !wardrobe.equipmentStateIds.includes(stateId);
+          });
+          if (missing) {
+            graphIssue(issues, "physical_state_survival_equipment_missing", `${path}/wardrobeStates`, `${wardrobe.characterId} lacks required mechanism ${missing} at the illustrated instant.`);
+          }
+        }
+      }
+    }
     const orderedMovements = [...scene.movements].sort((left, right) => left.sequence - right.sequence);
     if (!orderedMovements.every((movement, movementIndex) => movement.sequence === movementIndex + 1)) {
       graphIssue(issues, "movement_sequence_invalid", `${path}/movements`, "Movement sequence must be unique and contiguous within the scene.");
@@ -420,12 +444,26 @@ export function compileCanonicalStoryGraph({ concept, mechanics, revision = 1 } 
         movements: structuredClone(mechanic.movements || []),
         objectEvents: structuredClone(mechanic.objectEvents || []),
         wardrobeStates: structuredClone(mechanic.wardrobeStates || []),
+        ...(mechanic.physicalState ? { physicalState: structuredClone(mechanic.physicalState) } : {}),
         illustration: structuredClone(mechanic.illustration),
       };
     }),
   };
+  const physicalSceneCount = graph.scenes.filter((scene) => scene.physicalState).length;
+  if (physicalSceneCount > 0 && physicalSceneCount !== graph.scenes.length) {
+    throw new NarrativeV3ContractError({
+      code: "canonical_graph_physical_state_partial",
+      artifactType: "canonical_story_graph",
+      issues: [{
+        path: "/scenes",
+        message: "The physical chronology must cover every scene or remain absent on a legacy graph.",
+      }],
+    });
+  }
   graph.validation = {
-    compilerVersion: CANONICAL_STORY_GRAPH_COMPILER_VERSION,
+    compilerVersion: physicalSceneCount === graph.scenes.length
+      ? CANONICAL_STORY_GRAPH_COMPILER_VERSION
+      : 1,
     artifactDigest: "",
   };
   graph.validation.artifactDigest = canonicalStoryGraphDigest(graph);

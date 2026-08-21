@@ -52,6 +52,7 @@ function concept(pageCount = 24, { withPassage = true } = {}) {
   const beats = Array.from({ length: total }, (_, index) => {
     let purpose = actForIndex(index, total) === 1 ? "desire" : "attempt";
     if (index === 0) purpose = "opening";
+    if (withPassage && index === crossingIndex - 1) purpose = "preparation";
     if (withPassage && index === crossingIndex) purpose = "crossing";
     if (index === climaxIndex) purpose = "climax";
     if (withPassage && index === returnIndex) purpose = "return";
