@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Main checkpoint: `a109b85` (PR #259, V3 preflight delivery authority V20)
-- Current focused checkpoint: once Render is Live on `a109b85`, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. The prepared manuscript authority must be sealed before any new cover or illustration work, accepted pages from prior runs must be reused only through an exact retained storage-key match, and the final delivery step must not recompile prose
+- Current branch after publication: `main`
+- Main checkpoint after publication: PR #261 (V3 manuscript word preflight normalizer V21; merge commit assigned by GitHub)
+- Current focused checkpoint: after Render is Live on PR #261, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once. Logs must show a successful `[preview] strict V3 manuscript word preflight` for the affected physical page before `[preview] strict V3 text authority prepared`; accepted images must remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -185,6 +185,31 @@ exhausted before this ordering existed.
 There is no migration, environment-variable, commerce, credit, private-asset
 exposure or series-canon change. Repository verification: focused V20 authority
 and checkpoint suites pass 22/22, and the complete suite passes 735/735.
+
+## Product brick: V3 manuscript word preflight normalizer V21
+
+Strict V3 now checks every physical text page against its deterministic
+age-bound word range after the final story-plan text is bound and before V20
+prepares immutable text authority. Valid pages are untouched. Only pages below
+or above their exact range enter a bounded manuscript-editor normalization,
+with at most two attempts and no cover or illustration call.
+
+Each request carries the existing complete text, adjacent prose, released
+scene, visual beat, physical page number and exact minimum/maximum. A proposed
+normalization must return every requested page exactly once and preserve the
+set of canonical named-character and family-address mentions. The resulting
+manuscript is rebound to its storyboard, then passes the existing language,
+child-safety, storyboard, fact-evidence and strict V20 contracts. Checkpoints
+persist only counts, ranges and changed page numbers, never manuscript text in
+the diagnostic summary. Terminal logs now expose the physical page, actual word
+count and permitted range.
+
+Retry policy version 21 grants one bounded recovery to V20 projects stopped by
+the newly early word-range gate. Previously accepted images remain reusable by
+their exact private storage keys. There is no migration, environment variable,
+commerce, credit, private-asset exposure or series-canon change. Focused V21,
+V20 authority and checkpoint verification passes 29/29; the complete repository
+suite passes 742/742.
 
 ## Current architecture decision: Narrative V3
 

@@ -29,6 +29,7 @@ import { qaAgent } from "../agents/qa.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
+import { manuscriptPreflightNormalizerAgent } from "../agents/manuscriptPreflightNormalizer.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { storySceneTextRepairAgent } from "../agents/storySceneTextRepair.js";
@@ -95,6 +96,11 @@ import {
   prepareNarrativeV3ProductionTextAuthority,
   sealNarrativeV3ProductionPreview,
 } from "../services/narrativeV3ProductionRenderingAuthority.js";
+import {
+  MANUSCRIPT_WORD_PREFLIGHT_VERSION,
+  manuscriptWordRepairRequestPages,
+  normalizeManuscriptWordTargets,
+} from "../services/manuscriptWordPreflight.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -1280,6 +1286,70 @@ router.post("/preview", async (req, res) => {
       Object.entries(storyScenePlan.pageTexts || {}).forEach(([pageNumber, text]) => {
         draftTextByPage.set(Number(pageNumber), String(text || ""));
       });
+      if (strictV3Rendering) {
+        const manuscriptCanonicalNames = [...new Set([
+          final_blueprint.hero?.name,
+          ...(narrativeBookSpec?.registries?.characters || []).map((character) => character?.displayName),
+          ...(characterCanons || []).flatMap((character) => [character?.name, character?.family_address]),
+          ...(final_blueprint.cast || []).flatMap((character) => [character?.name, character?.family_address]),
+        ].map((name) => String(name || "").trim()).filter(Boolean))];
+        const normalizedManuscript = await normalizeManuscriptWordTargets({
+          spec: narrativeBookSpec,
+          pageTexts: Object.fromEntries(draftTextByPage),
+          canonicalNames: manuscriptCanonicalNames,
+          repair: async ({ attempt, issues, pageTexts, priorFailure }) => {
+            updateJob(job.id, { step: `draft:manuscript:word-preflight:${attempt}` });
+            await updateGenerationRun(job.id, {
+              status: "running",
+              currentStep: `draft:manuscript:word-preflight:${attempt}`,
+            });
+            return manuscriptPreflightNormalizerAgent({
+              language: final_blueprint.language,
+              hero: final_blueprint.hero,
+              pages: manuscriptWordRepairRequestPages({
+                spec: narrativeBookSpec,
+                pageTexts,
+                issues,
+                storyScenePlan,
+              }),
+              priorFailure,
+            }, {
+              backgroundExecution: providerBackgroundExecution,
+              backgroundStep: `manuscript:word-preflight:v${MANUSCRIPT_WORD_PREFLIGHT_VERSION}:attempt:${attempt}`,
+            });
+          },
+        });
+        if (normalizedManuscript.changed) {
+          draftTextByPage.clear();
+          Object.entries(normalizedManuscript.pageTexts).forEach(([pageNumber, text]) => {
+            draftTextByPage.set(Number(pageNumber), String(text || ""));
+          });
+          storyScenePlan = bindStoryboardPageTexts(storyScenePlan, normalizedManuscript.pageTexts);
+        }
+        if (normalizedManuscript.changed
+          || Number(checkpoint.manuscriptWordPreflightVersion || 0) < MANUSCRIPT_WORD_PREFLIGHT_VERSION) {
+          await persistCheckpoint({
+            draftTexts: Object.fromEntries(draftTextByPage),
+            storyScenePlan,
+            manuscriptWordPreflightVersion: MANUSCRIPT_WORD_PREFLIGHT_VERSION,
+            manuscriptWordPreflight: {
+              version: normalizedManuscript.version,
+              status: normalizedManuscript.status,
+              attemptCount: normalizedManuscript.attemptCount,
+              changedPageNumbers: normalizedManuscript.changedPageNumbers,
+              repairs: normalizedManuscript.repairs,
+            },
+            phase: "manuscript:word-preflight",
+          });
+          console.info("[preview] strict V3 manuscript word preflight", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            status: normalizedManuscript.status,
+            attemptCount: normalizedManuscript.attemptCount,
+            changedPageNumbers: normalizedManuscript.changedPageNumbers,
+          }));
+        }
+      }
       if (narrativeBookSpec
         && Number(storyScenePlan?.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION) {
         const bindingIssues = [
@@ -2122,10 +2192,14 @@ router.post("/preview", async (req, res) => {
         checkpointPhase: checkpoint?.phase || null,
         errorCode: String(error?.code || boundedErrorCode),
         artifactType: String(error?.artifactType || ""),
-        pageNumber: Number.isInteger(Number(error?.pageNumber)) ? Number(error.pageNumber) : null,
+        pageNumber: error?.pageNumber != null && Number.isInteger(Number(error.pageNumber)) ? Number(error.pageNumber) : null,
         issues: (Array.isArray(error?.issues) ? error.issues : []).slice(0, 12).map((issue) => ({
           keyword: String(issue?.keyword || ""),
           path: String(issue?.path || ""),
+          pageNumber: issue?.pageNumber != null && Number.isInteger(Number(issue.pageNumber)) ? Number(issue.pageNumber) : null,
+          wordCount: issue?.wordCount != null && Number.isInteger(Number(issue.wordCount)) ? Number(issue.wordCount) : null,
+          minimumWords: issue?.minimumWords != null && Number.isInteger(Number(issue.minimumWords)) ? Number(issue.minimumWords) : null,
+          maximumWords: issue?.maximumWords != null && Number.isInteger(Number(issue.maximumWords)) ? Number(issue.maximumWords) : null,
           message: String(issue?.message || issue || "").slice(0, 300),
         })),
         error: String(error?.message || error),
