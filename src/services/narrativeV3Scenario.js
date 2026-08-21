@@ -161,12 +161,37 @@ function legacyObjectState(state, names) {
   };
 }
 
+export function wardrobePlanFromNarrativeV3Spec(spec) {
+  return spec.registries.characters
+    .filter((character) => character.kind === "human")
+    .map((character) => {
+      const sceneStates = spec.scenes.map((scene) => ({
+        sceneNumber: scene.sceneNumber,
+        state: scene.illustrationInstant.wardrobeStates.find((entry) => entry.characterId === character.id) || null,
+      })).filter((entry) => entry.state);
+      const adventureStates = sceneStates.filter((entry) => !["ordinary_outfit", "natural_appearance"].includes(entry.state.outfitStateId));
+      const activeSceneNumbers = adventureStates.map((entry) => entry.sceneNumber);
+      const first = adventureStates[0] || null;
+      const last = adventureStates.at(-1) || null;
+      return {
+        character_name: character.displayName,
+        outfit_id: first?.state.outfitStateId || "ordinary_outfit",
+        activation_mode: first ? "sealed_scene_interval" : "never_activate",
+        never_activate: !first,
+        activation_scene_number: first?.sceneNumber || 1,
+        deactivation_scene_number: last && last.sceneNumber < spec.scenes.length ? last.sceneNumber + 1 : 0,
+        active_scene_numbers: activeSceneNumbers,
+      };
+    });
+}
+
 function legacyScenarioInput(spec, normalized) {
   const maps = displayMaps(spec, normalized);
   maps.objects = new Map(spec.registries.objects.map((entry) => [entry.id, entry]));
   const crossingIndex = spec.scenes.findIndex((scene) => (
     scene.movements.some((movement) => movement.kind === "cross_passage")
   ));
+  const wardrobePlan = wardrobePlanFromNarrativeV3Spec(spec);
   return {
     title: spec.title,
     summary: spec.premise,
@@ -243,6 +268,7 @@ function legacyScenarioInput(spec, normalized) {
           : "",
       };
     }),
+    wardrobe_plan: wardrobePlan,
     clarifications: [],
   };
 }

@@ -98,6 +98,11 @@ export function authoritativeSceneContractForAudit(contract = {}) {
       visible_phase: clean(contract.render_snapshot?.visible_phase),
       location: clean(contract.render_snapshot?.location),
       physical_medium: clean(contract.render_snapshot?.physical_medium),
+      world_law_digest: clean(contract.render_snapshot?.world_law_digest),
+      gravity_model: clean(contract.render_snapshot?.gravity_model),
+      allowed_locomotion: list(contract.render_snapshot?.allowed_locomotion, 20).map(clean),
+      allowed_postures: list(contract.render_snapshot?.allowed_postures, 20).map(clean),
+      required_survival_mechanisms: list(contract.render_snapshot?.required_survival_mechanisms, 20).map(clean),
       camera_environment: contract.render_snapshot?.camera_environment ? {
         camera_side: clean(contract.render_snapshot.camera_environment?.camera_side),
         camera_zone: clean(contract.render_snapshot.camera_environment?.camera_zone),
@@ -257,6 +262,9 @@ export function deterministicStoryPlanIssues({
       || key(contract.render_snapshot.visible_phase) !== key(expectedSnapshot.visible_phase)
       || key(contract.render_snapshot.location) !== key(expectedSnapshot.location)
       || key(contract.render_snapshot.physical_medium) !== key(expectedSnapshot.physical_medium)
+      || key(contract.render_snapshot.gravity_model) !== key(expectedSnapshot.gravity_model)
+      || JSON.stringify(contract.render_snapshot.allowed_locomotion || []) !== JSON.stringify(expectedSnapshot.allowed_locomotion || [])
+      || JSON.stringify(contract.render_snapshot.allowed_postures || []) !== JSON.stringify(expectedSnapshot.allowed_postures || [])
       || key(contract.render_snapshot.camera_environment?.camera_side) !== key(expectedSnapshot.camera_environment?.camera_side)
       || key(contract.render_snapshot.camera_environment?.camera_zone) !== key(expectedSnapshot.camera_environment?.camera_zone)
       || key(contract.render_snapshot.camera_environment?.other_side_zone) !== key(expectedSnapshot.camera_environment?.other_side_zone)

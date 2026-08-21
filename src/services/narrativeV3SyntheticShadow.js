@@ -115,6 +115,7 @@ export function buildNarrativeV3SyntheticFixture(rawFixture = {}) {
   const beats = Array.from({ length: total }, (_, index) => {
     let purpose = actForIndex(index, total) === 1 ? "desire" : "attempt";
     if (index === 0) purpose = "opening";
+    if (index === crossingIndex - 1) purpose = "preparation";
     if (index === crossingIndex) purpose = "crossing";
     if (index === climaxIndex) purpose = "climax";
     if (index === returnIndex) purpose = "return";

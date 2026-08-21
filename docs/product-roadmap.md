@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-20
+Last updated: 2026-08-21
 
 ## Narrative V3 structural replacement direction
 
@@ -134,6 +134,33 @@ locomotion, per-person survival equipment, time continuity, scale, native and
 forbidden elements, capabilities and landmark cardinality. Character equipment
 is derived from the declared medium rather than from a universe id or prose
 keyword.
+
+`ScenePhysicalState.v1` is now the exact per-scene projection of that world law,
+the `CharacterStateTimeline.v1`, the scene timeline and the illustrated cast.
+It seals visible zone/location, ambient medium, gravity, allowed locomotion and
+postures, survival mechanisms and forbidden environmental elements. Underwater
+scenes consequently require buoyancy-aware movement, drifting hair/fabric and
+rising bubbles; ordinary dry-land standing or walking is forbidden unless the
+sealed law explicitly permits seabed contact. The same generic contract covers
+space, protected cloud habitats and ordinary-gravity worlds without universe-
+name keyword tests.
+
+A passage concept must now contain one explicit preparation beat before the
+first crossing. Only actual travellers change into the selected universe outfit
+and receive individual survival equipment; departure/arrival witnesses stay in
+their ordinary photo clothing. Return scenes remove/store conditional equipment
+only after the physical boundary has been completed. The exact active outfit
+scene interval is projected to scenario review and the blueprint, eliminating
+the historical first-visible-scene fallback that dressed non-travellers.
+
+New fully covered canonical graphs and released specs use compiler version 2;
+existing persisted graphs without this additive state remain readable on
+compiler version 1 and are never silently rewritten. The released spec, render
+snapshot, compact image contract, storyboard audit and illustration evidence
+all consume this one state, so later stages cannot infer a different medium,
+posture or outfit from prose or an adjacent image. This phase adds no database
+migration, environment variable, credit, commerce or series-canon mutation.
+Verification: the complete repository suite passes 716/716 tests.
 
 `ManuscriptFactEvidence.v1` is now compiled after the immutable manuscript and
 before the visual storyboard. It binds every page text digest to one released

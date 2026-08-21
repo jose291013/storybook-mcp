@@ -72,6 +72,7 @@
           "maxItems": 12,
           "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/wardrobeState" }
         },
+        "physicalState": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/physicalState" },
         "illustration": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration" }
       }
     }

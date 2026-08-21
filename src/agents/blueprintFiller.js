@@ -358,9 +358,14 @@ export function lockBlueprintContinuity(blueprint, {
   const outfitAtScene = (character, sceneNumber) => {
     if (!hasHumanWardrobe(character.name)) return originalOutfitFor(character.name) || character.outfit_lock;
     const plan = wardrobeFor(character.name);
-    if (!plan || plan.preference === "preserve_photo") return originalOutfitFor(character.name) || character.outfit_lock;
+    if (!plan || plan.preference === "preserve_photo" || plan.activationMode === "never_activate") return originalOutfitFor(character.name) || character.outfit_lock;
     if (!followsAdventureRoute(character.name)) return originalOutfitFor(character.name) || character.outfit_lock;
-    return Number(sceneNumber || 0) >= Number(plan.activationSceneNumber || 1)
+    const activeScenes = Array.isArray(plan.activeSceneNumbers) ? plan.activeSceneNumbers.map(Number) : [];
+    const active = activeScenes.length
+      ? activeScenes.includes(Number(sceneNumber || 0))
+      : Number(sceneNumber || 0) >= Number(plan.activationSceneNumber || 1)
+        && (!Number(plan.deactivationSceneNumber || 0) || Number(sceneNumber || 0) < Number(plan.deactivationSceneNumber));
+    return active
       ? (plan.adventureDescription || character.outfit_lock)
       : (originalOutfitFor(character.name) || character.outfit_lock);
   };

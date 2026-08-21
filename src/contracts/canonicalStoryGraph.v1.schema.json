@@ -180,6 +180,7 @@
           "maxItems": 12,
           "items": { "$ref": "#/$defs/wardrobeState" }
         },
+        "physicalState": { "$ref": "#/$defs/physicalState" },
         "illustration": { "$ref": "#/$defs/illustration" }
       }
     },
@@ -271,6 +272,23 @@
         "equipmentStateIds": { "$ref": "#/$defs/identifierArray" }
       }
     },
+    "physicalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "worldLawDigest", "visibleLocationId", "zoneId", "mediumId", "gravityModelId", "locomotionIds", "allowedPostureIds", "requiredSurvivalMechanismIds", "forbiddenElementIds"],
+      "properties": {
+        "version": { "const": 1 },
+        "worldLawDigest": { "$ref": "#/$defs/digest" },
+        "visibleLocationId": { "$ref": "#/$defs/identifier" },
+        "zoneId": { "$ref": "#/$defs/identifier" },
+        "mediumId": { "$ref": "#/$defs/identifier" },
+        "gravityModelId": { "$ref": "#/$defs/identifier" },
+        "locomotionIds": { "$ref": "#/$defs/identifierArray" },
+        "allowedPostureIds": { "$ref": "#/$defs/identifierArray" },
+        "requiredSurvivalMechanismIds": { "$ref": "#/$defs/identifierArray" },
+        "forbiddenElementIds": { "$ref": "#/$defs/identifierArray" }
+      }
+    },
     "illustration": {
       "type": "object",
       "additionalProperties": false,
@@ -295,7 +313,7 @@
       "additionalProperties": false,
       "required": ["compilerVersion", "artifactDigest"],
       "properties": {
-        "compilerVersion": { "const": 1 },
+        "compilerVersion": { "type": "integer", "enum": [1, 2] },
         "artifactDigest": { "$ref": "#/$defs/digest" }
       }
     }

@@ -5,6 +5,7 @@ import { loadStoryConcept } from "./narrativeV3Canonical.js";
 import { loadVisualIntentV1 } from "./visualIntentV1.js";
 import { loadCharacterStateTimelineV1 } from "./characterStateTimelineV1.js";
 import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
+import { compileScenePhysicalStateV1 } from "./scenePhysicalStateV1.js";
 import {
   assertNarrativeV3Schema,
   NarrativeV3ContractError,
@@ -12,7 +13,7 @@ import {
 
 export const CANONICAL_STORY_MECHANICS_VERSION = 1;
 export const CANONICAL_STORY_MECHANICS_ID = "calitiki.canonical-story-mechanics.v1";
-export const CANONICAL_STORY_MECHANICS_BUILDER_VERSION = 1;
+export const CANONICAL_STORY_MECHANICS_BUILDER_VERSION = 2;
 
 const CANONICAL_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,119}$/;
 
@@ -82,6 +83,14 @@ function validateConceptShape(intent, concept) {
     }
     if (returnIndex <= crossingIndex || actForIndex(returnIndex, sceneCount) !== 3 || returnIndex <= climaxIndex) {
       mechanicsError("mechanics_return_invalid", `/concept/beats/${returnIndex}`, "The unique return must occur in act 3 after the climax.");
+    }
+    const preparationIndex = beats.findLastIndex((beat, index) => index < crossingIndex && beat.purpose === "preparation");
+    if (preparationIndex < 0) {
+      mechanicsError(
+        "mechanics_preparation_missing",
+        `/concept/beats/${crossingIndex}`,
+        "A physical crossing requires an earlier preparation beat where travelers visibly change clothing and prepare required equipment before entering the other medium.",
+      );
     }
   }
   const castKeys = new Set(intent.cast.map((entry) => entry.characterKey));
@@ -255,6 +264,29 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
       mechanicsError("mechanics_empty_passage_movement", `/concept/beats/${index}`, "A passage movement requires at least one physical traveler.");
     }
     const mainSubject = cast.find((entry) => entry.role === "hero")?.id;
+    const wardrobeStates = visibleIds.map((id) => {
+      const entry = cast.find((character) => character.id === id);
+      const sealedState = timelineSceneByBeat.get(beat.beatKey)?.statesAfter.find((state) => state.characterId === id);
+      if (characterTimeline && !sealedState) mechanicsError("mechanics_character_state_missing", `/characterStateTimeline/scenes/${index}`, `No sealed state exists for ${id}.`);
+      if (sealedState) return { characterId: id, outfitStateId: sealedState.outfitStateId, equipmentStateIds: [...sealedState.equipmentStateIds] };
+      return { characterId: id, ...wardrobeFor({
+        intentEntry: entry,
+        universeId: intent.book.universeId,
+        index,
+        crossingIndex,
+        returnIndex,
+        visualEntry: visualByKey.get(entry.characterKey),
+      }) };
+    });
+    const physicalState = worldLaw
+      ? compileScenePhysicalStateV1({
+          worldLaw,
+          timeline,
+          wardrobeStates,
+          visibleCharacterIds: visibleIds,
+          path: `/concept/beats/${index}`,
+        })
+      : null;
     scenes.push({
       id: `scene_${String(index + 1).padStart(2, "0")}`,
       beatKey: beat.beatKey,
@@ -268,20 +300,8 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
       })),
       movements,
       objectEvents: [],
-      wardrobeStates: visibleIds.map((id) => {
-        const entry = cast.find((character) => character.id === id);
-        const sealedState = timelineSceneByBeat.get(beat.beatKey)?.statesAfter.find((state) => state.characterId === id);
-        if (characterTimeline && !sealedState) mechanicsError("mechanics_character_state_missing", `/characterStateTimeline/scenes/${index}`, `No sealed state exists for ${id}.`);
-        if (sealedState) return { characterId: id, outfitStateId: sealedState.outfitStateId, equipmentStateIds: [...sealedState.equipmentStateIds] };
-        return { characterId: id, ...wardrobeFor({
-          intentEntry: entry,
-          universeId: intent.book.universeId,
-          index,
-          crossingIndex,
-          returnIndex,
-          visualEntry: visualByKey.get(entry.characterKey),
-        }) };
-      }),
+      wardrobeStates,
+      ...(physicalState ? { physicalState } : {}),
       illustration: {
         visibleCharacterIds: visibleIds,
         forbiddenCharacterIds: cast.filter((entry) => !visibleSet.has(entry.id)).map((entry) => entry.id),

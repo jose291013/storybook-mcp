@@ -149,6 +149,11 @@ export function compileSceneRenderContractV1({
     physical_world: {
       location: text(sceneContract.render_snapshot?.location),
       physical_medium: text(sceneContract.render_snapshot?.physical_medium),
+      world_law_digest: text(sceneContract.render_snapshot?.world_law_digest),
+      gravity_model: text(sceneContract.render_snapshot?.gravity_model),
+      allowed_locomotion: unique(sceneContract.render_snapshot?.allowed_locomotion),
+      allowed_postures: unique(sceneContract.render_snapshot?.allowed_postures),
+      required_survival_mechanisms: unique(sceneContract.render_snapshot?.required_survival_mechanisms),
       visible_phase: text(sceneContract.render_snapshot?.visible_phase),
       camera_environment: structuredClone(sceneContract.render_snapshot?.camera_environment || null),
     },

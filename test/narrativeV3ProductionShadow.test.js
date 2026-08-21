@@ -60,6 +60,7 @@ function conceptWire(source) {
   const purposes = Array.from({ length: source.sceneCount }, () => "attempt");
   purposes[0] = "opening";
   purposes[1] = "desire";
+  purposes[crossing - 2] = "preparation";
   purposes[crossing - 1] = "crossing";
   purposes[source.requiredStructure.climaxScene - 1] = "climax";
   purposes[source.requiredStructure.returnScene - 1] = "return";

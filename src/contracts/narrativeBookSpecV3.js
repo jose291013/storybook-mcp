@@ -13,7 +13,7 @@ import {
 
 export const NARRATIVE_BOOK_SPEC_V3_VERSION = 3;
 export const NARRATIVE_BOOK_SPEC_V3_ID = "calitiki.narrative-book-spec.v3";
-export const NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION = 1;
+export const NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION = 2;
 
 function deepFreeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
@@ -101,6 +101,17 @@ function assertReleaseInvariants(spec) {
     if (scene.illustrationInstant.objectStateDigest !== scene.objectStateDigest) {
       releaseError("release_illustration_object_binding_mismatch", `/scenes/${index}/illustrationInstant/objectStateDigest`, "The illustration instant must point to the exact released object state.");
     }
+    if (Number(spec.validation?.compilerVersion || 1) >= 2) {
+      if (!scene.physicalState || !scene.illustrationInstant.physicalState) {
+        releaseError("release_physical_state_missing", `/scenes/${index}/physicalState`, "Every new V3 scene must seal its exact world-law state before release.");
+      }
+      if (canonicalDigest(scene.physicalState) !== canonicalDigest(scene.illustrationInstant.physicalState)) {
+        releaseError("release_physical_state_binding_mismatch", `/scenes/${index}/illustrationInstant/physicalState`, "The illustration instant must use the scene's exact sealed physical state.");
+      }
+      if (scene.illustrationInstant.physicalMediumId !== scene.physicalState.mediumId) {
+        releaseError("release_physical_medium_mismatch", `/scenes/${index}/illustrationInstant/physicalMediumId`, "Released medium and world-law state must describe the same instant.");
+      }
+    }
   });
 }
 
@@ -115,6 +126,11 @@ export function compileNarrativeBookSpecV3({
   const graph = loadCanonicalStoryGraph(rawGraph);
   const objectProjection = loadObjectLifecycleProjection(rawProjection);
   assertProjectionMatchesGraph(graph, objectProjection);
+  const physicalSceneCount = graph.scenes.filter((scene) => scene.physicalState).length;
+  if (physicalSceneCount > 0 && physicalSceneCount !== graph.scenes.length) {
+    releaseError("release_physical_state_partial", "/scenes", "A physical chronology must cover every released scene or none of them.");
+  }
+  const usesPhysicalChronology = physicalSceneCount === graph.scenes.length;
 
   // V2 remains immutable. Its compiler is reused only for deterministic layout,
   // identity binding and universe-medium resolution on a transient objectless view.
@@ -145,6 +161,11 @@ export function compileNarrativeBookSpecV3({
     releasedScene.objectEventDigest = projectedScene.eventDigest;
     releasedScene.objectStates = structuredClone(projectedScene.states);
     releasedScene.objectStateDigest = canonicalDigest(projectedScene.states);
+    if (usesPhysicalChronology) {
+      releasedScene.physicalState = structuredClone(sourceScene.physicalState);
+      releasedScene.illustrationInstant.physicalMediumId = sourceScene.physicalState.mediumId;
+      releasedScene.illustrationInstant.physicalState = structuredClone(sourceScene.physicalState);
+    }
     releasedScene.illustrationInstant.objectEvents = structuredClone(sourceScene.objectEvents);
     releasedScene.illustrationInstant.objectStateDigest = releasedScene.objectStateDigest;
   });
@@ -153,7 +174,7 @@ export function compileNarrativeBookSpecV3({
     page.sourceSceneDigest = base.scenes[page.sceneNumber - 1].sourceSceneDigest;
   });
   base.validation = {
-    compilerVersion: NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION,
+    compilerVersion: usesPhysicalChronology ? NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION : 1,
     artifactDigest: "",
   };
   base.validation.artifactDigest = narrativeBookSpecV3Digest(base);

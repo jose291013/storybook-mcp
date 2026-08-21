@@ -1,4 +1,5 @@
 import { findUniverse } from "../config/bookOptions.js";
+import { physicalStateRenderRules } from "../contracts/scenePhysicalStateV1.js";
 import { cameraBoundaryRule, compileWorldPhysicalTopology } from "./worldPhysicalTopology.js";
 import { compileWorldFixedEntityRegistry } from "./worldFixedEntityRegistry.js";
 
@@ -86,7 +87,17 @@ export function compilePhysicalRenderSnapshot({
     worldContract,
     visiblePhase,
   });
-  const physicalMedium = topology?.ambient_medium || (visiblePhase === "during"
+  const sealedPhysicalState = contract?.physical_law_state && typeof contract.physical_law_state === "object"
+    ? {
+        worldLawDigest: String(contract.physical_law_state.world_law_digest || ""),
+        gravityModelId: String(contract.physical_law_state.gravity_model_id || ""),
+        locomotionIds: list(contract.physical_law_state.locomotion_ids, 20).map(String),
+        allowedPostureIds: list(contract.physical_law_state.allowed_posture_ids, 20).map(String),
+        requiredSurvivalMechanismIds: list(contract.physical_law_state.required_survival_mechanism_ids, 20).map(String),
+        forbiddenElementIds: list(contract.physical_law_state.forbidden_element_ids, 30).map(String),
+      }
+    : null;
+  const physicalMedium = String(contract?.physical_law_state?.medium_id || "").trim() || topology?.ambient_medium || (visiblePhase === "during"
     && ["cross_passage", "ordinary_travel", "return_travel", "join_travel"].includes(transitionKind)
     ? "passage_transition"
     : universeId === "coral ocean" || universeId === "coral_ocean"
@@ -111,11 +122,17 @@ export function compilePhysicalRenderSnapshot({
   if (physicalMedium === "fully_underwater") {
     forbidden.push("Every visible physical person uses exactly their own declared worn breathing equipment.");
   }
+  if (sealedPhysicalState) forbidden.push(...physicalStateRenderRules(sealedPhysicalState));
   return {
     version: PHYSICAL_RENDER_SNAPSHOT_VERSION,
     visible_phase: visiblePhase,
     location: visibleLocation,
     physical_medium: physicalMedium,
+    world_law_digest: sealedPhysicalState?.worldLawDigest || "",
+    gravity_model: sealedPhysicalState?.gravityModelId || "",
+    allowed_locomotion: sealedPhysicalState?.locomotionIds || [],
+    allowed_postures: sealedPhysicalState?.allowedPostureIds || [],
+    required_survival_mechanisms: sealedPhysicalState?.requiredSurvivalMechanismIds || [],
     camera_environment: topology ? {
       version: topology.version,
       authority: topology.authority,
