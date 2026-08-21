@@ -58,6 +58,42 @@ rules. The first production acceptance is two new 32-page books in materially
 different universes. Existing V2 projects are compatibility controls and are
 never silently upgraded.
 
+## NarrativeBrief.v1 semantic source authority
+
+The creative concept model is no longer fed a loose collection of partly
+overlapping questionnaire fields. Before any model call, the server compiles
+`NarrativeBrief.v1` from the normalized project questionnaire, immutable
+`CreationIntent.v1` and typed `WorldLawContract.v1`. This artifact is the single
+semantic source of truth for the adult's objective and the child's story.
+
+The brief preserves sixteen authoritative values with deterministic precedence
+and explicit provenance: situation, understanding, desired change, protective
+doubt, accessible first step, motivation, earned reward, message, story starting
+point, progressive effort, child-owned action, adventure adaptation, peak
+moment, resolution, transformation and emotional tone. It also fixes the hero
+profile and age-complexity limits, the actual travelers versus origin witnesses,
+all eight narrative/emotional milestones, and one complete ordered scene spine
+for every sellable length. Typed zones, media, gravity, locomotion, posture,
+passage endpoints, survival mechanisms, native/forbidden elements and
+capabilities are included as facts, not prompt inspiration.
+
+The model's creative freedom is deliberately downstream of those decisions: it
+authors the title, premise, dramatic realization and distinctive scene imagery,
+but it cannot paraphrase the approved hero arc or alter scene ids, purposes or
+participants. The server validates this exact binding before character state,
+mechanics, graph or artifact persistence. A request carrying questionnaire data
+different from the project snapshot fails closed rather than silently mixing
+two sources. New StoryConcept artifacts cite both CreationIntent and
+NarrativeBrief, while legacy concepts retain their one-parent compatibility.
+
+Migration 033 only adds the new isolated V3 artifact/pointer type. It changes no
+environment variable, commerce, credit, account, private-asset or series-canon
+rule. Production acceptance remains two new books in materially different
+universes; their scenario cards must show the selected intention, correct
+travelers, explicit preparation/crossing/return chronology and feasible world
+physics before illustration starts. Repository verification: 722/722 tests
+pass.
+
 ## Narrative V3 universal invariant engine
 
 V3 structural validity is expressed as the conjunction of independent domains,

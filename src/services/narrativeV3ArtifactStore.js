@@ -37,6 +37,12 @@ import {
   worldLawContractDigest,
 } from "../contracts/worldLawContractV1.js";
 import {
+  NARRATIVE_BRIEF_ID,
+  NARRATIVE_BRIEF_VERSION,
+  loadNarrativeBriefV1,
+  narrativeBriefDigest,
+} from "../contracts/narrativeBriefV1.js";
+import {
   NARRATIVE_BOOK_SPEC_V2_ID,
   NARRATIVE_BOOK_SPEC_V2_VERSION,
   loadNarrativeBookSpecV2,
@@ -137,6 +143,13 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     digest: worldLawContractDigest,
     parentTypes: Object.freeze(["creation_intent"]),
   }),
+  narrative_brief: Object.freeze({
+    contractId: NARRATIVE_BRIEF_ID,
+    schemaVersion: NARRATIVE_BRIEF_VERSION,
+    load: loadNarrativeBriefV1,
+    digest: narrativeBriefDigest,
+    parentTypes: Object.freeze(["creation_intent", "world_law_contract"]),
+  }),
   character_state_timeline: Object.freeze({
     contractId: CHARACTER_STATE_TIMELINE_ID,
     schemaVersion: CHARACTER_STATE_TIMELINE_VERSION,
@@ -154,6 +167,10 @@ const ARTIFACT_DEFINITIONS = Object.freeze({
     load: loadStoryConcept,
     digest: storyConceptDigest,
     parentTypes: Object.freeze(["creation_intent"]),
+    parentTypeVariants: Object.freeze([
+      Object.freeze(["creation_intent"]),
+      Object.freeze(["creation_intent", "narrative_brief"]),
+    ]),
   }),
   canonical_story_graph: Object.freeze({
     contractId: CANONICAL_STORY_GRAPH_ID,
@@ -356,6 +373,15 @@ function validateArtifactInput(input = {}) {
     throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The world-law parent does not match its declared creation-intent digest.");
   }
   if (
+    artifactType === "narrative_brief"
+    && (
+      parents[0]?.payloadDigest !== payload.sources.creationIntentDigest
+      || parents[1]?.payloadDigest !== payload.sources.worldLawDigest
+    )
+  ) {
+    throw new NarrativeV3ArtifactStoreError("artifact_parent_digest_mismatch", "The narrative brief parents do not match its declared intent and world-law digests.");
+  }
+  if (
     artifactType === "character_state_timeline"
     && (
       parents[0]?.payloadDigest !== payload.sources.visualIntentDigest
@@ -526,14 +552,33 @@ function assertReleaseIntentLineage(input, graphParents, conceptParents) {
   if (
     ![1, 2].includes(graphParents.length)
     || graphConcept?.artifactType !== "story_concept"
-    || conceptParents.length !== 1
+    || ![1, 2].includes(conceptParents.length)
     || conceptIntent?.artifactType !== "creation_intent"
+    || (conceptParents[1] && conceptParents[1].artifactType !== "narrative_brief")
     || (conceptIntent.id || conceptIntent.artifactId) !== expectedIntent.artifactId
     || conceptIntent.payloadDigest !== expectedIntent.payloadDigest
   ) {
     throw new NarrativeV3ArtifactStoreError(
       "artifact_release_lineage_mismatch",
       "The released graph does not descend from the exact CreationIntent parent.",
+    );
+  }
+}
+
+function assertConceptBriefLineage(input, briefParents) {
+  if (input.artifactType !== "story_concept" || input.parents.length !== 2) return;
+  const expectedIntent = input.parents[0];
+  const briefIntent = briefParents[0];
+  if (
+    briefParents.length !== 2
+    || briefIntent?.artifactType !== "creation_intent"
+    || briefParents[1]?.artifactType !== "world_law_contract"
+    || (briefIntent.id || briefIntent.artifactId) !== expectedIntent.artifactId
+    || briefIntent.payloadDigest !== expectedIntent.payloadDigest
+  ) {
+    throw new NarrativeV3ArtifactStoreError(
+      "artifact_concept_brief_lineage_mismatch",
+      "The story concept and NarrativeBrief do not descend from the exact same CreationIntent.",
     );
   }
 }
@@ -691,6 +736,12 @@ export class JsonNarrativeV3ArtifactStore {
     }
     const storedParents = input.parents.map((parent) => ledger.artifacts[parent.artifactId]).filter(Boolean);
     assertStoredParents(input, storedParents);
+    if (input.artifactType === "story_concept" && input.parents.length === 2) {
+      const briefRecord = ledger.artifacts[input.parents[1].artifactId];
+      assertConceptBriefLineage(input, (briefRecord?.parents || [])
+        .map((parent) => ledger.artifacts[parent.artifactId])
+        .filter(Boolean));
+    }
     if (["narrative_book_spec", "narrative_book_spec_v3"].includes(input.artifactType)) {
       const graphRecord = ledger.artifacts[input.parents[1].artifactId];
       const graphParents = graphRecord?.parents || [];
@@ -844,6 +895,10 @@ export class PostgresNarrativeV3ArtifactStore {
         payloadDigest: row.payload_digest,
       }]));
       assertStoredParents(input, input.parents.map((parent) => parentsById.get(parent.artifactId)).filter(Boolean));
+      if (input.artifactType === "story_concept" && input.parents.length === 2) {
+        const briefParents = await this.parentsFor(client, input.parents[1].artifactId);
+        assertConceptBriefLineage(input, briefParents);
+      }
       if (["narrative_book_spec", "narrative_book_spec_v3"].includes(input.artifactType)) {
         const graphParents = await this.parentsFor(client, input.parents[1].artifactId);
         const conceptParents = graphParents[0] ? await this.parentsFor(client, graphParents[0].id) : [];

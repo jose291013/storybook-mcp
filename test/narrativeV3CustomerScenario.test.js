@@ -50,34 +50,27 @@ function project() {
 }
 
 function conceptWire(source) {
-  const purposes = Array.from({ length: source.sceneCount }, () => "attempt");
-  purposes[0] = "opening";
-  purposes[1] = "desire";
-  purposes[source.requiredStructure.crossingSceneRange[0] - 2] = "preparation";
-  purposes[source.requiredStructure.crossingSceneRange[0] - 1] = "crossing";
-  purposes[source.requiredStructure.climaxScene - 1] = "climax";
-  purposes[source.requiredStructure.returnScene - 1] = "return";
-  purposes[source.requiredStructure.resolutionScene - 1] = "resolution";
+  const brief = source.narrativeBrief;
   return {
     schema_version: 1,
     contract_id: "calitiki.story-concept-wire.v1",
-    language: source.language,
+    language: brief.language,
     title: "Lina et la vallée des traces",
     premise: "Lina apprend à comparer les traces avant de choisir son chemin.",
     theme_proof: "Son observation lui permet de corriger son premier choix.",
     hero_arc: {
-      desire: "Trouver un chemin par elle-même.",
-      initial_doubt: "Craindre qu'une erreur ferme toute possibilité.",
-      decisive_choice: "Observer les empreintes avant de repartir.",
-      earned_change: "Comprendre qu'un essai peut être ajusté.",
+      desire: brief.narrative_authority.desiredChange,
+      initial_doubt: brief.narrative_authority.protectiveDoubt,
+      decisive_choice: brief.narrative_authority.childOwnedAction,
+      earned_change: brief.narrative_authority.transformation,
     },
-    beats: purposes.map((purpose, index) => ({
-      beat_key: `beat_${String(index + 1).padStart(2, "0")}`,
-      purpose,
+    beats: brief.scene_plan.map((planned, index) => ({
+      beat_key: planned.beatKey,
+      purpose: planned.purpose,
       summary: `Lina accomplit une action distincte dans la vallée, étape ${index + 1}.`,
       emotional_shift: `Sa confiance évolue à l'étape ${index + 1}.`,
       distinctive_image: `Les traces de dinosaures de l'étape ${index + 1}`,
-      participant_keys: ["hero"],
+      participant_keys: planned.participantKeys,
     })),
   };
 }
@@ -120,7 +113,8 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
       JSON.stringify(first.scenario.scenes.map((scene) => [scene.locationBefore, scene.locationAfter])),
     );
     assert.equal(first.canonicalCandidateEvidence.version, 3);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 8);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 9);
+    assert.equal(first.narrativeV3Artifacts.narrativeBrief.scenePlan.length, 15);
     assert.equal(first.narrativeV3Artifacts.visualIntent.characters[0].outfitPreference, "preserve_photo");
     const blueprint = {
       pages: first.narrativeV3Artifacts.spec.scenes.flatMap((scene) => ([{
@@ -183,7 +177,7 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
 
     const replay = await generateNarrativeV3Scenario(input);
     assert.equal(replay.canonicalCandidateEvidence.artifactDigest, first.canonicalCandidateEvidence.artifactDigest);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 8);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 9);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -209,8 +203,24 @@ test("one invalid semantic response is corrected before any immutable artifact i
     });
     assert.equal(result.validation.valid, true);
     assert.equal(calls, 2);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 8);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 9);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
+});
+
+test("the scenario refuses questionnaire data that differs from the project authority", async () => {
+  const sourceProject = project();
+  const normalized = normalizeBookRequest({ questionnaire: sourceProject.questionnaire, photos: sourceProject.photoRefs });
+  await assert.rejects(
+    generateNarrativeV3Scenario({
+      project: sourceProject,
+      normalized: {
+        ...normalized,
+        answers: { ...normalized.answers, story_intent_message: "une autre intention" },
+      },
+      conceptAgent: async (source) => conceptWire(source),
+    }),
+    (error) => error.code === "narrative_v3_questionnaire_source_mismatch",
+  );
 });
