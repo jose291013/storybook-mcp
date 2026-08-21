@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
-- Main checkpoint: `8788e62` (PR #253, V3 provider-safety page isolation)
-- Current focused checkpoint: after Render is live, resume the interrupted book once and verify that only the provider-safety gap is regenerated while its accepted scenario, cover and surrounding pages remain unchanged
+- Current branch: `codex/v3-quarantine-recovery-v18`
+- Main checkpoint: `8e49455` (PR #254, V3 provider-safety checkpoint)
+- Current focused checkpoint: after Render is live, resume project `93fa1f49-9bc7-4371-882e-33cb973914a8` once and verify that pages 3, 11, 12, 20 and 31 are queued by V18 while its accepted scenario, cover and other pages remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -119,6 +119,27 @@ change.
 Repository verification for this brick: the focused provider-safety,
 checkpoint-resume and adjacent-continuity suites pass 57/57, and the complete
 repository suite passes 724/724.
+
+## Product brick: V3 quarantine recovery V18
+
+Strict V3 checkpoint reuse now treats only text pages and image pages carrying
+accepted version-2 evidence as terminal. A private `strict_quarantined`,
+`repair_pending`, legacy-unverified or otherwise non-accepted image is removed
+from the reusable delivery set and queued for full regeneration from the same
+immutable scene contract. Accepted pages, the cover and the nearest accepted
+illustrations on both sides remain unchanged and provide secondary continuity.
+
+A recovery page receives three bounded full candidates instead of the ordinary
+two. The regenerated result replaces its page number atomically, so neither a
+private predecessor nor a retry can create two delivery entries. Exact strict
+domain codes now survive empty targeted-repair scopes in checkpoints and logs.
+Retry policy version 18 grants one migration resume to projects exhausted under
+version 17. There is no migration, environment variable, commerce, credit,
+private-asset exposure or series-canon change.
+
+Repository verification for this brick: the focused quarantine, checkpoint,
+continuity and image-policy suites pass 62/62, and the complete repository suite
+passes 729/729.
 
 ## Current architecture decision: Narrative V3
 
