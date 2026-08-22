@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current development branch: `codex/v23-1-legacy-fingerprint-resume`
-- Main checkpoint: PR #264 (V3 adventure participation authority V23; merge commit `03e775d`)
-- Draft candidate: V23.1 backward-compatible preview-resume authority
+- Current branch after publication: `main`
+- Main checkpoint after publication: PR #265 (V23.1 backward-compatible preview resume; merge commit `51d6a16`)
+- Draft candidate: none
 - Current focused checkpoint: after V23.1 is merged and Render is Live, resume project `3b856585-f060-4d99-a606-c93e6bfdb690` once. The `POST /api/preview` request must no longer return `409 story_scenario_required`; logs must reach `[preview] started`, while the approved scenario and existing checkpoint remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #264 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #265 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
