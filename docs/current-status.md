@@ -10,7 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/v25-canonical-ordinary-wardrobe-authority`
 - Main checkpoint: PR #271 (V24.2 nominative wardrobe evidence)
-- Candidate: V25 canonical all-outfit visual authority and isolated wardrobe repair; PR publication pending
+- Candidate: PR #272 (V25 canonical all-outfit visual authority and isolated wardrobe repair); publication complete, merge pending
 - Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` now identifies page 28's two exact failed targets, but both point to `private_identity_binding` raw customer photos. Those photos were simultaneously identity and ordinary-clothing authorities and competed with cover, adjacent and repair-source pixels. V25 creates one private combined identity/outfit sheet for every human/outfit pair, including ordinary clothes, removes the raw human photo from generation once its sheet is accepted, and uses a minimal single-target edit or clean multi-target recomposition. Retry policy 28 grants one bounded resume while preserving accepted work
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
