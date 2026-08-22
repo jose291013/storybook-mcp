@@ -30,6 +30,8 @@ import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
+import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
+import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
@@ -453,7 +455,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         currentPageNumber: pageNumber,
         includeNext: true,
       });
-      const continuity = buildSceneContinuity({
+      let continuity = buildSceneContinuity({
         blueprint: refreshed.finalBlueprint,
         characterCanons,
         castPresent: refreshedBlueprintPage.cast_present || [],
@@ -464,6 +466,24 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         structuredSceneContract: refreshedBlueprintPage.scene_contract || null,
         adjacentReferenceImages,
       });
+      const wardrobeAuthorityReferences = wardrobeVisualReferencesFromCheckpoint(
+        continuity.sceneFidelityContract?.scene_render_contract,
+        generationCheckpoint(refreshed)?.wardrobeVisualAuthority,
+      );
+      if (wardrobeAuthorityReferences.length) {
+        continuity = buildSceneContinuity({
+          blueprint: refreshed.finalBlueprint,
+          characterCanons,
+          castPresent: refreshedBlueprintPage.cast_present || [],
+          scenePrompt: refreshedBlueprintPage.image_prompt,
+          visualState: refreshedBlueprintPage.visual_state || {},
+          continuityImagePath: referencePath,
+          pairedText,
+          structuredSceneContract: refreshedBlueprintPage.scene_contract || null,
+          adjacentReferenceImages,
+          wardrobeAuthorityReferences,
+        });
+      }
       const selectedStyle = findIllustrationStyle(
         refreshed.questionnaire?.style_id || refreshed.productConfiguration?.style_id,
       );

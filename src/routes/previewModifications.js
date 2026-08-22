@@ -18,6 +18,8 @@ import { childSafetyResponse, guardChildSafety } from "../services/childSafety.j
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
+import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
+import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -115,7 +117,7 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     currentPageNumber: spread.imagePageNumber,
     includeNext: true,
   });
-  const continuity = buildSceneContinuity({
+  let continuity = buildSceneContinuity({
     blueprint: project.finalBlueprint,
     characterCanons,
     castPresent: imageBlueprint.cast_present || [],
@@ -126,6 +128,24 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     structuredSceneContract: imageBlueprint.scene_contract || null,
     adjacentReferenceImages,
   });
+  const wardrobeAuthorityReferences = wardrobeVisualReferencesFromCheckpoint(
+    continuity.sceneFidelityContract?.scene_render_contract,
+    generationCheckpoint(project)?.wardrobeVisualAuthority,
+  );
+  if (wardrobeAuthorityReferences.length) {
+    continuity = buildSceneContinuity({
+      blueprint: project.finalBlueprint,
+      characterCanons,
+      castPresent: imageBlueprint.cast_present || [],
+      scenePrompt: imageBlueprint.image_prompt,
+      visualState: imageBlueprint.visual_state || {},
+      continuityImageStorageKey: continuityStorageKey(project),
+      pairedText,
+      structuredSceneContract: imageBlueprint.scene_contract || null,
+      adjacentReferenceImages,
+      wardrobeAuthorityReferences,
+    });
+  }
   const style = findIllustrationStyle(project.questionnaire?.style_id || project.productConfiguration?.style_id);
   const basePrompt = sceneContractImagePrompt({
     contract: imageBlueprint.scene_contract,

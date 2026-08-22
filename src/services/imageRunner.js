@@ -22,10 +22,12 @@ export function prioritizeVisualReferences(referenceImages = []) {
         ? 0
         : item?.kind === "continuity"
           ? 1
-          : item?.kind === "adjacent_scene"
+          : item?.kind === "wardrobe"
             ? 2
+          : item?.kind === "adjacent_scene"
+            ? 3
             : item?.kind === "identity"
-              ? 3
+              ? 4
               : 4;
       return rank(left) - rank(right);
     });
@@ -68,8 +70,8 @@ export function buildFinalPrompt({
   const hasRepairSource = orderedReferences.some((item) => item?.kind === "repair_source");
   const referenceContract = orderedReferences.length
     ? `\n\nREFERENCE IMAGE CONTRACT:\n${orderedReferences.map((item, index) => (
-        `- Reference ${index + 1} [${item.kind === "repair_source" ? "TARGET IMAGE TO EDIT" : item.kind === "continuity" ? "PRIMARY APPROVED STYLE ANCHOR" : item.kind === "adjacent_scene" ? "ADJACENT APPROVED SCENE" : item.kind === "identity" ? "IDENTITY ONLY" : "SUPPORTING REFERENCE"}]: ${item.label || "visual continuity reference"}`
-      )).join("\n")}\n${hasRepairSource ? "The TARGET IMAGE TO EDIT controls the existing composition, camera, lighting, background, unaffected cast and unaffected objects. Make the smallest local correction requested by the prompt; do not redesign or regenerate the scene." : "Create a genuinely new scene composition."} ${hasPrimaryStyleAnchor ? "The PRIMARY APPROVED STYLE ANCHOR alone controls the book's rendering family, artistic medium, surface treatment, character proportions and world palette." : "No approved-cover style anchor is present yet; follow the requested style prompt and never derive the rendering medium from an identity photo."} ADJACENT APPROVED SCENE references are local continuity evidence only: preserve recurring identities, established world details and physical states that truly carry over, but never copy their prior action, pose, composition, camera, obsolete location or obsolete equipment. The current SCENE CONTRACT always overrides an adjacent image when the story intentionally changes place, time, wardrobe, equipment or action. IDENTITY ONLY references preserve stable facial or animal traits only; never copy their photographic medium, lighting, background, pose, printed clothing or undeclared wardrobe. Each numbered identity maps to its own separate complete subject; never combine two numbered references into one body or identity. Preserve reference wardrobe only when the current scene wardrobe directive requires it; otherwise follow the declared scene outfit. Never copy a prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
+        `- Reference ${index + 1} [${item.kind === "repair_source" ? "TARGET IMAGE TO EDIT" : item.kind === "continuity" ? "PRIMARY APPROVED STYLE ANCHOR" : item.kind === "wardrobe" ? "LOCKED WARDROBE AUTHORITY" : item.kind === "adjacent_scene" ? "ADJACENT APPROVED SCENE" : item.kind === "identity" ? "IDENTITY ONLY" : "SUPPORTING REFERENCE"}]: ${item.label || "visual continuity reference"}`
+      )).join("\n")}\n${hasRepairSource ? "The TARGET IMAGE TO EDIT controls the existing composition, camera, lighting, background, unaffected cast and unaffected objects. Make the smallest local correction requested by the prompt; do not redesign or regenerate the scene." : "Create a genuinely new scene composition."} ${hasPrimaryStyleAnchor ? "The PRIMARY APPROVED STYLE ANCHOR alone controls the book's rendering family, artistic medium, surface treatment, character proportions and world palette." : "No approved-cover style anchor is present yet; follow the requested style prompt and never derive the rendering medium from an identity photo."} A LOCKED WARDROBE AUTHORITY is the sole pixel authority for that named person's active outfit: preserve the exact garment design, colors, material and footwear while changing pose and camera for the current action. ADJACENT APPROVED SCENE references are local continuity evidence only: preserve recurring identities, established world details and physical states that truly carry over, but never copy their prior action, pose, composition, camera, obsolete location or obsolete equipment. The current SCENE CONTRACT always overrides an adjacent image when the story intentionally changes place, time, wardrobe, equipment or action. IDENTITY ONLY references preserve stable facial or animal traits only; never copy their photographic medium, lighting, background, pose, printed clothing or undeclared wardrobe. Each numbered identity maps to its own separate complete subject; never combine two numbered references into one body or identity. Preserve reference wardrobe only when the current scene wardrobe directive requires it; otherwise follow the declared scene outfit. Never copy a prop, magical object or plot element from a reference unless the current scene explicitly requires it.`
     : "";
   const safeSceneContract = sanitizeBrandSensitiveText(sceneContract).trim();
   const exactScene = safeSceneContract

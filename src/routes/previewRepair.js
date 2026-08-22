@@ -15,6 +15,8 @@ import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
+import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
+import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -222,7 +224,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         currentPageNumber: pageNumber,
         includeNext: true,
       });
-      const continuity = buildSceneContinuity({
+      let continuity = buildSceneContinuity({
         blueprint: refreshed.finalBlueprint,
         characterCanons,
         castPresent: blueprintPage.cast_present || [],
@@ -233,6 +235,24 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         structuredSceneContract: blueprintPage.scene_contract || null,
         adjacentReferenceImages,
       });
+      const wardrobeAuthorityReferences = wardrobeVisualReferencesFromCheckpoint(
+        continuity.sceneFidelityContract?.scene_render_contract,
+        generationCheckpoint(refreshed)?.wardrobeVisualAuthority,
+      );
+      if (wardrobeAuthorityReferences.length) {
+        continuity = buildSceneContinuity({
+          blueprint: refreshed.finalBlueprint,
+          characterCanons,
+          castPresent: blueprintPage.cast_present || [],
+          scenePrompt: blueprintPage.image_prompt,
+          visualState: blueprintPage.visual_state || {},
+          continuityImagePath: referencePath,
+          pairedText,
+          structuredSceneContract: blueprintPage.scene_contract || null,
+          adjacentReferenceImages,
+          wardrobeAuthorityReferences,
+        });
+      }
 
       updateJob(job.id, { step: `repair:page:${pageNumber}:illustrating` });
       const selectedStyle = findIllustrationStyle(refreshed.questionnaire?.style_id || refreshed.productConfiguration?.style_id);

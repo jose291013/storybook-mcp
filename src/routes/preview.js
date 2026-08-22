@@ -11,6 +11,17 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
 import { buildSceneContinuity } from "../services/visualContinuity.js";
+import { generateImage } from "../services/imageRunner.js";
+import {
+  acceptedWardrobeAuthorityAssets,
+  assertWardrobeVisualAuthorityCoverage,
+  compileWardrobeVisualAuthorityPlan,
+  inspectWardrobeVisualAuthority,
+  wardrobeAuthorityPrompt,
+  wardrobeVisualReferencesForScene,
+  WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
+  WARDROBE_VISUAL_AUTHORITY_VERSION,
+} from "../services/wardrobeVisualAuthorityV1.js";
 import {
   ADJACENT_VISUAL_CONTINUITY_VERSION,
   adjacentApprovedIllustrationReferences,
@@ -1715,6 +1726,146 @@ router.post("/preview", async (req, res) => {
         return;
       }
 
+      const coverReferencePath = localCoverImageUrl ? outputImagePath(localCoverImageUrl) : "";
+      const lockedCoverStorageKey = visualBibleCoverStorageKey(project) || coverImageStorageKey;
+      let wardrobeAuthorityAssets = new Map();
+      if (strictV3Rendering) {
+        updateJob(job.id, { step: "draft:wardrobe-visual-authority" });
+        await updateGenerationRun(job.id, {
+          status: "running",
+          currentStep: "draft:wardrobe-visual-authority",
+        });
+        const authoritySceneInputs = final_blueprint.pages
+          .filter((page) => page.page_type === "image" && page.scene_contract)
+          .map((page) => {
+            const continuity = buildSceneContinuity({
+              blueprint: final_blueprint,
+              characterCanons,
+              castPresent: page.cast_present || [],
+              scenePrompt: page.image_prompt,
+              visualState: page.visual_state || {},
+              ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
+              ...(!coverReferencePath && lockedCoverStorageKey ? { continuityImageStorageKey: lockedCoverStorageKey } : {}),
+              structuredSceneContract: page.scene_contract,
+              wardrobeLocks: page.wardrobe_locks || [],
+              referenceAssets,
+            });
+            return {
+              page,
+              continuity,
+              sceneRenderContract: continuity.sceneFidelityContract?.scene_render_contract || null,
+            };
+          });
+        const wardrobeAuthorityPlan = compileWardrobeVisualAuthorityPlan(
+          authoritySceneInputs.map((entry) => entry.sceneRenderContract).filter(Boolean),
+        );
+        wardrobeAuthorityAssets = acceptedWardrobeAuthorityAssets(
+          wardrobeAuthorityPlan,
+          checkpoint.wardrobeVisualAuthority,
+        );
+        for (const authority of wardrobeAuthorityPlan.authorities) {
+          if (wardrobeAuthorityAssets.has(authority.authorityId)) continue;
+          const source = authoritySceneInputs.find((entry) => (
+            entry.sceneRenderContract?.cast?.required?.some((character) => (
+              character.character_id === authority.characterId
+              && character.outfit?.state_id === authority.stateId
+            ))
+          ));
+          const normalizedName = authority.characterName.toLowerCase();
+          const identityReference = source?.continuity?.referenceImages?.find((reference) => (
+            reference.kind === "identity"
+            && String(reference.label || "").toLowerCase().startsWith(`${normalizedName},`)
+          ));
+          const styleReference = source?.continuity?.referenceImages?.find((reference) => reference.kind === "continuity");
+          if (!identityReference || !styleReference) {
+            const authorityError = new Error("A wardrobe authority cannot be produced without exact identity and approved style references.");
+            authorityError.code = "wardrobe_visual_authority_reference_missing";
+            authorityError.artifactType = "wardrobe_visual_authority_v1";
+            throw authorityError;
+          }
+          const reportAttempt = reportImageAttempt(job.id, `draft:wardrobe-authority:${authority.authorityId}`);
+          let acceptedAsset = null;
+          let lastIssueCodes = [];
+          for (let attempt = 1; attempt <= 2; attempt += 1) {
+            reportAttempt({
+              phase: "started",
+              attempt,
+              maximumAttempts: 2,
+              model: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+              referencePolicyStage: "locked_identity_style",
+              referenceKinds: ["continuity", "identity"],
+            });
+            const candidateUrl = await generateImage({
+              prompt: wardrobeAuthorityPrompt(authority),
+              outName: `wardrobe-${authority.authorityId}-${job.id}-attempt${attempt}`,
+              referenceImages: [styleReference, identityReference],
+              sceneContract: `WARDROBE VISUAL AUTHORITY V1: exactly one ${authority.characterName}; exact outfit ${authority.stateId}: ${authority.description}`,
+              renderingMode: answers.rendering_mode,
+              likenessGoal: answers.likeness_goal,
+              quality: "low",
+              model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+            });
+            reportAttempt({ phase: "generated", attempt, maximumAttempts: 2 });
+            const evidence = await inspectWardrobeVisualAuthority({
+              imagePath: outputImagePath(candidateUrl),
+              entry: authority,
+              identityReference,
+              styleReference,
+            });
+            lastIssueCodes = evidence.issueCodes;
+            if (!evidence.approved) {
+              reportAttempt({
+                phase: "rejected",
+                attempt,
+                maximumAttempts: 2,
+                issues: evidence.issueCodes,
+                referencePolicyStage: "locked_identity_style",
+              });
+              continue;
+            }
+            const persisted = await persistPreviewAsset({ projectId, assetUrl: candidateUrl });
+            acceptedAsset = {
+              version: WARDROBE_VISUAL_AUTHORITY_VERSION,
+              authorityId: authority.authorityId,
+              characterId: authority.characterId,
+              characterName: authority.characterName,
+              stateId: authority.stateId,
+              description: authority.description,
+              status: "accepted",
+              storageKey: persisted.storageKey,
+              previewUrl: persisted.previewUrl,
+              sha256: persisted.sha256,
+            };
+            wardrobeAuthorityAssets.set(authority.authorityId, acceptedAsset);
+            reportAttempt({ phase: "approved", attempt, maximumAttempts: 2 });
+            await persistCheckpoint({
+              phase: "wardrobe-visual-authority",
+              wardrobeVisualAuthority: {
+                version: WARDROBE_VISUAL_AUTHORITY_VERSION,
+                policyVersion: WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
+                planDigest: wardrobeAuthorityPlan.validation.artifactDigest,
+                assets: [...wardrobeAuthorityAssets.values()],
+              },
+            });
+            break;
+          }
+          if (!acceptedAsset) {
+            const authorityError = new Error("The private wardrobe model sheet did not pass its bounded identity, outfit and style verification.");
+            authorityError.code = "wardrobe_visual_authority_incomplete";
+            authorityError.artifactType = "wardrobe_visual_authority_v1";
+            authorityError.issues = lastIssueCodes.map((code) => ({ path: `/authorities/${authority.authorityId}`, message: code }));
+            throw authorityError;
+          }
+        }
+        assertWardrobeVisualAuthorityCoverage(wardrobeAuthorityPlan, wardrobeAuthorityAssets);
+        console.info("[preview] wardrobe visual authority sealed", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          authorityCount: wardrobeAuthorityPlan.authorities.length,
+          planDigest: wardrobeAuthorityPlan.validation.artifactDigest.slice(0, 12),
+        }));
+      }
+
       const {
         acceptedPages: draftPages,
         recoveryPageNumbers,
@@ -1743,8 +1894,6 @@ router.post("/preview", async (req, res) => {
       const estimatedInteriorImageUsdMicros = Math.round(
         generationCostPolicy().estimatedInteriorImageUsd * 1_000_000,
       );
-      const coverReferencePath = localCoverImageUrl ? outputImagePath(localCoverImageUrl) : "";
-      const lockedCoverStorageKey = visualBibleCoverStorageKey(project) || coverImageStorageKey;
       const buildPageVisualRequest = (page) => {
         const pairedTextPage = final_blueprint.pages.find((candidate) => (
           candidate.spread_number === page.spread_number
@@ -1761,7 +1910,7 @@ router.post("/preview", async (req, res) => {
           // secondary visual evidence for the immutable current contract.
           includeNext: true,
         });
-        const sceneContinuity = buildSceneContinuity({
+        let sceneContinuity = buildSceneContinuity({
           blueprint: final_blueprint,
           characterCanons,
           castPresent: page.cast_present || [],
@@ -1775,6 +1924,27 @@ router.post("/preview", async (req, res) => {
           referenceAssets,
           adjacentReferenceImages,
         });
+        const wardrobeAuthorityReferences = wardrobeVisualReferencesForScene(
+          sceneContinuity.sceneFidelityContract?.scene_render_contract,
+          wardrobeAuthorityAssets,
+        );
+        if (wardrobeAuthorityReferences.length) {
+          sceneContinuity = buildSceneContinuity({
+            blueprint: final_blueprint,
+            characterCanons,
+            castPresent: page.cast_present || [],
+            scenePrompt: page.image_prompt,
+            visualState: page.visual_state || {},
+            ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
+            ...(!coverReferencePath && lockedCoverStorageKey ? { continuityImageStorageKey: lockedCoverStorageKey } : {}),
+            pairedText,
+            structuredSceneContract: page.scene_contract || null,
+            wardrobeLocks: page.wardrobe_locks || [],
+            referenceAssets,
+            adjacentReferenceImages,
+            wardrobeAuthorityReferences,
+          });
+        }
         const visualPrompt = sceneContractImagePrompt({
           contract: page.scene_contract,
           stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
