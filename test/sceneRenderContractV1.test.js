@@ -145,5 +145,8 @@ test("the V3 image adapter uses the concrete render contract instead of photo wa
   );
   assert.equal(continuity.referenceImages[0].kind, "wardrobe");
   assert.match(continuity.referenceImages[0].label, /ordinary_outfit/u);
+  assert.equal(continuity.referenceImages[0].characterId, "character_brother");
+  assert.equal(continuity.referenceImages[0].outfitStateId, "ordinary_outfit");
+  assert.match(continuity.referenceImages[0].authorityId, /private_identity_binding/u);
   assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
 });

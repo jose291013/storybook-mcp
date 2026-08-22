@@ -163,6 +163,7 @@ export function buildSceneContinuity({
         ...privateSource,
         label: `${visualAlias}, ${role}: private identity-only reference; preserve stable face or animal traits faithfully, but never copy this photo's rendering medium, lighting, background or undeclared wardrobe`,
         kind: "identity",
+        characterId: strictCharacterState?.character_id || "",
         normalizationMode: continuityImagePath || continuityImageStorageKey ? "face_focus" : "full_and_face",
       });
       if (strictCharacterState?.outfit?.source === "private_identity_binding") {
@@ -170,6 +171,9 @@ export function buildSceneContinuity({
           ...privateSource,
           label: `${visualAlias}: LOCKED WARDROBE AUTHORITY for ordinary_outfit; preserve the broad garment types, colors and footwear visible in this private source while removing logos`,
           kind: "wardrobe",
+          authorityId: `private_identity_binding:${strictCharacterState.character_id}:${strictCharacterState.outfit.state_id}`,
+          characterId: strictCharacterState.character_id,
+          outfitStateId: strictCharacterState.outfit.state_id,
           normalizationMode: "full_and_face",
         });
       }

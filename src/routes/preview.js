@@ -5,6 +5,7 @@ import {
   IllustrationQualityError,
   IllustrationSafetyQuarantineError,
   outputImagePath,
+  strictV3WardrobeRepairDirective,
   targetedVisualRepairPolicy,
 } from "../services/imageQualityGate.js";
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
@@ -322,6 +323,7 @@ function reportImageAttempt(jobId, stepPrefix) {
     safetyFallbackStage = "",
     referencePolicyStage = "",
     referenceKinds = [],
+    wardrobeDiagnostics = null,
   }) => {
     const step = `${stepPrefix}:attempt:${attempt}/${maximumAttempts}:${phase}`;
     updateJob(jobId, { step });
@@ -333,6 +335,7 @@ function reportImageAttempt(jobId, stepPrefix) {
       safetyFallbackStage: safetyFallbackStage || undefined,
       referencePolicyStage: referencePolicyStage || undefined,
       referenceKinds: referenceKinds.length ? referenceKinds : undefined,
+      wardrobeDiagnostics: wardrobeDiagnostics || undefined,
       error: error || undefined,
       issues: issues.length ? issues : undefined,
     }));
@@ -2080,6 +2083,8 @@ router.post("/preview", async (req, res) => {
                 rejectionKind: qualityKind,
                 issueCodes: qualityIssueCodes,
                 automaticRepair: qualityRepairPolicy.automaticRepair,
+                wardrobeTargets: qualityRepairPolicy.wardrobeTargets || [],
+                wardrobeDiagnostics: qualityRepairPolicy.wardrobeDiagnostics || undefined,
               }));
               qualityStatus = qualityRepairPolicy.automaticRepair
                 ? "repair_pending"
@@ -2185,6 +2190,7 @@ router.post("/preview", async (req, res) => {
           || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
             source: pendingPage.qualityKind || "scene",
           });
+        const wardrobeRepairDirective = strictV3WardrobeRepairDirective(repairPolicy);
         const repairReferences = [
           ...(pendingPage.imageStorageKey ? [{
             kind: "repair_source",
@@ -2195,7 +2201,7 @@ router.post("/preview", async (req, res) => {
         ];
         try {
           const repairedLocalImageUrl = await generateQualityCheckedImage({
-            prompt: `${visualPrompt}\n\nFINAL TARGETED IMAGE EDIT (policy V4): edit the preserved candidate instead of redesigning it. Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium pixel-for-pixel wherever possible. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the affected person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical identity references override the defective preserved candidate for face, hair, species, coat and markings. Do not introduce any other narrative change.`,
+            prompt: `${visualPrompt}\n\nFINAL TARGETED IMAGE EDIT (policy V6): edit the preserved candidate instead of redesigning it. Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium pixel-for-pixel wherever possible. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical identity references override the defective preserved candidate for face, hair, species, coat and markings. Do not introduce any other narrative change.`,
             safetyFallbackPrompt: sceneContractImagePrompt({
               contract: page.scene_contract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
@@ -2277,6 +2283,7 @@ router.post("/preview", async (req, res) => {
             projectId,
             pageNumber: page.page_number,
             issueCodes: repairPolicy.targetCodes,
+            wardrobeTargets: repairPolicy.wardrobeTargets || [],
             repairMode: "targeted_image_edit",
           }));
         } catch (error) {

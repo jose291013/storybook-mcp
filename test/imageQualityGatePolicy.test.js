@@ -27,6 +27,8 @@ import {
   requiresFocusedCastVerification,
   strictV3IllustrationRetryStrategy,
   strictV3TargetedRepairPolicy,
+  strictV3WardrobeDiagnosticTargets,
+  strictV3WardrobeRepairDirective,
   targetedVisualRepairPolicy,
 } from "../src/services/imageQualityGate.js";
 
@@ -45,19 +47,45 @@ test("strict V3 evidence requires explicit verification in all eleven delivery d
     instruction = input[0].content[0].text;
     return { output_text: JSON.stringify({
       domains: Object.fromEntries(STRICT_DOMAINS.map((domain) => [domain, { status: "pass", evidence_code: "verified" }])),
+      wardrobe_observations: [{
+        character_id: "character_hero",
+        outfit_state_id: "reef_explorer",
+        status: "pass",
+        evidence_code: "verified",
+        observation_code: "matches_expected_state",
+      }],
     }) };
   } } };
   try {
     const evidence = await inspectStrictV3IllustrationEvidence({
       imagePath,
       client,
-      sceneContract: { render_snapshot: { physical_medium: "fully_underwater" } },
+      sceneContract: {
+        render_snapshot: { physical_medium: "fully_underwater" },
+        scene_render_contract: {
+          cast: { required: [{
+            character_id: "character_hero",
+            kind: "human",
+            outfit: { state_id: "reef_explorer" },
+          }] },
+        },
+      },
+      referenceImages: [{
+        path: imagePath,
+        kind: "wardrobe",
+        characterId: "character_hero",
+        outfitStateId: "reef_explorer",
+        authorityId: "wardrobe_hero",
+      }],
     });
     assert.equal(evidence.approved, true);
     assert.equal(Object.keys(evidence.domains).length, 11);
     assert.match(instruction, /gravity or buoyancy/);
     assert.match(instruction, /One entity in two positions is a duplicate/);
     assert.match(instruction, /ordinary source-photo clothing is forbidden/);
+    assert.match(instruction, /WARDROBE DIAGNOSTIC TARGETS/u);
+    assert.equal(evidence.wardrobeDiagnostics.observations[0].wardrobeAuthorityId, "wardrobe_hero");
+    assert.equal(evidence.wardrobeDiagnostics.observations[0].status, "pass");
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -106,6 +134,17 @@ test("strict V3 enters targeted editing only after convergence to one confirmed 
     approved: false,
     failedDomains: ["wardrobe"],
     uncertainDomains: [],
+    wardrobeDiagnostics: {
+      targetingComplete: true,
+      failedTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "reef_explorer",
+        wardrobeAuthorityId: "wardrobe_123",
+        status: "fail",
+        evidenceCode: "wardrobe_state_mismatch",
+        observationCode: "categorically_different_state",
+      }],
+    },
   };
   const policy = strictV3TargetedRepairPolicy(evidence, {
     attempt: 2,
@@ -117,6 +156,129 @@ test("strict V3 enters targeted editing only after convergence to one confirmed 
   assert.equal(policy.automaticRepair, true);
   assert.deepEqual(policy.targetDomains, ["wardrobe"]);
   assert.deepEqual(policy.targetCodes, ["wardrobe_state_mismatch"]);
+  assert.deepEqual(policy.wardrobeTargets.map((entry) => entry.characterId), ["character_hero"]);
+  assert.match(strictV3WardrobeRepairDirective(policy), /character_hero/u);
+  assert.doesNotMatch(strictV3WardrobeRepairDirective(policy), /child_1/u);
+});
+
+test("strict V3 attributes a wardrobe conflict to the exact canonical character and authority", () => {
+  const expectedWardrobeTargets = [
+    { characterId: "character_hero", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_hero" },
+    { characterId: "character_brother", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_brother" },
+  ];
+  const rawDomains = Object.fromEntries(STRICT_DOMAINS.map((domain) => [
+    domain,
+    { status: domain === "wardrobe" ? "fail" : "pass", evidence_code: domain === "wardrobe" ? "wardrobe_state_mismatch" : "verified" },
+  ]));
+  const evidence = normalizeStrictV3IllustrationEvidence(rawDomains, {
+    expectedWardrobeTargets,
+    rawWardrobeObservations: [
+      {
+        character_id: "character_hero",
+        outfit_state_id: "reef_explorer",
+        status: "fail",
+        evidence_code: "wardrobe_state_mismatch",
+        observation_code: "categorically_different_state",
+        ignored_free_text: "never persisted",
+      },
+      {
+        character_id: "character_brother",
+        outfit_state_id: "reef_explorer",
+        status: "pass",
+        evidence_code: "verified",
+        observation_code: "matches_expected_state",
+      },
+    ],
+  });
+  const policy = strictV3TargetedRepairPolicy(evidence, {
+    attempt: 2,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+
+  assert.equal(evidence.wardrobeDiagnostics.targetingComplete, true);
+  assert.deepEqual(policy.wardrobeTargets, [{
+    characterId: "character_hero",
+    outfitStateId: "reef_explorer",
+    wardrobeAuthorityId: "wardrobe_hero",
+    status: "fail",
+    evidenceCode: "wardrobe_state_mismatch",
+    observationCode: "categorically_different_state",
+  }]);
+  assert.equal(JSON.stringify(policy).includes("ignored_free_text"), false);
+  assert.equal(policy.automaticRepair, true);
+});
+
+test("strict V3 refuses a blind wardrobe edit when nominative evidence is incomplete", () => {
+  const evidence = {
+    approved: false,
+    failedDomains: ["wardrobe"],
+    uncertainDomains: [],
+    wardrobeDiagnostics: {
+      targetingComplete: false,
+      failedTargets: [],
+    },
+  };
+  const policy = strictV3TargetedRepairPolicy(evidence, {
+    attempt: 2,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+  assert.equal(policy.strategy.mode, "quarantine");
+  assert.equal(policy.strategy.reason, "wardrobe_target_unresolved");
+  assert.equal(policy.automaticRepair, false);
+});
+
+test("strict V3 refuses a nominative wardrobe edit without the exact pixel authority", () => {
+  const rawDomains = Object.fromEntries(STRICT_DOMAINS.map((domain) => [
+    domain,
+    { status: domain === "wardrobe" ? "fail" : "pass", evidence_code: domain === "wardrobe" ? "wardrobe_state_mismatch" : "verified" },
+  ]));
+  const evidence = normalizeStrictV3IllustrationEvidence(rawDomains, {
+    expectedWardrobeTargets: [{
+      characterId: "character_hero",
+      outfitStateId: "reef_explorer",
+      wardrobeAuthorityId: "",
+    }],
+    rawWardrobeObservations: [{
+      character_id: "character_hero",
+      outfit_state_id: "reef_explorer",
+      status: "fail",
+      evidence_code: "wardrobe_state_mismatch",
+      observation_code: "categorically_different_state",
+    }],
+  });
+  const policy = strictV3TargetedRepairPolicy(evidence, {
+    attempt: 2,
+    maximumAttempts: 2,
+    targetedRepairAvailable: true,
+  });
+  assert.equal(evidence.wardrobeDiagnostics.targetingComplete, false);
+  assert.equal(policy.strategy.reason, "wardrobe_target_unresolved");
+  assert.equal(policy.automaticRepair, false);
+});
+
+test("wardrobe diagnostic targets bind exact cast ids to exact pixel authorities", () => {
+  const sceneContract = {
+    scene_render_contract: {
+      cast: {
+        required: [
+          { character_id: "character_hero", kind: "human", outfit: { state_id: "reef_explorer" } },
+          { character_id: "character_dog", kind: "animal", outfit: { state_id: "ordinary_outfit" } },
+        ],
+      },
+    },
+  };
+  assert.deepEqual(strictV3WardrobeDiagnosticTargets(sceneContract, [{
+    kind: "wardrobe",
+    characterId: "character_hero",
+    outfitStateId: "reef_explorer",
+    authorityId: "wardrobe_hero",
+  }]), [{
+    characterId: "character_hero",
+    outfitStateId: "reef_explorer",
+    wardrobeAuthorityId: "wardrobe_hero",
+  }]);
 });
 
 test("strict V3 regenerates uncertain or structural evidence and never targets it blindly", () => {

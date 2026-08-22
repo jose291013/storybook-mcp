@@ -111,6 +111,9 @@ test("a scene receives only the exact active outfit authority for each character
   assert.equal(references.length, 1);
   assert.equal(references[0].storageKey, "private/active.png");
   assert.equal(references[0].kind, "wardrobe");
+  assert.equal(references[0].authorityId, "active");
+  assert.equal(references[0].characterId, "character_hero");
+  assert.equal(references[0].outfitStateId, "reef_explorer");
 });
 
 test("conflicting descriptions for one canonical outfit fail before image spend", () => {

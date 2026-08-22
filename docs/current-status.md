@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v24-1-wardrobe-style-advisory`
-- Main checkpoint: PR #269 (V24 WardrobeVisualAuthority.v1; merge commit `340e040`)
-- Candidate: V24.1 wardrobe-authority acceptance boundary
-- Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` proved that V24 executes before page generation. Its second private model-sheet candidate passed identity, one-person cardinality and exact outfit, but failed only approximate rendering-family style. V24.1 keeps those three semantic authority domains blocking, records model-sheet style as advisory, leaves every delivered page's style evidence strict, persists the correct `wardrobe-visual-authority` phase before model traffic and grants one retry-policy-26 resume
+- Current branch: `main`
+- Main checkpoint: PR #271 (V24.2 nominative wardrobe evidence)
+- Candidate: none; production verification after the Render deployment is next
+- Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` generated and accepted every resumed page except page 28. Four distinct attempts converged to the same generic `wardrobe_state_mismatch`, but the final V3 evidence did not identify the affected canonical character or outfit authority. V24.2 keeps the eleven-domain delivery decision strict, adds bounded per-character wardrobe evidence, permits a local edit only when every required human is resolved and at least one exact target fails, and grants one retry-policy-27 resume
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #269 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #271 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -186,7 +186,7 @@ credit entitlement or series-canon mutation. The generated model sheets are
 private preview assets and are never exposed as book pages. Repository
 verification: 767/767 complete tests pass.
 
-## Candidate product brick: V24.1 wardrobe-authority acceptance boundary
+## Product brick: V24.1 wardrobe-authority acceptance boundary
 
 The private outfit model sheet remains fail-closed for identity, exactly-one
 cardinality and the canonical outfit. Its rendering-family comparison is now
@@ -203,6 +203,31 @@ database schema, environment variable, commerce rule, credit entitlement,
 private-asset exposure or series canon changes.
 
 Repository verification for V24.1: 34/34 focused tests and 769/769 complete
+repository tests pass.
+
+## Product brick: V24.2 nominative wardrobe evidence
+
+The final strict illustration arbiter now returns one bounded wardrobe
+observation for every required human: canonical character id, exact outfit
+state id, matching private wardrobe-authority id, enum status and enum evidence.
+Names, visual descriptions and free-form model reasoning are discarded. A
+confirmed observation may tighten the aggregate wardrobe result, but missing
+diagnostic detail never turns a failure into a pass.
+
+Full regeneration and checkpoint logs retain this bounded attribution. A
+targeted wardrobe edit is authorized only after the final domain has converged
+to wardrobe alone, every required human is either verified or confirmed wrong,
+and at least one exact character/outfit target fails. Otherwise the candidate
+stays private instead of spending a blind edit that may change the wrong
+person. The edit prompt names only those canonical target ids and preserves all
+other identities, outfits, poses and positions. Retry policy 27 opens one
+resume for V26 quarantines while reusing accepted pages.
+
+There is no new model call, database migration, environment variable, commerce
+or credit change, private-asset exposure, final-page acceptance relaxation or
+series-canon mutation.
+
+Repository verification for V24.2: 81/81 focused tests and 774/774 complete
 repository tests pass.
 
 ## Product brick: V3 provider-safety page isolation

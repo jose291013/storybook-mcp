@@ -1042,7 +1042,93 @@ function strictV3Assessment(value, domain) {
   return { status: "uncertain", evidence_code: "insufficient_evidence" };
 }
 
-export function normalizeStrictV3IllustrationEvidence(rawDomains = {}, { technicalApproved = true } = {}) {
+const STRICT_V3_WARDROBE_OBSERVATION_CODES = new Set([
+  "matches_expected_state",
+  "categorically_different_state",
+  "occluded_or_ambiguous",
+  "reference_insufficient",
+]);
+
+function boundedDiagnosticId(value) {
+  return String(value || "").trim().slice(0, 120);
+}
+
+function strictV3SceneRenderContract(sceneContract = null) {
+  return sceneContract?.scene_render_contract || sceneContract || null;
+}
+
+export function strictV3WardrobeDiagnosticTargets(sceneContract = null, referenceImages = []) {
+  const contract = strictV3SceneRenderContract(sceneContract);
+  const references = Array.isArray(referenceImages) ? referenceImages : [];
+  return (contract?.cast?.required || []).flatMap((character) => {
+    const characterId = boundedDiagnosticId(character?.character_id);
+    const outfitStateId = boundedDiagnosticId(character?.outfit?.state_id);
+    if (boundedDiagnosticId(character?.kind) !== "human" || !characterId || !outfitStateId) return [];
+    const authority = references.find((reference) => (
+      reference?.kind === "wardrobe"
+      && boundedDiagnosticId(reference?.characterId) === characterId
+      && boundedDiagnosticId(reference?.outfitStateId) === outfitStateId
+    ));
+    return [{
+      characterId,
+      outfitStateId,
+      wardrobeAuthorityId: boundedDiagnosticId(authority?.authorityId),
+    }];
+  });
+}
+
+function normalizeStrictV3WardrobeDiagnostics(rawObservations = [], expectedTargets = []) {
+  const expected = Array.isArray(expectedTargets) ? expectedTargets : [];
+  const returned = Array.isArray(rawObservations) ? rawObservations : [];
+  const observations = expected.map((target) => {
+    const matches = returned.filter((entry) => (
+      boundedDiagnosticId(entry?.character_id) === target.characterId
+      && boundedDiagnosticId(entry?.outfit_state_id) === target.outfitStateId
+    ));
+    const entry = matches.length === 1 ? matches[0] : null;
+    const status = boundedDiagnosticId(entry?.status).toLowerCase();
+    const evidenceCode = boundedDiagnosticId(entry?.evidence_code).toLowerCase();
+    const observationCode = boundedDiagnosticId(entry?.observation_code).toLowerCase();
+    const validPass = status === "pass"
+      && evidenceCode === "verified"
+      && observationCode === "matches_expected_state";
+    const validFail = status === "fail"
+      && evidenceCode === "wardrobe_state_mismatch"
+      && observationCode === "categorically_different_state";
+    const validUncertain = status === "uncertain"
+      && evidenceCode === "insufficient_evidence"
+      && STRICT_V3_WARDROBE_OBSERVATION_CODES.has(observationCode)
+      && !["matches_expected_state", "categorically_different_state"].includes(observationCode);
+    return {
+      ...target,
+      status: validPass ? "pass" : validFail ? "fail" : "uncertain",
+      evidenceCode: validPass ? "verified" : validFail ? "wardrobe_state_mismatch" : "insufficient_evidence",
+      observationCode: validPass
+        ? "matches_expected_state"
+        : validFail
+          ? "categorically_different_state"
+          : validUncertain
+            ? observationCode
+            : "reference_insufficient",
+    };
+  });
+  const failedTargets = observations.filter((entry) => entry.status === "fail");
+  return {
+    version: 1,
+    observations,
+    failedTargets,
+    targetingComplete: expected.length > 0
+      && expected.every((entry) => Boolean(entry.wardrobeAuthorityId))
+      && failedTargets.length > 0
+      && observations.every((entry) => entry.status !== "uncertain"),
+  };
+}
+
+export function normalizeStrictV3IllustrationEvidence(rawDomains = {}, {
+  technicalApproved = true,
+  rawWardrobeObservations = [],
+  expectedWardrobeTargets = [],
+} = {}) {
   const domains = Object.fromEntries(STRICT_V3_ILLUSTRATION_DOMAINS.map((domain) => [
     domain,
     domain === "asset_integrity"
@@ -1051,12 +1137,23 @@ export function normalizeStrictV3IllustrationEvidence(rawDomains = {}, { technic
         : { status: "fail", evidence_code: "corrupted_asset" }
       : strictV3Assessment(rawDomains?.[domain], domain),
   ]));
+  const wardrobeDiagnostics = normalizeStrictV3WardrobeDiagnostics(
+    rawWardrobeObservations,
+    expectedWardrobeTargets,
+  );
+  // A character-specific confirmed contradiction may tighten the aggregate
+  // wardrobe domain. Missing diagnostic detail never loosens or invents a
+  // final decision; the existing aggregate evidence remains authoritative.
+  if (wardrobeDiagnostics.failedTargets.length > 0) {
+    domains.wardrobe = { status: "fail", evidence_code: "wardrobe_state_mismatch" };
+  }
   const failedDomains = STRICT_V3_ILLUSTRATION_DOMAINS.filter((domain) => domains[domain].status === "fail");
   const uncertainDomains = STRICT_V3_ILLUSTRATION_DOMAINS.filter((domain) => domains[domain].status === "uncertain");
   return {
     version: 2,
     approved: failedDomains.length === 0 && uncertainDomains.length === 0,
     domains,
+    wardrobeDiagnostics,
     failedDomains,
     uncertainDomains,
     issues: [
@@ -1089,7 +1186,8 @@ export function strictV3IllustrationRetryStrategy(
   const attemptsRemaining = Math.max(0, Number(maximumAttempts || 0) - Number(attempt || 0));
   const singleConfirmedLocalDomain = uncertainDomains.length === 0
     && failedDomains.length === 1
-    && STRICT_V3_LOCAL_REPAIR_DOMAINS.has(failedDomains[0]);
+    && STRICT_V3_LOCAL_REPAIR_DOMAINS.has(failedDomains[0])
+    && (failedDomains[0] !== "wardrobe" || evidence?.wardrobeDiagnostics?.targetingComplete === true);
 
   let mode = "quarantine";
   let reason = "repair_budget_exhausted";
@@ -1107,6 +1205,9 @@ export function strictV3IllustrationRetryStrategy(
       : unresolvedDomains.length > 1
         ? "multiple_domains_failed"
         : "structural_domain_failed";
+  } else if (failedDomains.length === 1 && failedDomains[0] === "wardrobe"
+    && evidence?.wardrobeDiagnostics?.targetingComplete !== true) {
+    reason = "wardrobe_target_unresolved";
   }
 
   return {
@@ -1120,6 +1221,9 @@ export function strictV3IllustrationRetryStrategy(
     targetDomains: mode === "targeted_repair" ? failedDomains : [],
     targetCodes: mode === "targeted_repair"
       ? failedDomains.map((domain) => STRICT_V3_DOMAIN_FAILURE_CODES[domain])
+      : [],
+    wardrobeTargets: mode === "targeted_repair"
+      ? structuredClone(evidence?.wardrobeDiagnostics?.failedTargets || [])
       : [],
   };
 }
@@ -1143,14 +1247,33 @@ export function strictV3TargetedRepairPolicy(evidence = {}, options = {}) {
     };
   });
   return {
-    version: 5,
+    version: 6,
     strategy,
     classifications,
     targetCodes: strategy.targetCodes,
     targetDomains: strategy.targetDomains,
+    wardrobeTargets: strategy.wardrobeTargets,
+    wardrobeDiagnostics: structuredClone(evidence?.wardrobeDiagnostics || {
+      version: 1,
+      observations: [],
+      failedTargets: [],
+      targetingComplete: false,
+    }),
     automaticRepair: strategy.mode === "targeted_repair",
     verificationCodes: [...new Set([...strategy.targetCodes, ...VISUAL_REPAIR_GUARDRAIL_CODES])],
   };
+}
+
+export function strictV3WardrobeRepairDirective(repairPolicy = null) {
+  const targets = (Array.isArray(repairPolicy?.wardrobeTargets) ? repairPolicy.wardrobeTargets : [])
+    .map((entry) => ({
+      character_id: boundedDiagnosticId(entry?.characterId),
+      outfit_state_id: boundedDiagnosticId(entry?.outfitStateId),
+      wardrobe_authority_id: boundedDiagnosticId(entry?.wardrobeAuthorityId),
+    }))
+    .filter((entry) => entry.character_id && entry.outfit_state_id);
+  if (!targets.length) return "";
+  return `WARDROBE REPAIR TARGETS (canonical ids only): ${JSON.stringify(targets)}. Change the outfit only on these exact character ids. Copy the matching wardrobe authority when one is listed. Preserve every other person's outfit, identity, body, pose and position.`;
 }
 
 export async function inspectStrictV3IllustrationEvidence({
@@ -1161,7 +1284,11 @@ export async function inspectStrictV3IllustrationEvidence({
   technicalApproved = true,
   client = null,
 }) {
-  if (!technicalApproved) return normalizeStrictV3IllustrationEvidence({}, { technicalApproved: false });
+  const expectedWardrobeTargets = strictV3WardrobeDiagnosticTargets(sceneContract, referenceImages);
+  if (!technicalApproved) return normalizeStrictV3IllustrationEvidence({}, {
+    technicalApproved: false,
+    expectedWardrobeTargets,
+  });
   const candidate = await sharp(await fs.readFile(imagePath))
     .rotate()
     .resize(1280, 1280, { fit: "inside", withoutEnlargement: true })
@@ -1176,6 +1303,9 @@ export async function inspectStrictV3IllustrationEvidence({
     return {
       label: String(reference?.label || reference?.kind || "private reference").slice(0, 180),
       kind: String(reference?.kind || "reference"),
+      characterId: boundedDiagnosticId(reference?.characterId),
+      outfitStateId: boundedDiagnosticId(reference?.outfitStateId),
+      authorityId: boundedDiagnosticId(reference?.authorityId),
       buffer: await sharp(source).rotate().resize(720, 720, { fit: "inside", withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer(),
     };
   }))).filter(Boolean);
@@ -1210,8 +1340,17 @@ Use evidence_code=verified only with pass and insufficient_evidence only with un
 IMMUTABLE SCENE RENDER CONTRACT:
 ${JSON.stringify(sceneContract || {})}
 
+WARDROBE DIAGNOSTIC TARGETS:
+${JSON.stringify(expectedWardrobeTargets.map((entry) => ({
+    character_id: entry.characterId,
+    outfit_state_id: entry.outfitStateId,
+    wardrobe_authority_id: entry.wardrobeAuthorityId,
+  })))}
+
+For wardrobe_observations, return every listed target exactly once and copy its character_id and outfit_state_id verbatim. Use pass/verified/matches_expected_state only when that exact person's active outfit is clearly confirmed. Use fail/wardrobe_state_mismatch/categorically_different_state only when that exact person clearly wears another outfit state. Otherwise use uncertain/insufficient_evidence with observation_code occluded_or_ambiguous or reference_insufficient. Do not return names, descriptions or free prose.
+
 Return only JSON with all ten model-assessed keys (asset_integrity is deterministic and must be omitted):
-{"domains":{"identity_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|duplicated_required_identity|insufficient_evidence"},"forbidden_cast":{"status":"pass|fail|uncertain","evidence_code":"verified|forbidden_character_present|insufficient_evidence"},"wardrobe":{"status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence"},"equipment":{"status":"pass|fail|uncertain","evidence_code":"verified|equipment_state_mismatch|insufficient_evidence"},"physical_medium":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_physical_medium|insufficient_evidence"},"location_boundary":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_location_or_boundary|insufficient_evidence"},"main_action":{"status":"pass|fail|uncertain","evidence_code":"verified|main_action_mismatch|insufficient_evidence"},"object_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|object_state_mismatch|insufficient_evidence"},"landmarks":{"status":"pass|fail|uncertain","evidence_code":"verified|landmark_cardinality_mismatch|insufficient_evidence"},"style_continuity":{"status":"pass|fail|uncertain","evidence_code":"verified|style_continuity_mismatch|insufficient_evidence"}}}.` },
+{"domains":{"identity_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|duplicated_required_identity|insufficient_evidence"},"forbidden_cast":{"status":"pass|fail|uncertain","evidence_code":"verified|forbidden_character_present|insufficient_evidence"},"wardrobe":{"status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence"},"equipment":{"status":"pass|fail|uncertain","evidence_code":"verified|equipment_state_mismatch|insufficient_evidence"},"physical_medium":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_physical_medium|insufficient_evidence"},"location_boundary":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_location_or_boundary|insufficient_evidence"},"main_action":{"status":"pass|fail|uncertain","evidence_code":"verified|main_action_mismatch|insufficient_evidence"},"object_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|object_state_mismatch|insufficient_evidence"},"landmarks":{"status":"pass|fail|uncertain","evidence_code":"verified|landmark_cardinality_mismatch|insufficient_evidence"},"style_continuity":{"status":"pass|fail|uncertain","evidence_code":"verified|style_continuity_mismatch|insufficient_evidence"}},"wardrobe_observations":[{"character_id":"exact target id","outfit_state_id":"exact target state id","status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence","observation_code":"matches_expected_state|categorically_different_state|occluded_or_ambiguous|reference_insufficient"}]}.` },
       { type: "input_image", image_url: `data:image/jpeg;base64,${candidate.toString("base64")}`, detail: "high" },
       ...evidence.map((entry) => ({
         type: "input_image",
@@ -1219,10 +1358,14 @@ Return only JSON with all ten model-assessed keys (asset_integrity is determinis
         detail: ["identity", "wardrobe"].includes(entry.kind) ? "high" : "low",
       })),
     ] }],
-    max_output_tokens: 700,
+    max_output_tokens: 1100,
   });
   const result = parseJson(extractText(response));
-  return normalizeStrictV3IllustrationEvidence(result?.domains || {}, { technicalApproved: true });
+  return normalizeStrictV3IllustrationEvidence(result?.domains || {}, {
+    technicalApproved: true,
+    rawWardrobeObservations: result?.wardrobe_observations || [],
+    expectedWardrobeTargets,
+  });
 }
 
 export async function generateQualityCheckedImage({
@@ -1273,13 +1416,14 @@ export async function generateQualityCheckedImage({
       referencePolicyStage: visualReferencePolicyStage,
       referenceKinds: visualReferencePolicyKinds(generationOptions.referenceImages, visualReferencePolicyStage),
     });
+    const wardrobeRepairDirective = strictV3WardrobeRepairDirective(lastRepairPolicy);
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
         : previousRejectionKind === "identity"
           ? `\n\nIDENTITY FIDELITY REGENERATION: the previous output replaced or altered the referenced subject because ${previousIssues.join("; ")}. Treat the identity reference as authoritative. Preserve natural face geometry, eye shape and spacing, nose, mouth, ears, hair shape and distinctive visible details. Change the medium and scene, never the person's identity.`
         : previousRejectionKind === "scene"
-          ? `\n\nSCENE FIDELITY REGENERATION: the previous output contradicted the authoritative scene contract because ${previousIssues.join("; ")}. Correct exactly who performs the main action and toward whom, keep generic people distinct from recurring named characters, obey every visible person's declared wardrobe state, the required quantity, physical scale, spatial relationships and forbidden substitutions, and preserve each fixed landmark as one instance only at its canonical home or beyond the explicitly bounded passage.`
+          ? `\n\nSCENE FIDELITY REGENERATION: the previous output contradicted the authoritative scene contract because ${previousIssues.join("; ")}. Correct exactly who performs the main action and toward whom, keep generic people distinct from recurring named characters, obey every visible person's declared wardrobe state, the required quantity, physical scale, spatial relationships and forbidden substitutions, and preserve each fixed landmark as one instance only at its canonical home or beyond the explicitly bounded passage.${wardrobeRepairDirective ? ` ${wardrobeRepairDirective}` : ""}`
           : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
       : "";
     try {
@@ -1566,6 +1710,7 @@ export async function generateQualityCheckedImage({
           ? strictV3Evidence?.issueCodes || []
           : disposition.issueCodes,
         retryStrategy: strictRetryPolicy?.strategy || null,
+        wardrobeDiagnostics: strictV3Evidence?.wardrobeDiagnostics || null,
         referencePolicyStage: visualReferencePolicyStage,
       });
       if (quarantineImmediately) {
