@@ -6,9 +6,30 @@ import {
   mergeGenerationCheckpoint,
   PREVIEW_RETRY_POLICY_VERSION,
   previewRequestFingerprint,
+  previewRequestFingerprintCandidates,
   technicalPreviewRetryAvailable,
   technicalPreviewRetryExhausted,
 } from "../src/services/previewGenerationCheckpoint.js";
+
+test("an additive empty participant authority preserves the pre-V23 resume fingerprint", () => {
+  const legacy = {
+    answers: { age: "8", hero_name: "Mathéo", universe_id: "coral_ocean" },
+    photos: [{ id: "1", storageKey: "reference-photos/1.jpg", role: "child" }],
+  };
+  const current = {
+    ...legacy,
+    answers: { ...legacy.answers, story_seed_participant_refs: "" },
+  };
+  const candidates = previewRequestFingerprintCandidates(current);
+  assert.equal(candidates[0], previewRequestFingerprint(current));
+  assert.ok(candidates.includes(previewRequestFingerprint(legacy)));
+
+  const changed = {
+    ...current,
+    answers: { ...current.answers, story_seed_participant_refs: '["hero","sibling"]' },
+  };
+  assert.deepEqual(previewRequestFingerprintCandidates(changed), [previewRequestFingerprint(changed)]);
+});
 
 test("preview checkpoint fingerprints are stable and retain unrelated continuity data", () => {
   const left = { answers: { age: "5", hero_name: "Noa" }, photos: [{ id: "1", storageKey: "reference-photos/1.jpg", role: "child" }] };

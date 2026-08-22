@@ -50,6 +50,7 @@ import {
   mergeGenerationCheckpoint,
   PREVIEW_RETRY_POLICY_VERSION,
   previewRequestFingerprint,
+  previewRequestFingerprintCandidates,
   technicalPreviewRetryAvailable,
 } from "../services/previewGenerationCheckpoint.js";
 import {
@@ -539,8 +540,8 @@ router.post("/preview", async (req, res) => {
 
   const referenceRecovery = project.continuitySnapshot?.referenceRecovery;
   const isTechnicalReferenceRecovery = referenceRecovery?.available === true;
-  const fingerprint = previewRequestFingerprint(normalized);
-  const approvedScenario = approvedStoryScenario(project, fingerprint);
+  const fingerprintCandidates = previewRequestFingerprintCandidates(normalized);
+  const approvedScenario = approvedStoryScenario(project, fingerprintCandidates);
   if (storyScenarioRequired(project) && !approvedScenario) {
     return res.status(409).json({
       error: "Approve the story scenario before generating the book",
@@ -556,6 +557,11 @@ router.post("/preview", async (req, res) => {
       code: error?.code || "narrative_book_spec_invalid",
     });
   }
+  // Once a scenario is approved its fingerprint remains the immutable resume
+  // authority. The first candidate is used only for projects without the
+  // scenario workflow. This keeps legacy checkpoints reusable without making
+  // a changed non-empty answer compatible.
+  const fingerprint = approvedScenario?.fingerprint || fingerprintCandidates[0] || previewRequestFingerprint(normalized);
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
   const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
