@@ -1763,6 +1763,18 @@ router.post("/preview", async (req, res) => {
           wardrobeAuthorityPlan,
           checkpoint.wardrobeVisualAuthority,
         );
+        // Persist the exact active boundary before the first model-sheet call.
+        // A provider or QA failure must resume here rather than be reported as
+        // if text authority were still running.
+        await persistCheckpoint({
+          phase: "wardrobe-visual-authority",
+          wardrobeVisualAuthority: {
+            version: WARDROBE_VISUAL_AUTHORITY_VERSION,
+            policyVersion: WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
+            planDigest: wardrobeAuthorityPlan.validation.artifactDigest,
+            assets: [...wardrobeAuthorityAssets.values()],
+          },
+        });
         for (const authority of wardrobeAuthorityPlan.authorities) {
           if (wardrobeAuthorityAssets.has(authority.authorityId)) continue;
           const source = authoritySceneInputs.find((entry) => (
@@ -1835,9 +1847,15 @@ router.post("/preview", async (req, res) => {
               storageKey: persisted.storageKey,
               previewUrl: persisted.previewUrl,
               sha256: persisted.sha256,
+              advisoryIssueCodes: evidence.advisoryIssueCodes || [],
             };
             wardrobeAuthorityAssets.set(authority.authorityId, acceptedAsset);
-            reportAttempt({ phase: "approved", attempt, maximumAttempts: 2 });
+            reportAttempt({
+              phase: "approved",
+              attempt,
+              maximumAttempts: 2,
+              ...(evidence.advisoryIssueCodes?.length ? { issues: evidence.advisoryIssueCodes } : {}),
+            });
             await persistCheckpoint({
               phase: "wardrobe-visual-authority",
               wardrobeVisualAuthority: {
@@ -1850,7 +1868,7 @@ router.post("/preview", async (req, res) => {
             break;
           }
           if (!acceptedAsset) {
-            const authorityError = new Error("The private wardrobe model sheet did not pass its bounded identity, outfit and style verification.");
+            const authorityError = new Error("The private wardrobe model sheet did not pass its bounded identity, cardinality and outfit verification.");
             authorityError.code = "wardrobe_visual_authority_incomplete";
             authorityError.artifactType = "wardrobe_visual_authority_v1";
             authorityError.issues = lastIssueCodes.map((code) => ({ path: `/authorities/${authority.authorityId}`, message: code }));
