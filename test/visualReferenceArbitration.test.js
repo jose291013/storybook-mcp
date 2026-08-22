@@ -64,7 +64,7 @@ test("wardrobe rejection changes pixel authorities monotonically across V19 atte
   );
 });
 
-test("canonical combined wardrobe sheets replace raw human photos during generation", () => {
+test("only identity-bearing ordinary wardrobe authorities suppress duplicate raw photos", () => {
   const references = [
     { kind: "continuity" },
     { kind: "wardrobe", characterId: "hero", authorityId: "wardrobe_hero_ordinary" },

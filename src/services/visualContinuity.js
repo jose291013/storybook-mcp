@@ -80,9 +80,9 @@ export function buildSceneContinuity({
   const wardrobeContracts = [];
   const identityReferenceImages = [];
   const ordinaryWardrobeReferenceImages = [];
-  const canonicalWardrobeKeys = new Set((Array.isArray(wardrobeAuthorityReferences)
+  const canonicalWardrobeKeys = new Map((Array.isArray(wardrobeAuthorityReferences)
     ? wardrobeAuthorityReferences
-    : []).map((reference) => `${reference.characterId}:${reference.outfitStateId}`));
+    : []).map((reference) => [`${reference.characterId}:${reference.outfitStateId}`, reference]));
   const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
   const ordinaryOutfits = new Map();
   for (const character of selected) {
@@ -157,7 +157,7 @@ export function buildSceneContinuity({
       const privateAsset = referenceAssets.get(String(photoCanon.photoId));
       const privateSource = {
         ...(privateAsset?.buffer
-          ? { buffer: privateAsset.buffer }
+          ? { buffer: privateAsset.buffer, ...(privateAsset.storageKey ? { storageKey: privateAsset.storageKey } : {}) }
           : photoCanon.storageKey
             ? { storageKey: photoCanon.storageKey }
             : { path: uploadedPhotoPath(photoCanon.photoId) }),
@@ -168,7 +168,7 @@ export function buildSceneContinuity({
         kind: "identity",
         characterId: strictCharacterState?.character_id || "",
         generationEligible: !strictCharacterState
-          || !canonicalWardrobeKeys.has(`${strictCharacterState.character_id}:${strictCharacterState.outfit.state_id}`),
+          || canonicalWardrobeKeys.get(`${strictCharacterState.character_id}:${strictCharacterState.outfit.state_id}`)?.identityBearing !== true,
         normalizationMode: continuityImagePath || continuityImageStorageKey ? "face_focus" : "full_and_face",
       });
       if (strictCharacterState?.outfit?.source === "private_identity_binding"

@@ -8,6 +8,7 @@ import {
   acceptedWardrobeAuthorityAssets,
   assertWardrobeVisualAuthorityCoverage,
   compileWardrobeVisualAuthorityPlan,
+  directWardrobeAuthorityAsset,
   inspectWardrobeVisualAuthority,
   wardrobeAuthorityPrompt,
   wardrobeRepairReferencePlan,
@@ -15,6 +16,8 @@ import {
   wardrobeVisualReferencesFromCheckpoint,
   WARDROBE_VISUAL_AUTHORITY_VERSION,
   WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
+  WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT,
+  WARDROBE_AUTHORITY_MODE_GARMENT_ONLY,
 } from "../src/services/wardrobeVisualAuthorityV1.js";
 
 async function createTinyPng(filePath, background) {
@@ -42,7 +45,7 @@ function contract({ scene = 4, page = 7, outfit = "reef_explorer", description =
   };
 }
 
-test("V1 compiles one stable generated authority for every ordinary and adventure outfit interval", () => {
+test("V1 compiles direct identity clothing and garment-only adventure authorities", () => {
   const plan = compileWardrobeVisualAuthorityPlan([
     contract(),
     contract({ scene: 5, page: 8 }),
@@ -56,10 +59,15 @@ test("V1 compiles one stable generated authority for every ordinary and adventur
   assert.deepEqual(adventure.imagePageNumbers, [7, 8]);
   assert.deepEqual(ordinary.sceneNumbers, [15]);
   assert.deepEqual(ordinary.imagePageNumbers, [31]);
-  assert.match(wardrobeAuthorityPrompt(adventure), /exactly one complete full-body child_1/i);
+  assert.equal(adventure.authorityMode, WARDROBE_AUTHORITY_MODE_GARMENT_ONLY);
+  assert.equal(ordinary.authorityMode, WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT);
+  assert.match(wardrobeAuthorityPrompt(adventure), /anonymous headless mannequin/i);
+  assert.match(wardrobeAuthorityPrompt(adventure), /no person, face/i);
   assert.match(wardrobeAuthorityPrompt(adventure), /turquoise reef explorer suit/i);
-  assert.match(wardrobeAuthorityPrompt(ordinary), /copy the broad garment types/i);
-  assert.match(wardrobeAuthorityPrompt(ordinary), /Do not replace it with adventure clothing/i);
+  assert.throws(
+    () => wardrobeAuthorityPrompt(ordinary),
+    (error) => error.code === "wardrobe_visual_authority_direct_source",
+  );
 });
 
 test("an accepted checkpoint is reusable only for the exact sealed wardrobe plan", () => {
@@ -98,7 +106,7 @@ test("post-preview repair paths reuse the same accepted authority checkpoint", (
   assert.equal(wardrobeVisualReferencesFromCheckpoint(contract(), { ...checkpoint, policyVersion: 0 }).length, 0);
 });
 
-test("policy two reuses exact accepted adventure sheets from policy one and fills ordinary outfits", () => {
+test("policy three rejects face-bearing authorities from older policies", () => {
   const plan = compileWardrobeVisualAuthorityPlan([
     contract(),
     contract({ scene: 15, page: 31, outfit: "ordinary_outfit", description: "blue shirt and dark trousers" }),
@@ -111,8 +119,20 @@ test("policy two reuses exact accepted adventure sheets from policy one and fill
     assets: [{ ...adventure, status: "accepted", storageKey: "private/adventure.png" }],
   };
   const accepted = acceptedWardrobeAuthorityAssets(plan, legacy);
-  assert.equal(accepted.size, 1);
-  assert.equal(accepted.get(adventure.authorityId).storageKey, "private/adventure.png");
+  assert.equal(accepted.size, 0);
+});
+
+test("an ordinary outfit is sealed directly from the durable private identity photo", () => {
+  const plan = compileWardrobeVisualAuthorityPlan([
+    contract({ scene: 15, page: 31, outfit: "ordinary_outfit", description: "blue shirt and dark trousers" }),
+  ]);
+  const authority = plan.authorities[0];
+  const asset = directWardrobeAuthorityAsset(authority, {
+    storageKey: "reference-photos/hero.jpg",
+  });
+  assert.equal(asset.storageKey, "reference-photos/hero.jpg");
+  assert.equal(asset.identityBearing, true);
+  assert.equal(asset.directSource, true);
 });
 
 test("a scene receives only the exact active outfit authority for each character", () => {
@@ -123,6 +143,8 @@ test("a scene receives only the exact active outfit authority for each character
       characterId: "character_hero",
       stateId: "reef_explorer",
       storageKey: "private/active.png",
+      authorityMode: WARDROBE_AUTHORITY_MODE_GARMENT_ONLY,
+      identityBearing: false,
     }],
     ["obsolete", {
       authorityId: "obsolete",
@@ -138,6 +160,7 @@ test("a scene receives only the exact active outfit authority for each character
   assert.equal(references[0].authorityId, "active");
   assert.equal(references[0].characterId, "character_hero");
   assert.equal(references[0].outfitStateId, "reef_explorer");
+  assert.equal(references[0].identityBearing, false);
 });
 
 test("one failed outfit is edited with only its source, continuity anchor and exact wardrobe authority", () => {
@@ -153,7 +176,7 @@ test("one failed outfit is edited with only its source, continuity anchor and ex
     repairSource: { kind: "repair_source", path: "candidate.png" },
     sceneReferences: [
       { kind: "continuity", storageKey: "cover.png" },
-      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png" },
+      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png", identityBearing: true },
       { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png" },
       { kind: "adjacent_scene", storageKey: "previous.png" },
       { kind: "identity", characterId: "character_hero", storageKey: "raw-hero.png" },
@@ -163,6 +186,27 @@ test("one failed outfit is edited with only its source, continuity anchor and ex
   assert.equal(plan.mode, "targeted_edit");
   assert.deepEqual(plan.references.map((reference) => reference.kind), ["repair_source", "continuity", "wardrobe"]);
   assert.equal(plan.references.at(-1).authorityId, "wardrobe_hero_ordinary");
+});
+
+test("one failed adventure outfit retains its separate identity reference", () => {
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: {
+      targetDomains: ["wardrobe"],
+      wardrobeTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "reef_explorer",
+        wardrobeAuthorityId: "wardrobe_hero_reef",
+      }],
+    },
+    repairSource: { kind: "repair_source", path: "candidate.png" },
+    sceneReferences: [
+      { kind: "continuity", storageKey: "cover.png" },
+      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "reef_explorer", authorityId: "wardrobe_hero_reef", storageKey: "reef-garment.png", identityBearing: false },
+      { kind: "identity", characterId: "character_hero", storageKey: "reference-photos/hero.jpg" },
+    ],
+  });
+  assert.equal(plan.complete, true);
+  assert.deepEqual(plan.references.map((reference) => reference.kind), ["repair_source", "continuity", "wardrobe", "identity"]);
 });
 
 test("several failed outfits recompose the scene from canonical sheets without defective or adjacent pixels", () => {
@@ -177,8 +221,8 @@ test("several failed outfits recompose the scene from canonical sheets without d
     repairSource: { kind: "repair_source", path: "candidate.png" },
     sceneReferences: [
       { kind: "continuity", storageKey: "cover.png" },
-      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png" },
-      { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png" },
+      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png", identityBearing: true },
+      { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png", identityBearing: true },
       { kind: "adjacent_scene", storageKey: "previous.png" },
       { kind: "identity", characterId: "character_hero", storageKey: "raw-hero.png" },
       { kind: "identity", characterId: "character_dog", storageKey: "dog.png" },
@@ -218,27 +262,24 @@ test("conflicting descriptions for one canonical outfit fail before image spend"
   );
 });
 
-test("model-sheet style is advisory while identity cardinality and wardrobe stay blocking", async (t) => {
+test("garment-sheet style is advisory while mannequin cardinality and wardrobe stay blocking", async (t) => {
   const folder = await fs.mkdtemp(path.join(os.tmpdir(), "wardrobe-authority-"));
   t.after(() => fs.rm(folder, { recursive: true, force: true }));
   const imagePath = path.join(folder, "candidate.png");
-  const identityPath = path.join(folder, "identity.png");
   const stylePath = path.join(folder, "style.png");
   await Promise.all([
     createTinyPng(imagePath, "#4a90e2"),
-    createTinyPng(identityPath, "#d7a77b"),
     createTinyPng(stylePath, "#f4eadc"),
   ]);
   const entry = compileWardrobeVisualAuthorityPlan([contract()]).authorities[0];
   const references = {
     imagePath,
     entry,
-    identityReference: { path: identityPath },
     styleReference: { path: stylePath },
   };
   const advisory = await inspectWardrobeVisualAuthority({
     ...references,
-    client: qaClient({ identity: "pass", cardinality: "pass", wardrobe: "pass", style: "fail" }),
+    client: qaClient({ garment_only: "pass", cardinality: "pass", wardrobe: "pass", style: "fail" }),
   });
   assert.equal(advisory.approved, true);
   assert.deepEqual(advisory.issueCodes, []);
@@ -246,9 +287,9 @@ test("model-sheet style is advisory while identity cardinality and wardrobe stay
 
   const blocked = await inspectWardrobeVisualAuthority({
     ...references,
-    client: qaClient({ identity: "fail", cardinality: "pass", wardrobe: "pass", style: "pass" }),
+    client: qaClient({ garment_only: "fail", cardinality: "pass", wardrobe: "pass", style: "pass" }),
   });
   assert.equal(blocked.approved, false);
-  assert.deepEqual(blocked.issueCodes, ["wardrobe_authority_identity_failed"]);
+  assert.deepEqual(blocked.issueCodes, ["wardrobe_authority_garment_only_failed"]);
   assert.deepEqual(blocked.advisoryIssueCodes, []);
 });
