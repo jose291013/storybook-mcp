@@ -1679,6 +1679,31 @@ database migration, environment variable, commerce or credit change,
 private-asset exposure, final-page acceptance relaxation or series-canon
 mutation. Repository verification: 769/769 complete tests pass.
 
+## Product brick: V24.2 nominative wardrobe evidence
+
+Wardrobe evidence at final illustration QA is now attributed to canonical
+people instead of ending at one book-wide status. For every required human the
+same QA response must copy the canonical character id and active outfit-state
+id and return only a bounded pass, fail or uncertain observation. The runtime
+binds that observation to the exact private wardrobe-authority id already
+selected for the scene. It persists and logs only ids and enum evidence; names,
+garment prose, image content and free-form model reasoning are excluded.
+
+The aggregate eleven-domain gate remains fail-closed. A confirmed per-person
+wardrobe contradiction can tighten its wardrobe domain, while missing
+diagnostic detail cannot relax any result. A targeted wardrobe edit is allowed
+only when wardrobe is the sole confirmed failed domain, every required human
+has determinate evidence and one or more exact character/outfit targets are
+identified. The edit prompt changes only those target ids and preserves every
+other person. Without complete attribution the page remains private instead of
+spending a blind edit.
+
+Retry policy 27 grants one compatibility resume to V26 quarantines and reuses
+all accepted pages. This brick adds no model call, database migration,
+environment variable, commerce or credit rule, customer-data exposure,
+acceptance relaxation or series-canon mutation. Repository verification:
+81/81 focused tests and 774/774 complete tests pass.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

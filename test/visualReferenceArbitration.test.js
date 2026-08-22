@@ -65,7 +65,22 @@ test("wardrobe rejection changes pixel authorities monotonically across V19 atte
 });
 
 test("V19 spends a distinct reference attempt before using targeted wardrobe editing", () => {
-  const evidence = { approved: false, failedDomains: ["wardrobe"], uncertainDomains: [] };
+  const evidence = {
+    approved: false,
+    failedDomains: ["wardrobe"],
+    uncertainDomains: [],
+    wardrobeDiagnostics: {
+      targetingComplete: true,
+      failedTargets: [{
+        characterId: "hero",
+        outfitStateId: "reef_explorer",
+        wardrobeAuthorityId: "wardrobe_hero",
+        status: "fail",
+        evidenceCode: "wardrobe_state_mismatch",
+        observationCode: "categorically_different_state",
+      }],
+    },
+  };
   const regenerate = strictV3IllustrationRetryStrategy(evidence, {
     attempt: 1,
     maximumAttempts: 3,

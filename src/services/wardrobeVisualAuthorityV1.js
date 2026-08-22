@@ -203,6 +203,8 @@ export function wardrobeVisualReferencesForScene(sceneRenderContract, assets) {
       kind: "wardrobe",
       label: `${character.name}: LOCKED WARDROBE AUTHORITY for ${character.outfit.state_id}; copy this exact garment design, colors, material and footwear for this person in the current scene`,
       authorityId: authority.authorityId,
+      characterId: text(character.character_id),
+      outfitStateId: text(character.outfit.state_id),
     }];
   });
 }
