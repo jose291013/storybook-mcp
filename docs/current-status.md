@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v24-2-wardrobe-attribution-evidence`
-- Main checkpoint: PR #270 (V24.1 wardrobe-authority acceptance boundary; merge commit `4b9a4bc`)
-- Candidate: V24.2 nominative wardrobe evidence
+- Current branch: `main`
+- Main checkpoint: PR #271 (V24.2 nominative wardrobe evidence)
+- Candidate: none; production verification after the Render deployment is next
 - Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` generated and accepted every resumed page except page 28. Four distinct attempts converged to the same generic `wardrobe_state_mismatch`, but the final V3 evidence did not identify the affected canonical character or outfit authority. V24.2 keeps the eleven-domain delivery decision strict, adds bounded per-character wardrobe evidence, permits a local edit only when every required human is resolved and at least one exact target fails, and grants one retry-policy-27 resume
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #269 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #271 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
