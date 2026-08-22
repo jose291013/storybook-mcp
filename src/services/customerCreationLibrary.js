@@ -4,6 +4,7 @@ import {
   technicalPreviewRetryAvailable,
   technicalPreviewRetryExhausted,
 } from "./previewGenerationCheckpoint.js";
+import { publicPreviewFailureReason } from "./providerBillingError.js";
 
 const LIBRARY_STATUSES = new Set([
   "scenario_generating",
@@ -49,6 +50,7 @@ export function customerCreationSummary(project, {
     deletable: !paidPurchase,
     technicalRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalRetryExhausted: technicalPreviewRetryExhausted(project),
+    previewFailureReason: publicPreviewFailureReason(project),
     narrationStatus,
     narrationReady: activeNarration?.paymentStatus === "paid"
       && activeNarration?.fulfillmentStatus === "ready",

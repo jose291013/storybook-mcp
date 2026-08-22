@@ -30,6 +30,7 @@ import {
   technicalStoryScenarioRetryExhausted,
 } from "../services/storyScenarioRetry.js";
 import { createNarrativeEngineAssignment } from "../services/narrativeEngineAssignment.js";
+import { publicPreviewFailureReason } from "../services/providerBillingError.js";
 
 const router = express.Router();
 
@@ -119,6 +120,7 @@ function publicProject(project) {
     technicalReferenceRetryAvailable: technicalReferenceRetryAvailable(project),
     technicalPreviewRetryAvailable: technicalPreviewRetryAvailable(project),
     technicalPreviewRetryExhausted: technicalPreviewRetryExhausted(project),
+    previewFailureReason: publicPreviewFailureReason(project),
     technicalStoryScenarioRetryAvailable: technicalStoryScenarioRetryAvailable(project),
     technicalStoryScenarioRetryExhausted: technicalStoryScenarioRetryExhausted(project),
     bookLanguageStatus: bookLanguageStatus(project),

@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch after publication: `main`
-- Main checkpoint after publication: PR #266 (V23.1 publication checkpoint; merge commit `feb2f0f`)
-- Draft candidate: V23.2 durable blueprint QA and repair on `codex/v23-2-durable-blueprint-repair`
-- Current focused checkpoint: production reached `[preview] started` for project `06278fef-e7e9-4489-b95d-a2112bfedd97`, then two V22 runs timed out at `qa:repair` because that long provider call was not resumable. V23.2 makes initial QA, each blueprint repair and every verification QA a durable provider step. After publication and a Live Render deploy, the V22 project receives one V23 retry and must either resume the stored provider response or expose `preview_interrupted`, never a terminal `preview_generation_failed` for a transient timeout
+- Current branch: `codex/v23-3-provider-billing-recovery`
+- Main checkpoint: PR #267 (V23.2 durable blueprint QA and repair; merge commit `3f1079f`)
+- Candidate: V23.3 provider-billing recovery
+- Current focused checkpoint: V23.2 successfully resumed project `06278fef-e7e9-4489-b95d-a2112bfedd97`, completed manuscript preparation and reached the first cover call. OpenAI then refused the image request because the organization had no API credits. V23.3 classifies that provider-account condition separately from rate limiting and technical interruption, preserves a free idempotent resume at the cover boundary and exposes only a localized Calitiki service-unavailable message. Actual illustration generation still requires the OpenAI API balance to be restored
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #265 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #267 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -117,7 +117,7 @@ commerce change, private-asset exposure or series-canon mutation.
 Repository verification for this brick: 173/173 focused tests and 755/755
 complete repository tests pass.
 
-## Candidate product brick: V23.2 durable blueprint QA and repair
+## Product brick: V23.2 durable blueprint QA and repair
 
 The blueprint filler was already a durable Responses call, but the immediately
 following QA, full-blueprint repair and verification calls still used ordinary
@@ -140,6 +140,27 @@ lost to infrastructure timing.
 
 Repository verification for V23.2: 101/101 focused tests and 758/758 complete
 repository tests pass.
+
+## Candidate product brick: V23.3 provider-billing recovery
+
+OpenAI may report exhausted organization credit with HTTP 429 even though the
+condition is neither a transient rate limit nor a Calitiki generation defect.
+V23.3 introduces one bounded provider-billing classifier shared by SDK retry,
+blueprint interruption and preview delivery boundaries. It prevents futile SDK
+retries and publishes only `preview_provider_billing_unavailable`; the raw
+provider message and billing URL remain in private server logs.
+
+The failed preview releases any reservation, retains every completed V3
+artifact and stays freely retryable even when an earlier technical retry was
+already consumed. Retry policy 24 grants one migration resume to V23 projects
+that were previously recorded as a generic exhausted generation failure. The
+FR/ES/EN customer message explains that the project is saved and will resume at
+the cover when the service is restored. This does not inspect or replenish the
+provider account and cannot generate an image until API credit is available.
+
+There is no migration, environment variable, model call, commerce-rule change,
+private-asset exposure or series-canon mutation. Repository verification for
+V23.3: 762/762 complete tests pass.
 
 ## Product brick: V3 provider-safety page isolation
 

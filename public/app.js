@@ -2821,7 +2821,13 @@ async function pollJob(jobId) {
     elements.generationStep.textContent = friendlyStep(job.step);
     renderGenerationJourney(job.step);
     if (["done", "awaiting_visual_approval", "quality_review_required"].includes(job.status)) return job;
-    if (job.status === "failed") throw new TechnicalGenerationError(tr("generationFailed"));
+    if (job.status === "failed") {
+      const billingUnavailable = job.errorCode === "preview_provider_billing_unavailable";
+      throw new TechnicalGenerationError(
+        billingUnavailable ? tr("generationProviderBillingUnavailable") : tr("generationFailed"),
+        job.errorCode || "preview_generation_failed",
+      );
+    }
     await new Promise((resolve) => setTimeout(resolve, 2200));
   }
 }
@@ -3054,10 +3060,14 @@ async function showGenerationFailure(project = null, feedback = "") {
   elements.visualProofPanel.hidden = true;
   elements.generationFailurePanel.hidden = false;
   const exhausted = project?.technicalPreviewRetryExhausted === true;
+  const providerBillingUnavailable = project?.previewFailureReason === "preview_provider_billing_unavailable";
   elements.retryPreviewButton.hidden = exhausted;
+  if (!feedback && providerBillingUnavailable) feedback = tr("generationProviderBillingUnavailable");
   elements.generationFailureFeedback.textContent = feedback;
   elements.generationFailureFeedback.hidden = !feedback;
-  elements.generationFailureSupport.textContent = exhausted ? tr("generationFailureExhausted") : tr("generationFailureSupport");
+  elements.generationFailureSupport.textContent = providerBillingUnavailable
+    ? tr("generationProviderBillingSupport")
+    : exhausted ? tr("generationFailureExhausted") : tr("generationFailureSupport");
   elements.generationFailurePanel.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
