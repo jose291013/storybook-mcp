@@ -99,7 +99,8 @@ function kinds(references = []) {
 }
 
 export function referencesForVisualPolicy(referenceImages = [], stage = VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE) {
-  const references = (Array.isArray(referenceImages) ? referenceImages : []).filter(Boolean);
+  const references = (Array.isArray(referenceImages) ? referenceImages : [])
+    .filter((reference) => reference && reference.generationEligible !== false);
   if (stage === VISUAL_REFERENCE_POLICY_STAGES.ADJACENT_IDENTITY) {
     return references.filter((reference) => ["wardrobe", "adjacent_scene", "identity"].includes(reference?.kind));
   }

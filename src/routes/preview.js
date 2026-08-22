@@ -19,6 +19,7 @@ import {
   compileWardrobeVisualAuthorityPlan,
   inspectWardrobeVisualAuthority,
   wardrobeAuthorityPrompt,
+  wardrobeRepairReferencePlan,
   wardrobeVisualReferencesForScene,
   WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
   WARDROBE_VISUAL_AUTHORITY_VERSION,
@@ -1789,7 +1790,8 @@ router.post("/preview", async (req, res) => {
           const normalizedName = authority.characterName.toLowerCase();
           const identityReference = source?.continuity?.referenceImages?.find((reference) => (
             reference.kind === "identity"
-            && String(reference.label || "").toLowerCase().startsWith(`${normalizedName},`)
+            && (reference.characterId === authority.characterId
+              || String(reference.label || "").toLowerCase().startsWith(`${normalizedName},`))
           ));
           const styleReference = source?.continuity?.referenceImages?.find((reference) => reference.kind === "continuity");
           if (!identityReference || !styleReference) {
@@ -2191,17 +2193,31 @@ router.post("/preview", async (req, res) => {
             source: pendingPage.qualityKind || "scene",
           });
         const wardrobeRepairDirective = strictV3WardrobeRepairDirective(repairPolicy);
-        const repairReferences = [
-          ...(pendingPage.imageStorageKey ? [{
+        const repairSource = pendingPage.imageStorageKey ? {
             kind: "repair_source",
             storageKey: pendingPage.imageStorageKey,
             label: "preserved page candidate; edit only the classified defect",
-          }] : []),
-          ...(sceneContinuity.referenceImages || []),
-        ];
+          } : null;
+        const wardrobeReferencePlan = wardrobeRepairReferencePlan({
+          repairPolicy,
+          sceneReferences: sceneContinuity.referenceImages || [],
+          repairSource,
+        });
+        const repairReferences = wardrobeReferencePlan
+          ? wardrobeReferencePlan.references
+          : [
+              ...(repairSource ? [repairSource] : []),
+              ...(sceneContinuity.referenceImages || []),
+            ];
+        const wardrobeRecompose = wardrobeReferencePlan?.mode === "canonical_scene_recompose";
         try {
+          if (wardrobeReferencePlan && !wardrobeReferencePlan.complete) {
+            const error = new Error("The exact accepted wardrobe authority required for isolated repair is unavailable.");
+            error.code = "wardrobe_visual_authority_incomplete";
+            throw error;
+          }
           const repairedLocalImageUrl = await generateQualityCheckedImage({
-            prompt: `${visualPrompt}\n\nFINAL TARGETED IMAGE EDIT (policy V6): edit the preserved candidate instead of redesigning it. Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium pixel-for-pixel wherever possible. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical identity references override the defective preserved candidate for face, hair, species, coat and markings. Do not introduce any other narrative change.`,
+            prompt: `${visualPrompt}\n\n${wardrobeRecompose ? "CANONICAL WARDROBE SCENE RECOMPOSITION (policy V7): the preserved candidate had several incorrect people and is deliberately excluded. Recreate the same immutable scene from its contract and the complete canonical wardrobe sheets." : "FINAL TARGETED IMAGE EDIT (policy V7): edit the preserved candidate instead of redesigning it."} Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium wherever the selected repair mode permits. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical wardrobe sheets are the combined identity-and-outfit authority for every represented human. Do not introduce any other narrative change.`,
             safetyFallbackPrompt: sceneContractImagePrompt({
               contract: page.scene_contract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
@@ -2284,7 +2300,7 @@ router.post("/preview", async (req, res) => {
             pageNumber: page.page_number,
             issueCodes: repairPolicy.targetCodes,
             wardrobeTargets: repairPolicy.wardrobeTargets || [],
-            repairMode: "targeted_image_edit",
+            repairMode: wardrobeRecompose ? "canonical_wardrobe_recompose" : "targeted_image_edit",
           }));
         } catch (error) {
           const qualityError = error instanceof IllustrationQualityError;

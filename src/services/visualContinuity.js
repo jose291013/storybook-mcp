@@ -80,6 +80,9 @@ export function buildSceneContinuity({
   const wardrobeContracts = [];
   const identityReferenceImages = [];
   const ordinaryWardrobeReferenceImages = [];
+  const canonicalWardrobeKeys = new Set((Array.isArray(wardrobeAuthorityReferences)
+    ? wardrobeAuthorityReferences
+    : []).map((reference) => `${reference.characterId}:${reference.outfitStateId}`));
   const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
   const ordinaryOutfits = new Map();
   for (const character of selected) {
@@ -164,9 +167,12 @@ export function buildSceneContinuity({
         label: `${visualAlias}, ${role}: private identity-only reference; preserve stable face or animal traits faithfully, but never copy this photo's rendering medium, lighting, background or undeclared wardrobe`,
         kind: "identity",
         characterId: strictCharacterState?.character_id || "",
+        generationEligible: !strictCharacterState
+          || !canonicalWardrobeKeys.has(`${strictCharacterState.character_id}:${strictCharacterState.outfit.state_id}`),
         normalizationMode: continuityImagePath || continuityImageStorageKey ? "face_focus" : "full_and_face",
       });
-      if (strictCharacterState?.outfit?.source === "private_identity_binding") {
+      if (strictCharacterState?.outfit?.source === "private_identity_binding"
+        && !canonicalWardrobeKeys.has(`${strictCharacterState.character_id}:${strictCharacterState.outfit.state_id}`)) {
         ordinaryWardrobeReferenceImages.push({
           ...privateSource,
           label: `${visualAlias}: LOCKED WARDROBE AUTHORITY for ordinary_outfit; preserve the broad garment types, colors and footwear visible in this private source while removing logos`,
