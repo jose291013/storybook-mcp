@@ -43,6 +43,15 @@ router.post("/story-suggestions", async (req, res) => {
     : null;
   const locale = ["FR", "ES", "EN"].includes(body.locale) ? body.locale : "FR";
   const universe = findUniverse(String(body.universeId || ""));
+  const suppliedStoryCast = Array.isArray(body.storyCast) ? body.storyCast.slice(0, 8).map((entry) => ({
+    ref: String(entry?.ref || "").trim().slice(0, 160),
+    name: String(entry?.name || "").trim().slice(0, 120),
+    storyRole: String(entry?.storyRole || "").trim().toLowerCase().slice(0, 40),
+    relationship: String(entry?.relationship || "").trim().slice(0, 120),
+  })).filter((entry) => entry.ref && entry.name && ["hero", "guide", "ally", "companion", "supporter", "guest"].includes(entry.storyRole)) : [];
+  const storyCast = suppliedStoryCast.some((entry) => entry.ref === "hero")
+    ? suppliedStoryCast
+    : [{ ref: "hero", name: heroName, storyRole: "hero", relationship: "hero" }, ...suppliedStoryCast].slice(0, 8);
 
   if (!heroName || !age || !favoriteActivities || !personality || !creatorSituation || !selectedIntention?.id) {
     return res.status(400).json({ error: "Confirm the parent intention before requesting story suggestions" });
@@ -97,6 +106,7 @@ router.post("/story-suggestions", async (req, res) => {
       universeId: universe.id,
       universe: universe.name,
       universeStoryContract: universe.storyContract,
+      storyCast,
       sensitivityContract,
     });
     res.set("Cache-Control", "no-store");

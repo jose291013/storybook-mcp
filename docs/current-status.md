@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -230,6 +230,33 @@ no database migration, environment variable, commerce, credit, private-asset
 or series-canon change.
 
 Repository verification for V22: 45/45 focused tests and 750/750 complete tests
+pass.
+
+## Candidate product brick: V3 adventure participation authority V23
+
+Adventure suggestions now seal their promised participants with opaque
+participant references and display their names on the proposal card before the
+customer chooses it. The proposal contract requires the hero plus every cast
+member whose selected narrative role is `ally` or `companion`; an unknown or
+missing reference is rejected before scenario generation.
+
+For new books, the exact creator-selected narrative role is preserved when the
+CreationIntent cast is compiled instead of being replaced by the participant's
+photo relationship. NarrativeBrief builder version 2 unions the chosen
+proposal participants with its deterministic traveler set. That single set is
+then authoritative for passage participation, adventure presences, equipment
+and wardrobe. Builder version 1 artifacts remain readable and immutable, so
+the current approved scenario and every existing book are deliberately left
+unchanged.
+
+There is no migration, environment variable, commerce, credit, private-asset
+or series-canon change. The next production verification must use a newly
+created book whose family-photo participant is selected as the companion:
+their name must appear on the proposal card and they must cross and receive the
+adventure outfit with the hero. Do not restart Render while the current book is
+generating.
+
+Repository verification for V23: 23/23 focused tests and 753/753 complete tests
 pass.
 
 ## Current architecture decision: Narrative V3

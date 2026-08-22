@@ -1871,6 +1871,7 @@ const STORY_SEED_FIELD_IDS = [
   "story_seed_message",
   "story_seed_emotional_tone",
   "story_seed_transformation",
+  "story_seed_participant_refs",
 ];
 
 function intentionSelectionKey(intention, roundNumber = 1) {
@@ -2204,6 +2205,14 @@ function selectedStorySuggestion() {
   return state.storySuggestions.find((suggestion) => suggestion.id === selectedId) || null;
 }
 
+function storySuggestionParticipantNames(suggestion) {
+  const namesByRef = new Map(state.photos.map((photo) => [
+    photo.role === "child" ? "hero" : (photo.participantRef || photo.id || photo.storedRef?.participant_ref),
+    photo.name,
+  ]));
+  return (suggestion?.participant_refs || []).map((ref) => namesByRef.get(ref)).filter(Boolean);
+}
+
 function resetStorySuggestionChoice({ preserveAnswers = true } = {}) {
   state.storySuggestionMode = "";
   STORY_SEED_FIELD_IDS.forEach((id) => {
@@ -2246,6 +2255,7 @@ function chooseStorySuggestion(id) {
   document.querySelector("#story_seed_message").value = suggestion.message || "";
   document.querySelector("#story_seed_emotional_tone").value = suggestion.emotional_tone || "";
   document.querySelector("#story_seed_transformation").value = suggestion.transformation;
+  document.querySelector("#story_seed_participant_refs").value = JSON.stringify(suggestion.participant_refs || []);
   const dream = document.querySelector("#dream");
   const challenge = document.querySelector("#challenge");
   const message = document.querySelector("#message");
@@ -2336,6 +2346,7 @@ function renderStorySuggestions() {
         <div><dt>${escapeHtml(tr("suggestionChallenge"))}</dt><dd>${escapeHtml(suggestion.challenge)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionActiveRole"))}</dt><dd>${escapeHtml(suggestion.active_role)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionAdventure"))}</dt><dd>${escapeHtml(suggestion.adventure)}</dd></div>
+        <div><dt>${escapeHtml(tr("suggestionParticipants"))}</dt><dd>${escapeHtml(storySuggestionParticipantNames(suggestion).join(", "))}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionResolution"))}</dt><dd>${escapeHtml(suggestion.resolution)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionMessage"))}</dt><dd>${escapeHtml(suggestion.message)}</dd></div>
         <div><dt>${escapeHtml(tr("suggestionEmotionalTone"))}</dt><dd>${escapeHtml(suggestion.emotional_tone)}</dd></div>
@@ -2381,6 +2392,12 @@ async function requestStorySuggestions({ refresh = false } = {}) {
         sensitivityProfile: state.storySensitivityProfile,
         universeId: state.selectedUniverse,
         locale: state.locale,
+        storyCast: state.photos.map((photo) => ({
+          ref: photo.role === "child" ? "hero" : (photo.participantRef || photo.id || photo.storedRef?.participant_ref),
+          name: photo.name,
+          storyRole: photo.storyRole,
+          relationship: photo.relationship,
+        })),
       }),
     });
     const payload = await response.json();
@@ -2523,7 +2540,7 @@ function addPhotos(files) {
   [...files].filter((file) => file.type.startsWith("image/")).slice(0, remaining).forEach((file) => {
     const role = state.photos.some((photo) => photo.role === "child") ? "" : "child";
     const storyRole = role === "child" ? "hero" : "";
-    state.photos.push({ file, url: URL.createObjectURL(file), role, storyRole, name: "", relationship: "", outfitPreference: "auto_universe", outfitId: "" });
+    state.photos.push({ file, url: URL.createObjectURL(file), participantRef: crypto.randomUUID(), role, storyRole, name: "", relationship: "", outfitPreference: "auto_universe", outfitId: "" });
   });
   renderPhotos();
 }
@@ -2736,6 +2753,7 @@ async function uploadPhotos() {
     relationship: photo.relationship,
     outfit_preference: photo.outfitPreference || "auto_universe",
     outfit_id: photo.outfitId || "",
+    participant_ref: photo.role === "child" ? "hero" : (photo.participantRef || photo.storedRef?.participant_ref || photo.storedRef?.id),
   }));
   const fresh = state.photos.filter((photo) => photo.file);
   if (!fresh.length) return inherited;
@@ -2753,6 +2771,7 @@ async function uploadPhotos() {
     relationship: fresh[index].relationship,
     outfit_preference: fresh[index].outfitPreference || "auto_universe",
     outfit_id: fresh[index].outfitId || "",
+    participant_ref: fresh[index].role === "child" ? "hero" : fresh[index].participantRef,
   }))];
 }
 
@@ -3856,7 +3875,7 @@ function loadSeriesDraft(project) {
   renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts();
   state.photos.forEach((photo) => { if (photo.file) URL.revokeObjectURL(photo.url); });
   state.photos = (project.photoRefs || []).map((photo) => ({
-    file: null, storedRef: photo,
+    file: null, storedRef: photo, participantRef: photo.participant_ref || photo.id,
     url: `/api/projects/${encodeURIComponent(project.id)}/reference-photos/${encodeURIComponent(photo.id)}`,
     role: photo.role || "other", storyRole: photo.storyRole || photo.story_role || defaultStoryRole(photo.role),
     name: photo.name || "", relationship: photo.relationship || "",

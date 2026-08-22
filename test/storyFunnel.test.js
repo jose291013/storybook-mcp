@@ -35,6 +35,38 @@ test("story suggestions require all three distinct inspiration lanes", () => {
   assert.equal(normalizeStorySuggestions({ suggestions: complete.slice(0, 2) }).length, 2);
 });
 
+test("story suggestions seal the exact personalized adventure participants", () => {
+  const raw = { suggestions: ["teamwork", "discovery", "creation"].map((id) => ({
+    id,
+    title: id,
+    starting_point: "départ",
+    dream: "objectif",
+    challenge: "doute",
+    first_step: "premier pas",
+    effort: "essais progressifs",
+    active_role: "choix du héros",
+    reward: "réussite",
+    adventure: "aventure",
+    moment: "moment",
+    resolution: "résolution",
+    transformation: "transformation",
+    message: "message",
+    emotional_tone: "curiosité puis joie",
+    participant_refs: ["hero", "nolan-ref"],
+  })) };
+  const availableCast = [
+    { ref: "hero", storyRole: "hero" },
+    { ref: "nolan-ref", storyRole: "companion" },
+    { ref: "parent-ref", storyRole: "supporter" },
+  ];
+  const normalized = normalizeStorySuggestions(raw, { availableCast });
+  assert.equal(normalized.length, 3);
+  assert.ok(normalized.every((suggestion) => suggestion.participant_refs.join(",") === "hero,nolan-ref"));
+  const missingCompanion = structuredClone(raw);
+  missingCompanion.suggestions[0].participant_refs = ["hero"];
+  assert.equal(normalizeStorySuggestions(missingCompanion, { availableCast }).length, 2);
+});
+
 test("parent situation is normalized into exactly three intention approaches", () => {
   const complete = normalizeStoryIntentions({ intentions: [
     { id: "approach_3", title: "C", understanding: "u", desired_change: "d", protective_doubt: "p", first_step: "f", motivation: "m", reward: "r", message: "x" },

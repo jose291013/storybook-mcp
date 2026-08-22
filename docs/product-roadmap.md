@@ -1,6 +1,6 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 ## Narrative V3 structural replacement direction
 
@@ -1540,6 +1540,30 @@ approved scenario ancestor, accepted image, customer credit, commerce state,
 private asset or series canon is changed. There is no migration or new
 environment variable. Verification: 45/45 focused and 750/750 complete tests
 pass.
+
+## Product brick: V3 adventure participation authority V23
+
+The adventure proposal is now a real upstream participation contract rather
+than descriptive copy. Each generated proposal carries opaque participant
+references drawn from the prepared cast, and the customer sees the matching
+names before selection. The hero and every explicitly selected `ally` or
+`companion` must be present in that contract; stale, unknown or incomplete
+participant references fail before the scenario can be built.
+
+CreationIntent preserves the narrative role chosen in the questionnaire as the
+canonical story role. A family relationship therefore no longer silently
+turns a selected companion into a non-traveling family witness. NarrativeBrief
+builder version 2 makes the proposal's participant promise authoritative by
+unioning it with deterministic traveler inference. Passage topology, scene
+presences, adventure equipment and wardrobe consume that one traveler set.
+
+The behavior applies only to new artifacts. NarrativeBrief builder version 1
+remains schema-compatible and immutable, so no in-progress or purchased book
+is rewritten or migrated. There is no new environment variable, database
+migration, model call, commerce rule, credit effect, private-asset exposure or
+series-canon mutation.
+
+Verification: 23/23 focused tests and 753/753 complete repository tests pass.
 
 ## New environment variables
 
