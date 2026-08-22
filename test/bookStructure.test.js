@@ -1737,6 +1737,10 @@ test("preview repairs a rejected blueprint before spending image credits", async
   assert.match(source, /storyPlanProviderResponses/);
   assert.match(source, /backgroundStep:\s*`blueprint:v\$\{BLUEPRINT_CONTRACT_VERSION\}`/);
   assert.match(source, /backgroundExecution:\s*providerBackgroundExecution/);
+  assert.match(source, /backgroundStep:\s*`blueprint:qa:v\$\{BLUEPRINT_CONTRACT_VERSION\}:initial`/);
+  assert.match(source, /backgroundStep:\s*`blueprint:repair:v\$\{BLUEPRINT_CONTRACT_VERSION\}:attempt:\$\{repairAttempt\}`/);
+  assert.match(source, /backgroundStep:\s*`blueprint:qa:v\$\{BLUEPRINT_CONTRACT_VERSION\}:verify:\$\{repairAttempt\}`/);
+  assert.match(source, /error\?\.code === "preview_interrupted"/);
   assert.match(source, /story:scenario-fidelity-resume/);
   assert.match(source, /backgroundStep:\s*`planner:\$\{attempt\}`/);
   assert.match(source, /if \(!hasCurrentStoryScenePlan\)/);

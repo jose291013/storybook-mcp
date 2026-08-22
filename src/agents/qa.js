@@ -28,7 +28,10 @@ export function inspectPageStructure(finalBlueprint) {
   };
 }
 
-export async function qaAgent(final_blueprint) {
+export async function qaAgent(final_blueprint, {
+  backgroundExecution = null,
+  backgroundStep = "",
+} = {}) {
   const system = loadPrompt("qa.txt");
   const pageStructure = inspectPageStructure(final_blueprint);
 
@@ -37,6 +40,8 @@ export async function qaAgent(final_blueprint) {
     system,
     user: (input) =>
       `DETERMINISTIC_PAGE_STRUCTURE_JSON:\n${JSON.stringify(input.page_structure, null, 2)}\n\nFINAL_BLUEPRINT_JSON:\n${JSON.stringify(input.final_blueprint, null, 2)}\n\nReturn ONLY JSON as specified.`,
-    input: { final_blueprint, page_structure: pageStructure }
+    input: { final_blueprint, page_structure: pageStructure },
+    backgroundExecution,
+    backgroundStep,
   });
 }

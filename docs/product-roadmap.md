@@ -1587,6 +1587,29 @@ private-asset exposure or series-canon change.
 
 Verification: 173/173 focused tests and 755/755 complete repository tests pass.
 
+## Candidate product brick: V23.2 durable blueprint QA and repair
+
+Every model call between blueprint construction and final blueprint approval
+is now a durable, idempotent Responses step. Initial QA, repair attempts one
+through three and each verification QA use stable versioned checkpoint keys.
+If Render restarts or a provider response exceeds the local wait window, the
+next run retrieves that same response id; it does not repeat the whole
+blueprint request or silently consume a final customer retry.
+
+The generation checkpoint records only the repair attempt, lifecycle status
+and a bounded enum-like set of QA issue families. Transient provider errors at
+this boundary are classified as `preview_interrupted`, release the credit
+reservation and remain recoverable. Deterministic contract failures remain
+ordinary quality failures and cannot be mislabeled as infrastructure trouble.
+Retry policy version 23 opens one bounded migration resume for V22 projects
+that exhausted their retry at the former non-durable `qa:repair` boundary.
+
+This brick changes durability, not creative acceptance criteria. It introduces
+no database migration, environment variable, commerce change, private-asset
+exposure or series-canon mutation.
+
+Repository verification: 101/101 focused tests and 758/758 complete tests pass.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

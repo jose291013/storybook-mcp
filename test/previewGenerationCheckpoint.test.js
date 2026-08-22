@@ -306,8 +306,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the strict V3 scene-prose authority policy is version twenty-two", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 22);
+test("the durable blueprint QA policy is version twenty-three", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 23);
+});
+
+test("a book exhausted by non-durable blueprint QA under V22 receives one durable resume", () => {
+  const exhaustedBlueprintRepair = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v22-blueprint-repair-book",
+      retryPolicyVersion: 22,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-22T12:00:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "style",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(exhaustedBlueprintRepair), true);
+  assert.equal(technicalPreviewRetryExhausted(exhaustedBlueprintRepair), false);
 });
 
 test("a book exhausted under V21 receives one scene-cast authority resume", () => {

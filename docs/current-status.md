@@ -9,9 +9,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch after publication: `main`
-- Main checkpoint after publication: PR #265 (V23.1 backward-compatible preview resume; merge commit `51d6a16`)
-- Draft candidate: none
-- Current focused checkpoint: after V23.1 is merged and Render is Live, resume project `3b856585-f060-4d99-a606-c93e6bfdb690` once. The `POST /api/preview` request must no longer return `409 story_scenario_required`; logs must reach `[preview] started`, while the approved scenario and existing checkpoint remain unchanged
+- Main checkpoint after publication: PR #266 (V23.1 publication checkpoint; merge commit `feb2f0f`)
+- Draft candidate: V23.2 durable blueprint QA and repair on `codex/v23-2-durable-blueprint-repair`
+- Current focused checkpoint: production reached `[preview] started` for project `06278fef-e7e9-4489-b95d-a2112bfedd97`, then two V22 runs timed out at `qa:repair` because that long provider call was not resumable. V23.2 makes initial QA, each blueprint repair and every verification QA a durable provider step. After publication and a Live Render deploy, the V22 project receives one V23 retry and must either resume the stored provider response or expose `preview_interrupted`, never a terminal `preview_generation_failed` for a transient timeout
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -116,6 +116,30 @@ commerce change, private-asset exposure or series-canon mutation.
 
 Repository verification for this brick: 173/173 focused tests and 755/755
 complete repository tests pass.
+
+## Candidate product brick: V23.2 durable blueprint QA and repair
+
+The blueprint filler was already a durable Responses call, but the immediately
+following QA, full-blueprint repair and verification calls still used ordinary
+request timeouts. A provider delay therefore left the checkpoint at `style`,
+discarded the active repair and consumed the customer's bounded retry.
+
+V23.2 gives the initial QA, all three bounded repair candidates and their
+verification calls stable provider checkpoint keys. A retry resumes the same
+provider response id instead of starting the same expensive reasoning again.
+Only bounded QA issue families and repair status are persisted; no generated
+prose is copied into diagnostics. Transient provider failures become the
+recoverable `preview_interrupted` state, release any reservation and remain
+retryable even after an earlier technical retry. Retry policy 23 grants one
+recovery to V22 projects stopped by the non-durable `qa:repair` boundary.
+
+There is no migration, environment variable, commerce rule, private-asset
+exposure or series-canon mutation. The brick does not claim to improve story or
+image quality; it closes one durability boundary so the same valid work is not
+lost to infrastructure timing.
+
+Repository verification for V23.2: 101/101 focused tests and 758/758 complete
+repository tests pass.
 
 ## Product brick: V3 provider-safety page isolation
 
