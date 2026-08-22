@@ -151,10 +151,10 @@ test("the V3 image adapter uses the concrete render contract instead of photo wa
   assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
 });
 
-test("accepted combined wardrobe sheets suppress competing raw human pixels during generation", () => {
+test("split wardrobe authorities keep raw identity only for garment-only outfits", () => {
   const wardrobeAuthorities = [
-    { kind: "wardrobe", characterId: "character_hero", outfitStateId: "forest_explorer", authorityId: "wardrobe_hero_forest", storageKey: "private/hero-forest.png" },
-    { kind: "wardrobe", characterId: "character_brother", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_brother_ordinary", storageKey: "private/brother-ordinary.png" },
+    { kind: "wardrobe", characterId: "character_hero", outfitStateId: "forest_explorer", authorityId: "wardrobe_hero_forest", storageKey: "private/hero-forest.png", identityBearing: false },
+    { kind: "wardrobe", characterId: "character_brother", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_brother_ordinary", storageKey: "reference-photos/nolan.jpg", identityBearing: true },
   ];
   const continuity = buildSceneContinuity({
     blueprint: {
@@ -174,6 +174,8 @@ test("accepted combined wardrobe sheets suppress competing raw human pixels duri
     ["wardrobe_hero_forest", "wardrobe_brother_ordinary"],
   );
   assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
-  assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").every((reference) => reference.generationEligible === false), true);
+  const identities = continuity.referenceImages.filter((reference) => reference.kind === "identity");
+  assert.equal(identities.find((reference) => reference.characterId === "character_hero").generationEligible, true);
+  assert.equal(identities.find((reference) => reference.characterId === "character_brother").generationEligible, false);
   assert.equal(continuity.referenceImages.some((reference) => String(reference.authorityId || "").startsWith("private_identity_binding:")), false);
 });

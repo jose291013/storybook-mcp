@@ -6,7 +6,9 @@ import { storageBodyToBuffer } from "./previewAssetStorage.js";
 import { canonicalDigest } from "../contracts/narrativeV3Canonical.js";
 
 export const WARDROBE_VISUAL_AUTHORITY_VERSION = 1;
-export const WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION = 2;
+export const WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION = 3;
+export const WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT = "direct_identity_outfit";
+export const WARDROBE_AUTHORITY_MODE_GARMENT_ONLY = "garment_only_sheet";
 
 function text(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -46,11 +48,20 @@ export function compileWardrobeVisualAuthorityPlan(sceneRenderContracts = []) {
         stateId,
         description,
         source: text(character?.outfit?.source),
+        authorityMode: text(character?.outfit?.source) === "private_identity_binding"
+          ? WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT
+          : WARDROBE_AUTHORITY_MODE_GARMENT_ONLY,
         sceneNumbers: [],
         imagePageNumbers: [],
       };
       if (existing.description !== description) {
         fail("wardrobe_visual_authority_description_conflict", `Outfit ${stateId} has two visual descriptions.`);
+      }
+      const authorityMode = text(character?.outfit?.source) === "private_identity_binding"
+        ? WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT
+        : WARDROBE_AUTHORITY_MODE_GARMENT_ONLY;
+      if (existing.authorityMode !== authorityMode) {
+        fail("wardrobe_visual_authority_source_conflict", `Outfit ${stateId} has two incompatible authority sources.`);
       }
       existing.sceneNumbers.push(Number(contract.source?.scene_number || 0));
       existing.imagePageNumbers.push(Number(contract.source?.image_page_number || 0));
@@ -79,19 +90,10 @@ export function acceptedWardrobeAuthorityAssets(plan, checkpoint = null) {
     && checkpoint.planDigest === plan?.validation?.artifactDigest) {
     return checkpointWardrobeAuthorityAssets(checkpoint);
   }
-  // Policy 1 omitted ordinary outfits but its accepted adventure sheets are
-  // still valid when every immutable authority field matches the new plan.
-  // Reuse only those exact assets; missing ordinary sheets are generated now.
-  if (checkpoint.policyVersion !== 1) return new Map();
-  const planned = new Map((plan?.authorities || []).map((entry) => [entry.authorityId, entry]));
-  return new Map((checkpoint.assets || []).flatMap((asset) => {
-    const entry = planned.get(text(asset?.authorityId));
-    if (!entry || asset?.status !== "accepted" || !asset?.storageKey
-      || text(asset.characterId) !== entry.characterId
-      || text(asset.stateId) !== entry.stateId
-      || text(asset.description) !== entry.description) return [];
-    return [[entry.authorityId, structuredClone(asset)]];
-  }));
+  // Older policies generated a face-and-clothes composite. Those pixels are
+  // deliberately incompatible with this split authority contract and must
+  // never become the identity source of a resumed book.
+  return new Map();
 }
 
 export function checkpointWardrobeAuthorityAssets(checkpoint = null) {
@@ -116,16 +118,43 @@ export function assertWardrobeVisualAuthorityCoverage(plan, assets) {
 }
 
 export function wardrobeAuthorityPrompt(entry) {
-  const sourceRule = entry.source === "private_identity_binding"
-    ? "ORDINARY OUTFIT SOURCE: copy the broad garment types, dominant colors, layering and footwear visible in the supplied private identity reference, while removing logos and unreadable text. Do not replace it with adventure clothing."
-    : "ADVENTURE OUTFIT SOURCE: follow the exact canonical outfit description below; the private photo supplies identity only and must not override this outfit.";
-  return `Create one private wardrobe model sheet for a personalized children's-book character.
-Show exactly one complete full-body ${entry.characterName} standing in a neutral relaxed pose against a plain warm off-white studio background.
-The face and body identity must match the supplied IDENTITY ONLY reference.
+  if (entry.authorityMode !== WARDROBE_AUTHORITY_MODE_GARMENT_ONLY) {
+    fail("wardrobe_visual_authority_direct_source", "An ordinary outfit must use its private identity source directly.");
+  }
+  return `Create one private GARMENT-ONLY model sheet for a personalized children's book.
+Show exactly one complete outfit on one anonymous headless mannequin against a plain warm off-white studio background.
+There must be no person, face, head, hair, skin, hands, named character or identity resemblance. The mannequin is only a neutral support for the clothing.
 The rendering family, artistic medium, proportions and surface treatment must match the PRIMARY APPROVED STYLE ANCHOR.
-${sourceRule}
 EXACT ACTIVE OUTFIT (${entry.stateId}): ${entry.description}
-Show the complete clothing clearly from head to footwear. Do not show another outfit, spare clothing, props, scenery, text, labels, logos, inset views, duplicate people or a before/after comparison.`;
+Show the complete garment system clearly from neckline or hood to footwear, including every required protective accessory. Do not show another outfit, spare clothing, props, scenery, text, labels, logos, inset views, duplicate mannequins or a before/after comparison.`;
+}
+
+export function directWardrobeAuthorityAsset(entry, identityReference) {
+  if (entry?.authorityMode !== WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT) return null;
+  const storageKey = text(identityReference?.storageKey);
+  if (!storageKey) {
+    fail(
+      "wardrobe_visual_authority_reference_missing",
+      "The ordinary outfit cannot be sealed without its durable private identity source.",
+      [{ path: `/authorities/${entry.authorityId}`, message: "Missing durable private identity reference." }],
+    );
+  }
+  return {
+    version: WARDROBE_VISUAL_AUTHORITY_VERSION,
+    authorityId: entry.authorityId,
+    characterId: entry.characterId,
+    characterName: entry.characterName,
+    stateId: entry.stateId,
+    description: entry.description,
+    authorityMode: entry.authorityMode,
+    identityBearing: true,
+    directSource: true,
+    status: "accepted",
+    storageKey,
+    previewUrl: text(identityReference?.previewUrl),
+    sha256: "",
+    advisoryIssueCodes: [],
+  };
 }
 
 async function referenceSource(reference) {
@@ -153,46 +182,46 @@ function parseJson(value) {
 export async function inspectWardrobeVisualAuthority({
   imagePath,
   entry,
-  identityReference,
   styleReference,
   client = null,
 }) {
-  const [candidate, identity, style] = await Promise.all([
+  if (entry?.authorityMode !== WARDROBE_AUTHORITY_MODE_GARMENT_ONLY) {
+    return { approved: false, issueCodes: ["wardrobe_authority_direct_source_required"] };
+  }
+  const [candidate, style] = await Promise.all([
     fs.readFile(imagePath),
-    referenceSource(identityReference),
     referenceSource(styleReference),
   ]);
-  if (!candidate || !identity || !style) {
+  if (!candidate || !style) {
     return { approved: false, issueCodes: ["wardrobe_authority_reference_missing"] };
   }
   const compact = async (source, detail = 840) => sharp(source).rotate().resize(detail, detail, {
     fit: "inside",
     withoutEnlargement: true,
   }).jpeg({ quality: 86 }).toBuffer();
-  const [candidateJpeg, identityJpeg, styleJpeg] = await Promise.all([
-    compact(candidate, 1024), compact(identity), compact(style),
+  const [candidateJpeg, styleJpeg] = await Promise.all([
+    compact(candidate, 1024), compact(style),
   ]);
   const qaClient = client || createOpenAIClient({ kind: "qa" });
   const response = await qaClient.responses.create({
     model: process.env.IMAGE_QA_MODEL || process.env.VISION_MODEL || "gpt-4.1-mini",
     input: [{ role: "user", content: [
       { type: "input_text", text: `You validate one private wardrobe model sheet before any book page may use it.
-Image 1 is the candidate. Image 2 is the exact identity. Image 3 is the approved book style anchor.
-Approve only if Image 1 shows exactly one complete person, preserves the identity from Image 2, wears exactly this outfit state, and uses the same broad rendering family as Image 3.
+Image 1 is the candidate garment-only sheet. Image 2 is the approved book style anchor.
+Approve only if Image 1 shows exactly one complete outfit on one anonymous headless mannequin, contains no person or identity-bearing face/body, matches the exact outfit state, and uses the same broad rendering family as Image 2.
 OUTFIT STATE: ${entry.stateId}
 OUTFIT DESCRIPTION: ${entry.description}
-Return only JSON: {"identity":"pass|fail|uncertain","cardinality":"pass|fail|uncertain","wardrobe":"pass|fail|uncertain","style":"pass|fail|uncertain"}.` },
+Return only JSON: {"garment_only":"pass|fail|uncertain","cardinality":"pass|fail|uncertain","wardrobe":"pass|fail|uncertain","style":"pass|fail|uncertain"}.` },
       { type: "input_image", image_url: `data:image/jpeg;base64,${candidateJpeg.toString("base64")}`, detail: "high" },
-      { type: "input_image", image_url: `data:image/jpeg;base64,${identityJpeg.toString("base64")}`, detail: "high" },
       { type: "input_image", image_url: `data:image/jpeg;base64,${styleJpeg.toString("base64")}`, detail: "low" },
     ] }],
     max_output_tokens: 220,
   });
   const result = parseJson(extractText(response)) || {};
-  const blockingDomains = ["identity", "cardinality", "wardrobe"];
+  const blockingDomains = ["garment_only", "cardinality", "wardrobe"];
   const issueCodes = blockingDomains.filter((domain) => result[domain] !== "pass")
     .map((domain) => `wardrobe_authority_${domain}_${result[domain] === "fail" ? "failed" : "uncertain"}`);
-  // This private sheet is an identity-and-garment authority, not a customer
+  // This private sheet is a garment authority, not a customer
   // deliverable. Its pixels are later combined with the approved style anchor
   // for every scene, whose ordinary evidence gate remains strictly responsible
   // for rendering-family continuity. Blocking a complete book because this
@@ -215,10 +244,14 @@ export function wardrobeVisualReferencesForScene(sceneRenderContract, assets) {
     return [{
       storageKey: authority.storageKey,
       kind: "wardrobe",
-      label: `${character.name}: LOCKED WARDROBE AUTHORITY for ${character.outfit.state_id}; copy this exact garment design, colors, material and footwear for this person in the current scene`,
+      label: authority.identityBearing
+        ? `${character.name}: LOCKED IDENTITY AND ORDINARY WARDROBE AUTHORITY for ${character.outfit.state_id}; preserve this person's identity and broad ordinary garment types, colors and footwear without copying the photo background or rendering style`
+        : `${character.name}: LOCKED GARMENT-ONLY WARDROBE AUTHORITY for ${character.outfit.state_id}; copy this exact garment design, colors, material and footwear onto the separately supplied identity`,
       authorityId: authority.authorityId,
       characterId: text(character.character_id),
       outfitStateId: text(character.outfit.state_id),
+      authorityMode: text(authority.authorityMode),
+      identityBearing: authority.identityBearing === true,
     }];
   });
 }
@@ -265,10 +298,14 @@ export function wardrobeRepairReferencePlan({
     return { version: 1, complete: false, mode: "quarantine", references: [] };
   }
   const selectedWardrobes = singleTarget ? targetReferences : wardrobeReferences;
-  const wardrobeCharacters = new Set(selectedWardrobes.map((reference) => text(reference.characterId)));
-  const uncoveredIdentities = singleTarget ? [] : references.filter((reference) => (
+  const identityBearingCharacters = new Set(selectedWardrobes
+    .filter((reference) => reference.identityBearing === true)
+    .map((reference) => text(reference.characterId)));
+  const selectedCharacters = new Set(selectedWardrobes.map((reference) => text(reference.characterId)));
+  const uncoveredIdentities = references.filter((reference) => (
     reference?.kind === "identity"
-    && !wardrobeCharacters.has(text(reference.characterId))
+    && !identityBearingCharacters.has(text(reference.characterId))
+    && (!singleTarget || selectedCharacters.has(text(reference.characterId)))
   ));
   return {
     version: 1,

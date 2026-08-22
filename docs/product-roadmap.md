@@ -1738,6 +1738,40 @@ mutation.
 
 Verification: 51/51 focused tests pass; the complete repository suite passes.
 
+## Product brick: V25.1 split identity and wardrobe authority
+
+Production evidence disproved the combined generated face/outfit sheet as a
+safe precursor: its stochastic face could fail identity before a book page was
+generated, or become a weaker identity source than the customer's original
+private photo. Identity and clothing therefore have separate authorities.
+
+The original private reference photo is the immutable identity authority. For
+`private_identity_binding` ordinary clothing, that same durable source is also
+the direct broad-clothing authority and no model sheet is generated. For every
+adventure outfit, Calitiki creates one anonymous garment-only sheet on a
+headless mannequin. It contains no person, face, hair, skin or named-character
+likeness and is checked only for garment-only composition, exactly-one-outfit
+cardinality and the canonical clothing description. Style remains advisory on
+this private technical sheet; delivered pages still pass strict style evidence.
+
+Scene generation combines the original identity photo, the exact garment-only
+authority, the approved cover style and the immutable scene contract. An
+identity-bearing ordinary authority suppresses its duplicate raw-photo input;
+a garment-only adventure authority never suppresses the separate identity
+photo. The same distinction applies to isolated wardrobe repair: adventure
+repairs retain the exact identity reference, while ordinary repairs use the
+direct identity/outfit source.
+
+Policy-1 and policy-2 generated people are intentionally incompatible and are
+not reused. Retry policy 29 grants one bounded compatibility resume to books
+blocked under policy 28 while retaining accepted manuscript, cover and page
+checkpoints. There is no schema migration, environment variable, commerce or
+credit rule change, private-asset exposure, acceptance relaxation or
+series-canon mutation.
+
+Verification: 53/53 focused split-authority tests and 784/784 complete
+repository tests pass.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

@@ -17,6 +17,7 @@ import {
   acceptedWardrobeAuthorityAssets,
   assertWardrobeVisualAuthorityCoverage,
   compileWardrobeVisualAuthorityPlan,
+  directWardrobeAuthorityAsset,
   inspectWardrobeVisualAuthority,
   wardrobeAuthorityPrompt,
   wardrobeRepairReferencePlan,
@@ -1794,8 +1795,34 @@ router.post("/preview", async (req, res) => {
               || String(reference.label || "").toLowerCase().startsWith(`${normalizedName},`))
           ));
           const styleReference = source?.continuity?.referenceImages?.find((reference) => reference.kind === "continuity");
-          if (!identityReference || !styleReference) {
-            const authorityError = new Error("A wardrobe authority cannot be produced without exact identity and approved style references.");
+          if (!identityReference) {
+            const authorityError = new Error("A wardrobe authority cannot be produced without its exact private identity reference.");
+            authorityError.code = "wardrobe_visual_authority_reference_missing";
+            authorityError.artifactType = "wardrobe_visual_authority_v1";
+            throw authorityError;
+          }
+          const directAsset = directWardrobeAuthorityAsset(authority, identityReference);
+          if (directAsset) {
+            wardrobeAuthorityAssets.set(authority.authorityId, directAsset);
+            await persistCheckpoint({
+              phase: "wardrobe-visual-authority",
+              wardrobeVisualAuthority: {
+                version: WARDROBE_VISUAL_AUTHORITY_VERSION,
+                policyVersion: WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
+                planDigest: wardrobeAuthorityPlan.validation.artifactDigest,
+                assets: [...wardrobeAuthorityAssets.values()],
+              },
+            });
+            console.info("[preview] ordinary wardrobe authority bound to private identity", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              authorityId: authority.authorityId,
+              characterId: authority.characterId,
+            }));
+            continue;
+          }
+          if (!styleReference) {
+            const authorityError = new Error("A garment-only wardrobe authority cannot be produced without the approved style reference.");
             authorityError.code = "wardrobe_visual_authority_reference_missing";
             authorityError.artifactType = "wardrobe_visual_authority_v1";
             throw authorityError;
@@ -1809,14 +1836,14 @@ router.post("/preview", async (req, res) => {
               attempt,
               maximumAttempts: 2,
               model: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
-              referencePolicyStage: "locked_identity_style",
-              referenceKinds: ["continuity", "identity"],
+              referencePolicyStage: "locked_style_garment_only",
+              referenceKinds: ["continuity"],
             });
             const candidateUrl = await generateImage({
               prompt: wardrobeAuthorityPrompt(authority),
               outName: `wardrobe-${authority.authorityId}-${job.id}-attempt${attempt}`,
-              referenceImages: [styleReference, identityReference],
-              sceneContract: `WARDROBE VISUAL AUTHORITY V1: exactly one ${authority.characterName}; exact outfit ${authority.stateId}: ${authority.description}`,
+              referenceImages: [styleReference],
+              sceneContract: `WARDROBE VISUAL AUTHORITY V1: exactly one complete garment-only outfit on one anonymous headless mannequin; no person or identity; exact outfit ${authority.stateId}: ${authority.description}`,
               renderingMode: answers.rendering_mode,
               likenessGoal: answers.likeness_goal,
               quality: "low",
@@ -1826,7 +1853,6 @@ router.post("/preview", async (req, res) => {
             const evidence = await inspectWardrobeVisualAuthority({
               imagePath: outputImagePath(candidateUrl),
               entry: authority,
-              identityReference,
               styleReference,
             });
             lastIssueCodes = evidence.issueCodes;
@@ -1836,7 +1862,7 @@ router.post("/preview", async (req, res) => {
                 attempt,
                 maximumAttempts: 2,
                 issues: evidence.issueCodes,
-                referencePolicyStage: "locked_identity_style",
+                referencePolicyStage: "locked_style_garment_only",
               });
               continue;
             }
@@ -1848,6 +1874,8 @@ router.post("/preview", async (req, res) => {
               characterName: authority.characterName,
               stateId: authority.stateId,
               description: authority.description,
+              authorityMode: authority.authorityMode,
+              identityBearing: false,
               status: "accepted",
               storageKey: persisted.storageKey,
               previewUrl: persisted.previewUrl,
