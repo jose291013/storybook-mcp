@@ -26,6 +26,10 @@ import { styleAgent } from "../agents/style.js";
 import { blueprintFillerAgent, lockBlueprintContinuity } from "../agents/blueprintFiller.js";
 import { blueprintRepairAgent } from "../agents/blueprintRepair.js";
 import { qaAgent } from "../agents/qa.js";
+import {
+  blueprintQaCheckpoint,
+  tagBlueprintProviderInterruption,
+} from "../services/blueprintQaCheckpoint.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
@@ -803,17 +807,80 @@ router.post("/preview", async (req, res) => {
       if (approvedScenario) final_blueprint.approved_scenario = approvedScenario;
 
       updateJob(job.id, { step: "qa", final_blueprint });
-      let qa = checkpoint.finalBlueprint ? { qa: { status: "approved", issues: [] } } : await qaAgent(final_blueprint);
+      const runDurableBlueprintStep = async ({ step, artifactType, attempt = 0, qaEvidence = null, action }) => {
+        try {
+          return await action();
+        } catch (error) {
+          const taggedError = tagBlueprintProviderInterruption(error, artifactType);
+          if (taggedError?.code === "preview_interrupted") {
+            await persistCheckpoint({
+              blueprintQaRepair: blueprintQaCheckpoint({
+                status: "interrupted",
+                attempt,
+                qa: qaEvidence,
+              }),
+              phase: step,
+            }).catch(() => null);
+            console.warn("[preview] durable blueprint step interrupted", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              step,
+              artifactType,
+            }));
+          }
+          throw taggedError;
+        }
+      };
+      let qa = checkpoint.finalBlueprint
+        ? { qa: { status: "approved", issues: [] } }
+        : await runDurableBlueprintStep({
+          step: "blueprint:qa:initial",
+          artifactType: "blueprint_qa",
+          action: () => qaAgent(final_blueprint, {
+            backgroundExecution: providerBackgroundExecution,
+            backgroundStep: `blueprint:qa:v${BLUEPRINT_CONTRACT_VERSION}:initial`,
+          }),
+        });
+      if (!checkpoint.finalBlueprint) {
+        await persistCheckpoint({
+          blueprintQaRepair: blueprintQaCheckpoint({
+            status: qa?.qa?.status === "approved" ? "approved" : "repair_needed",
+            qa,
+          }),
+          phase: "blueprint:qa:initial",
+        });
+      }
       const maximumRepairAttempts = 3;
       for (let repairAttempt = 1; qa?.qa?.status !== "approved" && repairAttempt <= maximumRepairAttempts; repairAttempt += 1) {
         updateJob(job.id, {
           step: repairAttempt === 1 ? "qa:repair" : `qa:repair:${repairAttempt}`,
           final_blueprint,
         });
-        const repaired = await blueprintRepairAgent({
-          finalBlueprint: final_blueprint,
-          qa,
-          pagePlan: createPagePlan(answers.page_count),
+        const repairPhase = `blueprint:qa-repair:${repairAttempt}`;
+        const repairCheckpoint = blueprintQaCheckpoint({ status: "repairing", attempt: repairAttempt, qa });
+        await persistCheckpoint({
+          blueprintQaRepair: repairCheckpoint,
+          phase: repairPhase,
+        });
+        console.info("[preview] durable blueprint repair queued", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          attempt: repairAttempt,
+          issueCodes: repairCheckpoint.issueCodes,
+        }));
+        const repaired = await runDurableBlueprintStep({
+          step: repairPhase,
+          artifactType: "blueprint_repair",
+          attempt: repairAttempt,
+          qaEvidence: qa,
+          action: () => blueprintRepairAgent({
+            finalBlueprint: final_blueprint,
+            qa,
+            pagePlan: createPagePlan(answers.page_count),
+          }, {
+            backgroundExecution: providerBackgroundExecution,
+            backgroundStep: `blueprint:repair:v${BLUEPRINT_CONTRACT_VERSION}:attempt:${repairAttempt}`,
+          }),
         });
         if (approvedScenario) repaired.approved_scenario = approvedScenario;
         final_blueprint = lockBlueprintContinuity(repaired, {
@@ -828,7 +895,24 @@ router.post("/preview", async (req, res) => {
           step: repairAttempt === 1 ? "qa:verify_repair" : `qa:verify_repair:${repairAttempt}`,
           final_blueprint,
         });
-        qa = await qaAgent(final_blueprint);
+        qa = await runDurableBlueprintStep({
+          step: `blueprint:qa-verify:${repairAttempt}`,
+          artifactType: "blueprint_qa",
+          attempt: repairAttempt,
+          qaEvidence: qa,
+          action: () => qaAgent(final_blueprint, {
+            backgroundExecution: providerBackgroundExecution,
+            backgroundStep: `blueprint:qa:v${BLUEPRINT_CONTRACT_VERSION}:verify:${repairAttempt}`,
+          }),
+        });
+        await persistCheckpoint({
+          blueprintQaRepair: blueprintQaCheckpoint({
+            status: qa?.qa?.status === "approved" ? "approved" : "repair_needed",
+            attempt: repairAttempt,
+            qa,
+          }),
+          phase: `blueprint:qa-verify:${repairAttempt}`,
+        });
       }
       if (qa?.qa?.status !== "approved") {
         updateJob(job.id, {
@@ -2234,7 +2318,9 @@ router.post("/preview", async (req, res) => {
       updateJob(job.id, { status: "failed", error: String(error?.message || error) });
       const boundedErrorCode = error?.code === "preview_provider_safety_quarantine"
         ? "preview_provider_safety_quarantine"
-        : "preview_generation_failed";
+        : error?.code === "preview_interrupted"
+          ? "preview_interrupted"
+          : "preview_generation_failed";
       await updateGenerationRun(job.id, {
         status: "failed",
         currentStep: getJob(job.id)?.step || checkpoint?.phase || "unknown",
@@ -2269,6 +2355,7 @@ router.post("/preview", async (req, res) => {
         const latest = await projectStore.get(job.projectId);
         const priorCheckpoint = generationCheckpoint(latest, fingerprint) || checkpoint;
         const retryWasConsumed = Boolean(priorCheckpoint?.retryConsumedAt || isTechnicalGenerationRetry);
+        const interruptionIsRecoverable = boundedErrorCode === "preview_interrupted";
         let continuitySnapshot = {
           ...(latest?.continuitySnapshot || project.continuitySnapshot),
           ...(isTechnicalReferenceRecovery ? {
@@ -2279,8 +2366,8 @@ router.post("/preview", async (req, res) => {
           ...priorCheckpoint,
           fingerprint,
           retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
-          retryAvailable: !retryWasConsumed,
-          retryExhausted: retryWasConsumed,
+          retryAvailable: interruptionIsRecoverable || !retryWasConsumed,
+          retryExhausted: interruptionIsRecoverable ? false : retryWasConsumed,
           failureReason: boundedErrorCode,
           failedAt: new Date().toISOString(),
         });
@@ -2295,7 +2382,7 @@ router.post("/preview", async (req, res) => {
             identity,
             event: "generation_failed",
             eventId: `${job.id}:generation_failed`,
-            retryAvailable: !retryWasConsumed,
+            retryAvailable: interruptionIsRecoverable || !retryWasConsumed,
           });
         } catch (notificationError) {
           console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
