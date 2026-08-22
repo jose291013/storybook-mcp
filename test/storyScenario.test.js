@@ -8,7 +8,7 @@ import {
   mergeStorySceneTextRepairResult,
   sanitizeStoryRepairText,
 } from "../src/agents/storySceneTextRepair.js";
-import { applyCreatorStoryScenarioEdits, clarificationAnswersForApproval, hasCurrentStoryScenarioAuditEvidence, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario, withStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
+import { applyCreatorStoryScenarioEdits, approvedStoryScenario, clarificationAnswersForApproval, hasCurrentStoryScenarioAuditEvidence, normalizeStoryScenario, recoverLegacyLifecycleValidation, stabilizeStoryScenario, storyScenarioSnapshot, summarizeStoryScenarioValidation, validateStoryScenario, withStoryScenarioAuditEvidence } from "../src/services/storyScenario.js";
 import {
   applyStoryScenarioRepairDirectives,
   buildStoryScenarioRepairDirectives,
@@ -929,6 +929,13 @@ test("persisted version-one scenarios remain readable during the movement-ledger
   assert.equal(storyScenarioSnapshot({
     continuitySnapshot: { storyScenario: legacy },
   }), legacy);
+});
+
+test("an approved scenario accepts an explicit compatible fingerprint candidate only", () => {
+  const scenario = { ...coherentPortalScenario(), version: 1, status: "approved", fingerprint: "legacy-fingerprint" };
+  const project = { continuitySnapshot: { storyScenario: scenario } };
+  assert.equal(approvedStoryScenario(project, ["current-fingerprint", "legacy-fingerprint"]), scenario);
+  assert.equal(approvedStoryScenario(project, ["current-fingerprint"]), null);
 });
 
 test("scenario validation rejects crossing before discovery and physical teleportation", () => {

@@ -178,7 +178,7 @@ const elements = {
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationCreationJourney: document.querySelector("#generationCreationJourney"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
   visualProofPanel: document.querySelector("#visualProofPanel"), visualProofKicker: document.querySelector("#visualProofKicker"), visualProofTitle: document.querySelector("#visualProofTitle"), visualProofLead: document.querySelector("#visualProofLead"), visualProofChecklist: document.querySelector("#visualProofChecklist"), visualProofImage: document.querySelector("#visualProofImage"), visualProofNote: document.querySelector("#visualProofNote"), visualProofFeedback: document.querySelector("#visualProofFeedback"), approveVisualProofButton: document.querySelector("#approveVisualProofButton"), regenerateVisualProofButton: document.querySelector("#regenerateVisualProofButton"),
-  notifyScenarioEmail: document.querySelector("#notifyScenarioEmail"), notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
+  notifyScenarioEmail: document.querySelector("#notifyScenarioEmail"), notifyPreviewEmail: document.querySelector("#notifyPreviewEmail"), generationFailurePanel: document.querySelector("#generationFailurePanel"), retryPreviewButton: document.querySelector("#retryPreviewButton"), generationFailureFeedback: document.querySelector("#generationFailureFeedback"), generationFailureSupport: document.querySelector("#generationFailureSupport"),
   qualityReviewNotice: document.querySelector("#qualityReviewNotice"), qualityReviewKicker: document.querySelector("#qualityReviewKicker"), qualityReviewTitle: document.querySelector("#qualityReviewTitle"), qualityReviewMessage: document.querySelector("#qualityReviewMessage"), qualityReviewPages: document.querySelector("#qualityReviewPages"), qualityReviewSupport: document.querySelector("#qualityReviewSupport"), previewAssetsUnavailable: document.querySelector("#previewAssetsUnavailable"),
   bookLanguageRepair: document.querySelector("#bookLanguageRepair"), repairBookLanguage: document.querySelector("#repairBookLanguage"), bookLanguageRepairFeedback: document.querySelector("#bookLanguageRepairFeedback"),
   mobileStepLabel: document.querySelector("#mobileStepLabel"), mobileProgressBar: document.querySelector("#mobileProgressBar"), uiLanguage: document.querySelector("#uiLanguage"), storefrontReturnLink: document.querySelector("#storefrontReturnLink"), headerCreationsLink: document.querySelector("#headerCreationsLink"), creditReturnNotice: document.querySelector("#creditReturnNotice"), costNote: document.querySelector("#costNote"),
@@ -3037,7 +3037,7 @@ async function savePreviewNotificationPreference(enabled) {
   }
 }
 
-async function showGenerationFailure(project = null) {
+async function showGenerationFailure(project = null, feedback = "") {
   if (!project && state.projectId) {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
     if (response.ok) project = (await response.json()).project;
@@ -3055,6 +3055,8 @@ async function showGenerationFailure(project = null) {
   elements.generationFailurePanel.hidden = false;
   const exhausted = project?.technicalPreviewRetryExhausted === true;
   elements.retryPreviewButton.hidden = exhausted;
+  elements.generationFailureFeedback.textContent = feedback;
+  elements.generationFailureFeedback.hidden = !feedback;
   elements.generationFailureSupport.textContent = exhausted ? tr("generationFailureExhausted") : tr("generationFailureSupport");
   elements.generationFailurePanel.scrollIntoView({ behavior: "smooth", block: "center" });
 }
@@ -3063,6 +3065,8 @@ async function retryPreviewFree() {
   if (!state.projectId || elements.retryPreviewButton.disabled) return;
   elements.retryPreviewButton.disabled = true;
   elements.retryPreviewButton.textContent = tr("retryingPreview");
+  elements.generationFailureFeedback.textContent = "";
+  elements.generationFailureFeedback.hidden = true;
   try {
     const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
     const project = projectResponse.ok ? (await projectResponse.json()).project : null;
@@ -3072,7 +3076,7 @@ async function retryPreviewFree() {
     }
     await generatePreviewForProject(state.projectId);
   } catch (error) {
-    await showGenerationFailure();
+    await showGenerationFailure(null, tr("generationRetryRejected"));
   } finally {
     elements.retryPreviewButton.disabled = false;
     elements.retryPreviewButton.textContent = tr("retryPreviewFree");
@@ -3523,7 +3527,9 @@ async function generatePreviewForProject(projectId, visualProofAction = "") {
     if (payload.code === "preview_interrupted") throw new TechnicalGenerationError(tr("generationFailed"), payload.code);
     if (payload.code === "child_safety_blocked") throw new Error(tr("childSafetyBlockedMessage"));
     if (payload.code === "child_safety_support_required") throw new Error(tr("childSafetySupportMessage"));
-    throw new Error(payload.error || tr("startError"));
+    const error = new Error(payload.error || tr("startError"));
+    error.code = payload.code || "preview_start_failed";
+    throw error;
   }
   showGenerationPanel(visualProofAction === "approve" ? "interior" : visualProofAction === "regenerate" ? "regenerate" : "cover");
   state.jobId = payload.jobId;

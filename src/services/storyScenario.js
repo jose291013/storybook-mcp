@@ -1480,7 +1480,8 @@ export function storyScenarioSnapshot(project) {
 export function approvedStoryScenario(project, fingerprint = "") {
   const scenario = storyScenarioSnapshot(project);
   if (!scenario || scenario.status !== "approved") return null;
-  if (fingerprint && scenario.fingerprint !== fingerprint) return null;
+  const fingerprints = Array.isArray(fingerprint) ? fingerprint.filter(Boolean) : [fingerprint].filter(Boolean);
+  if (fingerprints.length && !fingerprints.includes(scenario.fingerprint)) return null;
   return scenario;
 }
 

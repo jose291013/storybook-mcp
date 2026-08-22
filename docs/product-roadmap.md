@@ -1565,6 +1565,28 @@ series-canon mutation.
 
 Verification: 23/23 focused tests and 753/753 complete repository tests pass.
 
+## Product brick: V23.1 backward-compatible preview resume
+
+Request fingerprints follow an explicit append-only compatibility protocol.
+When a release introduces a new optional answer authority, preview startup may
+also calculate a documented legacy projection that removes that authority only
+while its value is empty. This preserves approved scenarios and resumable
+checkpoints created before the field existed without treating a real customer
+change as equivalent. A non-empty participant authority continues to require a
+new scenario approval.
+
+After a compatible match, the immutable fingerprint stored on the approved
+scenario remains the sole checkpoint authority for the run. The server neither
+rewrites the scenario nor migrates customer content. A rejected preview-start
+request is shown as localized live feedback beside the retry control rather
+than appearing to ignore the click. No retry or credit is consumed before a
+preview job actually starts.
+
+There is no migration, environment variable, model call, commerce rule,
+private-asset exposure or series-canon change.
+
+Verification: 173/173 focused tests and 755/755 complete repository tests pass.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

@@ -3,6 +3,14 @@ import crypto from "crypto";
 const VERSION = 1;
 export const PREVIEW_RETRY_POLICY_VERSION = 22;
 
+// Fingerprints created before V23 did not contain this optional authority.
+// Keep every compatibility projection explicit and append-only: future input
+// additions must add their own projection instead of silently invalidating an
+// already approved scenario or a resumable generation checkpoint.
+const LEGACY_OPTIONAL_ANSWER_PROJECTIONS = Object.freeze([
+  Object.freeze(["story_seed_participant_refs"]),
+]);
+
 function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
   if (!value || typeof value !== "object") return value;
@@ -27,6 +35,23 @@ export function previewRequestFingerprint(normalized) {
     })),
   };
   return crypto.createHash("sha256").update(JSON.stringify(stableValue(payload))).digest("hex");
+}
+
+export function previewRequestFingerprintCandidates(normalized) {
+  const candidates = [previewRequestFingerprint(normalized)];
+  for (const optionalKeys of LEGACY_OPTIONAL_ANSWER_PROJECTIONS) {
+    const answers = { ...(normalized?.answers || {}) };
+    let changed = false;
+    for (const key of optionalKeys) {
+      if (answers[key] === "" || answers[key] == null) {
+        delete answers[key];
+        changed = true;
+      }
+    }
+    if (!changed) continue;
+    candidates.push(previewRequestFingerprint({ ...normalized, answers }));
+  }
+  return [...new Set(candidates)];
 }
 
 export function generationCheckpoint(project, fingerprint = "") {

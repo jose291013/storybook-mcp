@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch after publication: `main`
-- Main checkpoint after publication: PR #262 (V3 scene prose authority V22; merge commit `28417f4`)
-- Draft candidate: PR #264 (V3 adventure participation authority V23); do not merge or deploy until the current book has finished generating
-- Current focused checkpoint: after Render is Live on PR #262, resume project `b0608ff9-c041-426c-bc82-e80854db4edc` once. Logs must show `[preview] strict V3 manuscript scene-cast preflight` before the V21 word preflight and V20 text authority; accepted images must remain unchanged
+- Current development branch: `codex/v23-1-legacy-fingerprint-resume`
+- Main checkpoint: PR #264 (V3 adventure participation authority V23; merge commit `03e775d`)
+- Draft candidate: V23.1 backward-compatible preview-resume authority
+- Current focused checkpoint: after V23.1 is merged and Render is Live, resume project `3b856585-f060-4d99-a606-c93e6bfdb690` once. The `POST /api/preview` request must no longer return `409 story_scenario_required`; logs must reach `[preview] started`, while the approved scenario and existing checkpoint remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #250 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #264 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -97,6 +97,25 @@ or series-canon change.
 Repository verification for this brick: the focused NarrativeBrief, customer
 scenario, artifact-store and migration suites pass 25/25, and the complete
 repository suite passes 722/722.
+
+## Product brick: V23.1 backward-compatible preview resume
+
+An additive optional questionnaire authority may no longer strand an approved
+scenario or its resumable generation checkpoint. Preview startup computes an
+ordered set of explicit, append-only compatibility fingerprints. It accepts a
+legacy fingerprint only when the newly introduced authority is empty; a
+non-empty participant change still requires a newly approved scenario. Once
+matched, the persisted approved-scenario fingerprint remains authoritative for
+checkpoint lookup, so no narrative ancestor is rewritten.
+
+The failed-retry panel now exposes a localized live status when preview startup
+is rejected instead of silently redisplaying the same button. The observed
+production failure was a pre-generation `409`, so it consumed no retry and no
+credit. This brick adds no migration, environment variable, model call,
+commerce change, private-asset exposure or series-canon mutation.
+
+Repository verification for this brick: 173/173 focused tests and 755/755
+complete repository tests pass.
 
 ## Product brick: V3 provider-safety page isolation
 

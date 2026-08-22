@@ -543,12 +543,16 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(html, /id="confirmPreviewButton"/);
   assert.match(html, /id="headerCreditBalance"/);
   assert.match(html, /id="storefrontReturnLink"/);
+  assert.match(html, /id="generationFailureFeedback"/);
   assert.match(app, /preparePreviewAuthorization/);
   assert.match(app, /project\?\.status === "preview_generating"/);
   assert.doesNotMatch(app, /await generatePreviewForProject\(project\.id\)/);
   assert.match(app, /preview-recover/);
   assert.match(app, /retryPreviewFree/);
+  assert.match(app, /generationRetryRejected/);
+  assert.match(app, /showGenerationFailure\(null, tr\("generationRetryRejected"\)\)/);
   assert.match(previewSource, /mergeGenerationCheckpoint/);
+  assert.match(previewSource, /previewRequestFingerprintCandidates/);
   const checkpointDeclaration = previewSource.indexOf("let checkpoint = initialCheckpoint;");
   const backgroundGeneration = previewSource.indexOf("withOpenAICostContext({", checkpointDeclaration);
   assert.ok(checkpointDeclaration > -1 && checkpointDeclaration < backgroundGeneration, "checkpoint must remain visible to the background catch handler");
