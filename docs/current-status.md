@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v24-wardrobe-visual-authority`
-- Main checkpoint: PR #268 (V23.3 provider-billing recovery; merge commit `4946146`)
-- Candidate: V24 WardrobeVisualAuthority.v1
-- Current focused checkpoint: project `93fa1f49-9bc7-4371-882e-33cb973914a8` resumed successfully through manuscript and most illustration generation, but strict V3 kept pages 16, 19, 20, 23, 24, 27 and 28 private because text-only outfit descriptions did not give the image model one stable pixel authority. V24 creates and validates one private full-body model sheet per character/adventure-outfit state before any interior page, reuses the exact accepted sheet across generation and later repairs, and grants one retry-policy-25 resume without discarding accepted pages
+- Current branch: `codex/v24-1-wardrobe-style-advisory`
+- Main checkpoint: PR #269 (V24 WardrobeVisualAuthority.v1; merge commit `340e040`)
+- Candidate: V24.1 wardrobe-authority acceptance boundary
+- Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` proved that V24 executes before page generation. Its second private model-sheet candidate passed identity, one-person cardinality and exact outfit, but failed only approximate rendering-family style. V24.1 keeps those three semantic authority domains blocking, records model-sheet style as advisory, leaves every delivered page's style evidence strict, persists the correct `wardrobe-visual-authority` phase before model traffic and grants one retry-policy-26 resume
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #268 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #269 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -162,7 +162,7 @@ There is no migration, environment variable, model call, commerce-rule change,
 private-asset exposure or series-canon mutation. Repository verification for
 V23.3: 762/762 complete tests pass.
 
-## Candidate product brick: V24 WardrobeVisualAuthority.v1
+## Product brick: V24 WardrobeVisualAuthority.v1
 
 Strict V3 now seals pixel-level clothing authority before the first interior
 page. `WardrobeVisualAuthority.v1` deterministically groups each visible human
@@ -185,6 +185,25 @@ This introduces no database migration, environment variable, commerce rule,
 credit entitlement or series-canon mutation. The generated model sheets are
 private preview assets and are never exposed as book pages. Repository
 verification: 767/767 complete tests pass.
+
+## Candidate product brick: V24.1 wardrobe-authority acceptance boundary
+
+The private outfit model sheet remains fail-closed for identity, exactly-one
+cardinality and the canonical outfit. Its rendering-family comparison is now
+advisory because the sheet is not delivered and every generated book page is
+still checked strictly against the approved cover style. Advisory evidence is
+stored and logged with the accepted private asset rather than spending further
+attempts on a sheet that already proves the garment authority.
+
+The preview checkpoint enters `wardrobe-visual-authority` before the first
+sheet call, so a provider or QA interruption reports and resumes at the real
+boundary. Retry policy 26 gives V25 failures one bounded resume while retaining
+the manuscript, cover and accepted private assets. No final-page QA rule,
+database schema, environment variable, commerce rule, credit entitlement,
+private-asset exposure or series canon changes.
+
+Repository verification for V24.1: 34/34 focused tests and 769/769 complete
+repository tests pass.
 
 ## Product brick: V3 provider-safety page isolation
 

@@ -1661,6 +1661,24 @@ is no database migration, new environment variable, commerce change, credit
 entitlement change or series-canon mutation. The authority images remain
 private assets. Verification: 767/767 complete repository tests pass.
 
+## Product brick: V24.1 wardrobe-authority acceptance boundary
+
+Production evidence separates the purpose of the private outfit sheet from the
+quality of a delivered illustration. The sheet is accepted only when identity,
+exactly-one-person cardinality and canonical wardrobe all pass. A style
+comparison on this neutral technical sheet is retained as advisory evidence;
+it cannot exhaust the book after the three authority domains have passed.
+Every cover and interior page continues to use the approved style reference and
+must pass the existing strict rendering-family evidence before delivery.
+
+The active generation checkpoint is persisted as
+`wardrobe-visual-authority` before the first sheet call, including any already
+accepted assets. A failure therefore resumes at its true boundary. Retry policy
+26 grants one compatibility resume to V25 projects. This adds no model call,
+database migration, environment variable, commerce or credit change,
+private-asset exposure, final-page acceptance relaxation or series-canon
+mutation. Repository verification: 769/769 complete tests pass.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

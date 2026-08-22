@@ -306,8 +306,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the provider-billing recovery policy is version twenty-four", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 25);
+test("the wardrobe visual authority recovery policy is version twenty-six", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 26);
+});
+
+test("a book exhausted under V25 receives one wardrobe-authority policy resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v25-wardrobe-authority-book",
+      retryPolicyVersion: 25,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-22T16:30:00.000Z",
+      failureReason: "preview_generation_failed",
+      phase: "wardrobe-visual-authority",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("provider billing unavailability remains retryable even after a consumed technical retry", () => {

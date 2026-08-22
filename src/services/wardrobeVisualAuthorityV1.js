@@ -175,10 +175,19 @@ Return only JSON: {"identity":"pass|fail|uncertain","cardinality":"pass|fail|unc
     max_output_tokens: 220,
   });
   const result = parseJson(extractText(response)) || {};
-  const domains = ["identity", "cardinality", "wardrobe", "style"];
-  const issueCodes = domains.filter((domain) => result[domain] !== "pass")
+  const blockingDomains = ["identity", "cardinality", "wardrobe"];
+  const issueCodes = blockingDomains.filter((domain) => result[domain] !== "pass")
     .map((domain) => `wardrobe_authority_${domain}_${result[domain] === "fail" ? "failed" : "uncertain"}`);
-  return { approved: issueCodes.length === 0, issueCodes };
+  // This private sheet is an identity-and-garment authority, not a customer
+  // deliverable. Its pixels are later combined with the approved style anchor
+  // for every scene, whose ordinary evidence gate remains strictly responsible
+  // for rendering-family continuity. Blocking a complete book because this
+  // neutral sheet is only an approximate style match wastes image attempts
+  // without improving the wardrobe authority it is meant to establish.
+  const advisoryIssueCodes = result.style === "pass"
+    ? []
+    : [`wardrobe_authority_style_${result.style === "fail" ? "failed" : "uncertain"}`];
+  return { approved: issueCodes.length === 0, issueCodes, advisoryIssueCodes };
 }
 
 export function wardrobeVisualReferencesForScene(sceneRenderContract, assets) {
