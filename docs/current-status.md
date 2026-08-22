@@ -10,6 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch after publication: `main`
 - Main checkpoint after publication: PR #262 (V3 scene prose authority V22; merge commit `28417f4`)
+- Draft candidate: PR #264 (V3 adventure participation authority V23); do not merge or deploy until the current book has finished generating
 - Current focused checkpoint: after Render is Live on PR #262, resume project `b0608ff9-c041-426c-bc82-e80854db4edc` once. Logs must show `[preview] strict V3 manuscript scene-cast preflight` before the V21 word preflight and V20 text authority; accepted images must remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
