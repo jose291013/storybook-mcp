@@ -1,4 +1,7 @@
+import { isProviderBillingUnavailable } from "./providerBillingError.js";
+
 export function isTransientOpenAIError(error) {
+  if (isProviderBillingUnavailable(error)) return false;
   const status = Number(error?.status || error?.statusCode || error?.response?.status || 0);
   if ([408, 409, 425, 429, 500, 502, 503, 504].includes(status)) return true;
   const code = String(error?.code || error?.cause?.code || "").trim();

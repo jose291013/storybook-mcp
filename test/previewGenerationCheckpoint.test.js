@@ -306,8 +306,38 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the durable blueprint QA policy is version twenty-three", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 23);
+test("the provider-billing recovery policy is version twenty-four", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 24);
+});
+
+test("provider billing unavailability remains retryable even after a consumed technical retry", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "provider-billing-book",
+      retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-22T13:00:00.000Z",
+      failureReason: "preview_provider_billing_unavailable",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
+});
+
+test("a V23 project exhausted before provider billing classification receives one V24 migration resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "legacy-provider-billing-book",
+      retryPolicyVersion: 23,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-22T13:00:00.000Z",
+      failureReason: "preview_generation_failed",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("a book exhausted by non-durable blueprint QA under V22 receives one durable resume", () => {

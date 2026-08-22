@@ -30,6 +30,10 @@ import {
   blueprintQaCheckpoint,
   tagBlueprintProviderInterruption,
 } from "../services/blueprintQaCheckpoint.js";
+import {
+  isProviderBillingUnavailable,
+  tagProviderBillingUnavailable,
+} from "../services/providerBillingError.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
@@ -2315,17 +2319,25 @@ router.post("/preview", async (req, res) => {
       }
       console.info("[preview] completed", JSON.stringify({ jobId: job.id, projectId, pageCount: draftPages.length }));
     } catch (error) {
-      updateJob(job.id, { status: "failed", error: String(error?.message || error) });
-      const boundedErrorCode = error?.code === "preview_provider_safety_quarantine"
+      const classifiedError = isProviderBillingUnavailable(error)
+        ? tagProviderBillingUnavailable(error)
+        : error;
+      const boundedErrorCode = classifiedError?.code === "preview_provider_safety_quarantine"
         ? "preview_provider_safety_quarantine"
-        : error?.code === "preview_interrupted"
-          ? "preview_interrupted"
-          : "preview_generation_failed";
+        : classifiedError?.code === "preview_provider_billing_unavailable"
+          ? "preview_provider_billing_unavailable"
+          : classifiedError?.code === "preview_interrupted"
+            ? "preview_interrupted"
+            : "preview_generation_failed";
+      const publicErrorMessage = boundedErrorCode === "preview_provider_billing_unavailable"
+        ? "The illustration service is temporarily unavailable. The project remains saved and retryable."
+        : String(classifiedError?.message || classifiedError);
+      updateJob(job.id, { status: "failed", errorCode: boundedErrorCode, error: publicErrorMessage });
       await updateGenerationRun(job.id, {
         status: "failed",
         currentStep: getJob(job.id)?.step || checkpoint?.phase || "unknown",
         errorCode: boundedErrorCode,
-        errorMessage: String(error?.message || error),
+        errorMessage: publicErrorMessage,
         completedAt: new Date().toISOString(),
         leaseOwner: "",
         leaseExpiresAt: null,
@@ -2336,10 +2348,10 @@ router.post("/preview", async (req, res) => {
         projectId,
         step: failedJob?.step || checkpoint?.phase || "unknown",
         checkpointPhase: checkpoint?.phase || null,
-        errorCode: String(error?.code || boundedErrorCode),
-        artifactType: String(error?.artifactType || ""),
-        pageNumber: error?.pageNumber != null && Number.isInteger(Number(error.pageNumber)) ? Number(error.pageNumber) : null,
-        issues: (Array.isArray(error?.issues) ? error.issues : []).slice(0, 12).map((issue) => ({
+        errorCode: String(classifiedError?.code || boundedErrorCode),
+        artifactType: String(classifiedError?.artifactType || ""),
+        pageNumber: classifiedError?.pageNumber != null && Number.isInteger(Number(classifiedError.pageNumber)) ? Number(classifiedError.pageNumber) : null,
+        issues: (Array.isArray(classifiedError?.issues) ? classifiedError.issues : []).slice(0, 12).map((issue) => ({
           keyword: String(issue?.keyword || ""),
           path: String(issue?.path || ""),
           pageNumber: issue?.pageNumber != null && Number.isInteger(Number(issue.pageNumber)) ? Number(issue.pageNumber) : null,
@@ -2348,7 +2360,7 @@ router.post("/preview", async (req, res) => {
           maximumWords: issue?.maximumWords != null && Number.isInteger(Number(issue.maximumWords)) ? Number(issue.maximumWords) : null,
           message: String(issue?.message || issue || "").slice(0, 300),
         })),
-        error: String(error?.message || error),
+        error: String(classifiedError?.message || classifiedError),
       }));
       if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
       if (job.projectId) {
@@ -2356,6 +2368,8 @@ router.post("/preview", async (req, res) => {
         const priorCheckpoint = generationCheckpoint(latest, fingerprint) || checkpoint;
         const retryWasConsumed = Boolean(priorCheckpoint?.retryConsumedAt || isTechnicalGenerationRetry);
         const interruptionIsRecoverable = boundedErrorCode === "preview_interrupted";
+        const providerBillingIsRecoverable = boundedErrorCode === "preview_provider_billing_unavailable";
+        const failureIsRecoverable = interruptionIsRecoverable || providerBillingIsRecoverable;
         let continuitySnapshot = {
           ...(latest?.continuitySnapshot || project.continuitySnapshot),
           ...(isTechnicalReferenceRecovery ? {
@@ -2366,8 +2380,8 @@ router.post("/preview", async (req, res) => {
           ...priorCheckpoint,
           fingerprint,
           retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
-          retryAvailable: interruptionIsRecoverable || !retryWasConsumed,
-          retryExhausted: interruptionIsRecoverable ? false : retryWasConsumed,
+          retryAvailable: failureIsRecoverable || !retryWasConsumed,
+          retryExhausted: failureIsRecoverable ? false : retryWasConsumed,
           failureReason: boundedErrorCode,
           failedAt: new Date().toISOString(),
         });
@@ -2382,7 +2396,7 @@ router.post("/preview", async (req, res) => {
             identity,
             event: "generation_failed",
             eventId: `${job.id}:generation_failed`,
-            retryAvailable: interruptionIsRecoverable || !retryWasConsumed,
+            retryAvailable: failureIsRecoverable || !retryWasConsumed,
           });
         } catch (notificationError) {
           console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));

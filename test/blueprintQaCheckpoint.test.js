@@ -59,4 +59,10 @@ test("blueprint provider timeouts become recoverable preview interruptions", () 
   });
   tagBlueprintProviderInterruption(contractError);
   assert.equal(contractError.code, "blueprint_contract_invalid");
+
+  const quotaError = Object.assign(new Error("quota"), {
+    status: 429,
+    error: { code: "insufficient_quota" },
+  });
+  assert.equal(isBlueprintProviderInterruption(quotaError), false);
 });

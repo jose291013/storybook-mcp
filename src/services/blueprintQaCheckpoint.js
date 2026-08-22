@@ -1,4 +1,5 @@
 import { isTransientOpenAIError } from "./openaiErrorPolicy.js";
+import { isProviderBillingUnavailable } from "./providerBillingError.js";
 
 export const BLUEPRINT_QA_CHECKPOINT_VERSION = 1;
 
@@ -43,6 +44,7 @@ export function blueprintQaCheckpoint({ status, attempt = 0, qa = null, now = ne
 }
 
 export function isBlueprintProviderInterruption(error) {
+  if (isProviderBillingUnavailable(error)) return false;
   return error?.code === "scenario_background_timeout" || isTransientOpenAIError(error);
 }
 

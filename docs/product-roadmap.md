@@ -1587,7 +1587,7 @@ private-asset exposure or series-canon change.
 
 Verification: 173/173 focused tests and 755/755 complete repository tests pass.
 
-## Candidate product brick: V23.2 durable blueprint QA and repair
+## Product brick: V23.2 durable blueprint QA and repair
 
 Every model call between blueprint construction and final blueprint approval
 is now a durable, idempotent Responses step. Initial QA, repair attempts one
@@ -1609,6 +1609,30 @@ no database migration, environment variable, commerce change, private-asset
 exposure or series-canon mutation.
 
 Repository verification: 101/101 focused tests and 758/758 complete tests pass.
+
+## Candidate product brick: V23.3 provider-billing recovery
+
+Provider-account exhaustion is a distinct operational state, even when OpenAI
+transports it as HTTP 429. The preview worker, durable blueprint boundary and
+SDK retry policy share one bounded classifier for billing hard limits,
+inactive billing, insufficient quota, payment-required responses and the
+provider's no-credit message. These conditions never enter transient retry or
+blueprint-interruption loops. Public project and job payloads expose only
+`preview_provider_billing_unavailable`; raw provider text and administrative
+billing links remain private server diagnostics.
+
+The project releases its Calitiki reservation, preserves every completed
+scenario/manuscript/checkpoint and remains freely resumable at the first
+missing image regardless of a previously consumed technical retry. Retry
+policy version 24 grants one compatibility resume to V23 projects recorded as
+generic exhausted failures before this classifier existed. FR/ES/EN messaging
+states that the illustration service is temporarily unavailable and that the
+book will resume from the cover after restoration. Calitiki does not promise a
+successful provider call until the OpenAI API organization has usable credit.
+
+This brick introduces no database migration, environment variable, extra model
+call, commerce-rule change, private-asset exposure or series-canon mutation.
+Repository verification: 762/762 complete tests pass.
 
 ## New environment variables
 
