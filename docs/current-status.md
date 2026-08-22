@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v25-1-split-identity-wardrobe-authority`
-- Main checkpoint: PR #272 (V25 canonical all-outfit visual authority and isolated wardrobe repair), merge commit `ce6c011`
-- Candidate: V25.1 split identity/wardrobe authority; publish and merge after the complete repository suite passes
+- Current branch: `main`
+- Main checkpoint: PR #273 (V25.1 split identity and wardrobe visual authority)
+- Candidate: none; Render deployment and one bounded production resume are the next verification target
 - Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` proved that V25's generated combined face/outfit sheet is an invalid blocking identity precursor: `wardrobe_609238d06ff7b283967c` failed identity twice before any page could resume. V25.1 makes the original private photo the immutable identity authority and direct ordinary-outfit authority. Adventure outfits use an anonymous garment-only sheet with no face; scene generation and repair combine that garment authority with the separate original identity. Policy-2 combined sheets are deliberately not reused. Retry policy 29 grants one bounded resume while preserving accepted pages and text checkpoints
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
