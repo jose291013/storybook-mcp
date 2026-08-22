@@ -64,6 +64,19 @@ test("wardrobe rejection changes pixel authorities monotonically across V19 atte
   );
 });
 
+test("canonical combined wardrobe sheets replace raw human photos during generation", () => {
+  const references = [
+    { kind: "continuity" },
+    { kind: "wardrobe", characterId: "hero", authorityId: "wardrobe_hero_ordinary" },
+    { kind: "identity", characterId: "hero", generationEligible: false },
+    { kind: "identity", characterId: "dog" },
+  ];
+  assert.deepEqual(
+    referencesForVisualPolicy(references).map((reference) => `${reference.kind}:${reference.characterId || ""}`),
+    ["continuity:", "wardrobe:hero", "identity:dog"],
+  );
+});
+
 test("V19 spends a distinct reference attempt before using targeted wardrobe editing", () => {
   const evidence = {
     approved: false,

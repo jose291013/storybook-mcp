@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/v25-canonical-ordinary-wardrobe-authority`
 - Main checkpoint: PR #271 (V24.2 nominative wardrobe evidence)
-- Candidate: none; production verification after the Render deployment is next
-- Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` generated and accepted every resumed page except page 28. Four distinct attempts converged to the same generic `wardrobe_state_mismatch`, but the final V3 evidence did not identify the affected canonical character or outfit authority. V24.2 keeps the eleven-domain delivery decision strict, adds bounded per-character wardrobe evidence, permits a local edit only when every required human is resolved and at least one exact target fails, and grants one retry-policy-27 resume
+- Candidate: PR #272 (V25 canonical all-outfit visual authority and isolated wardrobe repair); publication complete, merge pending
+- Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` now identifies page 28's two exact failed targets, but both point to `private_identity_binding` raw customer photos. Those photos were simultaneously identity and ordinary-clothing authorities and competed with cover, adjacent and repair-source pixels. V25 creates one private combined identity/outfit sheet for every human/outfit pair, including ordinary clothes, removes the raw human photo from generation once its sheet is accepted, and uses a minimal single-target edit or clean multi-target recomposition. Retry policy 28 grants one bounded resume while preserving accepted work
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -229,6 +229,33 @@ series-canon mutation.
 
 Repository verification for V24.2: 81/81 focused tests and 774/774 complete
 repository tests pass.
+
+## Product brick: V25 canonical all-outfit visual authority
+
+Every visible human/outfit pair now receives one accepted private combined
+identity-and-clothing model sheet before interior generation, including
+`ordinary_outfit`. The source photo remains available to strict QA, but once
+the exact sheet exists its raw pixels are excluded from generation and cannot
+compete with the scene's canonical outfit. Existing policy-1 adventure sheets
+are reused only when character id, outfit state, description and authority id
+match exactly; missing ordinary sheets are generated without rewriting already
+accepted pages.
+
+Wardrobe-only recovery is now reference-isolated. One failed person uses only
+the preserved candidate, cover continuity and that exact sheet. Several failed
+people trigger a clean scene recomposition from the immutable scene contract,
+cover and complete canonical sheets; the defective candidate and adjacent
+scenes are deliberately excluded. An incomplete target-to-sheet binding stays
+private instead of spending a blind repair. Retry policy 28 opens one bounded
+resume for policy-27 wardrobe quarantines.
+
+This adds one private image-generation call per distinct ordinary human/outfit
+authority that has not already been accepted. It adds no QA call, migration,
+environment variable, commerce or credit rule, customer-visible asset,
+acceptance relaxation or series-canon mutation.
+
+Repository verification for V25: 51/51 focused tests pass; the complete
+`npm test` repository suite and `git diff --check` pass.
 
 ## Product brick: V3 provider-safety page isolation
 

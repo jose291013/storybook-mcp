@@ -6,7 +6,7 @@ import { storageBodyToBuffer } from "./previewAssetStorage.js";
 import { canonicalDigest } from "../contracts/narrativeV3Canonical.js";
 
 export const WARDROBE_VISUAL_AUTHORITY_VERSION = 1;
-export const WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION = 1;
+export const WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION = 2;
 
 function text(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -37,10 +37,6 @@ export function compileWardrobeVisualAuthorityPlan(sceneRenderContracts = []) {
       if (!stateId || !description) {
         fail("wardrobe_visual_authority_state_incomplete", "A visible human outfit has no complete render authority.");
       }
-      // The ordinary outfit already has an exact private pixel authority: the
-      // customer identity photo. Adventure outfits need a generated, accepted
-      // model sheet because text alone is not a stable pixel authority.
-      if (character?.outfit?.source === "private_identity_binding") continue;
       const characterId = text(character.character_id);
       const authorityKey = `${characterId}:${stateId}`;
       const existing = entries.get(authorityKey) || {
@@ -78,10 +74,24 @@ export function compileWardrobeVisualAuthorityPlan(sceneRenderContracts = []) {
 }
 
 export function acceptedWardrobeAuthorityAssets(plan, checkpoint = null) {
-  if (!checkpoint || checkpoint.version !== WARDROBE_VISUAL_AUTHORITY_VERSION
-    || checkpoint.policyVersion !== WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION
-    || checkpoint.planDigest !== plan?.validation?.artifactDigest) return new Map();
-  return checkpointWardrobeAuthorityAssets(checkpoint);
+  if (!checkpoint || checkpoint.version !== WARDROBE_VISUAL_AUTHORITY_VERSION) return new Map();
+  if (checkpoint.policyVersion === WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION
+    && checkpoint.planDigest === plan?.validation?.artifactDigest) {
+    return checkpointWardrobeAuthorityAssets(checkpoint);
+  }
+  // Policy 1 omitted ordinary outfits but its accepted adventure sheets are
+  // still valid when every immutable authority field matches the new plan.
+  // Reuse only those exact assets; missing ordinary sheets are generated now.
+  if (checkpoint.policyVersion !== 1) return new Map();
+  const planned = new Map((plan?.authorities || []).map((entry) => [entry.authorityId, entry]));
+  return new Map((checkpoint.assets || []).flatMap((asset) => {
+    const entry = planned.get(text(asset?.authorityId));
+    if (!entry || asset?.status !== "accepted" || !asset?.storageKey
+      || text(asset.characterId) !== entry.characterId
+      || text(asset.stateId) !== entry.stateId
+      || text(asset.description) !== entry.description) return [];
+    return [[entry.authorityId, structuredClone(asset)]];
+  }));
 }
 
 export function checkpointWardrobeAuthorityAssets(checkpoint = null) {
@@ -106,10 +116,14 @@ export function assertWardrobeVisualAuthorityCoverage(plan, assets) {
 }
 
 export function wardrobeAuthorityPrompt(entry) {
+  const sourceRule = entry.source === "private_identity_binding"
+    ? "ORDINARY OUTFIT SOURCE: copy the broad garment types, dominant colors, layering and footwear visible in the supplied private identity reference, while removing logos and unreadable text. Do not replace it with adventure clothing."
+    : "ADVENTURE OUTFIT SOURCE: follow the exact canonical outfit description below; the private photo supplies identity only and must not override this outfit.";
   return `Create one private wardrobe model sheet for a personalized children's-book character.
 Show exactly one complete full-body ${entry.characterName} standing in a neutral relaxed pose against a plain warm off-white studio background.
 The face and body identity must match the supplied IDENTITY ONLY reference.
 The rendering family, artistic medium, proportions and surface treatment must match the PRIMARY APPROVED STYLE ANCHOR.
+${sourceRule}
 EXACT ACTIVE OUTFIT (${entry.stateId}): ${entry.description}
 Show the complete clothing clearly from head to footwear. Do not show another outfit, spare clothing, props, scenery, text, labels, logos, inset views, duplicate people or a before/after comparison.`;
 }
@@ -214,4 +228,57 @@ export function wardrobeVisualReferencesFromCheckpoint(sceneRenderContract, chec
     sceneRenderContract,
     checkpointWardrobeAuthorityAssets(checkpoint),
   );
+}
+
+function uniqueReferences(references = []) {
+  const seen = new Set();
+  return references.filter((reference) => {
+    const key = `${text(reference?.kind)}:${text(reference?.authorityId || reference?.characterId || reference?.storageKey || reference?.path)}`;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function wardrobeRepairReferencePlan({
+  repairPolicy = null,
+  sceneReferences = [],
+  repairSource = null,
+} = {}) {
+  const targets = Array.isArray(repairPolicy?.wardrobeTargets) ? repairPolicy.wardrobeTargets : [];
+  const wardrobeOnly = Array.isArray(repairPolicy?.targetDomains)
+    && repairPolicy.targetDomains.length === 1
+    && repairPolicy.targetDomains[0] === "wardrobe";
+  if (!wardrobeOnly || !targets.length) return null;
+  const references = Array.isArray(sceneReferences) ? sceneReferences : [];
+  const wardrobeReferences = references.filter((reference) => reference?.kind === "wardrobe");
+  const targetReferences = targets.map((target) => wardrobeReferences.find((reference) => (
+    text(reference.characterId) === text(target.characterId)
+    && text(reference.outfitStateId) === text(target.outfitStateId)
+    && text(reference.authorityId) === text(target.wardrobeAuthorityId)
+  )));
+  const continuity = references.find((reference) => reference?.kind === "continuity");
+  const singleTarget = targets.length === 1;
+  if (targetReferences.some((reference) => !reference)
+    || !continuity
+    || (singleTarget && !repairSource)) {
+    return { version: 1, complete: false, mode: "quarantine", references: [] };
+  }
+  const selectedWardrobes = singleTarget ? targetReferences : wardrobeReferences;
+  const wardrobeCharacters = new Set(selectedWardrobes.map((reference) => text(reference.characterId)));
+  const uncoveredIdentities = singleTarget ? [] : references.filter((reference) => (
+    reference?.kind === "identity"
+    && !wardrobeCharacters.has(text(reference.characterId))
+  ));
+  return {
+    version: 1,
+    complete: true,
+    mode: singleTarget ? "targeted_edit" : "canonical_scene_recompose",
+    references: uniqueReferences([
+      ...(singleTarget && repairSource ? [repairSource] : []),
+      ...(continuity ? [continuity] : []),
+      ...selectedWardrobes,
+      ...uncoveredIdentities,
+    ]),
+  };
 }

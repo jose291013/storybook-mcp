@@ -1704,6 +1704,40 @@ environment variable, commerce or credit rule, customer-data exposure,
 acceptance relaxation or series-canon mutation. Repository verification:
 81/81 focused tests and 774/774 complete tests pass.
 
+## Product brick: V25 canonical all-outfit visual authority
+
+The wardrobe authority boundary applies uniformly to adventure and ordinary
+clothing. Each canonical human/outfit pair owns one private combined identity
+and outfit sheet selected by exact character, state and authority ids. For an
+ordinary outfit, the sheet copies only the broad garment categories, dominant
+colors, layering and footwear from the private identity source while removing
+logos. For an adventure outfit, the universe registry remains authoritative
+and the private photo supplies identity only.
+
+After acceptance, the combined sheet is the generation pixel authority for
+both identity and clothing. The raw human source photo remains accessible to
+the strict evidence controller but is marked ineligible for scene generation,
+so contradictory source-photo garments cannot outvote the active state.
+Policy-1 adventure sheets remain reusable only when every immutable authority
+field matches; ordinary authorities missing from that old plan are generated
+before interior pages continue.
+
+Wardrobe-only automatic recovery follows an isolated reference plan. A
+single-character mismatch edits the preserved candidate with only the cover
+anchor and that character's exact sheet. A multi-character mismatch excludes
+the defective candidate and adjacent scenes and recomposes the immutable scene
+from the cover plus complete canonical sheets. Missing exact authority evidence
+fails closed. Retry policy 28 grants one bounded compatibility resume and
+retains all accepted pages.
+
+This deliberately spends one private image call per previously absent
+ordinary human/outfit authority to remove repeated blind page repairs. It adds
+no separate QA call, schema migration, environment variable, commerce or
+credit change, private-asset exposure, acceptance relaxation or series-canon
+mutation.
+
+Verification: 51/51 focused tests pass; the complete repository suite passes.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

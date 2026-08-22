@@ -150,3 +150,30 @@ test("the V3 image adapter uses the concrete render contract instead of photo wa
   assert.match(continuity.referenceImages[0].authorityId, /private_identity_binding/u);
   assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
 });
+
+test("accepted combined wardrobe sheets suppress competing raw human pixels during generation", () => {
+  const wardrobeAuthorities = [
+    { kind: "wardrobe", characterId: "character_hero", outfitStateId: "forest_explorer", authorityId: "wardrobe_hero_forest", storageKey: "private/hero-forest.png" },
+    { kind: "wardrobe", characterId: "character_brother", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_brother_ordinary", storageKey: "private/brother-ordinary.png" },
+  ];
+  const continuity = buildSceneContinuity({
+    blueprint: {
+      hero: { name: "Mathéo", outfit_lock: "blue photo T-shirt" },
+      cast: [{ name: "Nolan", role: "family", outfit_lock: "white photo T-shirt" }],
+    },
+    characterCanons: [
+      { name: "Mathéo", role: "child", photoId: "matheo.jpg", outfit_lock: "blue photo T-shirt" },
+      { name: "Nolan", role: "family", photoId: "nolan.jpg", outfit_lock: "white photo T-shirt" },
+    ],
+    castPresent: ["Mathéo", "Nolan"],
+    structuredSceneContract: source(),
+    wardrobeAuthorityReferences: wardrobeAuthorities,
+  });
+  assert.deepEqual(
+    continuity.referenceImages.filter((reference) => reference.kind === "wardrobe").map((reference) => reference.authorityId),
+    ["wardrobe_hero_forest", "wardrobe_brother_ordinary"],
+  );
+  assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
+  assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").every((reference) => reference.generationEligible === false), true);
+  assert.equal(continuity.referenceImages.some((reference) => String(reference.authorityId || "").startsWith("private_identity_binding:")), false);
+});

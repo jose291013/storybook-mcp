@@ -10,6 +10,7 @@ import {
   compileWardrobeVisualAuthorityPlan,
   inspectWardrobeVisualAuthority,
   wardrobeAuthorityPrompt,
+  wardrobeRepairReferencePlan,
   wardrobeVisualReferencesForScene,
   wardrobeVisualReferencesFromCheckpoint,
   WARDROBE_VISUAL_AUTHORITY_VERSION,
@@ -41,18 +42,24 @@ function contract({ scene = 4, page = 7, outfit = "reef_explorer", description =
   };
 }
 
-test("V1 compiles one stable generated authority per character outfit interval", () => {
+test("V1 compiles one stable generated authority for every ordinary and adventure outfit interval", () => {
   const plan = compileWardrobeVisualAuthorityPlan([
     contract(),
     contract({ scene: 5, page: 8 }),
     contract({ scene: 15, page: 31, outfit: "ordinary_outfit", description: "blue shirt and dark trousers" }),
   ]);
   assert.equal(plan.version, WARDROBE_VISUAL_AUTHORITY_VERSION);
-  assert.equal(plan.authorities.length, 1);
-  assert.deepEqual(plan.authorities[0].sceneNumbers, [4, 5]);
-  assert.deepEqual(plan.authorities[0].imagePageNumbers, [7, 8]);
-  assert.match(wardrobeAuthorityPrompt(plan.authorities[0]), /exactly one complete full-body child_1/i);
-  assert.match(wardrobeAuthorityPrompt(plan.authorities[0]), /turquoise reef explorer suit/i);
+  assert.equal(plan.authorities.length, 2);
+  const adventure = plan.authorities.find((entry) => entry.stateId === "reef_explorer");
+  const ordinary = plan.authorities.find((entry) => entry.stateId === "ordinary_outfit");
+  assert.deepEqual(adventure.sceneNumbers, [4, 5]);
+  assert.deepEqual(adventure.imagePageNumbers, [7, 8]);
+  assert.deepEqual(ordinary.sceneNumbers, [15]);
+  assert.deepEqual(ordinary.imagePageNumbers, [31]);
+  assert.match(wardrobeAuthorityPrompt(adventure), /exactly one complete full-body child_1/i);
+  assert.match(wardrobeAuthorityPrompt(adventure), /turquoise reef explorer suit/i);
+  assert.match(wardrobeAuthorityPrompt(ordinary), /copy the broad garment types/i);
+  assert.match(wardrobeAuthorityPrompt(ordinary), /Do not replace it with adventure clothing/i);
 });
 
 test("an accepted checkpoint is reusable only for the exact sealed wardrobe plan", () => {
@@ -91,6 +98,23 @@ test("post-preview repair paths reuse the same accepted authority checkpoint", (
   assert.equal(wardrobeVisualReferencesFromCheckpoint(contract(), { ...checkpoint, policyVersion: 0 }).length, 0);
 });
 
+test("policy two reuses exact accepted adventure sheets from policy one and fills ordinary outfits", () => {
+  const plan = compileWardrobeVisualAuthorityPlan([
+    contract(),
+    contract({ scene: 15, page: 31, outfit: "ordinary_outfit", description: "blue shirt and dark trousers" }),
+  ]);
+  const adventure = plan.authorities.find((entry) => entry.stateId === "reef_explorer");
+  const legacy = {
+    version: WARDROBE_VISUAL_AUTHORITY_VERSION,
+    policyVersion: 1,
+    planDigest: "legacy-plan-without-ordinary-outfits",
+    assets: [{ ...adventure, status: "accepted", storageKey: "private/adventure.png" }],
+  };
+  const accepted = acceptedWardrobeAuthorityAssets(plan, legacy);
+  assert.equal(accepted.size, 1);
+  assert.equal(accepted.get(adventure.authorityId).storageKey, "private/adventure.png");
+});
+
 test("a scene receives only the exact active outfit authority for each character", () => {
   const scene = contract();
   const assets = new Map([
@@ -114,6 +138,74 @@ test("a scene receives only the exact active outfit authority for each character
   assert.equal(references[0].authorityId, "active");
   assert.equal(references[0].characterId, "character_hero");
   assert.equal(references[0].outfitStateId, "reef_explorer");
+});
+
+test("one failed outfit is edited with only its source, continuity anchor and exact wardrobe authority", () => {
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: {
+      targetDomains: ["wardrobe"],
+      wardrobeTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_hero_ordinary",
+      }],
+    },
+    repairSource: { kind: "repair_source", path: "candidate.png" },
+    sceneReferences: [
+      { kind: "continuity", storageKey: "cover.png" },
+      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png" },
+      { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png" },
+      { kind: "adjacent_scene", storageKey: "previous.png" },
+      { kind: "identity", characterId: "character_hero", storageKey: "raw-hero.png" },
+    ],
+  });
+  assert.equal(plan.complete, true);
+  assert.equal(plan.mode, "targeted_edit");
+  assert.deepEqual(plan.references.map((reference) => reference.kind), ["repair_source", "continuity", "wardrobe"]);
+  assert.equal(plan.references.at(-1).authorityId, "wardrobe_hero_ordinary");
+});
+
+test("several failed outfits recompose the scene from canonical sheets without defective or adjacent pixels", () => {
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: {
+      targetDomains: ["wardrobe"],
+      wardrobeTargets: [
+        { characterId: "character_hero", outfitStateId: "ordinary_outfit", wardrobeAuthorityId: "wardrobe_hero_ordinary" },
+        { characterId: "character_friend", outfitStateId: "ordinary_outfit", wardrobeAuthorityId: "wardrobe_friend_ordinary" },
+      ],
+    },
+    repairSource: { kind: "repair_source", path: "candidate.png" },
+    sceneReferences: [
+      { kind: "continuity", storageKey: "cover.png" },
+      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png" },
+      { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png" },
+      { kind: "adjacent_scene", storageKey: "previous.png" },
+      { kind: "identity", characterId: "character_hero", storageKey: "raw-hero.png" },
+      { kind: "identity", characterId: "character_dog", storageKey: "dog.png" },
+    ],
+  });
+  assert.equal(plan.complete, true);
+  assert.equal(plan.mode, "canonical_scene_recompose");
+  assert.deepEqual(plan.references.map((reference) => reference.kind), ["continuity", "wardrobe", "wardrobe", "identity"]);
+  assert.equal(plan.references.at(-1).characterId, "character_dog");
+});
+
+test("a wardrobe repair is quarantined when its exact accepted authority is absent", () => {
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: {
+      targetDomains: ["wardrobe"],
+      wardrobeTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "missing_authority",
+      }],
+    },
+    repairSource: { kind: "repair_source", path: "candidate.png" },
+    sceneReferences: [{ kind: "continuity", storageKey: "cover.png" }],
+  });
+  assert.equal(plan.complete, false);
+  assert.equal(plan.mode, "quarantine");
+  assert.deepEqual(plan.references, []);
 });
 
 test("conflicting descriptions for one canonical outfit fail before image spend", () => {

@@ -306,8 +306,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the nominative wardrobe evidence recovery policy is version twenty-seven", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 27);
+test("the canonical ordinary-wardrobe recovery policy is version twenty-eight", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 28);
+});
+
+test("a book exhausted under V27 receives one canonical ordinary-wardrobe resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v27-nominative-wardrobe-book",
+      retryPolicyVersion: 27,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-22T22:15:00.000Z",
+      failureReason: "narrative_v3_illustration_evidence_incomplete",
+      phase: "strict-quarantine:page:28",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("a book exhausted under V26 receives one nominative wardrobe recovery", () => {
