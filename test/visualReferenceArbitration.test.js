@@ -26,7 +26,7 @@ function page({ medium = "fully_underwater", location = "reef", outfit = "reef_e
 }
 
 test("V19 proves adjacent render-state compatibility instead of trusting proximity", () => {
-  assert.equal(VISUAL_REFERENCE_ARBITRATION_VERSION, 19);
+  assert.equal(VISUAL_REFERENCE_ARBITRATION_VERSION, 24);
   assert.equal(visualReferenceCompatibility(page(), page()).compatible, true);
   const incompatible = visualReferenceCompatibility(
     page({ medium: "breathable_air", location: "dry room", outfit: "ordinary_outfit", equipment: [] }),
@@ -42,6 +42,7 @@ test("wardrobe rejection changes pixel authorities monotonically across V19 atte
   const references = [
     { kind: "repair_source" },
     { kind: "continuity" },
+    { kind: "wardrobe" },
     { kind: "adjacent_scene" },
     { kind: "identity" },
   ];
@@ -53,13 +54,13 @@ test("wardrobe rejection changes pixel authorities monotonically across V19 atte
   assert.equal(second, VISUAL_REFERENCE_POLICY_STAGES.ADJACENT_IDENTITY);
   assert.deepEqual(
     referencesForVisualPolicy(references, second).map((reference) => reference.kind),
-    ["adjacent_scene", "identity"],
+    ["wardrobe", "adjacent_scene", "identity"],
   );
   const third = nextVisualReferencePolicyStage(references, second, ["wardrobe_state_mismatch"]);
   assert.equal(third, VISUAL_REFERENCE_POLICY_STAGES.CONTRACT_IDENTITY);
   assert.deepEqual(
     referencesForVisualPolicy(references, third).map((reference) => reference.kind),
-    ["identity"],
+    ["wardrobe", "identity"],
   );
 });
 

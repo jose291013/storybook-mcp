@@ -69,6 +69,7 @@ export function buildSceneContinuity({
   wardrobeLocks = [],
   referenceAssets = new Map(),
   adjacentReferenceImages = [],
+  wardrobeAuthorityReferences = [],
 }) {
   const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
   const visualAliases = buildImageCharacterAliases({ blueprint, characterCanons, castPresent });
@@ -78,6 +79,7 @@ export function buildSceneContinuity({
   const characterFingerprints = [];
   const wardrobeContracts = [];
   const identityReferenceImages = [];
+  const ordinaryWardrobeReferenceImages = [];
   const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
   const ordinaryOutfits = new Map();
   for (const character of selected) {
@@ -150,16 +152,27 @@ export function buildSceneContinuity({
 
     if (photoCanon?.photoId || photoCanon?.storageKey) {
       const privateAsset = referenceAssets.get(String(photoCanon.photoId));
-      identityReferenceImages.push({
+      const privateSource = {
         ...(privateAsset?.buffer
           ? { buffer: privateAsset.buffer }
           : photoCanon.storageKey
             ? { storageKey: photoCanon.storageKey }
             : { path: uploadedPhotoPath(photoCanon.photoId) }),
+      };
+      identityReferenceImages.push({
+        ...privateSource,
         label: `${visualAlias}, ${role}: private identity-only reference; preserve stable face or animal traits faithfully, but never copy this photo's rendering medium, lighting, background or undeclared wardrobe`,
         kind: "identity",
         normalizationMode: continuityImagePath || continuityImageStorageKey ? "face_focus" : "full_and_face",
       });
+      if (strictCharacterState?.outfit?.source === "private_identity_binding") {
+        ordinaryWardrobeReferenceImages.push({
+          ...privateSource,
+          label: `${visualAlias}: LOCKED WARDROBE AUTHORITY for ordinary_outfit; preserve the broad garment types, colors and footwear visible in this private source while removing logos`,
+          kind: "wardrobe",
+          normalizationMode: "full_and_face",
+        });
+      }
     }
   }
 
@@ -173,7 +186,13 @@ export function buildSceneContinuity({
   // The approved cover must be Reference 1. Adjacent scenes provide only local
   // continuity evidence. Raw photos remain identity evidence and must never
   // outvote the book's approved visual language or the current scene contract.
-  const referenceImages = [continuityReference, ...adjacentReferenceImages, ...identityReferenceImages].filter(Boolean);
+  const referenceImages = [
+    continuityReference,
+    ...wardrobeAuthorityReferences,
+    ...ordinaryWardrobeReferenceImages,
+    ...adjacentReferenceImages,
+    ...identityReferenceImages,
+  ].filter(Boolean);
 
   const castNames = sceneRenderContract
     ? sceneRenderContract.cast.required.map((character) => character.name)

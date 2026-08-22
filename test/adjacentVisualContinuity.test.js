@@ -108,7 +108,7 @@ test("strict V3 skips a nearer adjacent scene whose wardrobe or physical state c
   });
   assert.deepEqual(references.map((reference) => reference.sourcePageNumber), [3]);
   assert.equal(references[0].stateCompatibility, "same_render_state");
-  assert.equal(references[0].referencePolicyVersion, 19);
+  assert.equal(references[0].referencePolicyVersion, 24);
 });
 
 test("paired reader text becomes bounded visual evidence beside the structured scene contract", () => {

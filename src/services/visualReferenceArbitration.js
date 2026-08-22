@@ -1,4 +1,4 @@
-export const VISUAL_REFERENCE_ARBITRATION_VERSION = 19;
+export const VISUAL_REFERENCE_ARBITRATION_VERSION = 24;
 
 export const VISUAL_REFERENCE_POLICY_STAGES = Object.freeze({
   FULL_COMPATIBLE: "full_compatible",
@@ -101,13 +101,13 @@ function kinds(references = []) {
 export function referencesForVisualPolicy(referenceImages = [], stage = VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE) {
   const references = (Array.isArray(referenceImages) ? referenceImages : []).filter(Boolean);
   if (stage === VISUAL_REFERENCE_POLICY_STAGES.ADJACENT_IDENTITY) {
-    return references.filter((reference) => ["adjacent_scene", "identity"].includes(reference?.kind));
+    return references.filter((reference) => ["wardrobe", "adjacent_scene", "identity"].includes(reference?.kind));
   }
   if (stage === VISUAL_REFERENCE_POLICY_STAGES.STYLE_IDENTITY) {
-    return references.filter((reference) => ["continuity", "identity"].includes(reference?.kind));
+    return references.filter((reference) => ["continuity", "wardrobe", "identity"].includes(reference?.kind));
   }
   if (stage === VISUAL_REFERENCE_POLICY_STAGES.CONTRACT_IDENTITY) {
-    return references.filter((reference) => reference?.kind === "identity");
+    return references.filter((reference) => ["wardrobe", "identity"].includes(reference?.kind));
   }
   return references;
 }

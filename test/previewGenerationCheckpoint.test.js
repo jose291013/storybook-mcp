@@ -307,7 +307,7 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
 });
 
 test("the provider-billing recovery policy is version twenty-four", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 24);
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 25);
 });
 
 test("provider billing unavailability remains retryable even after a consumed technical retry", () => {

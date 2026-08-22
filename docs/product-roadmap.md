@@ -1610,7 +1610,7 @@ exposure or series-canon mutation.
 
 Repository verification: 101/101 focused tests and 758/758 complete tests pass.
 
-## Candidate product brick: V23.3 provider-billing recovery
+## Product brick: V23.3 provider-billing recovery
 
 Provider-account exhaustion is a distinct operational state, even when OpenAI
 transports it as HTTP 429. The preview worker, durable blueprint boundary and
@@ -1633,6 +1633,33 @@ successful provider call until the OpenAI API organization has usable credit.
 This brick introduces no database migration, environment variable, extra model
 call, commerce-rule change, private-asset exposure or series-canon mutation.
 Repository verification: 762/762 complete tests pass.
+
+## Product brick: V24 wardrobe visual authority
+
+Strict Narrative V3 must establish visual clothing identity before generating
+interior scenes. Textual wardrobe state remains the semantic authority, but it
+is no longer expected to reproduce an identical garment across independent
+image calls. For each canonical human/adventure-outfit pair,
+`WardrobeVisualAuthority.v1` creates one private full-body model sheet from the
+exact identity source and approved cover style, then accepts it only after a
+dedicated identity, cardinality, wardrobe and style check.
+
+The accepted sheet is the sole pixel authority for that person's active
+garment design, colors, material and footwear. It is selected by exact
+character and outfit-state ids, never by proximity or prose similarity, and it
+survives every bounded reference-arbitration stage. Ordinary clothing keeps
+the private identity photo as its full-body authority. Initial illustration,
+automatic repair, creator quality alternatives and paid local edits all consume
+the same checkpointed authority.
+
+Authority creation is fail-closed and occurs before interior-page spend. A
+conflicting outfit description, missing private identity/style source or
+unaccepted model sheet stops privately without exposing an unstable page.
+Retry policy 25 reopens one bounded resume for projects quarantined under the
+former text-only wardrobe policy while preserving every accepted page. There
+is no database migration, new environment variable, commerce change, credit
+entitlement change or series-canon mutation. The authority images remain
+private assets. Verification: 767/767 complete repository tests pass.
 
 ## New environment variables
 

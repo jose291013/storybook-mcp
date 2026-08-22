@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v23-3-provider-billing-recovery`
-- Main checkpoint: PR #267 (V23.2 durable blueprint QA and repair; merge commit `3f1079f`)
-- Candidate: V23.3 provider-billing recovery
-- Current focused checkpoint: V23.2 successfully resumed project `06278fef-e7e9-4489-b95d-a2112bfedd97`, completed manuscript preparation and reached the first cover call. OpenAI then refused the image request because the organization had no API credits. V23.3 classifies that provider-account condition separately from rate limiting and technical interruption, preserves a free idempotent resume at the cover boundary and exposes only a localized Calitiki service-unavailable message. Actual illustration generation still requires the OpenAI API balance to be restored
+- Current branch: `codex/v24-wardrobe-visual-authority`
+- Main checkpoint: PR #268 (V23.3 provider-billing recovery; merge commit `4946146`)
+- Candidate: V24 WardrobeVisualAuthority.v1
+- Current focused checkpoint: project `93fa1f49-9bc7-4371-882e-33cb973914a8` resumed successfully through manuscript and most illustration generation, but strict V3 kept pages 16, 19, 20, 23, 24, 27 and 28 private because text-only outfit descriptions did not give the image model one stable pixel authority. V24 creates and validates one private full-body model sheet per character/adventure-outfit state before any interior page, reuses the exact accepted sheet across generation and later repairs, and grants one retry-policy-25 resume without discarding accepted pages
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -22,7 +22,7 @@ The Render migration replay incident is closed by the append-only migration
 ledger. This production-authority brick adds no database migration or
 environment variable.
 
-PR #55 through #267 are merged on `main`. PRs #224 through #232 published and
+PR #55 through #268 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,
 illustration evidence, delivery manifest, guarded-canary, production-shadow and
 visual-continuity checkpoints. Render was last verified Live on commit
@@ -141,7 +141,7 @@ lost to infrastructure timing.
 Repository verification for V23.2: 101/101 focused tests and 758/758 complete
 repository tests pass.
 
-## Candidate product brick: V23.3 provider-billing recovery
+## Product brick: V23.3 provider-billing recovery
 
 OpenAI may report exhausted organization credit with HTTP 429 even though the
 condition is neither a transient rate limit nor a Calitiki generation defect.
@@ -161,6 +161,30 @@ provider account and cannot generate an image until API credit is available.
 There is no migration, environment variable, model call, commerce-rule change,
 private-asset exposure or series-canon mutation. Repository verification for
 V23.3: 762/762 complete tests pass.
+
+## Candidate product brick: V24 WardrobeVisualAuthority.v1
+
+Strict V3 now seals pixel-level clothing authority before the first interior
+page. `WardrobeVisualAuthority.v1` deterministically groups each visible human
+by canonical character id and active non-ordinary outfit state, rejects
+conflicting descriptions, and generates one private neutral full-body model
+sheet from the exact identity reference plus the approved cover style. A
+dedicated four-domain check must confirm identity, one-person cardinality,
+outfit and rendering family before the sheet may be checkpointed or used.
+
+Every scene receives only the sheet matching that character's exact active
+outfit state. The reference remains present throughout the monotonic image
+retry stages, while ordinary clothes continue to use the customer's private
+full-body identity source. Automatic repair, creator quality alternatives and
+paid local modifications reload the same private checkpoint authority, so a
+later correction cannot silently restore obsolete clothing. Retry policy 25
+opens one bounded resume for the current strict-quarantine project and reuses
+all previously accepted pages.
+
+This introduces no database migration, environment variable, commerce rule,
+credit entitlement or series-canon mutation. The generated model sheets are
+private preview assets and are never exposed as book pages. Repository
+verification: 767/767 complete tests pass.
 
 ## Product brick: V3 provider-safety page isolation
 

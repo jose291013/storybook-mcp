@@ -128,8 +128,8 @@ test("the V3 image adapter uses the concrete render contract instead of photo wa
       ],
     },
     characterCanons: [
-      { name: "Mathéo", role: "child", outfit_lock: "blue photo T-shirt" },
-      { name: "Nolan", role: "family", outfit_lock: "white photo T-shirt" },
+      { name: "Mathéo", role: "child", photoId: "matheo.jpg", outfit_lock: "blue photo T-shirt" },
+      { name: "Nolan", role: "family", photoId: "nolan.jpg", outfit_lock: "white photo T-shirt" },
       { name: "Alexandra", role: "family", outfit_lock: "turquoise photo top" },
     ],
     castPresent: ["Mathéo", "Nolan"],
@@ -143,4 +143,7 @@ test("the V3 image adapter uses the concrete render contract instead of photo wa
     continuity.sceneFidelityContract.wardrobe_contracts[1].required_outfit,
     "white photo T-shirt",
   );
+  assert.equal(continuity.referenceImages[0].kind, "wardrobe");
+  assert.match(continuity.referenceImages[0].label, /ordinary_outfit/u);
+  assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
 });

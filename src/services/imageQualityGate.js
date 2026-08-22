@@ -1168,7 +1168,7 @@ export async function inspectStrictV3IllustrationEvidence({
     .jpeg({ quality: 88 })
     .toBuffer();
   const selectedReferences = (Array.isArray(referenceImages) ? referenceImages : [])
-    .filter((reference) => ["identity", "continuity", "adjacent_scene", "adjacent_continuity"].includes(reference?.kind))
+    .filter((reference) => ["identity", "wardrobe", "continuity", "adjacent_scene", "adjacent_continuity"].includes(reference?.kind))
     .slice(0, 7);
   const evidence = (await Promise.all(selectedReferences.map(async (reference) => {
     const source = await referenceSource(reference);
@@ -1216,7 +1216,7 @@ Return only JSON with all ten model-assessed keys (asset_integrity is determinis
       ...evidence.map((entry) => ({
         type: "input_image",
         image_url: `data:image/jpeg;base64,${entry.buffer.toString("base64")}`,
-        detail: entry.kind === "identity" ? "high" : "low",
+        detail: ["identity", "wardrobe"].includes(entry.kind) ? "high" : "low",
       })),
     ] }],
     max_output_tokens: 700,
