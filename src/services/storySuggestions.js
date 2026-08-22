@@ -13,7 +13,21 @@ function clean(value, maximum = 900) {
   return String(value || "").trim().slice(0, maximum);
 }
 
-export function normalizeStorySuggestions(value) {
+function participantRefs(value, availableCast = []) {
+  const allowed = new Set(availableCast.map((entry) => clean(entry?.ref, 160)).filter(Boolean));
+  const required = new Set(availableCast
+    .filter((entry) => ["hero", "ally", "companion"].includes(clean(entry?.story_role || entry?.storyRole, 40).toLowerCase()))
+    .map((entry) => clean(entry?.ref, 160))
+    .filter(Boolean));
+  const supplied = Array.isArray(value) ? value.map((entry) => clean(entry, 160)).filter(Boolean) : [];
+  if (!allowed.size) return supplied.length ? [...new Set(supplied)].slice(0, 8) : ["hero"];
+  if (!supplied.length || supplied.some((entry) => !allowed.has(entry))) return null;
+  const normalized = [...new Set(supplied)];
+  if ([...required].some((entry) => !normalized.includes(entry))) return null;
+  return normalized;
+}
+
+export function normalizeStorySuggestions(value, { availableCast = [] } = {}) {
   const supplied = Array.isArray(value?.suggestions) ? value.suggestions : [];
   return IDS.map((id) => {
     const item = supplied.find((candidate) => clean(candidate?.id, 40) === id);
@@ -35,8 +49,9 @@ export function normalizeStorySuggestions(value) {
       transformation: clean(item.transformation, 500),
       message: clean(item.message || item.transformation, 500),
       emotional_tone: clean(item.emotional_tone || item.emotionalTone || item.transformation, 300),
+      participant_refs: participantRefs(item.participant_refs || item.participantRefs, availableCast),
     };
-    return Object.values(normalized).every(Boolean) ? normalized : null;
+    return Object.values(normalized).every((entry) => Array.isArray(entry) ? entry.length > 0 : Boolean(entry)) ? normalized : null;
   }).filter(Boolean);
 }
 
@@ -57,10 +72,16 @@ export async function createStorySuggestions(input = {}) {
       universe_id: clean(input.universeId, 80),
       universe: clean(input.universe, 200),
       universe_story_contract: input.universeStoryContract || {},
+      available_cast: (input.storyCast || []).slice(0, 8).map((entry) => ({
+        ref: clean(entry?.ref, 160),
+        name: clean(entry?.name, 120),
+        story_role: clean(entry?.storyRole || entry?.story_role, 40),
+        relationship: clean(entry?.relationship, 120),
+      })).filter((entry) => entry.ref && entry.name && entry.story_role),
       sensitivity_contract: input.sensitivityContract || null,
     },
   });
-  const suggestions = normalizeStorySuggestions(result);
+  const suggestions = normalizeStorySuggestions(result, { availableCast: input.storyCast || [] });
   if (suggestions.length !== IDS.length) throw new Error("The inspiration model returned an incomplete suggestion set");
   return suggestions;
 }

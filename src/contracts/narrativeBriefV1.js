@@ -7,7 +7,11 @@ import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
 
 export const NARRATIVE_BRIEF_VERSION = 1;
 export const NARRATIVE_BRIEF_ID = "calitiki.narrative-brief.v1";
-export const NARRATIVE_BRIEF_BUILDER_VERSION = 1;
+// Version 2 adds the exact participant promise selected in the adventure card
+// to the authoritative traveler set. Version 1 artifacts remain readable but
+// are never rewritten, so an in-progress approved book keeps its original
+// immutable brief while newly created books receive the stronger authority.
+export const NARRATIVE_BRIEF_BUILDER_VERSION = 2;
 
 const AUTHORITY_FIELDS = Object.freeze([
   ["situation", ["creator_situation", "message", "challenge"]],
@@ -98,10 +102,15 @@ function purposePlan(storyRoles) {
   });
 }
 
-function castPlan(intent, semanticCast, age, scenePurposes) {
+function castPlan(intent, semanticCast, age, scenePurposes, promisedTravelerKeys = []) {
   const byKey = new Map((semanticCast || []).map((entry) => [entry.key, entry]));
   const hero = intent.cast.find((entry) => entry.role === "hero");
   const naturalTravelers = intent.cast.filter((entry) => ["hero", "companion", "peer"].includes(entry.role));
+  for (const characterKey of promisedTravelerKeys) {
+    const promised = intent.cast.find((entry) => entry.characterKey === characterKey);
+    if (!promised) fail("narrative_brief_promised_traveler_unknown", "/castPlan/travelerKeys", "A promised traveler is not part of the creation-intent cast.");
+    if (!naturalTravelers.some((entry) => entry.characterKey === promised.characterKey)) naturalTravelers.push(promised);
+  }
   if (naturalTravelers.length === 1 && age <= 7) {
     const adultSupport = intent.cast.find((entry) => ["guide", "family"].includes(entry.role));
     if (adultSupport) naturalTravelers.push(adultSupport);
@@ -177,7 +186,13 @@ export function buildNarrativeBriefV1({ creationIntent: rawIntent, worldLaw: raw
   const authority = Object.fromEntries([...resolved].map(([key, value]) => [key, value.text]));
   const storyRoles = createStoryRoles(intent.book.pageCount);
   const scenePurposes = purposePlan(storyRoles);
-  const plannedCast = castPlan(intent, semanticSource?.cast || [], intent.audience.age, scenePurposes);
+  const plannedCast = castPlan(
+    intent,
+    semanticSource?.cast || [],
+    intent.audience.age,
+    scenePurposes,
+    semanticSource?.storySeed?.promisedTravelerKeys || [],
+  );
   const assignedMilestoneScenes = milestoneScenes(scenePurposes);
   const milestones = MILESTONE_AUTHORITY.map(([milestoneId, authorityKey]) => ({
     milestoneId,

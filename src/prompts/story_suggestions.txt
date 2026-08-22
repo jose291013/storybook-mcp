@@ -21,6 +21,13 @@ Each suggestion must:
 - avoid brands, copyrighted characters, frightening danger, diagnosis, trauma and moralizing;
 - remain a proposal that the creator can freely edit.
 
+The input contains available_cast with opaque ref values. Character participation is structural, not inferred later from prose:
+- participant_refs must list the exact available_cast refs of every personalized character who physically undertakes the core adventure;
+- always include the hero;
+- every character whose story_role is ally or companion must be included because the creator explicitly chose that participation role;
+- guide, supporter and guest may be included only when this exact proposal makes them physical co-adventurers;
+- never invent, rename or omit a ref, and make the reader-facing proposal agree with this list.
+
 The three stable ids are mandatory for backward compatibility, but their narrative approaches must be meaningfully different:
 1. teamwork -> relational: relationships, mutual help and one natural dialogue or shared decision;
 2. discovery -> symbolic: a magical mystery or evolving symbol that gives the real situation an indirect imaginative meaning;
@@ -49,7 +56,8 @@ OUTPUT
       "resolution": "one concise credible resolution",
       "transformation": "one warm inner realization",
       "message": "the final meaning learned through action, not a lecture",
-      "emotional_tone": "one concise emotional progression"
+      "emotional_tone": "one concise emotional progression",
+      "participant_refs": ["exact opaque refs copied from available_cast"]
     },
     {
       "id": "discovery",
@@ -67,7 +75,8 @@ OUTPUT
       "resolution": "",
       "transformation": "",
       "message": "",
-      "emotional_tone": ""
+      "emotional_tone": "",
+      "participant_refs": []
     },
     {
       "id": "creation",
@@ -85,7 +94,8 @@ OUTPUT
       "resolution": "",
       "transformation": "",
       "message": "",
-      "emotional_tone": ""
+      "emotional_tone": "",
+      "participant_refs": []
     }
   ]
 }

@@ -102,7 +102,7 @@
     "validation": {
       "type": "object", "additionalProperties": false,
       "required": ["builderVersion", "artifactDigest"],
-      "properties": { "builderVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } }
+      "properties": { "builderVersion": { "enum": [1, 2] }, "artifactDigest": { "$ref": "#/$defs/digest" } }
     }
   },
   "$defs": {

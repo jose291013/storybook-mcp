@@ -6,6 +6,7 @@ import {
   assertStoryConceptFollowsNarrativeBrief,
   buildNarrativeBriefV1,
   loadNarrativeBriefV1,
+  narrativeBriefDigest,
   narrativeBriefForModel,
 } from "../src/contracts/narrativeBriefV1.js";
 import { parseStoryConceptWire } from "../src/contracts/narrativeV3Canonical.js";
@@ -46,6 +47,7 @@ function project({ pageCount = 32, universeId = "coral_ocean" } = {}) {
       story_seed_transformation: "Il comprend qu'ajuster son idée est une force",
       story_seed_message: "Recommencer autrement fait avancer",
       story_seed_emotional_tone: "merveilleux, rassurant et actif",
+      story_seed_participant_refs: JSON.stringify(["hero", "brother-photo"]),
       universe_id: universeId,
       style_id: "soft_watercolor",
       language: "FR",
@@ -57,7 +59,7 @@ function project({ pageCount = 32, universeId = "coral_ocean" } = {}) {
     },
     photoRefs: [
       { id: "hero-photo", role: "child", story_role: "hero", name: "Mathéo", relationship: "héros" },
-      { id: "brother-photo", role: "friend", story_role: "companion", name: "Nolan", relationship: "petit frère" },
+      { id: "brother-photo", role: "family", story_role: "companion", name: "Nolan", relationship: "petit frère" },
       { id: "mother-photo", role: "family", story_role: "guide", name: "Alexandra", relationship: "maman" },
       { id: "father-photo", role: "family", story_role: "supporter", name: "Jérôme", relationship: "papa" },
     ],
@@ -109,8 +111,16 @@ test("NarrativeBrief.v1 preserves every selected intention and story-seed author
   assert.equal(brief.narrativeAuthority.peakMoment, "Mathéo arrête le groupe et corrige lui-même le dernier trajet");
   assert.equal(brief.narrativeAuthority.transformation, "Il comprend qu'ajuster son idée est une force");
   assert.equal(brief.provenance.find((entry) => entry.authorityKey === "child_owned_action").sourceField, "story_seed_active_role");
+  assert.equal(brief.validation.builderVersion, 2);
   assert.equal(loadNarrativeBriefV1(structuredClone(brief)).validation.artifactDigest, brief.validation.artifactDigest);
   assert.equal(Object.isFrozen(brief), true);
+});
+
+test("NarrativeBrief builder 2 keeps immutable builder 1 artifacts readable", () => {
+  const legacy = structuredClone(briefFor());
+  legacy.validation.builderVersion = 1;
+  legacy.validation.artifactDigest = narrativeBriefDigest(legacy);
+  assert.equal(loadNarrativeBriefV1(legacy).validation.builderVersion, 1);
 });
 
 test("the brief exposes typed underwater physics before creative generation", () => {
@@ -136,6 +146,22 @@ test("the deterministic participation plan separates travelers from origin witne
   }
   assert.ok(brief.scenePlan.some((scene) => scene.participantKeys.includes("alexandra")));
   assert.ok(brief.scenePlan.some((scene) => scene.participantKeys.includes("jerome")));
+});
+
+test("the selected story role and proposal participant promise outrank the photo relationship", () => {
+  const input = project();
+  input.questionnaire.story_seed_participant_refs = JSON.stringify(["hero", "father-photo"]);
+  const source = buildNarrativeV3ProjectSource(input);
+  assert.equal(source.intent.cast.find((entry) => entry.characterKey === "nolan").role, "companion");
+  assert.deepEqual(source.semanticSource.storySeed.promisedTravelerKeys, ["hero", "jerome"]);
+  const brief = buildNarrativeBriefV1({
+    creationIntent: source.intent,
+    worldLaw: buildWorldLawContractV1(source.intent),
+    normalized: source.normalized,
+    semanticSource: source.semanticSource,
+  });
+  assert.deepEqual(brief.castPlan.travelerKeys, ["hero", "nolan", "jerome"]);
+  assert.deepEqual(brief.castPlan.originWitnessKeys, ["alexandra"]);
 });
 
 test("every sellable format receives one complete ordered narrative spine", () => {

@@ -71,9 +71,18 @@ export function narrativeV3ProductionShadowEligibility({ project, identity } = {
   return Object.freeze({ eligible: true, reason: "allowlisted_shadow" });
 }
 
-function castRole(photo = {}) {
+const CANONICAL_ROLE_BY_SELECTED_ROLE = Object.freeze({
+  guide: "guide",
+  ally: "peer",
+  companion: "companion",
+  supporter: "family",
+  guest: "family",
+});
+
+export function canonicalNarrativeCastRole(photo = {}) {
   if (photo.role === "mascot") return "companion";
-  if (photo.story_role === "guide") return "guide";
+  const selectedRole = clean(photo.story_role || photo.storyRole, 40).toLowerCase();
+  if (CANONICAL_ROLE_BY_SELECTED_ROLE[selectedRole]) return CANONICAL_ROLE_BY_SELECTED_ROLE[selectedRole];
   if (photo.role === "family") return "family";
   return "peer";
 }
@@ -85,6 +94,7 @@ function buildCast(project, normalized) {
     characterKey: "hero",
     profileRef: heroPhoto ? `reference-photo:${heroPhoto.id}` : `project:${project.id}:hero`,
     role: "hero",
+    sourceRef: "hero",
     kind: "human",
     displayName: clean(normalized.answers.hero_name, 120) || "Hero",
     photo: heroPhoto || null,
@@ -98,7 +108,8 @@ function buildCast(project, normalized) {
     cast.push({
       characterKey: key,
       profileRef: `reference-photo:${photo.id}`,
-      role: castRole(photo),
+      role: canonicalNarrativeCastRole(photo),
+      sourceRef: clean(photo.participant_ref || photo.id, 160),
       kind: photo.role === "mascot" ? "animal" : "human",
       displayName: clean(photo.name, 120) || `Character ${index + 2}`,
       photo,
@@ -116,6 +127,20 @@ export function buildNarrativeV3ProjectSource(project = {}) {
   const climaxScene = actTwoEnd + 1;
   const returnScene = Math.min(sceneCount - 1, climaxScene + 1);
   const previousCanon = project?.continuitySnapshot?.seriesContext?.narrativeCanon || null;
+  let promisedParticipantRefs = [];
+  if (normalized.answers.story_seed_participant_refs) {
+    try {
+      const parsed = JSON.parse(normalized.answers.story_seed_participant_refs);
+      if (!Array.isArray(parsed)) throw new Error("participant refs must be an array");
+      promisedParticipantRefs = [...new Set(parsed.map((entry) => clean(entry, 160)).filter(Boolean))];
+    } catch {
+      throw new Error("The selected adventure contains an invalid participant contract.");
+    }
+  }
+  const castBySourceRef = new Map(cast.map((entry) => [entry.sourceRef, entry.characterKey]));
+  const unknownParticipantRef = promisedParticipantRefs.find((entry) => !castBySourceRef.has(entry));
+  if (unknownParticipantRef) throw new Error("The selected adventure refers to a character who is no longer available.");
+  const promisedTravelerKeys = promisedParticipantRefs.map((entry) => castBySourceRef.get(entry));
   const semanticSource = {
     language: normalized.answers.language,
     audienceAge: Math.max(2, Math.min(14, Number.parseInt(normalized.answers.age, 10) || 7)),
@@ -158,6 +183,7 @@ export function buildNarrativeV3ProjectSource(project = {}) {
       transformation: normalized.answers.story_seed_transformation,
       message: normalized.answers.story_seed_message,
       emotionalTone: normalized.answers.story_seed_emotional_tone,
+      promisedTravelerKeys,
     },
     cast: cast.map((entry) => ({
       key: entry.characterKey,
@@ -165,6 +191,7 @@ export function buildNarrativeV3ProjectSource(project = {}) {
       role: entry.role,
       kind: entry.kind,
       relationship: clean(entry.photo?.relationship, 120),
+      selectedStoryRole: clean(entry.photo?.story_role || "hero", 40),
     })),
     requiredStructure: {
       crossingSceneRange: [actOneCount + 1, actTwoEnd],

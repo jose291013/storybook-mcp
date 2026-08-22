@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-21
+Last updated: 2026-08-22
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -10,6 +10,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch after publication: `main`
 - Main checkpoint after publication: PR #262 (V3 scene prose authority V22; merge commit `28417f4`)
+- Draft candidate: PR #264 (V3 adventure participation authority V23); do not merge or deploy until the current book has finished generating
 - Current focused checkpoint: after Render is Live on PR #262, resume project `b0608ff9-c041-426c-bc82-e80854db4edc` once. Logs must show `[preview] strict V3 manuscript scene-cast preflight` before the V21 word preflight and V20 text authority; accepted images must remain unchanged
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
@@ -230,6 +231,33 @@ no database migration, environment variable, commerce, credit, private-asset
 or series-canon change.
 
 Repository verification for V22: 45/45 focused tests and 750/750 complete tests
+pass.
+
+## Candidate product brick: V3 adventure participation authority V23
+
+Adventure suggestions now seal their promised participants with opaque
+participant references and display their names on the proposal card before the
+customer chooses it. The proposal contract requires the hero plus every cast
+member whose selected narrative role is `ally` or `companion`; an unknown or
+missing reference is rejected before scenario generation.
+
+For new books, the exact creator-selected narrative role is preserved when the
+CreationIntent cast is compiled instead of being replaced by the participant's
+photo relationship. NarrativeBrief builder version 2 unions the chosen
+proposal participants with its deterministic traveler set. That single set is
+then authoritative for passage participation, adventure presences, equipment
+and wardrobe. Builder version 1 artifacts remain readable and immutable, so
+the current approved scenario and every existing book are deliberately left
+unchanged.
+
+There is no migration, environment variable, commerce, credit, private-asset
+or series-canon change. The next production verification must use a newly
+created book whose family-photo participant is selected as the companion:
+their name must appear on the proposal card and they must cross and receive the
+adventure outfit with the hero. Do not restart Render while the current book is
+generating.
+
+Repository verification for V23: 23/23 focused tests and 753/753 complete tests
 pass.
 
 ## Current architecture decision: Narrative V3
