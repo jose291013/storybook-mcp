@@ -95,6 +95,11 @@
         "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
         "objectStateDigest": { "$ref": "#/$defs/digest" },
         "physicalState": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/physicalState" },
+        "requiredElements": {
+          "type": "array",
+          "maxItems": 20,
+          "items": { "type": "string", "minLength": 1, "maxLength": 500 }
+        },
         "mainAction": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/illustration/properties/mainAction" }
       }
     },
@@ -129,7 +134,7 @@
       "additionalProperties": false,
       "required": ["compilerVersion", "artifactDigest"],
       "properties": {
-        "compilerVersion": { "type": "integer", "enum": [1, 2] },
+        "compilerVersion": { "type": "integer", "enum": [1, 2, 3] },
         "artifactDigest": { "$ref": "#/$defs/digest" }
       }
     }

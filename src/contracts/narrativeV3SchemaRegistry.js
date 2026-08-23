@@ -23,6 +23,7 @@ export const creationIntentSchema = readSchema("creationIntent.v1.schema.json");
 export const visualIntentSchema = readSchema("visualIntent.v1.schema.json");
 export const worldLawContractSchema = readSchema("worldLawContract.v1.schema.json");
 export const narrativeBriefSchema = readSchema("narrativeBrief.v1.schema.json");
+export const journeyLifecycleSchema = readSchema("journeyLifecycle.v1.schema.json");
 export const characterStateTimelineSchema = readSchema("characterStateTimeline.v1.schema.json");
 export const narrativeBookSpecV2Schema = readSchema("narrativeBookSpec.v2.schema.json");
 export const objectLifecycleProjectionSchema = readSchema("objectLifecycleProjection.v1.schema.json");
@@ -44,6 +45,7 @@ ajv.addSchema(creationIntentSchema);
 ajv.addSchema(visualIntentSchema);
 ajv.addSchema(worldLawContractSchema);
 ajv.addSchema(narrativeBriefSchema);
+ajv.addSchema(journeyLifecycleSchema);
 ajv.addSchema(characterStateTimelineSchema);
 ajv.addSchema(storyConceptWireSchema);
 ajv.addSchema(storyConceptSchema);
@@ -70,6 +72,7 @@ const validators = new Map([
   ["visual_intent", ajv.getSchema(visualIntentSchema.$id)],
   ["world_law_contract", ajv.getSchema(worldLawContractSchema.$id)],
   ["narrative_brief", ajv.getSchema(narrativeBriefSchema.$id)],
+  ["journey_lifecycle", ajv.getSchema(journeyLifecycleSchema.$id)],
   ["character_state_timeline", ajv.getSchema(characterStateTimelineSchema.$id)],
   ["story_concept_wire", ajv.getSchema(storyConceptWireSchema.$id)],
   ["story_concept", ajv.getSchema(storyConceptSchema.$id)],

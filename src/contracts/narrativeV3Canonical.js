@@ -133,6 +133,7 @@ export function parseStoryConceptWire(wireValue) {
     beats: wireValue.beats.map((beat) => ({
       beatKey: beat.beat_key,
       purpose: beat.purpose,
+      ...(beat.journey_phase ? { journeyPhase: beat.journey_phase } : {}),
       summary: beat.summary,
       emotionalShift: beat.emotional_shift,
       distinctiveImage: beat.distinctive_image,

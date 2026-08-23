@@ -1772,6 +1772,37 @@ series-canon mutation.
 Verification: 53/53 focused split-authority tests and 784/784 complete
 repository tests pass.
 
+## V26 universal journey lifecycle authority
+
+Portal-style adventures must no longer depend on prose inference for their
+physical beginning and ending. `JourneyLifecycle.v1` is compiled from the exact
+NarrativeBrief, WorldLaw and VisualIntent before StoryConcept. It owns one
+ordered lifecycle for every supported universe and sellable length:
+
+1. ordinary life in original clothing, with the passage still hidden;
+2. an accidental or magical event reveals the passage and one complete
+   adventure outfit per traveler beside it;
+3. preparation on the origin side, where ordinary clothes are folded and the
+   travelers put on their adventure outfits and required equipment;
+4. all travelers cross the same passage outward while origin witnesses stay;
+5. the adventure obeys the universe's physical medium and keeps outfits stable;
+6. all travelers cross the same passage in reverse, still in adventure dress;
+7. only after returning, they retrieve and wear their ordinary clothes and
+   visibly store the adventure outfits and conditional equipment.
+
+The server binds every concept beat to its exact lifecycle phase, rejects any
+creative reinterpretation, and projects outfit/equipment state through the
+character timeline. Canonical mechanics translate lifecycle facts into bounded
+visual proof sentences. V3 compiler version 3 seals those proofs in the final
+illustration instant so generation and QA consume the same authority. A matrix
+test covers all six universes and all six sellable page counts, plus the Santi
+counterexample that previously compressed discovery, preparation and return.
+
+Migration 034 expands only V3 artifact and pointer type constraints for the new
+`journey_lifecycle` artifact. Existing immutable artifacts remain readable.
+There is no new environment variable, model call class, commerce or credit
+rule, customer-data exposure, acceptance relaxation or series-canon mutation.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

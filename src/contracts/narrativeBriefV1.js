@@ -8,10 +8,10 @@ import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
 export const NARRATIVE_BRIEF_VERSION = 1;
 export const NARRATIVE_BRIEF_ID = "calitiki.narrative-brief.v1";
 // Version 2 adds the exact participant promise selected in the adventure card
-// to the authoritative traveler set. Version 1 artifacts remain readable but
-// are never rewritten, so an in-progress approved book keeps its original
-// immutable brief while newly created books receive the stronger authority.
-export const NARRATIVE_BRIEF_BUILDER_VERSION = 2;
+// to the authoritative traveler set. Version 3 keeps every traveler physically
+// present for the post-return clothing restoration. Older artifacts remain
+// readable but are never rewritten.
+export const NARRATIVE_BRIEF_BUILDER_VERSION = 3;
 
 const AUTHORITY_FIELDS = Object.freeze([
   ["situation", ["creator_situation", "message", "challenge"]],
@@ -133,9 +133,17 @@ function castPlan(intent, semanticCast, age, scenePurposes, promisedTravelerKeys
     };
   });
   let originCursor = 0;
-  const participants = scenePurposes.map((purpose) => {
+  const returnIndex = scenePurposes.lastIndexOf("return");
+  const participants = scenePurposes.map((purpose, index) => {
     if (["crossing", "attempt", "setback", "choice", "climax", "return"].includes(purpose)) return [...travelerKeys];
     if (purpose === "preparation") {
+      const witness = originWitnessKeys[originCursor++ % Math.max(1, originWitnessKeys.length)];
+      return [...new Set([...travelerKeys, ...(witness ? [witness] : [])])];
+    }
+    // The first origin scene after the return is the deterministic restoration
+    // scene: every traveler must be physically present to recover ordinary
+    // clothes and store the adventure equipment they actually carried.
+    if (returnIndex >= 0 && index === returnIndex + 1) {
       const witness = originWitnessKeys[originCursor++ % Math.max(1, originWitnessKeys.length)];
       return [...new Set([...travelerKeys, ...(witness ? [witness] : [])])];
     }

@@ -11,6 +11,11 @@ import {
 } from "../src/contracts/narrativeBriefV1.js";
 import { parseStoryConceptWire } from "../src/contracts/narrativeV3Canonical.js";
 import { buildWorldLawContractV1 } from "../src/contracts/worldLawContractV1.js";
+import {
+  assertStoryConceptFollowsJourneyLifecycle,
+  buildJourneyLifecycleV1,
+  journeyLifecycleForModel,
+} from "../src/contracts/journeyLifecycleV1.js";
 import { buildNarrativeV3ProjectSource } from "../src/services/narrativeV3ProductionShadow.js";
 
 function project({ pageCount = 32, universeId = "coral_ocean" } = {}) {
@@ -77,6 +82,18 @@ function briefFor(options) {
   });
 }
 
+function lifecycleFor(options) {
+  const source = buildNarrativeV3ProjectSource(project(options));
+  const worldLaw = buildWorldLawContractV1(source.intent);
+  const narrativeBrief = buildNarrativeBriefV1({
+    creationIntent: source.intent,
+    worldLaw,
+    normalized: source.normalized,
+    semanticSource: source.semanticSource,
+  });
+  return buildJourneyLifecycleV1({ narrativeBrief, worldLaw, visualIntent: source.visualIntent });
+}
+
 function wireFromBrief(brief) {
   return {
     schema_version: 1,
@@ -111,12 +128,12 @@ test("NarrativeBrief.v1 preserves every selected intention and story-seed author
   assert.equal(brief.narrativeAuthority.peakMoment, "Mathéo arrête le groupe et corrige lui-même le dernier trajet");
   assert.equal(brief.narrativeAuthority.transformation, "Il comprend qu'ajuster son idée est une force");
   assert.equal(brief.provenance.find((entry) => entry.authorityKey === "child_owned_action").sourceField, "story_seed_active_role");
-  assert.equal(brief.validation.builderVersion, 2);
+  assert.equal(brief.validation.builderVersion, 3);
   assert.equal(loadNarrativeBriefV1(structuredClone(brief)).validation.artifactDigest, brief.validation.artifactDigest);
   assert.equal(Object.isFrozen(brief), true);
 });
 
-test("NarrativeBrief builder 2 keeps immutable builder 1 artifacts readable", () => {
+test("NarrativeBrief builder 3 keeps immutable builder 1 artifacts readable", () => {
   const legacy = structuredClone(briefFor());
   legacy.validation.builderVersion = 1;
   legacy.validation.artifactDigest = narrativeBriefDigest(legacy);
@@ -175,6 +192,52 @@ test("every sellable format receives one complete ordered narrative spine", () =
     assert.equal(brief.milestones.length, 8);
     assert.ok(brief.milestones.every((milestone) => milestone.sceneNumbers.every((sceneNumber) => sceneNumber <= brief.sceneCount)));
   }
+});
+
+test("every universe and sellable format receives one complete portal round trip", () => {
+  for (const universeId of ["enchanted_forest", "starry_space", "coral_ocean", "cloud_castle", "dinosaur_valley", "wonder_city"]) {
+    for (const pageCount of [24, 28, 32, 36, 40, 44]) {
+      const lifecycle = lifecycleFor({ pageCount, universeId });
+      const phases = lifecycle.sceneStates.map((scene) => scene.phase);
+      for (const phase of ["passage_discovery", "journey_preparation", "outbound_crossing", "inbound_crossing", "restoration_and_storage"]) {
+        assert.equal(phases.filter((value) => value === phase).length, 1, `${universeId}:${pageCount}:${phase}`);
+      }
+      const discovery = phases.indexOf("passage_discovery");
+      const preparation = phases.indexOf("journey_preparation");
+      const outbound = phases.indexOf("outbound_crossing");
+      const inbound = phases.indexOf("inbound_crossing");
+      const restoration = phases.indexOf("restoration_and_storage");
+      assert.deepEqual([preparation, outbound, restoration], [discovery + 1, preparation + 1, inbound + 1]);
+      assert.ok(inbound > outbound);
+      assert.equal(lifecycle.sceneStates[inbound].travelerOutfitModeAfter, "adventure");
+      assert.equal(lifecycle.sceneStates[restoration].travelerOutfitModeAfter, "ordinary");
+      assert.equal(lifecycle.sceneStates[restoration].ordinaryClothesLocationAfter, "worn_by_travelers");
+      assert.equal(lifecycle.sceneStates[restoration].adventureOutfitsLocationAfter, "stored_at_boundary");
+      const brief = briefFor({ pageCount, universeId });
+      for (const index of [preparation, outbound, inbound, restoration]) {
+        assert.deepEqual(
+          brief.castPlan.travelerKeys.filter((key) => !brief.scenePlan[index].participantKeys.includes(key)),
+          [],
+          `${universeId}:${pageCount}:traveler-presence:${index + 1}`,
+        );
+      }
+    }
+  }
+});
+
+test("the Santi counterexample cannot compress discovery, crossing or clothing restoration", () => {
+  const lifecycle = lifecycleFor({ pageCount: 36, universeId: "dinosaur_valley" });
+  const model = journeyLifecycleForModel(lifecycle);
+  const brief = briefFor({ pageCount: 36, universeId: "dinosaur_valley" });
+  const wire = wireFromBrief(brief);
+  wire.beats.forEach((beat, index) => { beat.journey_phase = model.scene_states[index].journey_phase; });
+  const concept = parseStoryConceptWire(wire);
+  assert.equal(assertStoryConceptFollowsJourneyLifecycle(lifecycle, concept), true);
+  const discovery = model.scene_states.find((scene) => scene.journey_phase === "passage_discovery");
+  const restoration = model.scene_states.find((scene) => scene.journey_phase === "restoration_and_storage");
+  assert.ok(discovery.required_event_ids.includes("adventure_outfits_found_beside_passage"));
+  assert.ok(restoration.required_event_ids.includes("ordinary_clothes_retrieved"));
+  assert.ok(restoration.required_event_ids.includes("adventure_outfits_stored"));
 });
 
 test("a creative response cannot reinterpret the selected arc, cast or scene spine", () => {

@@ -6,6 +6,7 @@ import { loadVisualIntentV1 } from "./visualIntentV1.js";
 import { loadCharacterStateTimelineV1 } from "./characterStateTimelineV1.js";
 import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
 import { compileScenePhysicalStateV1 } from "./scenePhysicalStateV1.js";
+import { loadJourneyLifecycleV1 } from "./journeyLifecycleV1.js";
 import {
   assertNarrativeV3Schema,
   NarrativeV3ContractError,
@@ -16,6 +17,29 @@ export const CANONICAL_STORY_MECHANICS_ID = "calitiki.canonical-story-mechanics.
 export const CANONICAL_STORY_MECHANICS_BUILDER_VERSION = 2;
 
 const CANONICAL_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,119}$/;
+
+const JOURNEY_VISUAL_PROOFS = Object.freeze({
+  ordinary_clothes_visible: "The travelers visibly wear their ordinary origin clothes.",
+  passage_not_yet_revealed: "The passage has not yet been revealed.",
+  revelation_cause_visible: "The accidental or magical cause that reveals the passage is visibly happening.",
+  passage_visible_without_crossing: "The complete passage is visible, but nobody has crossed it yet.",
+  one_adventure_outfit_per_traveler_beside_passage: "Exactly one complete adventure outfit per traveler is visible beside the passage.",
+  change_occurs_on_origin_side: "The travelers change clothes on the origin side of the passage.",
+  ordinary_clothes_folded_at_boundary: "Each traveler's ordinary clothes are folded and stored beside the passage.",
+  adventure_outfits_worn_once_per_traveler: "Every traveler wears exactly one complete adventure outfit.",
+  same_passage_outbound_crossing: "The travelers cross the one previously discovered passage outbound.",
+  all_travelers_in_adventure_outfits: "Every traveler crosses in the prepared adventure outfit.",
+  no_origin_witness_crosses: "Origin witnesses remain on the origin side.",
+  adventure_outfits_remain_stable: "The same adventure outfits remain stable throughout the adventure.",
+  world_physics_apply: "Posture, movement, clothing and equipment obey the adventure world's physical medium.",
+  same_passage_reverse_crossing: "The travelers return through the same passage in the opposite direction.",
+  travelers_still_wear_adventure_outfits: "Travelers still wear their adventure outfits during the return crossing.",
+  restoration_occurs_on_origin_side: "Clothing restoration happens only after everyone is back on the origin side.",
+  ordinary_clothes_worn_again: "Every traveler has retrieved and wears the same ordinary clothes as before departure.",
+  adventure_outfits_folded_at_boundary: "The adventure outfits are visibly folded and stored beside the passage.",
+  journey_equipment_stored: "Conditional journey equipment is removed and stored.",
+  journey_is_physically_settled: "The returned travelers, clothing and equipment are physically settled at the origin.",
+});
 
 function mechanicsError(code, path, message) {
   throw new NarrativeV3ContractError({
@@ -175,7 +199,7 @@ function sceneTimeline(index, crossingIndex, returnIndex) {
   return { locationBeforeId: "location_origin", locationAfterId: "location_origin", visiblePhase: "end" };
 }
 
-export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null, characterStateTimeline: rawCharacterTimeline = null, worldLaw: rawWorldLaw = null } = {}) {
+export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawConcept, visualIntent: rawVisualIntent = null, characterStateTimeline: rawCharacterTimeline = null, worldLaw: rawWorldLaw = null, journeyLifecycle: rawJourneyLifecycle = null } = {}) {
   const intent = loadCreationIntent(rawIntent);
   const concept = loadStoryConcept(rawConcept);
   const visualIntent = rawVisualIntent ? loadVisualIntentV1(rawVisualIntent) : null;
@@ -187,10 +211,16 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
   }
   const visualByKey = new Map((visualIntent?.characters || []).map((entry) => [entry.characterKey, entry]));
   const worldLaw = rawWorldLaw ? loadWorldLawContractV1(rawWorldLaw) : null;
+  const journeyLifecycle = rawJourneyLifecycle ? loadJourneyLifecycleV1(rawJourneyLifecycle) : null;
   if (worldLaw && (
     worldLaw.sourceCreationIntent.artifactDigest !== intent.validation.artifactDigest
     || worldLaw.universeId !== intent.book.universeId
   )) mechanicsError("mechanics_world_law_mismatch", "/worldLaw", "World law must bind this exact creation intent and universe.");
+  if (journeyLifecycle && (!worldLaw
+    || journeyLifecycle.sources.worldLawDigest !== worldLaw.validation.artifactDigest
+    || (visualIntent && journeyLifecycle.sources.visualIntentDigest !== visualIntent.validation.artifactDigest))) {
+    mechanicsError("mechanics_journey_lifecycle_mismatch", "/journeyLifecycle", "Journey lifecycle must bind these exact immutable world and visual sources.");
+  }
   const characterTimeline = rawCharacterTimeline ? loadCharacterStateTimelineV1(rawCharacterTimeline) : null;
   if (characterTimeline && (
     characterTimeline.sources.creationIntentDigest !== intent.validation.artifactDigest
@@ -200,6 +230,7 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
   )) mechanicsError("mechanics_character_timeline_mismatch", "/characterStateTimeline", "Character timeline must bind these exact immutable sources.");
   if (characterTimeline && !worldLaw) mechanicsError("mechanics_world_law_required", "/worldLaw", "A sealed character timeline requires its exact world-law contract.");
   const timelineSceneByBeat = new Map((characterTimeline?.scenes || []).map((scene) => [scene.beatKey, scene]));
+  const journeySceneByBeat = new Map((journeyLifecycle?.sceneStates || []).map((scene) => [scene.beatKey, scene]));
   const { crossingIndex, returnIndex } = validateConceptShape(intent, concept);
   const universe = universeConfiguration(intent.book.universeId);
   const originZone = worldLaw?.zones.find((entry) => entry.kind === "origin");
@@ -222,6 +253,7 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
   const scenes = [];
 
   concept.beats.forEach((beat, index) => {
+    const journeyScene = journeySceneByBeat.get(beat.beatKey);
     const timeline = sceneTimeline(index, crossingIndex, returnIndex);
     let movementKind = "";
     let travelerIds = [];
@@ -305,6 +337,9 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
       illustration: {
         visibleCharacterIds: visibleIds,
         forbiddenCharacterIds: cast.filter((entry) => !visibleSet.has(entry.id)).map((entry) => entry.id),
+        ...(journeyScene ? {
+          requiredElements: journeyScene.visualProofIds.map((proofId) => JOURNEY_VISUAL_PROOFS[proofId] || proofId),
+        } : {}),
         mainAction: {
           subjectCharacterId: mainSubject,
           action: String(beat.summary || `perform_${beat.purpose}`).slice(0, 240),

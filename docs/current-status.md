@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-22
+Last updated: 2026-08-23
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/v26-journey-lifecycle`
 - Main checkpoint: PR #273 (V25.1 split identity and wardrobe visual authority)
-- Candidate: none; Render deployment and one bounded production resume are the next verification target
+- Candidate: V26 `JourneyLifecycle.v1`; 786/786 repository tests pass and PR publication is in progress
 - Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` proved that V25's generated combined face/outfit sheet is an invalid blocking identity precursor: `wardrobe_609238d06ff7b283967c` failed identity twice before any page could resume. V25.1 makes the original private photo the immutable identity authority and direct ordinary-outfit authority. Adventure outfits use an anonymous garment-only sheet with no face; scene generation and repair combine that garment authority with the separate original identity. Policy-2 combined sheets are deliberately not reused. Retry policy 29 grants one bounded resume while preserving accepted pages and text checkpoints
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
@@ -19,8 +19,29 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 The Render migration replay incident is closed by the append-only migration
-ledger. This production-authority brick adds no database migration or
-environment variable.
+ledger. V25.1 added no database migration or environment variable; V26 adds the
+append-only artifact-type migration 034 and no environment variable.
+
+## Product brick: V26 JourneyLifecycle.v1
+
+New V3 books now receive one immutable, universe-aware round-trip authority
+before the creative concept is generated. It reserves distinct scenes for the
+ordinary origin, accidental or magical passage discovery, preparation beside
+that passage, outbound crossing, adventure, reverse crossing through the same
+passage, then ordinary-clothes restoration and storage of adventure equipment.
+The model may invent the expression of each scene but cannot merge, reorder or
+omit these physical events.
+
+All travelers are present for preparation, both crossings and restoration.
+Their ordinary/adventure outfit states and clothing locations are projected
+through the character timeline. The canonical graph emits explicit visual
+proofs and V3 compiler 3 carries those proofs unchanged into each illustration
+contract. Migration 034 adds the new immutable artifact type only; there is no
+environment variable, commerce, credit, privacy or series-canon change.
+
+Repository verification for V26: 786/786 complete tests pass, including the
+six-universe by six-sellable-length lifecycle matrix and the Santi regression
+fixture.
 
 PR #55 through #271 are merged on `main`. PRs #224 through #232 published and
 merged the object-aware release, strict manuscript, visual storyboard,

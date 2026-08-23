@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calitiki.com/schemas/journey-lifecycle.v1.schema.json",
+  "title": "JourneyLifecycle.v1",
+  "description": "Deterministic round-trip authority for discovering, preparing, crossing and settling a portal journey.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "contractId", "sources", "mode", "universeId", "passage", "travelerKeys", "outfitBindings", "sceneStates", "validation"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "contractId": { "const": "calitiki.journey-lifecycle.v1" },
+    "sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["narrativeBriefDigest", "worldLawDigest", "visualIntentDigest"],
+      "properties": {
+        "narrativeBriefDigest": { "$ref": "#/$defs/digest" },
+        "worldLawDigest": { "$ref": "#/$defs/digest" },
+        "visualIntentDigest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "mode": { "const": "origin_to_adventure_round_trip" },
+    "universeId": { "$ref": "#/$defs/id" },
+    "passage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["passageId", "originZoneId", "boundaryZoneId", "adventureZoneId", "discoveryModeId", "ordinaryClothesCacheId", "adventureOutfitCacheId"],
+      "properties": {
+        "passageId": { "$ref": "#/$defs/id" },
+        "originZoneId": { "$ref": "#/$defs/id" },
+        "boundaryZoneId": { "$ref": "#/$defs/id" },
+        "adventureZoneId": { "$ref": "#/$defs/id" },
+        "discoveryModeId": { "$ref": "#/$defs/id" },
+        "ordinaryClothesCacheId": { "$ref": "#/$defs/id" },
+        "adventureOutfitCacheId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "travelerKeys": { "$ref": "#/$defs/idList" },
+    "outfitBindings": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/outfitBinding" } },
+    "sceneStates": { "type": "array", "minItems": 11, "maxItems": 21, "items": { "$ref": "#/$defs/sceneState" } },
+    "validation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["builderVersion", "artifactDigest"],
+      "properties": { "builderVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,119}$" },
+    "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "idList": { "type": "array", "uniqueItems": true, "maxItems": 30, "items": { "$ref": "#/$defs/id" } },
+    "outfitBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["characterKey", "ordinaryOutfitStateId", "adventureOutfitStateId", "ordinaryClothesObjectId", "adventureOutfitObjectId"],
+      "properties": {
+        "characterKey": { "$ref": "#/$defs/id" },
+        "ordinaryOutfitStateId": { "$ref": "#/$defs/id" },
+        "adventureOutfitStateId": { "$ref": "#/$defs/id" },
+        "ordinaryClothesObjectId": { "$ref": "#/$defs/id" },
+        "adventureOutfitObjectId": { "$ref": "#/$defs/id" }
+      }
+    },
+    "sceneState": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sceneNumber", "beatKey", "phase", "eventIds", "visualProofIds", "passageStateBefore", "passageStateAfter", "travelerOutfitModeAfter", "ordinaryClothesLocationAfter", "adventureOutfitsLocationAfter"],
+      "properties": {
+        "sceneNumber": { "type": "integer", "minimum": 1, "maximum": 21 },
+        "beatKey": { "$ref": "#/$defs/id" },
+        "phase": { "enum": ["origin_ordinary", "passage_discovery", "journey_preparation", "outbound_crossing", "adventure", "inbound_crossing", "restoration_and_storage"] },
+        "eventIds": { "$ref": "#/$defs/idList" },
+        "visualProofIds": { "$ref": "#/$defs/idList" },
+        "passageStateBefore": { "enum": ["hidden", "revealed", "open", "returned", "settled"] },
+        "passageStateAfter": { "enum": ["hidden", "revealed", "open", "returned", "settled"] },
+        "travelerOutfitModeAfter": { "enum": ["ordinary", "adventure"] },
+        "ordinaryClothesLocationAfter": { "enum": ["worn_by_travelers", "stored_at_boundary"] },
+        "adventureOutfitsLocationAfter": { "enum": ["worn_by_travelers", "stored_at_boundary"] }
+      }
+    }
+  }
+}

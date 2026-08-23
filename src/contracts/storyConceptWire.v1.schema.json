@@ -76,6 +76,10 @@
             "resolution"
           ]
         },
+        "journey_phase": {
+          "type": "string",
+          "enum": ["origin_ordinary", "passage_discovery", "journey_preparation", "outbound_crossing", "adventure", "inbound_crossing", "restoration_and_storage"]
+        },
         "summary": { "type": "string", "minLength": 1, "maxLength": 600 },
         "emotional_shift": { "$ref": "#/$defs/shortText" },
         "distinctive_image": { "type": "string", "minLength": 1, "maxLength": 300 },
