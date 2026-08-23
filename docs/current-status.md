@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after PR #274
-- Main checkpoint: PR #274 (V26 immutable `JourneyLifecycle.v1` authority)
-- Candidate: none; 786/786 repository tests pass at merge commit `082823a`
-- Current focused checkpoint: production project `06278fef-e7e9-4489-b95d-a2112bfedd97` proved that V25's generated combined face/outfit sheet is an invalid blocking identity precursor: `wardrobe_609238d06ff7b283967c` failed identity twice before any page could resume. V25.1 makes the original private photo the immutable identity authority and direct ordinary-outfit authority. Adventure outfits use an anonymous garment-only sheet with no face; scene generation and repair combine that garment authority with the separate original identity. Policy-2 combined sheets are deliberately not reused. Retry policy 29 grants one bounded resume while preserving accepted pages and text checkpoints
+- Current branch: `codex/v26-1-dual-wardrobe-authority`
+- Main checkpoint: PR #275 (V25.1 split identity and wardrobe authority) plus PR #274 (V26 immutable `JourneyLifecycle.v1` authority)
+- Candidate: V26.1 deterministic ordinary/adventure wardrobe separation; 788/788 complete repository tests pass
+- Current focused checkpoint: production project `16352929-4220-40eb-af62-eb19f39a62b` exposed an authority collision rather than an image-attempt shortage. The blueprint's legacy global `outfit_lock` had been overwritten with the scenario's adventure outfit, while strict V3 also supplied the private photo as the ordinary-outfit authority. Pages 3, 4, 11 and 12 therefore received contradictory ordinary wardrobe instructions and stayed privately quarantined. V26.1 keeps immutable `ordinary_outfit_lock` and `adventure_outfit_lock` values, projects only the scene-active state, and makes the private photo canon win when resuming an older ambiguous checkpoint. Retry policy 30 grants one bounded resume without discarding accepted pages or text checkpoints
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -19,8 +19,27 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Storefront: `https://calitiki.com`
 
 The Render migration replay incident is closed by the append-only migration
-ledger. V25.1 added no database migration or environment variable; V26 adds the
-append-only artifact-type migration 034 and no environment variable.
+ledger. V25.1 and V26.1 add no database migration or environment variable; V26
+adds the append-only artifact-type migration 034 and no environment variable.
+
+## Product brick: V26.1 dual wardrobe authority
+
+The legacy blueprint no longer uses one global clothing field for two physical
+states. Every personalized human now carries one immutable ordinary outfit
+derived from the private photo canon and one separate adventure outfit derived
+from the approved scenario. Page and cover wardrobe locks choose between them
+only from the canonical scene timeline; neither state may overwrite the other.
+
+Strict V3 scene compilation treats the private identity source as the ordinary
+wardrobe authority. This ordering is also a compatibility repair for already
+checkpointed books whose historical `outfit_lock` contains adventure clothing.
+Adventure scenes still consume their universe registry state and anonymous
+garment authority. Generation, automatic repair and QA therefore receive the
+same single active state instead of a photo/description contradiction.
+
+Retry policy 30 opens one bounded resume for V29 wardrobe quarantines while
+preserving accepted pages. There is no migration, environment variable,
+commerce change, additional model call, private-asset exposure or relaxed QA.
 
 ## Product brick: V26 JourneyLifecycle.v1
 

@@ -256,44 +256,74 @@ export function lockBlueprintContinuity(blueprint, {
   const wardrobeFor = (name) => wardrobePlan.find((item) => sameName(item?.characterName, name));
   const followsAdventureRoute = (name) => !approvedScenario?.scenes?.length
     || characterTravelsInScenario(approvedScenario, name);
-  const canonicalOutfit = (canon, fallback = "") => {
-    if (canon?.role === "mascot" || canon?.canon_json?.subject_kind === "animal") return String(canon?.outfit_lock || fallback || "").trim();
+  const ordinaryOutfit = (canon, fallback = "") => String(
+    canon?.outfit_lock
+    || fallback
+    || ""
+  ).trim();
+  const adventureOutfit = (canon, fallback = "") => {
+    const ordinary = ordinaryOutfit(canon, fallback);
+    if (canon?.role === "mascot" || canon?.canon_json?.subject_kind === "animal") return ordinary;
     const plan = wardrobeFor(canon?.name);
-    if (plan?.preference === "preserve_photo") return String(canon?.outfit_lock || fallback || "").trim();
-    if (plan && !followsAdventureRoute(canon?.name)) return String(canon?.outfit_lock || fallback || "").trim();
-    return String(plan?.adventureDescription || (canon?.outfit_selection_explicit ? canon?.outfit_contract : "") || fallback || "").trim();
+    if (plan?.preference === "preserve_photo" || plan?.activationMode === "never_activate") return ordinary;
+    if (plan && !followsAdventureRoute(canon?.name)) return ordinary;
+    return String(plan?.adventureDescription || (canon?.outfit_selection_explicit ? canon?.outfit_contract : "") || ordinary).trim();
   };
   if (childCanon?.name) result.hero.name = childCanon.name;
-  result.hero.outfit_lock = String(
-    canonicalOutfit(childCanon)
-    || childCanon?.outfit_lock
-    || result.hero.outfit_lock
+  const heroOrdinaryOutfit = String(
+    ordinaryOutfit(childCanon)
     || heroProfile?.outfit_lock
+    || result.hero.ordinary_outfit_lock
+    || result.hero.outfit_lock
     || "a dark teal long-sleeve top, warm ochre trousers and plain white sneakers"
   ).trim();
+  result.hero.outfit_lock = heroOrdinaryOutfit;
+  result.hero.ordinary_outfit_lock = heroOrdinaryOutfit;
+  result.hero.adventure_outfit_lock = adventureOutfit(childCanon, heroOrdinaryOutfit) || heroOrdinaryOutfit;
 
   result.cast = Array.isArray(result.cast) ? result.cast : [];
   result.cast = result.cast.map((character) => {
     const photoCanon = canonicalCharacterMatch(character.name, characterCanons);
+    const characterOrdinaryOutfit = ordinaryOutfit(
+      photoCanon,
+      character.ordinary_outfit_lock || character.outfit_lock,
+    );
     return {
       ...character,
       name: photoCanon?.name || character.name,
       canon_short: photoCanon?.canon_short || character.canon_short || "",
-      outfit_lock: canonicalOutfit(photoCanon, character.outfit_lock) || photoCanon?.outfit_lock || character.outfit_lock || "",
+      outfit_lock: characterOrdinaryOutfit,
+      ordinary_outfit_lock: characterOrdinaryOutfit,
+      adventure_outfit_lock: adventureOutfit(photoCanon, characterOrdinaryOutfit) || characterOrdinaryOutfit,
       story_role: photoCanon?.story_role || character.story_role || "guest",
     };
   });
   for (const canon of characterCanons.filter((item) => item.role !== "child" && item.name)) {
     if (canonicalCharacterMatch(canon.name, result.cast)) continue;
+    const characterOrdinaryOutfit = ordinaryOutfit(canon);
     result.cast.push({
       name: canon.name,
       role: canon.role || "other",
       relationship: canon.relationship || "",
       story_role: canon.story_role || "guest",
       canon_short: canon.canon_short || canon.character_fingerprint || "",
-      outfit_lock: canonicalOutfit(canon) || canon.outfit_lock || "",
+      outfit_lock: characterOrdinaryOutfit,
+      ordinary_outfit_lock: characterOrdinaryOutfit,
+      adventure_outfit_lock: adventureOutfit(canon, characterOrdinaryOutfit) || characterOrdinaryOutfit,
     });
   }
+
+  result.wardrobe_authority = {
+    version: 1,
+    mode: "dual_state",
+    characters: [result.hero, ...result.cast]
+      .filter((character) => character?.name)
+      .map((character) => ({
+        name: character.name,
+        ordinary_outfit: String(character.ordinary_outfit_lock || character.outfit_lock || "").trim(),
+        adventure_outfit: String(character.adventure_outfit_lock || character.ordinary_outfit_lock || character.outfit_lock || "").trim(),
+      })),
+  };
 
   const canonicalCharacters = [
     { name: result.hero.name, role: "child" },
@@ -350,7 +380,14 @@ export function lockBlueprintContinuity(blueprint, {
   }
   lockPlotObjectTimeline(result, questObject);
   syncSpreadCastContracts(result, canonicalCharacters, questObject);
-  const originalOutfitFor = (name) => canonicalCharacterMatch(name, characterCanons)?.outfit_lock || "";
+  const lockedCharacterFor = (name) => canonicalCharacterMatch(name, [result.hero, ...result.cast]);
+  const originalOutfitFor = (name) => {
+    const locked = lockedCharacterFor(name);
+    return locked?.ordinary_outfit_lock
+      || canonicalCharacterMatch(name, characterCanons)?.outfit_lock
+      || locked?.outfit_lock
+      || "";
+  };
   const hasHumanWardrobe = (name) => {
     const canon = canonicalCharacterMatch(name, characterCanons);
     return canon?.role !== "mascot" && canon?.canon_json?.subject_kind !== "animal";
@@ -366,10 +403,13 @@ export function lockBlueprintContinuity(blueprint, {
       : Number(sceneNumber || 0) >= Number(plan.activationSceneNumber || 1)
         && (!Number(plan.deactivationSceneNumber || 0) || Number(sceneNumber || 0) < Number(plan.deactivationSceneNumber));
     return active
-      ? (plan.adventureDescription || character.outfit_lock)
+      ? (character.adventure_outfit_lock || plan.adventureDescription || character.outfit_lock)
       : (originalOutfitFor(character.name) || character.outfit_lock);
   };
-  const outfitCharacters = [result.hero, ...result.cast].filter((character) => character?.name && character?.outfit_lock);
+  const outfitCharacters = [result.hero, ...result.cast].filter((character) => (
+    character?.name
+    && (character?.ordinary_outfit_lock || character?.adventure_outfit_lock || character?.outfit_lock)
+  ));
   result.cover.wardrobe_locks = [];
   for (const page of result.pages.filter((item) => item.page_type === "image")) page.wardrobe_locks = [];
   for (const character of outfitCharacters) {
@@ -378,7 +418,7 @@ export function lockBlueprintContinuity(blueprint, {
       ? character.outfit_lock
       : !followsAdventureRoute(character.name)
         ? (originalOutfitFor(character.name) || character.outfit_lock)
-        : (coverPlan?.adventureDescription || character.outfit_lock);
+        : (character.adventure_outfit_lock || coverPlan?.adventureDescription || character.outfit_lock);
     const fixedOutfit = outfitDirective(result.language, character.name, coverOutfit);
     if (result.cover.cast_present.some((name) => sameName(name, character.name))) {
       result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);

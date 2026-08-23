@@ -1567,6 +1567,18 @@ test("approved wardrobe changes only from its declared scenario scene", () => {
   });
   const sceneTwo = result.pages.find((page) => page.page_type === "image" && page.scene_number === 2);
   const sceneThree = result.pages.find((page) => page.page_type === "image" && page.scene_number === 3);
+  assert.equal(result.hero.outfit_lock, photoOutfit);
+  assert.equal(result.hero.ordinary_outfit_lock, photoOutfit);
+  assert.equal(result.hero.adventure_outfit_lock, adventureOutfit);
+  assert.deepEqual(result.wardrobe_authority, {
+    version: 1,
+    mode: "dual_state",
+    characters: [{
+      name: "Nolan",
+      ordinary_outfit: photoOutfit,
+      adventure_outfit: adventureOutfit,
+    }],
+  });
   assert.equal(sceneTwo.wardrobe_locks[0].outfit, photoOutfit);
   assert.equal(sceneThree.wardrobe_locks[0].outfit, adventureOutfit);
   assert.equal(result.cover.wardrobe_locks[0].outfit, adventureOutfit);
