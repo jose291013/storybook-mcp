@@ -8,13 +8,17 @@ import { loadWorldLawContractV1 } from "./worldLawContractV1.js";
 import { compileScenePhysicalStateV1 } from "./scenePhysicalStateV1.js";
 import { loadJourneyLifecycleV1 } from "./journeyLifecycleV1.js";
 import {
+  buildSceneStateBoundaryV1,
+  sceneTimelineForJourneyPhase,
+} from "./sceneStateBoundaryV1.js";
+import {
   assertNarrativeV3Schema,
   NarrativeV3ContractError,
 } from "./narrativeV3SchemaRegistry.js";
 
 export const CANONICAL_STORY_MECHANICS_VERSION = 1;
 export const CANONICAL_STORY_MECHANICS_ID = "calitiki.canonical-story-mechanics.v1";
-export const CANONICAL_STORY_MECHANICS_BUILDER_VERSION = 2;
+export const CANONICAL_STORY_MECHANICS_BUILDER_VERSION = 3;
 
 const CANONICAL_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,119}$/;
 
@@ -254,7 +258,9 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
 
   concept.beats.forEach((beat, index) => {
     const journeyScene = journeySceneByBeat.get(beat.beatKey);
-    const timeline = sceneTimeline(index, crossingIndex, returnIndex);
+    const timeline = journeyScene
+      ? sceneTimelineForJourneyPhase(journeyScene)
+      : sceneTimeline(index, crossingIndex, returnIndex);
     let movementKind = "";
     let travelerIds = [];
     if (index === crossingIndex) {
@@ -319,6 +325,11 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
           path: `/concept/beats/${index}`,
         })
       : null;
+    const stateBoundary = journeyScene ? buildSceneStateBoundaryV1({
+      journeyLifecycle,
+      sceneState: journeyScene,
+      characterIdsByKey: new Map(cast.map((entry) => [entry.characterKey, entry.id])),
+    }) : null;
     scenes.push({
       id: `scene_${String(index + 1).padStart(2, "0")}`,
       beatKey: beat.beatKey,
@@ -337,6 +348,7 @@ export function buildCanonicalStoryMechanics({ intent: rawIntent, concept: rawCo
       illustration: {
         visibleCharacterIds: visibleIds,
         forbiddenCharacterIds: cast.filter((entry) => !visibleSet.has(entry.id)).map((entry) => entry.id),
+        ...(stateBoundary ? { stateBoundary } : {}),
         ...(journeyScene ? {
           requiredElements: journeyScene.visualProofIds.map((proofId) => JOURNEY_VISUAL_PROOFS[proofId] || proofId),
         } : {}),

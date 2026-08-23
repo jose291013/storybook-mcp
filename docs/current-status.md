@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v26-1-dual-wardrobe-authority`
-- Main checkpoint: PR #275 (V25.1 split identity and wardrobe authority) plus PR #274 (V26 immutable `JourneyLifecycle.v1` authority)
-- Candidate: V26.1 deterministic ordinary/adventure wardrobe separation; 788/788 complete repository tests pass
-- Current focused checkpoint: production project `16352929-4220-40eb-af62-eb19f39a62b` exposed an authority collision rather than an image-attempt shortage. The blueprint's legacy global `outfit_lock` had been overwritten with the scenario's adventure outfit, while strict V3 also supplied the private photo as the ordinary-outfit authority. Pages 3, 4, 11 and 12 therefore received contradictory ordinary wardrobe instructions and stayed privately quarantined. V26.1 keeps immutable `ordinary_outfit_lock` and `adventure_outfit_lock` values, projects only the scene-active state, and makes the private photo canon win when resuming an older ambiguous checkpoint. Retry policy 30 grants one bounded resume without discarding accepted pages or text checkpoints
+- Current branch: `codex/v27-scene-state-boundary`
+- Main checkpoint: PR #276 (V26.1 deterministic dual wardrobe authority) plus PR #274 (V26 immutable `JourneyLifecycle.v1` authority)
+- Candidate: V27 exact per-scene state boundary; 791/791 complete repository tests pass
+- Current focused checkpoint: production project `16352929-4220-40eb-af62-eb19f39a62b` showed that the lifecycle and wardrobe registries were correct but could still leak a future location, outfit, traveler or portal state into an earlier illustration. V27 seals one exact state boundary for every scene and carries it unchanged through canonical mechanics, graph, NarrativeBookSpec, storyboard, render contract, prompt rules and QA evidence. Cover pixels are identity/style references only and cannot authorize scene location, cast, wardrobe, equipment or portal state.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -21,6 +21,28 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26
 adds the append-only artifact-type migration 034 and no environment variable.
+
+## Product brick: V27 exact scene-state boundary
+
+Every V3 scene now has one deterministic state envelope: lifecycle phase,
+before/during/after instant, camera side, passage visibility, destination-world
+permission, exact travelers and origin witnesses, required state ids and
+forbidden future or past states. Both outbound and return crossings are drawn
+at the boundary itself; a crossing image can no longer depict the group as
+already settled at the destination.
+
+The same immutable boundary is propagated through canonical mechanics, graph,
+NarrativeBookSpec, physical snapshot, storyboard, strict scene contract,
+generation instructions and QA. Origin witnesses cannot appear in destination
+adventure scenes, destination physics cannot leak before crossing, and ordinary
+clothes cannot reappear before the restoration scene. The approved cover may
+contribute identity and rendering style only. This brick adds no migration,
+environment variable, model call, credit or commerce rule, private-asset
+exposure, QA relaxation or series-canon mutation.
+
+Repository verification for V27: 791/791 complete tests pass, including the
+real customer lifecycle pipeline and focused discovery, crossing, witness and
+restoration regressions.
 
 ## Product brick: V26.1 dual wardrobe authority
 

@@ -2,8 +2,9 @@ import { findUniverse } from "../config/bookOptions.js";
 import { physicalStateRenderRules } from "../contracts/scenePhysicalStateV1.js";
 import { cameraBoundaryRule, compileWorldPhysicalTopology } from "./worldPhysicalTopology.js";
 import { compileWorldFixedEntityRegistry } from "./worldFixedEntityRegistry.js";
+import { sceneStateBoundaryRenderRules } from "../contracts/sceneStateBoundaryV1.js";
 
-export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 3;
+export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 4;
 
 function key(value) {
   return String(value || "")
@@ -123,6 +124,10 @@ export function compilePhysicalRenderSnapshot({
     forbidden.push("Every visible physical person uses exactly their own declared worn breathing equipment.");
   }
   if (sealedPhysicalState) forbidden.push(...physicalStateRenderRules(sealedPhysicalState));
+  const stateBoundary = contract?.state_boundary && typeof contract.state_boundary === "object"
+    ? structuredClone(contract.state_boundary)
+    : null;
+  if (stateBoundary) forbidden.push(...sceneStateBoundaryRenderRules(stateBoundary));
   return {
     version: PHYSICAL_RENDER_SNAPSHOT_VERSION,
     visible_phase: visiblePhase,
@@ -147,6 +152,7 @@ export function compilePhysicalRenderSnapshot({
       after_zone: topology.after_zone,
       boundary_rule: boundaryRule,
     } : null,
+    state_boundary: stateBoundary,
     main_action: {
       subject: String(contract?.main_action?.subject || "").trim(),
       verb: String(contract?.main_action?.verb || "").trim(),

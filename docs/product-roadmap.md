@@ -1826,6 +1826,36 @@ This brick adds no migration, environment variable, model call, credit or
 commerce rule, private-asset exposure, acceptance relaxation or series-canon
 mutation.
 
+## V27 exact scene-state boundary
+
+Journey lifecycle facts are necessary but not sufficient when several visual
+authorities are supplied to an image model. Every illustrated scene therefore
+receives one immutable `SceneStateBoundary.v1` compiled from the lifecycle and
+the canonical character timeline. It seals the exact phase, selected instant,
+camera side, passage mode, destination-world permission, traveler and witness
+partition, required state ids and forbidden states.
+
+The boundary is a first-class field of canonical mechanics, the V3 graph,
+NarrativeBookSpec, physical render snapshot, storyboard beat and strict scene
+render contract. Generation and QA consume the same value. Outbound and inbound
+crossings remain visibly at the boundary instead of silently becoming an
+arrival; destination landmarks and physics are forbidden before the crossing;
+origin witnesses are forbidden in the adventure; adventure clothing remains
+required until the explicit restoration-and-storage scene.
+
+Cover references are explicitly isolated to identity and rendering style.
+Their location, cast composition, wardrobe, equipment and portal state are not
+scene evidence and cannot override the scene boundary. Full-boundary artifacts
+use canonical graph compiler 3, NarrativeBookSpec compiler 4, illustration plan
+16, physical snapshot 4 and scene-render compiler 2. Partial boundary ancestry
+fails closed while complete older V3 artifacts remain readable through their
+legacy compiler versions.
+
+Verification covers discovery, both crossings, origin-witness exclusion,
+restoration and the complete customer lifecycle pipeline. There is no database
+migration, environment variable, additional model call, credit or commerce
+change, private-asset exposure, QA relaxation or series-canon mutation.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

@@ -13,7 +13,7 @@ import {
 
 export const NARRATIVE_BOOK_SPEC_V3_VERSION = 3;
 export const NARRATIVE_BOOK_SPEC_V3_ID = "calitiki.narrative-book-spec.v3";
-export const NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION = 3;
+export const NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION = 4;
 
 function deepFreeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
@@ -115,6 +115,16 @@ function assertReleaseInvariants(spec) {
     if (Number(spec.validation?.compilerVersion || 1) >= 3 && !Array.isArray(scene.illustrationInstant.requiredElements)) {
       releaseError("release_visual_proofs_missing", `/scenes/${index}/illustrationInstant/requiredElements`, "Every new V3 illustration instant must carry its deterministic visual proofs.");
     }
+    if (Number(spec.validation?.compilerVersion || 1) >= 4) {
+      if (!scene.illustrationInstant.stateBoundary) {
+        releaseError("release_scene_state_boundary_missing", `/scenes/${index}/illustrationInstant/stateBoundary`, "Every new V3 illustration instant must carry its exact journey-state boundary.");
+      }
+      const boundaryProjection = structuredClone(scene.illustrationInstant.stateBoundary);
+      delete boundaryProjection.digest;
+      if (scene.illustrationInstant.stateBoundary.digest !== canonicalDigest(boundaryProjection)) {
+        releaseError("release_scene_state_boundary_binding_mismatch", `/scenes/${index}/illustrationInstant/stateBoundary`, "The released scene-state boundary is stale.");
+      }
+    }
   });
 }
 
@@ -134,6 +144,11 @@ export function compileNarrativeBookSpecV3({
     releaseError("release_physical_state_partial", "/scenes", "A physical chronology must cover every released scene or none of them.");
   }
   const usesPhysicalChronology = physicalSceneCount === graph.scenes.length;
+  const boundarySceneCount = graph.scenes.filter((scene) => scene.illustration?.stateBoundary).length;
+  if (boundarySceneCount > 0 && boundarySceneCount !== graph.scenes.length) {
+    releaseError("release_scene_state_boundary_partial", "/scenes", "A journey-state boundary must cover every released scene or remain absent on a legacy graph.");
+  }
+  const usesStateBoundaries = boundarySceneCount === graph.scenes.length;
 
   // V2 remains immutable. Its compiler is reused only for deterministic layout,
   // identity binding and universe-medium resolution on a transient objectless view.
@@ -170,6 +185,9 @@ export function compileNarrativeBookSpecV3({
       releasedScene.illustrationInstant.physicalState = structuredClone(sourceScene.physicalState);
     }
     releasedScene.illustrationInstant.requiredElements = structuredClone(sourceScene.illustration.requiredElements || []);
+    if (sourceScene.illustration.stateBoundary) {
+      releasedScene.illustrationInstant.stateBoundary = structuredClone(sourceScene.illustration.stateBoundary);
+    }
     releasedScene.illustrationInstant.objectEvents = structuredClone(sourceScene.objectEvents);
     releasedScene.illustrationInstant.objectStateDigest = releasedScene.objectStateDigest;
   });
@@ -178,7 +196,9 @@ export function compileNarrativeBookSpecV3({
     page.sourceSceneDigest = base.scenes[page.sceneNumber - 1].sourceSceneDigest;
   });
   base.validation = {
-    compilerVersion: usesPhysicalChronology ? NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION : 1,
+    compilerVersion: usesStateBoundaries
+      ? NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION
+      : usesPhysicalChronology ? 3 : 1,
     artifactDigest: "",
   };
   base.validation.artifactDigest = narrativeBookSpecV3Digest(base);

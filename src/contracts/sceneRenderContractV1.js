@@ -3,7 +3,7 @@ import { canonicalDigest } from "./narrativeV3Canonical.js";
 
 export const SCENE_RENDER_CONTRACT_VERSION = 1;
 export const SCENE_RENDER_CONTRACT_ID = "calitiki.scene-render-contract.v1";
-export const SCENE_RENDER_CONTRACT_COMPILER_VERSION = 1;
+export const SCENE_RENDER_CONTRACT_COMPILER_VERSION = 2;
 
 const EQUIPMENT_DESCRIPTIONS = new Map([
   ["breathing_voice_bubble_worn", "one complete individual transparent breathing and communication bubble worn around this person's head"],
@@ -156,6 +156,7 @@ export function compileSceneRenderContractV1({
       required_survival_mechanisms: unique(sceneContract.render_snapshot?.required_survival_mechanisms),
       visible_phase: text(sceneContract.render_snapshot?.visible_phase),
       camera_environment: structuredClone(sceneContract.render_snapshot?.camera_environment || null),
+      state_boundary: structuredClone(sceneContract.state_boundary || sceneContract.render_snapshot?.state_boundary || null),
     },
     cast: { required, forbidden },
     main_action: structuredClone(sceneContract.main_action || {}),
