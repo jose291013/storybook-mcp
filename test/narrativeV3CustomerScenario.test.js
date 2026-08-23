@@ -137,6 +137,8 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
     assert.equal(visualPlan.sceneContracts[0].named_characters[0].name, "Lina");
     assert.ok(visualPlan.sceneContracts.every((contract) => contract.main_action.verb));
     assert.ok(visualPlan.sceneContracts.every((contract) => contract.wardrobe_states.length > 0));
+    assert.ok(visualPlan.sceneContracts.every((contract) => contract.state_boundary?.version === 1));
+    assert.ok(visualPlan.sceneContracts.every((contract) => contract.render_snapshot?.state_boundary?.digest === contract.state_boundary.digest));
     assert.ok(visualPlan.sceneContracts.some((contract) => contract.required_elements.some((element) => (
       element.description === "The accidental or magical cause that reveals the passage is visibly happening."
     ))));
@@ -147,6 +149,33 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
       contract.visible_character_ids.length + contract.forbidden_character_ids.length
       === contract.character_registry.length
     )));
+    const phases = visualPlan.sceneContracts.map((contract) => contract.state_boundary.journeyPhase);
+    const discoveryIndex = phases.indexOf("passage_discovery");
+    const preparationIndex = phases.indexOf("journey_preparation");
+    const outboundIndex = phases.indexOf("outbound_crossing");
+    const inboundIndex = phases.indexOf("inbound_crossing");
+    const restorationIndex = phases.indexOf("restoration_and_storage");
+    assert.deepEqual(
+      [preparationIndex, outboundIndex, restorationIndex],
+      [discoveryIndex + 1, preparationIndex + 1, inboundIndex + 1],
+    );
+    assert.ok(visualPlan.sceneContracts.slice(0, discoveryIndex).every((contract) => (
+      contract.state_boundary.cameraSide === "origin"
+      && contract.state_boundary.destinationEnvironmentAllowed === false
+      && contract.state_boundary.passageMode === "forbidden"
+      && contract.forbidden_elements.some((rule) => rule.includes("cover_location_inherited"))
+    )));
+    assert.equal(visualPlan.sceneContracts[discoveryIndex].state_boundary.passageMode, "required_closed");
+    assert.equal(visualPlan.sceneContracts[preparationIndex].state_boundary.cameraSide, "origin");
+    assert.equal(visualPlan.sceneContracts[outboundIndex].causal_frame.visible_phase, "during");
+    assert.equal(visualPlan.sceneContracts[outboundIndex].render_snapshot.location, "location_transition");
+    assert.equal(visualPlan.sceneContracts[inboundIndex].causal_frame.visible_phase, "during");
+    assert.equal(visualPlan.sceneContracts[restorationIndex].state_boundary.travelerOutfitMode, "ordinary");
+    const adventureContracts = visualPlan.sceneContracts.filter((contract) => contract.state_boundary.cameraSide === "adventure");
+    assert.ok(adventureContracts.length > 0);
+    assert.ok(adventureContracts.every((contract) => contract.state_boundary.originWitnessCharacterIds.every((id) => (
+      contract.forbidden_character_ids.includes(id)
+    ))));
     const approvedProject = {
       ...sourceProject,
       continuitySnapshot: {

@@ -14,7 +14,7 @@ export const STORY_CONCEPT_ID = "calitiki.story-concept.v1";
 export const STORY_CONCEPT_PARSER_VERSION = 1;
 export const CANONICAL_STORY_GRAPH_VERSION = 1;
 export const CANONICAL_STORY_GRAPH_ID = "calitiki.canonical-story-graph.v1";
-export const CANONICAL_STORY_GRAPH_COMPILER_VERSION = 2;
+export const CANONICAL_STORY_GRAPH_COMPILER_VERSION = 3;
 
 function canonicalValue(value, ancestors = new WeakSet(), path = "$") {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
@@ -306,6 +306,28 @@ export function validateCanonicalStoryGraph(graph, { verifyDigest = true } = {})
         }
       }
     }
+    if (Number(graph.validation?.compilerVersion || 1) >= 3) {
+      const boundary = scene.illustration.stateBoundary;
+      if (!boundary) {
+        graphIssue(issues, "scene_state_boundary_missing", `${path}/illustration/stateBoundary`, "Every new V3 scene must seal its exact journey-state boundary before illustration.");
+      } else {
+        const boundaryProjection = structuredClone(boundary);
+        delete boundaryProjection.digest;
+        if (boundary.digest !== canonicalDigest(boundaryProjection)) {
+          graphIssue(issues, "scene_state_boundary_digest_mismatch", `${path}/illustration/stateBoundary/digest`, "The journey-state boundary digest is stale.");
+        }
+        if (boundary.visiblePhase !== scene.timeline.visiblePhase) {
+          graphIssue(issues, "scene_state_boundary_phase_mismatch", `${path}/illustration/stateBoundary/visiblePhase`, "The journey-state boundary and illustrated timeline must select the same instant.");
+        }
+        const knownBoundaryCharacters = [...boundary.travelerCharacterIds, ...boundary.originWitnessCharacterIds];
+        if (!unique(knownBoundaryCharacters) || !sameSet(new Set(knownBoundaryCharacters), characterIds)) {
+          graphIssue(issues, "scene_state_boundary_cast_partition_invalid", `${path}/illustration/stateBoundary`, "Travelers and origin witnesses must partition the complete canonical cast.");
+        }
+        if (boundary.cameraSide === "adventure" && boundary.originWitnessCharacterIds.some((id) => visible.has(id))) {
+          graphIssue(issues, "scene_state_boundary_origin_witness_leak", `${path}/illustration/visibleCharacterIds`, "An origin witness cannot appear physically on the adventure side.");
+        }
+      }
+    }
     const orderedMovements = [...scene.movements].sort((left, right) => left.sequence - right.sequence);
     if (!orderedMovements.every((movement, movementIndex) => movement.sequence === movementIndex + 1)) {
       graphIssue(issues, "movement_sequence_invalid", `${path}/movements`, "Movement sequence must be unique and contiguous within the scene.");
@@ -461,10 +483,18 @@ export function compileCanonicalStoryGraph({ concept, mechanics, revision = 1 } 
       }],
     });
   }
+  const boundarySceneCount = graph.scenes.filter((scene) => scene.illustration?.stateBoundary).length;
+  if (boundarySceneCount > 0 && boundarySceneCount !== graph.scenes.length) {
+    throw new NarrativeV3ContractError({
+      code: "canonical_graph_scene_state_boundary_partial",
+      artifactType: "canonical_story_graph",
+      issues: [{ path: "/scenes", message: "The journey-state boundary must cover every scene or remain absent on a legacy graph." }],
+    });
+  }
   graph.validation = {
-    compilerVersion: physicalSceneCount === graph.scenes.length
+    compilerVersion: boundarySceneCount === graph.scenes.length
       ? CANONICAL_STORY_GRAPH_COMPILER_VERSION
-      : 1,
+      : physicalSceneCount === graph.scenes.length ? 2 : 1,
     artifactDigest: "",
   };
   graph.validation.artifactDigest = canonicalStoryGraphDigest(graph);

@@ -306,6 +306,7 @@
           "maxItems": 12,
           "items": { "type": "string", "minLength": 1, "maxLength": 300 }
         },
+        "stateBoundary": { "$ref": "#/$defs/sceneStateBoundary" },
         "mainAction": {
           "type": "object",
           "additionalProperties": false,
@@ -318,12 +319,32 @@
         }
       }
     },
+    "sceneStateBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "sourceJourneyLifecycleDigest", "journeyPhase", "visiblePhase", "cameraSide", "passageMode", "destinationEnvironmentAllowed", "travelerOutfitMode", "travelerCharacterIds", "originWitnessCharacterIds", "requiredStateIds", "forbiddenStateIds", "digest"],
+      "properties": {
+        "version": { "const": 1 },
+        "sourceJourneyLifecycleDigest": { "$ref": "#/$defs/digest" },
+        "journeyPhase": { "type": "string", "enum": ["origin_ordinary", "passage_discovery", "journey_preparation", "outbound_crossing", "adventure", "inbound_crossing", "restoration_and_storage"] },
+        "visiblePhase": { "type": "string", "enum": ["start", "during", "end"] },
+        "cameraSide": { "type": "string", "enum": ["origin", "boundary", "adventure"] },
+        "passageMode": { "type": "string", "enum": ["forbidden", "required_closed", "required_open", "not_required", "required_return", "required_settled"] },
+        "destinationEnvironmentAllowed": { "type": "boolean" },
+        "travelerOutfitMode": { "type": "string", "enum": ["ordinary", "adventure"] },
+        "travelerCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "originWitnessCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "requiredStateIds": { "$ref": "#/$defs/identifierArray" },
+        "forbiddenStateIds": { "$ref": "#/$defs/identifierArray" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
     "validation": {
       "type": "object",
       "additionalProperties": false,
       "required": ["compilerVersion", "artifactDigest"],
       "properties": {
-        "compilerVersion": { "type": "integer", "enum": [1, 2] },
+        "compilerVersion": { "type": "integer", "enum": [1, 2, 3] },
         "artifactDigest": { "$ref": "#/$defs/digest" }
       }
     }

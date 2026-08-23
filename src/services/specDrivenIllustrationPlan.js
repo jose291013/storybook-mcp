@@ -8,12 +8,14 @@ import {
   visualCompositionPlanIssues,
   wholeBookVisualRhythmIssues,
 } from "./visualCompositionPlan.js";
+import { sceneStateBoundaryRenderRules } from "../contracts/sceneStateBoundaryV1.js";
 
-// Version 15 projects the released cast partition and wardrobe states as
+// Version 16 projects the released cast partition, wardrobe states and exact
+// journey-state boundary as first-class ids.
 // first-class ids. SceneRenderContract.v1 resolves them once into concrete
 // render instructions; they must never be reconstructed from prose or a
 // legacy blueprint later in the image path.
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 15;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 16;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v3_scene_render_contract_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
@@ -59,6 +61,7 @@ function sceneProjection(scene = {}, index = 0) {
       forbiddenElements: instant.forbiddenElements || [],
       wardrobeStates: instant.wardrobeStates || [],
       physicalState: instant.physicalState || scene.physicalState || null,
+      stateBoundary: instant.stateBoundary || null,
     },
     narrative: {
       approvedAction: semantic.approvedAction || semantic.summary || "",
@@ -104,6 +107,7 @@ function visualBeatCore(contract = {}) {
       visual_entity_states: structuredClone(contract.visual_entity_states || []),
       causal_frame: structuredClone(contract.causal_frame || {}),
       render_snapshot: structuredClone(contract.render_snapshot || {}),
+      state_boundary: structuredClone(contract.state_boundary || null),
       forbidden_elements: structuredClone(contract.forbidden_elements || []),
     },
   };
@@ -217,6 +221,7 @@ export function compileSpecDrivenIllustrationPlan({
         required_survival_mechanism_ids: [...illustration.physicalState.requiredSurvivalMechanismIds],
         forbidden_element_ids: [...illustration.physicalState.forbiddenElementIds],
       } : null,
+      state_boundary: illustration.stateBoundary ? structuredClone(illustration.stateBoundary) : null,
       spread_number: Number(imagePage?.spread_number || scene.sceneNumber),
       scene_number: scene.sceneNumber,
       text_page_number: Number(textPage?.page_number || scene.pageBinding.textPageNumber),
@@ -248,6 +253,7 @@ export function compileSpecDrivenIllustrationPlan({
         ...illustration.forbiddenElements,
         ...absentObjects,
         ...forbiddenCharacters,
+        ...(illustration.stateBoundary ? sceneStateBoundaryRenderRules(illustration.stateBoundary) : []),
       ],
       visual_composition: visualComposition,
       causal_frame: {
@@ -264,7 +270,9 @@ export function compileSpecDrivenIllustrationPlan({
         visible_phase: timeline.visiblePhase === "start"
           ? "before"
           : timeline.visiblePhase === "end" ? "after" : "during",
-        visible_location: timeline.visiblePhase === "start" ? locationBefore : locationAfter,
+        visible_location: timeline.visiblePhase === "during"
+          ? (illustration.physicalState?.visibleLocationId || "location_transition")
+          : timeline.visiblePhase === "start" ? locationBefore : locationAfter,
       },
       continuity_from_previous: timeline.prerequisiteSceneIds.length
         ? `Continue only after ${timeline.prerequisiteSceneIds.join(", ")}.`

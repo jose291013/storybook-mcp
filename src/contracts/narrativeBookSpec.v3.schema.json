@@ -95,6 +95,7 @@
         "objectEvents": { "type": "array", "items": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/objectEvent" } },
         "objectStateDigest": { "$ref": "#/$defs/digest" },
         "physicalState": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/physicalState" },
+        "stateBoundary": { "$ref": "https://calitiki.com/schemas/canonical-story-graph.v1.json#/$defs/sceneStateBoundary" },
         "requiredElements": {
           "type": "array",
           "maxItems": 20,
@@ -134,7 +135,7 @@
       "additionalProperties": false,
       "required": ["compilerVersion", "artifactDigest"],
       "properties": {
-        "compilerVersion": { "type": "integer", "enum": [1, 2, 3] },
+        "compilerVersion": { "type": "integer", "enum": [1, 2, 3, 4] },
         "artifactDigest": { "$ref": "#/$defs/digest" }
       }
     }
