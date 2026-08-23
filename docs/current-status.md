@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v27-1-exact-image-boundary`
-- Main checkpoint: PR #278 (V27 exact per-scene state boundary), merged as `d6b0dc5`
-- Candidate: V27.1 lossless image-contract boundary transport; 792/792 complete repository tests pass
+- Current branch after delivery: `main`
+- Main checkpoint after delivery: PR #280 (V27.1 lossless image-contract boundary transport)
+- Completed brick: V27.1; 792/792 complete repository tests pass
 - Current focused checkpoint: production project `5d31b5a7-e09f-45d8-b72b-45b46e066ffa` proved that V27 compiled a valid scenario and manuscript but exposed an older image-adapter limit: blocking prohibitions were truncated after twelve entries while binding validation compared the complete authority. V27.1 transports `SceneStateBoundary.v1` as structured image input, removes the truncation of blocking prohibitions and bumps the deterministic storyboard plan to version 17 so an interrupted V27 project is rebuilt from its immutable spec on free retry.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
