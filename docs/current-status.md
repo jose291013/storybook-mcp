@@ -8,9 +8,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v27-scene-state-boundary`
-- Main checkpoint: PR #276 (V26.1 deterministic dual wardrobe authority) plus PR #274 (V26 immutable `JourneyLifecycle.v1` authority)
-- Candidate: V27 exact per-scene state boundary; 791/791 complete repository tests pass
+- Current branch: `codex/v27-checkpoint`
+- Main checkpoint: PR #278 (V27 exact per-scene state boundary), merged as `d6b0dc5`
+- Completed brick: V27 exact per-scene state boundary; 791/791 complete repository tests pass
 - Current focused checkpoint: production project `16352929-4220-40eb-af62-eb19f39a62b` showed that the lifecycle and wardrobe registries were correct but could still leak a future location, outfit, traveler or portal state into an earlier illustration. V27 seals one exact state boundary for every scene and carries it unchanged through canonical mechanics, graph, NarrativeBookSpec, storyboard, render contract, prompt rules and QA evidence. Cover pixels are identity/style references only and cannot authorize scene location, cast, wardrobe, equipment or portal state.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
