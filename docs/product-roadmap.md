@@ -1803,6 +1803,29 @@ Migration 034 expands only V3 artifact and pointer type constraints for the new
 There is no new environment variable, model call class, commerce or credit
 rule, customer-data exposure, acceptance relaxation or series-canon mutation.
 
+## V26.1 deterministic dual wardrobe authority
+
+The clothing description visible in a customer's private reference and the
+scenario-selected adventure clothing are two independent immutable facts. A
+single mutable blueprint field must never represent both. The locked blueprint
+therefore records an ordinary and an adventure outfit for every personalized
+human, plus an auditable dual-state wardrobe registry. `outfit_lock` remains a
+backward-compatible alias of the ordinary state only.
+
+The canonical character timeline remains the sole selector of the active state
+for each cover or illustrated scene. Ordinary states bind to the original
+private photo authority; adventure states bind to the universe outfit registry
+and its anonymous garment-only authority. Strict scene compilation never mixes
+the ordinary image source with an adventure description. During recovery of a
+legacy checkpoint, the private photo canon wins over a contaminated legacy
+field for `ordinary_outfit`, so accepted pages and manuscript checkpoints can
+be reused safely.
+
+Retry policy 30 grants one bounded resume to books exhausted under policy 29.
+This brick adds no migration, environment variable, model call, credit or
+commerce rule, private-asset exposure, acceptance relaxation or series-canon
+mutation.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.

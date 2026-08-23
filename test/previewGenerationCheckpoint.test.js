@@ -306,8 +306,8 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the split identity and wardrobe recovery policy is version twenty-nine", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 29);
+test("the dual ordinary and adventure wardrobe recovery policy is version thirty", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 30);
 });
 
 test("a book exhausted under V28 receives one split identity and wardrobe resume", () => {
@@ -320,6 +320,22 @@ test("a book exhausted under V28 receives one split identity and wardrobe resume
       retryConsumedAt: "2026-08-22T23:30:00.000Z",
       failureReason: "wardrobe_visual_authority_incomplete",
       phase: "wardrobe-visual-authority",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
+});
+
+test("a wardrobe quarantine exhausted under V29 receives the dual-authority resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v29-ambiguous-ordinary-wardrobe-book",
+      retryPolicyVersion: 29,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-23T12:00:00.000Z",
+      failureReason: "narrative_v3_illustration_evidence_incomplete",
+      phase: "strict-quarantine:page:12",
     }),
   };
   assert.equal(technicalPreviewRetryAvailable(project), true);

@@ -151,6 +151,30 @@ test("the V3 image adapter uses the concrete render contract instead of photo wa
   assert.equal(continuity.referenceImages.filter((reference) => reference.kind === "identity").length, 2);
 });
 
+test("strict V3 recovers an old checkpoint whose legacy outfit lock contains adventure clothing", () => {
+  const continuity = buildSceneContinuity({
+    blueprint: {
+      hero: { name: "Mathéo", outfit_lock: "moss-green explorer jacket and brown field trousers" },
+      cast: [{ name: "Nolan", role: "family", outfit_lock: "white photo T-shirt" }],
+    },
+    characterCanons: [
+      { name: "Mathéo", role: "child", photoId: "matheo.jpg", outfit_lock: "blue photo T-shirt and denim shorts" },
+      { name: "Nolan", role: "family", photoId: "nolan.jpg", outfit_lock: "white photo T-shirt" },
+    ],
+    castPresent: ["Mathéo", "Nolan"],
+    structuredSceneContract: source({
+      wardrobe_states: [
+        { character_id: "character_hero", outfit_state_id: "ordinary_outfit", equipment_state_ids: [] },
+        { character_id: "character_brother", outfit_state_id: "ordinary_outfit", equipment_state_ids: [] },
+      ],
+    }),
+  });
+  const required = continuity.sceneFidelityContract.scene_render_contract.cast.required;
+  assert.equal(required[0].outfit.description, "blue photo T-shirt and denim shorts");
+  assert.equal(required[0].outfit.source, "private_identity_binding");
+  assert.doesNotMatch(required[0].outfit.description, /explorer jacket/u);
+});
+
 test("split wardrobe authorities keep raw identity only for garment-only outfits", () => {
   const wardrobeAuthorities = [
     { kind: "wardrobe", characterId: "character_hero", outfitStateId: "forest_explorer", authorityId: "wardrobe_hero_forest", storageKey: "private/hero-forest.png", identityBearing: false },

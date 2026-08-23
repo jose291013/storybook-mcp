@@ -84,14 +84,32 @@ export function buildSceneContinuity({
     ? wardrobeAuthorityReferences
     : []).map((reference) => [`${reference.characterId}:${reference.outfitStateId}`, reference]));
   const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
+  const declaredOrdinaryOutfit = (character, photoCanon, role) => {
+    const blueprintCharacter = role === "child" ? blueprint?.hero : character;
+    // In strict V3 the private identity source is also the immutable ordinary
+    // wardrobe source. Older checkpoints may have an adventure outfit in the
+    // legacy `outfit_lock`, so the photo canon must win during recovery.
+    if (strictRenderInputs) {
+      return String(
+        photoCanon?.outfit_lock
+        || blueprintCharacter?.ordinary_outfit_lock
+        || blueprintCharacter?.outfit_lock
+        || ""
+      ).trim();
+    }
+    return String(
+      blueprintCharacter?.ordinary_outfit_lock
+      || blueprintCharacter?.outfit_lock
+      || photoCanon?.outfit_lock
+      || ""
+    ).trim();
+  };
   const ordinaryOutfits = new Map();
   for (const character of selected) {
     const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
     const photoCanon = findPhotoCanon(characterCanons, character.name, role);
     const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
-    const identityOrdinaryOutfit = role === "child"
-      ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
-      : (character.outfit_lock || photoCanon?.outfit_lock || "");
+    const identityOrdinaryOutfit = declaredOrdinaryOutfit(character, photoCanon, role);
     const ordinaryOutfit = strictRenderInputs
       ? identityOrdinaryOutfit
       : (sceneWardrobe || identityOrdinaryOutfit);
@@ -121,9 +139,7 @@ export function buildSceneContinuity({
     const photoCanon = findPhotoCanon(characterCanons, character.name, role);
     const traits = [photoCanon?.character_fingerprint, character.canon_short].filter(Boolean).join(" ");
     const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
-    const rawOutfit = sceneWardrobe || (role === "child"
-      ? (blueprint?.hero?.outfit_lock || photoCanon?.outfit_lock || "")
-      : (character.outfit_lock || photoCanon?.outfit_lock || ""));
+    const rawOutfit = sceneWardrobe || declaredOrdinaryOutfit(character, photoCanon, role);
     const visualAlias = aliasFor(character.name);
     const visualIdentity = identityFor(character.name);
     const strictCharacterState = sceneRenderContract?.cast.required.find((entry) => entry.name === visualAlias);
