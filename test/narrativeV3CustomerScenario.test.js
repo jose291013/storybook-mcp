@@ -113,8 +113,9 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
       JSON.stringify(first.scenario.scenes.map((scene) => [scene.locationBefore, scene.locationAfter])),
     );
     assert.equal(first.canonicalCandidateEvidence.version, 3);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 9);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 10);
     assert.equal(first.narrativeV3Artifacts.narrativeBrief.scenePlan.length, 15);
+    assert.equal(first.narrativeV3Artifacts.journeyLifecycle.sceneStates.length, 15);
     assert.equal(first.narrativeV3Artifacts.visualIntent.characters[0].outfitPreference, "preserve_photo");
     const blueprint = {
       pages: first.narrativeV3Artifacts.spec.scenes.flatMap((scene) => ([{
@@ -136,6 +137,12 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
     assert.equal(visualPlan.sceneContracts[0].named_characters[0].name, "Lina");
     assert.ok(visualPlan.sceneContracts.every((contract) => contract.main_action.verb));
     assert.ok(visualPlan.sceneContracts.every((contract) => contract.wardrobe_states.length > 0));
+    assert.ok(visualPlan.sceneContracts.some((contract) => contract.required_elements.some((element) => (
+      element.description === "The accidental or magical cause that reveals the passage is visibly happening."
+    ))));
+    assert.ok(visualPlan.sceneContracts.some((contract) => contract.required_elements.some((element) => (
+      element.description === "Every traveler has retrieved and wears the same ordinary clothes as before departure."
+    ))));
     assert.ok(visualPlan.sceneContracts.every((contract) => (
       contract.visible_character_ids.length + contract.forbidden_character_ids.length
       === contract.character_registry.length
@@ -177,7 +184,7 @@ test("a real customer source compiles once into a reviewable immutable V3 scenar
 
     const replay = await generateNarrativeV3Scenario(input);
     assert.equal(replay.canonicalCandidateEvidence.artifactDigest, first.canonicalCandidateEvidence.artifactDigest);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 9);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 10);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }
@@ -203,7 +210,7 @@ test("one invalid semantic response is corrected before any immutable artifact i
     });
     assert.equal(result.validation.valid, true);
     assert.equal(calls, 2);
-    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 9);
+    assert.equal((await artifactStore.listArtifacts(sourceProject.id)).length, 10);
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

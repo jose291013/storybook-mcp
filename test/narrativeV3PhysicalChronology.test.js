@@ -92,7 +92,7 @@ test("V3 seals one physical chronology for wardrobe, passage equipment and under
   assert.ok(crossing.wardrobeStates.every((entry) => entry.equipmentStateIds.includes("breathing_voice_bubble_worn")));
   assert.equal(returning.physicalState.mediumId, "breathable_air");
   assert.ok(returning.wardrobeStates.every((entry) => entry.outfitStateId === "ordinary_outfit"));
-  assert.equal(spec.validation.compilerVersion, 2);
+  assert.equal(spec.validation.compilerVersion, 3);
   assert.deepEqual(spec.scenes[4].physicalState, spec.scenes[4].illustrationInstant.physicalState);
   assert.equal(spec.scenes[4].illustrationInstant.physicalMediumId, "fully_underwater");
 });

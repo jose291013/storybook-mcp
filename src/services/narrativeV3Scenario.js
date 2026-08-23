@@ -4,6 +4,11 @@ import { buildCanonicalStoryMechanics } from "../contracts/buildCanonicalStoryMe
 import { buildCharacterStateTimelineV1 } from "../contracts/characterStateTimelineV1.js";
 import { buildWorldLawContractV1 } from "../contracts/worldLawContractV1.js";
 import {
+  assertStoryConceptFollowsJourneyLifecycle,
+  buildJourneyLifecycleV1,
+  journeyLifecycleForModel,
+} from "../contracts/journeyLifecycleV1.js";
+import {
   assertStoryConceptFollowsNarrativeBrief,
   buildNarrativeBriefV1,
   narrativeBriefForModel,
@@ -345,8 +350,14 @@ export async function generateNarrativeV3Scenario({
     normalized,
     semanticSource: source.semanticSource,
   });
+  const journeyLifecycle = buildJourneyLifecycleV1({
+    narrativeBrief,
+    worldLaw,
+    visualIntent: source.visualIntent,
+  });
   const semanticSource = {
     narrativeBrief: narrativeBriefForModel(narrativeBrief),
+    journeyLifecycle: journeyLifecycleForModel(journeyLifecycle),
     ...(source.semanticSource.seriesContinuity ? { seriesContinuity: source.semanticSource.seriesContinuity } : {}),
     ...(revision ? { revisionRequest: revision } : {}),
   };
@@ -367,10 +378,19 @@ export async function generateNarrativeV3Scenario({
       } : null,
     });
     try {
-      concept = parseStoryConceptWire(wire);
+      const journeyByBeat = new Map(journeyLifecycle.sceneStates.map((scene) => [scene.beatKey, scene.phase]));
+      const boundWire = {
+        ...wire,
+        beats: (wire?.beats || []).map((beat) => ({
+          ...beat,
+          journey_phase: beat.journey_phase || journeyByBeat.get(beat.beat_key),
+        })),
+      };
+      concept = parseStoryConceptWire(boundWire);
       assertStoryConceptFollowsNarrativeBrief(narrativeBrief, concept);
-      characterStateTimeline = buildCharacterStateTimelineV1({ creationIntent: source.intent, visualIntent: source.visualIntent, concept, worldLaw });
-      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent, characterStateTimeline, worldLaw });
+      assertStoryConceptFollowsJourneyLifecycle(journeyLifecycle, concept);
+      characterStateTimeline = buildCharacterStateTimelineV1({ creationIntent: source.intent, visualIntent: source.visualIntent, concept, worldLaw, journeyLifecycle });
+      mechanics = buildCanonicalStoryMechanics({ intent: source.intent, concept, visualIntent: source.visualIntent, characterStateTimeline, worldLaw, journeyLifecycle });
       break;
     } catch (error) {
       if (attempt >= MAX_SEMANTIC_ATTEMPTS) throw error;
@@ -412,13 +432,18 @@ export async function generateNarrativeV3Scenario({
     parents: [artifactRef(intentArtifact), artifactRef(worldLawArtifact)], artifactStore,
     operationId: "compile_narrative_brief", runId,
   });
+  const journeyLifecycleArtifact = await persistArtifact({
+    projectId: project.id, artifactType: "journey_lifecycle", payload: journeyLifecycle,
+    parents: [artifactRef(narrativeBriefArtifact), artifactRef(worldLawArtifact), artifactRef(visualIntentArtifact)], artifactStore,
+    operationId: "compile_journey_lifecycle", runId,
+  });
   const conceptArtifact = await persistArtifact({
     projectId: project.id, artifactType: "story_concept", payload: concept,
-    parents: [artifactRef(intentArtifact), artifactRef(narrativeBriefArtifact)], artifactStore, operationId: "parse_story_concept", runId,
+    parents: [artifactRef(intentArtifact), artifactRef(narrativeBriefArtifact), artifactRef(journeyLifecycleArtifact)], artifactStore, operationId: "parse_story_concept", runId,
   });
   const characterStateArtifact = await persistArtifact({
     projectId: project.id, artifactType: "character_state_timeline", payload: characterStateTimeline,
-    parents: [artifactRef(visualIntentArtifact), artifactRef(conceptArtifact), artifactRef(worldLawArtifact)], artifactStore,
+    parents: [artifactRef(visualIntentArtifact), artifactRef(conceptArtifact), artifactRef(worldLawArtifact), artifactRef(journeyLifecycleArtifact)], artifactStore,
     operationId: "compile_character_state_timeline", runId,
   });
   const graphArtifact = await persistArtifact({
@@ -456,6 +481,8 @@ export async function generateNarrativeV3Scenario({
       worldLawArtifactId: worldLawArtifact.id,
       narrativeBrief,
       narrativeBriefArtifactId: narrativeBriefArtifact.id,
+      journeyLifecycle,
+      journeyLifecycleArtifactId: journeyLifecycleArtifact.id,
     },
   };
 }

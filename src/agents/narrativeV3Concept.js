@@ -6,6 +6,7 @@ function compactSource(source = {}) {
   if (source.narrativeBrief) {
     return {
       narrative_brief: source.narrativeBrief,
+      ...(source.journeyLifecycle ? { journey_lifecycle: source.journeyLifecycle } : {}),
       ...(source.seriesContinuity ? { series_continuity: source.seriesContinuity } : {}),
       ...(source.revisionRequest ? { revision_request: source.revisionRequest } : {}),
       ...(source.validationFeedback ? { validation_feedback: source.validationFeedback } : {}),
@@ -39,7 +40,7 @@ Return exactly one JSON object matching calitiki.story-concept-wire.v1:
 - language: FR, ES or EN exactly as requested
 - title, premise, theme_proof
 - hero_arc with desire, initial_doubt, decisive_choice, earned_change
-- beats: exactly the requested scene_count; each beat has beat_key, purpose, summary, emotional_shift, distinctive_image, participant_keys
+- beats: exactly the requested scene_count; each beat has beat_key, purpose, journey_phase, summary, emotional_shift, distinctive_image, participant_keys
 
 Hard structural rules:
 1. The first purpose is opening and the last purpose is resolution.
@@ -56,13 +57,15 @@ Hard structural rules:
 10. When narrative_brief is supplied, copy hero_arc.desire from narrative_authority.desiredChange, initial_doubt from protectiveDoubt, decisive_choice from childOwnedAction and earned_change from transformation without paraphrasing. Each scene must dramatize its assigned milestone_ids using the corresponding milestone sourceText; do not replace the selected intention with a new interpretation.
 11. World rules are facts, not inspiration. Actions, posture, locomotion, medium, passage, equipment, native elements and forbidden elements must remain feasible under narrative_brief.world_rules from the first beat onward.
 12. Respect age_profile limits for concurrent goals, causal steps, guide behavior and message delivery.
-13. Keep all strings within the supplied contract bounds and return no additional fields.`;
+13. When journey_lifecycle is supplied, copy every scene_state journey_phase exactly. Its required_event_ids and required_visual_proof_ids are mandatory facts of the action and distinctive_image. Discovery must visibly reveal one passage before anyone crosses and show one adventure outfit per traveler beside it. Preparation occurs on the origin side and visibly stores ordinary clothes before the travelers don the adventure outfits. The outbound and inbound crossings use the same passage in opposite directions. The inbound crossing keeps adventure clothes on; only the following restoration scene retrieves and dons ordinary clothes and stores adventure outfits and conditional equipment.
+14. Never compress discovery, clothing preparation and crossing into one beat, and never compress the inbound crossing and restoration into one beat.
+15. Keep all strings within the supplied contract bounds and return no additional fields.`;
   const seriesRule = source.seriesContinuity
-    ? "\n14. This is a series episode. Preserve the supplied stable character relationships and universe continuity, while creating a new conflict, action sequence and earned resolution."
+    ? "\n16. This is a series episode. Preserve the supplied stable character relationships and universe continuity, while creating a new conflict, action sequence and earned resolution."
     : "";
 
   const validationRule = source.validationFeedback
-    ? "\n15. The preceding semantic candidate was rejected before persistence. Correct every supplied validation_feedback item; do not copy an invalid field merely to preserve the earlier draft."
+    ? "\n17. The preceding semantic candidate was rejected before persistence. Correct every supplied validation_feedback item; do not copy an invalid field merely to preserve the earlier draft."
     : "";
 
   return chatJson({

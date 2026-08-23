@@ -15,7 +15,8 @@
         "creationIntentDigest": { "$ref": "#/$defs/digest" },
         "visualIntentDigest": { "$ref": "#/$defs/digest" },
         "storyConceptDigest": { "$ref": "#/$defs/digest" },
-        "worldLawDigest": { "$ref": "#/$defs/digest" }
+        "worldLawDigest": { "$ref": "#/$defs/digest" },
+        "journeyLifecycleDigest": { "$ref": "#/$defs/digest" }
       }
     },
     "characters": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/character" } },
@@ -23,7 +24,7 @@
     "validation": {
       "type": "object", "additionalProperties": false,
       "required": ["builderVersion", "artifactDigest"],
-      "properties": { "builderVersion": { "const": 1 }, "artifactDigest": { "$ref": "#/$defs/digest" } }
+      "properties": { "builderVersion": { "type": "integer", "enum": [1, 2] }, "artifactDigest": { "$ref": "#/$defs/digest" } }
     }
   },
   "$defs": {

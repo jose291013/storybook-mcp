@@ -194,6 +194,10 @@
           "type": "string",
           "enum": ["opening", "desire", "preparation", "crossing", "attempt", "setback", "choice", "climax", "return", "resolution"]
         },
+        "journeyPhase": {
+          "type": "string",
+          "enum": ["origin_ordinary", "passage_discovery", "journey_preparation", "outbound_crossing", "adventure", "inbound_crossing", "restoration_and_storage"]
+        },
         "summary": { "type": "string", "minLength": 1, "maxLength": 600 },
         "emotionalShift": { "type": "string", "minLength": 1, "maxLength": 400 },
         "distinctiveImage": { "type": "string", "minLength": 1, "maxLength": 300 },
@@ -296,6 +300,12 @@
       "properties": {
         "visibleCharacterIds": { "$ref": "#/$defs/identifierArray" },
         "forbiddenCharacterIds": { "$ref": "#/$defs/identifierArray" },
+        "requiredElements": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 12,
+          "items": { "type": "string", "minLength": 1, "maxLength": 300 }
+        },
         "mainAction": {
           "type": "object",
           "additionalProperties": false,

@@ -13,7 +13,7 @@ import {
 
 export const NARRATIVE_BOOK_SPEC_V3_VERSION = 3;
 export const NARRATIVE_BOOK_SPEC_V3_ID = "calitiki.narrative-book-spec.v3";
-export const NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION = 2;
+export const NARRATIVE_BOOK_SPEC_V3_COMPILER_VERSION = 3;
 
 function deepFreeze(value) {
   if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
@@ -112,6 +112,9 @@ function assertReleaseInvariants(spec) {
         releaseError("release_physical_medium_mismatch", `/scenes/${index}/illustrationInstant/physicalMediumId`, "Released medium and world-law state must describe the same instant.");
       }
     }
+    if (Number(spec.validation?.compilerVersion || 1) >= 3 && !Array.isArray(scene.illustrationInstant.requiredElements)) {
+      releaseError("release_visual_proofs_missing", `/scenes/${index}/illustrationInstant/requiredElements`, "Every new V3 illustration instant must carry its deterministic visual proofs.");
+    }
   });
 }
 
@@ -166,6 +169,7 @@ export function compileNarrativeBookSpecV3({
       releasedScene.illustrationInstant.physicalMediumId = sourceScene.physicalState.mediumId;
       releasedScene.illustrationInstant.physicalState = structuredClone(sourceScene.physicalState);
     }
+    releasedScene.illustrationInstant.requiredElements = structuredClone(sourceScene.illustration.requiredElements || []);
     releasedScene.illustrationInstant.objectEvents = structuredClone(sourceScene.objectEvents);
     releasedScene.illustrationInstant.objectStateDigest = releasedScene.objectStateDigest;
   });
