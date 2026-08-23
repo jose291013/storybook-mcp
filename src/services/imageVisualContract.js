@@ -15,6 +15,29 @@ function list(value, maximum = 30) {
   return Array.isArray(value) ? value.filter(Boolean).slice(0, maximum) : [];
 }
 
+function completeList(value) {
+  return Array.isArray(value) ? value.filter(Boolean) : [];
+}
+
+function compactSceneStateBoundary(boundary, safe) {
+  if (!boundary || typeof boundary !== "object") return null;
+  return {
+    version: Number(boundary.version || 0),
+    source_journey_lifecycle_digest: safe(boundary.sourceJourneyLifecycleDigest),
+    journey_phase: safe(boundary.journeyPhase),
+    visible_phase: safe(boundary.visiblePhase),
+    camera_side: safe(boundary.cameraSide),
+    passage_mode: safe(boundary.passageMode),
+    destination_environment_allowed: boundary.destinationEnvironmentAllowed === true,
+    traveler_outfit_mode: safe(boundary.travelerOutfitMode),
+    traveler_character_ids: completeList(boundary.travelerCharacterIds).map(safe),
+    origin_witness_character_ids: completeList(boundary.originWitnessCharacterIds).map(safe),
+    required_state_ids: completeList(boundary.requiredStateIds).map(safe),
+    forbidden_state_ids: completeList(boundary.forbiddenStateIds).map(safe),
+    digest: safe(boundary.digest),
+  };
+}
+
 function characterDescriptor(character = {}) {
   return [
     character.role,
@@ -243,6 +266,7 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
     required_elements: requiredElements,
     object_states: objectStates,
     visual_entity_states: visualEntityStates,
+    state_boundary: compactSceneStateBoundary(contract.state_boundary, safe),
     causal_frame: contract?.causal_frame ? {
       before_location: safe(contract.causal_frame?.before?.location),
       approved_action: safe(contract.causal_frame?.during?.action),
@@ -307,7 +331,11 @@ export function compactImageSceneContract(contract = {}, aliases = [], { safetyF
       forbidden: list(contract.render_snapshot?.forbidden, 30).map(safe),
     } : null,
     spatial_relationships: safetyFallback ? [] : list(contract.spatial_relationships, 12).map(safe),
-    forbidden_elements: safetyFallback ? [] : list(contract.forbidden_elements, 12).map(safe),
+    // These are blocking render constraints, not decorative prompt hints. V27
+    // can legitimately produce more than twelve of them once the journey
+    // boundary is combined with cast, object and world prohibitions. Never
+    // silently truncate the authority sent to image generation.
+    forbidden_elements: safetyFallback ? [] : completeList(contract.forbidden_elements).map(safe),
   };
 }
 
@@ -355,6 +383,9 @@ export function imageContractProjectionIssues(contract = {}, aliases = aliasesFr
       material: safe(item?.appearance_lock?.material), distinguishing_features: list(item?.appearance_lock?.distinguishing_features, 8).map(safe),
     }, instruction: safe(item?.instruction),
   })), projected.visual_entity_states);
+  if (contract.state_boundary) {
+    check("scene state boundary", compactSceneStateBoundary(contract.state_boundary, safe), projected.state_boundary);
+  }
   if (contract.causal_frame) {
     check("causal frame", {
       before_location: safe(contract.causal_frame?.before?.location),
@@ -436,6 +467,6 @@ export function imageContractProjectionIssues(contract = {}, aliases = aliasesFr
     })));
   }
   check("spatial relationships", list(contract.spatial_relationships).map(safe), projected.spatial_relationships);
-  check("forbidden elements", list(contract.forbidden_elements).map(safe), projected.forbidden_elements);
+  check("forbidden elements", completeList(contract.forbidden_elements).map(safe), projected.forbidden_elements);
   return [...new Set(issues)];
 }

@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v27-scene-state-boundary`
-- Main checkpoint: PR #276 (V26.1 deterministic dual wardrobe authority) plus PR #274 (V26 immutable `JourneyLifecycle.v1` authority)
-- Candidate: V27 exact per-scene state boundary; 791/791 complete repository tests pass
-- Current focused checkpoint: production project `16352929-4220-40eb-af62-eb19f39a62b` showed that the lifecycle and wardrobe registries were correct but could still leak a future location, outfit, traveler or portal state into an earlier illustration. V27 seals one exact state boundary for every scene and carries it unchanged through canonical mechanics, graph, NarrativeBookSpec, storyboard, render contract, prompt rules and QA evidence. Cover pixels are identity/style references only and cannot authorize scene location, cast, wardrobe, equipment or portal state.
+- Current branch: `codex/v27-1-exact-image-boundary`
+- Main checkpoint: PR #278 (V27 exact per-scene state boundary), merged as `d6b0dc5`
+- Candidate: V27.1 lossless image-contract boundary transport; 792/792 complete repository tests pass
+- Current focused checkpoint: production project `5d31b5a7-e09f-45d8-b72b-45b46e066ffa` proved that V27 compiled a valid scenario and manuscript but exposed an older image-adapter limit: blocking prohibitions were truncated after twelve entries while binding validation compared the complete authority. V27.1 transports `SceneStateBoundary.v1` as structured image input, removes the truncation of blocking prohibitions and bumps the deterministic storyboard plan to version 17 so an interrupted V27 project is rebuilt from its immutable spec on free retry.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
@@ -21,6 +21,24 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26
 adds the append-only artifact-type migration 034 and no environment variable.
+
+## Product brick: V27.1 lossless image-boundary transport
+
+The compact image contract now carries the complete structured scene boundary:
+lifecycle digest and phase, visible instant, camera side, passage mode,
+destination permission, outfit mode, exact travelers and witnesses, required
+states, forbidden states and boundary digest. Blocking render prohibitions are
+no longer clipped by the former twelve-entry prompt-hint limit.
+
+Binding verification compares exactly what image generation receives. A new
+regression proves that nineteen simultaneous prohibitions and the full scene
+boundary arrive unchanged. Illustration-plan version 17 deterministically
+invalidates the incomplete V27 adapter checkpoint without regenerating the
+approved scenario or manuscript. There is no migration, environment variable,
+extra model call, commerce or credit change, private-asset exposure, QA
+relaxation or series-canon mutation.
+
+Repository verification for V27.1: 792/792 complete tests pass.
 
 ## Product brick: V27 exact scene-state boundary
 

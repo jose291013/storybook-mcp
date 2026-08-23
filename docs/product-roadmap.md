@@ -1856,6 +1856,29 @@ restoration and the complete customer lifecycle pipeline. There is no database
 migration, environment variable, additional model call, credit or commerce
 change, private-asset exposure, QA relaxation or series-canon mutation.
 
+## V27.1 lossless image-boundary transport
+
+V27 increased the number of legitimate blocking scene rules beyond the image
+adapter's historical twelve-item hint limit. The storyboard preflight correctly
+noticed that the compact image payload had lost rules, but this produced a
+deterministic false interruption before the cover. Blocking authorities must
+never share a truncation policy with optional prompt hints.
+
+The compact image contract now contains `SceneStateBoundary.v1` directly as a
+structured object, including exact phase, camera side, passage mode, world
+permission, outfit mode, traveler/witness ids and complete required/forbidden
+state sets. Its human-readable blocking prohibitions are also transmitted in
+full. Binding verification compares the same lossless canonical projections
+used by generation, and storyboard plan version 17 rebuilds a V27 adapter
+checkpoint deterministically from its immutable NarrativeBookSpec.
+
+A regression sends nineteen simultaneous prohibitions through the real compact
+adapter and proves byte-for-byte preservation alongside the structured
+boundary. Existing bounded cast, object and density limits remain unchanged and
+continue to fail closed when exceeded. This adds no database migration,
+environment variable, model request, credit or commerce rule, private-data
+exposure, QA relaxation or series-canon mutation.
+
 ## New environment variables
 
 - `NARRATIVE_MOVEMENT_CANONICALIZER_MODE=off|observe|enforce`: isolated deterministic pre-compilation normalization for hidden character movements; defaults to `off`. Observation never changes a book, and enforcement should be enabled only after controlled new-book verification.
