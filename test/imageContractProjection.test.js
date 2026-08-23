@@ -47,3 +47,47 @@ test("projection preflight catches contract arrays that would be truncated", () 
   };
   assert.ok(imageContractProjectionIssues(contract).includes("image contract projection loses named cast"));
 });
+
+test("V27.1 transports the exact scene boundary and every blocking prohibition", () => {
+  const forbiddenElements = Array.from({ length: 19 }, (_, index) => `blocking prohibition ${index + 1}`);
+  const stateBoundary = {
+    version: 1,
+    sourceJourneyLifecycleDigest: "journey-digest",
+    journeyPhase: "journey_preparation",
+    visiblePhase: "end",
+    cameraSide: "origin",
+    passageMode: "required_closed",
+    destinationEnvironmentAllowed: false,
+    travelerOutfitMode: "adventure",
+    travelerCharacterIds: ["character_hero", "character_companion"],
+    originWitnessCharacterIds: ["character_parent"],
+    requiredStateIds: ["origin_environment", "adventure_outfits_worn"],
+    forbiddenStateIds: ["destination_environment_as_surroundings", "ordinary_outfits_worn"],
+    digest: "boundary-digest",
+  };
+  const contract = {
+    main_action: { subject: "Noa", verb: "prepares", target: "the passage" },
+    state_boundary: stateBoundary,
+    forbidden_elements: forbiddenElements,
+  };
+
+  const compact = compactImageSceneContract(contract);
+  assert.equal(compact.forbidden_elements.length, forbiddenElements.length);
+  assert.deepEqual(compact.forbidden_elements, forbiddenElements);
+  assert.deepEqual(compact.state_boundary, {
+    version: 1,
+    source_journey_lifecycle_digest: "journey-digest",
+    journey_phase: "journey_preparation",
+    visible_phase: "end",
+    camera_side: "origin",
+    passage_mode: "required_closed",
+    destination_environment_allowed: false,
+    traveler_outfit_mode: "adventure",
+    traveler_character_ids: ["character_hero", "character_companion"],
+    origin_witness_character_ids: ["character_parent"],
+    required_state_ids: ["origin_environment", "adventure_outfits_worn"],
+    forbidden_state_ids: ["destination_environment_as_surroundings", "ordinary_outfits_worn"],
+    digest: "boundary-digest",
+  });
+  assert.deepEqual(imageContractProjectionIssues(contract), []);
+});

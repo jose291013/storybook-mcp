@@ -10,12 +10,12 @@ import {
 } from "./visualCompositionPlan.js";
 import { sceneStateBoundaryRenderRules } from "../contracts/sceneStateBoundaryV1.js";
 
-// Version 16 projects the released cast partition, wardrobe states and exact
-// journey-state boundary as first-class ids.
-// first-class ids. SceneRenderContract.v1 resolves them once into concrete
+// Version 17 projects the released cast partition, wardrobe states and exact
+// journey-state boundary losslessly into the compact image contract.
+// SceneRenderContract.v1 resolves them once into concrete
 // render instructions; they must never be reconstructed from prose or a
 // legacy blueprint later in the image path.
-export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 16;
+export const SPEC_DRIVEN_ILLUSTRATION_PLAN_VERSION = 17;
 export const SPEC_DRIVEN_ILLUSTRATION_CONTRACT_SOURCE = "narrative_book_spec_v3_scene_render_contract_v1";
 export const STORYBOARD_FIRST_CONTRACT_VERSION = 2;
 
