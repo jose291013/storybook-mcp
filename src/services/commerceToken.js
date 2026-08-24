@@ -19,10 +19,11 @@ export function verifyCommerceWebhookSignature({ orderId, customerId, reservatio
 export function bookOrderSignatureValue({
   orderId, customerId, projectId, reservationId = "", productType, pageCount,
   orderTotalCents = 0, status, narrationVoiceId = "", narrationStyleId = "",
+  bookFormatId = "", pricingVersion = "",
 }) {
   return [
     orderId, customerId, projectId, reservationId, productType, pageCount,
-    orderTotalCents, status, narrationVoiceId, narrationStyleId,
+    orderTotalCents, status, narrationVoiceId, narrationStyleId, bookFormatId, pricingVersion,
   ].map((value) => String(value ?? "")).join("|");
 }
 
@@ -36,6 +37,17 @@ export function verifyBookOrderWebhook({ signature, ...payload }, secret = proce
   const expected = signBookOrderWebhook(payload, secret);
   const supplied = String(signature);
   if (supplied.length === expected.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return true;
+  // Once either V1 commerce field is present it must be covered by the current
+  // signature. Compatibility signatures are accepted only for genuinely old
+  // Bridge payloads where both fields are absent.
+  if (payload.bookFormatId || payload.pricingVersion) return false;
+  const bridge078Value = [
+    payload.orderId, payload.customerId, payload.projectId, payload.reservationId || "",
+    payload.productType, payload.pageCount, payload.orderTotalCents || 0, payload.status,
+    payload.narrationVoiceId || "", payload.narrationStyleId || "",
+  ].map((value) => String(value ?? "")).join("|");
+  const bridge078 = crypto.createHmac("sha256", secret).update(bridge078Value).digest("hex");
+  if (supplied.length === bridge078.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(bridge078))) return true;
   // Rolling-deploy compatibility for Bridge <= 0.5.8. Narration itself always
   // requires the new signature that binds its paid voice and style choices.
   if (payload.productType === "narration" || payload.narrationVoiceId || payload.narrationStyleId) return false;

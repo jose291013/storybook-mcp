@@ -111,6 +111,13 @@ export class JsonProjectStore {
     const project = await this.get(id);
     return project?.customerId === customer.id ? project : null;
   }
+  async listTemporaryPreviewAccessCandidates() {
+    return Object.values(this.read().projects).filter((project) => (
+      project.previewResult
+      && !["purchased", "preview_expired", "archived"].includes(project.status)
+      && project.productConfiguration?.preview_access_version === "temporary_preview_72h_v1"
+    ));
+  }
   async updateForCustomer(id, identity, patch) {
     const project = await this.getForCustomer(id, identity);
     return project ? this.update(id, patch) : null;
@@ -291,6 +298,16 @@ export class PostgresProjectStore {
       [id, customer.id]
     );
     return fromRow(rows[0]);
+  }
+  async listTemporaryPreviewAccessCandidates() {
+    const { rows } = await this.database.query(
+      `SELECT project.* FROM book_projects AS project
+       WHERE project.preview_result IS NOT NULL
+         AND project.status NOT IN ('purchased','preview_expired','archived')
+         AND project.product_configuration->>'preview_access_version'='temporary_preview_72h_v1'
+       ORDER BY project.updated_at ASC`,
+    );
+    return rows.map(fromRow);
   }
   async updateForCustomer(id, identity, patch) {
     const project = await this.getForCustomer(id, identity);

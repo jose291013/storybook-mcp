@@ -19,6 +19,8 @@ export async function intakeAgent(rawAnswers) {
   // They drive page planning, rendering and the WooCommerce variation.
   result.intake.page_count = rawAnswers?.page_count;
   result.intake.product_type = rawAnswers?.product_type;
+  result.intake.book_format_id = rawAnswers?.book_format_id;
+  result.intake.pricing_version = rawAnswers?.pricing_version;
   result.intake.font_style = rawAnswers?.font_style;
   result.intake.universe_id = rawAnswers?.universe_id;
   result.intake.universe_instructions = rawAnswers?.universe_instructions;

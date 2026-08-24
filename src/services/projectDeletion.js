@@ -53,6 +53,17 @@ function safeChild(root, filename) {
   return target;
 }
 
+export async function cleanupExpiredPreviewAssets(project, dependencies = {}) {
+  const storage = dependencies.storage || getDeliveryStorage();
+  const outputsDir = dependencies.outputsDir || path.resolve("data/outputs");
+  const jobs = dependencies.jobs || { delete: deleteJob };
+  await storage.deletePrefix(`ebooks/previews/${project.id}/`);
+  for (const filename of outputFilenames(project.previewResult)) {
+    await fs.rm(safeChild(outputsDir, filename), { force: true });
+  }
+  if (project.generationJobId) jobs.delete(project.generationJobId);
+}
+
 async function cleanupAssets(manifest, { storage, outputsDir, uploadsDir, jobs }) {
   await storage.deletePrefix(manifest.previewPrefix);
   for (const key of manifest.referenceStorageKeys || []) await storage.delete(key);

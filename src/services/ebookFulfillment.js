@@ -6,8 +6,10 @@ import { projectStore } from "./projectStore.js";
 import { normalizePageCount } from "../config/bookOptions.js";
 import { logMemory } from "./runtimeMemory.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
+import { existingBookProductContract } from "./bookProductContract.js";
+import { grantPermanentDigitalAccess, previewAccessState } from "./temporaryPreviewAccess.js";
 
-export const EBOOK_LAYOUT_ID = "digital-v2";
+export const EBOOK_LAYOUT_ID = "digital-v3-format-v1";
 
 function usesCurrentEbookLayout(record) {
   return String(record?.storageKey || "").endsWith(`/book-${EBOOK_LAYOUT_ID}.pdf`);
@@ -41,17 +43,29 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
   const identity = { wooCustomerId: String(input.wooCustomerId), email: String(input.email || "") };
   const project = await projects.getForCustomer(String(input.projectId), identity);
   if (!project) throw new Error("Purchased project not found for this customer");
+  if (!previewAccessState(project).allowed) throw new Error("The temporary preview expired before purchase");
   if (!project.previewResult || !["preview_ready", "purchased"].includes(project.status)) throw new Error("A completed preview is required before fulfillment");
 
   const productType = String(input.productType || "").toLowerCase();
   if (!['ebook', 'print'].includes(productType)) throw new Error("Invalid purchased product type");
   const expectedPageCount = normalizePageCount(project.questionnaire?.page_count || project.productConfiguration?.page_count || project.productConfiguration?.pageCount || 24);
   if (Number(input.pageCount) !== expectedPageCount) throw new Error("Purchased page count does not match the personalized project");
+  const productContract = existingBookProductContract(project);
+  if (input.bookFormatId && String(input.bookFormatId) !== productContract.bookFormatId) {
+    throw new Error("Purchased book format does not match the personalized project");
+  }
+  if (input.pricingVersion && String(input.pricingVersion) !== productContract.pricingVersion) {
+    throw new Error("Purchased pricing version does not match the personalized project");
+  }
   const record = await orders.recordPaid({
     orderId: String(input.orderId), projectId: project.id, customerId: project.customerId, wooCustomerId: identity.wooCustomerId,
     productType, pageCount: expectedPageCount, orderTotalCents: Math.max(0, Math.round(Number(input.orderTotalCents || 0))),
   });
-  await projects.update(project.id, { status: "purchased", expiresAt: null });
+  await projects.update(project.id, {
+    status: "purchased",
+    expiresAt: null,
+    productConfiguration: grantPermanentDigitalAccess(project),
+  });
   if (productType !== "ebook") return { status: "paid", productType };
   const storage = dependencies.deliveryStorage || getDeliveryStorage();
   if (record.fulfillmentStatus === "ready" && record.storageKey && usesCurrentEbookLayout(record)) {
@@ -74,6 +88,7 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
       coverPreviewUrl: project.previewResult.coverPreviewUrl,
       coverStorageKey: project.previewResult.coverStorageKey || "",
       pages: project.previewResult.draftPages || [],
+      bookFormat: project.finalBlueprint?.format,
       outputsDir: dependencies.outputsDir || "data/outputs",
       loadAsset: async (asset) => {
         if (!asset.storageKey) return null;
@@ -121,6 +136,8 @@ export async function freshEbookDeliveryLink(input, dependencies = {}) {
         projectId: record.projectId,
         productType: "ebook",
         pageCount: record.pageCount,
+        bookFormatId: record.bookFormatId || "",
+        pricingVersion: record.pricingVersion || "",
         orderTotalCents: record.orderTotalCents,
         wooCustomerId: record.wooCustomerId,
         email: "",

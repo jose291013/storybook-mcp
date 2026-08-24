@@ -32,6 +32,7 @@ import { withOpenAICostContext } from "../services/openaiCostContext.js";
 import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
 import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
+import { findBookFormat } from "../config/bookFormats.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
@@ -398,6 +399,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
           pageNumber: Number(pairedTextPage.page_number),
           fontStyle: refreshed.finalBlueprint.typography?.id,
           readerAge: refreshed.finalBlueprint.hero?.age,
+          bookFormat: refreshed.finalBlueprint?.format,
           dpi: 150,
         });
         const persistedText = await persistPreviewAsset({
@@ -527,7 +529,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
           }] : []),
           ...(continuity.referenceImages || []),
         ],
-        size: "1024x1024",
+        size: findBookFormat(refreshed.finalBlueprint?.format?.id).imageSize,
         quality: "low",
         renderingMode: selectedStyle.renderingMode,
         likenessGoal: selectedStyle.likeness,
@@ -548,6 +550,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         pageNumber,
         fontStyle: refreshed.finalBlueprint.typography?.id,
         readerAge: refreshed.finalBlueprint.hero?.age,
+        bookFormat: refreshed.finalBlueprint?.format,
         dpi: 150,
       });
       const persistedPage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localPreviewUrl });

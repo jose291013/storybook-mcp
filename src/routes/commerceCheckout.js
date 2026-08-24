@@ -13,6 +13,8 @@ import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { signCommercePayload, verifyBookOrderWebhook, verifyDeliveryLinkRequest, woocommerceCheckoutBridgeUrl } from "../services/commerceToken.js";
+import { existingBookProductContract } from "../services/bookProductContract.js";
+import { previewAccessState } from "../services/temporaryPreviewAccess.js";
 
 const router = express.Router();
 
@@ -31,11 +33,14 @@ router.post("/commerce/checkout-link", async (req, res) => {
   try {
     const project = await projectStore.getForCustomer(projectId, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
+    const access = previewAccessState(project);
+    if (!access.allowed) return res.status(410).json({ error: "Temporary preview expired", code: "temporary_preview_expired", expiresAt: access.expiresAt });
     if (!project.previewResult || !["preview_ready", "purchased"].includes(project.status)) return res.status(409).json({ error: "Generate and validate the preview before purchase" });
     if (project.status !== "purchased" && await previewRevisionStore.activeForProject(project.id)) {
       return res.status(409).json({ error: "Approve or reject the pending preview modification before checkout" });
     }
     const pageCount = normalizePageCount(project.questionnaire?.page_count || project.productConfiguration?.page_count || project.productConfiguration?.pageCount || 24);
+    const productContract = existingBookProductContract(project);
     // Older technical retries could complete after their original wallet
     // reservation had been released. Settle that successful preview before
     // building an unpaid checkout, but never alter an already purchased book.
@@ -46,13 +51,15 @@ router.post("/commerce/checkout-link", async (req, res) => {
     const reservation = await creditStore.reserveProjectRebate(identity, { projectId, idempotencyKey: `checkout:${projectId}:${productType}:${crypto.randomUUID()}` });
     const payload = {
       sub: String(identity.wooCustomerId), projectId, productType, pageCount,
+      bookFormatId: productContract.bookFormatId,
+      pricingVersion: productContract.pricingVersion,
       projectTitle: String(project.title || project.finalBlueprint?.cover?.title || "Livre personnalisé").slice(0, 160),
       rebateCents: Number(reservation.amountCents || 0), reservationId: String(reservation.id || ""),
       exp: Math.floor(Date.now() / 1000) + 10 * 60,
     };
     const token = signCommercePayload(payload);
     res.set("Cache-Control", "no-store");
-    res.json({ checkoutUrl: woocommerceCheckoutBridgeUrl(token), rebateCents: payload.rebateCents, productType, pageCount });
+    res.json({ checkoutUrl: woocommerceCheckoutBridgeUrl(token), rebateCents: payload.rebateCents, productType, pageCount, bookFormatId: payload.bookFormatId, pricingVersion: payload.pricingVersion });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
 });
 
@@ -63,9 +70,11 @@ router.post("/commerce/book-order-status", async (req, res) => {
   const orderTotalCents = Number(req.body?.orderTotalCents || 0); const status = String(req.body?.status || "").toLowerCase();
   const narrationVoiceId = String(req.body?.narrationVoiceId || "");
   const narrationStyleId = String(req.body?.narrationStyleId || "");
+  const bookFormatId = String(req.body?.bookFormatId || "");
+  const pricingVersion = String(req.body?.pricingVersion || "");
   const signaturePayload = {
     orderId, customerId, projectId, reservationId, productType, pageCount, orderTotalCents, status,
-    narrationVoiceId, narrationStyleId, signature: req.get("X-Calitiki-Signature"),
+    narrationVoiceId, narrationStyleId, bookFormatId, pricingVersion, signature: req.get("X-Calitiki-Signature"),
   };
   if (!orderId || !customerId || !projectId || !["ebook", "print", "narration"].includes(productType) || !["paid", "cancelled", "failed", "refunded"].includes(status)) return res.status(400).json({ error: "Invalid book order status" });
   if (productType === "narration" && !narrationChoice(narrationVoiceId, narrationStyleId)) return res.status(400).json({ error: "Invalid narration choice" });
@@ -94,6 +103,7 @@ router.post("/commerce/book-order-status", async (req, res) => {
     }
     const fulfillment = await fulfillPaidBookOrder({
       orderId, projectId, productType, pageCount, orderTotalCents, wooCustomerId: customerId, email: String(req.body?.email || ""),
+      bookFormatId, pricingVersion,
     });
     res.json({ ok: true, reservationStatus: reservation?.status || "none", fulfillment });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }

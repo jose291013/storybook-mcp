@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { findBookFormat } from "../config/bookFormats.js";
 
 const BODY_FONT = path.resolve("assets/fonts/Andika-Regular.ttf");
 const TITLE_FONT = path.resolve("assets/fonts/PatrickHand-Regular.ttf");
@@ -72,22 +73,12 @@ function coverShadeSvg(width, height) {
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
       <defs>
         <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#10272d" stop-opacity="0.68"/>
-          <stop offset="70%" stop-color="#10272d" stop-opacity="0.18"/>
+          <stop offset="0%" stop-color="#10272d" stop-opacity="0.82"/>
+          <stop offset="58%" stop-color="#10272d" stop-opacity="0.34"/>
           <stop offset="100%" stop-color="#000" stop-opacity="0"/>
         </linearGradient>
       </defs>
-      <rect width="100%" height="38%" fill="url(#shade)"/>
-    </svg>`);
-}
-
-function coverTitlePanelSvg(width, height, top, panelHeight) {
-  const x = Math.round(width * 0.075);
-  const panelWidth = Math.round(width * 0.85);
-  return Buffer.from(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-      <rect x="${x}" y="${top}" width="${panelWidth}" height="${panelHeight}" rx="${Math.round(width * 0.025)}"
-        fill="#17343a" fill-opacity="0.56" stroke="#ffffff" stroke-opacity="0.18" stroke-width="${Math.max(1, Math.round(width * 0.0015))}"/>
+      <rect width="100%" height="42%" fill="url(#shade)"/>
     </svg>`);
 }
 
@@ -155,16 +146,13 @@ async function composeCover({ imageBuffer, width, height, title, fontStyle }) {
     color: "#ffffff",
   });
   const titleTop = Math.round(height * 0.065);
-  const panelTop = Math.max(0, titleTop - Math.round(height * 0.022));
-  const panelHeight = titleLayer.height + Math.round(height * 0.044);
-  const shadowLayer = await sharp(titleLayer.input).blur(Math.max(1, width * 0.0025)).png().toBuffer();
+  const shadowLayer = await sharp(titleLayer.input).blur(Math.max(2, width * 0.004)).png().toBuffer();
 
   return sharp(imageBuffer)
     .resize(width, height, { fit: "cover", position: "attention" })
     .composite([
       { input: coverShadeSvg(width, height), top: 0, left: 0 },
-      { input: coverTitlePanelSvg(width, height, panelTop, panelHeight), top: 0, left: 0 },
-      { input: shadowLayer, top: titleTop + Math.round(height * 0.004), left: Math.round((width - titleLayer.width) / 2) },
+      { input: shadowLayer, top: titleTop + Math.round(height * 0.006), left: Math.round((width - titleLayer.width) / 2) },
       { input: titleLayer.input, top: titleTop, left: Math.round((width - titleLayer.width) / 2) },
     ])
     .png()
@@ -182,13 +170,16 @@ export async function composeBookPagePNG({
   fontStyle = "school_round",
   readerAge = 6,
   dpi = 150,
+  bookFormatId = "square_21",
+  bookFormat,
   outputsDir = "data/outputs",
 }) {
   if (!baseUrl) throw new Error("composeBookPagePNG: missing baseUrl");
   if (!outName) throw new Error("composeBookPagePNG: missing outName");
 
-  const width = mmToPx(210, dpi);
-  const height = width;
+  const selectedFormat = findBookFormat(bookFormat?.id || bookFormatId);
+  const width = mmToPx(Number(bookFormat?.width_mm || bookFormat?.widthMm || selectedFormat.widthMm), dpi);
+  const height = mmToPx(Number(bookFormat?.height_mm || bookFormat?.heightMm || selectedFormat.heightMm), dpi);
   let output;
 
   if (["text", "opening_text", "closing_text"].includes(pageType)) {

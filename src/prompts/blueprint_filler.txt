@@ -49,9 +49,9 @@ VISUALS
 OUTPUT EXACTLY THIS SHAPE
 {
   "format": {
-    "trim": "SQUARE_21",
-    "width_mm": 210,
-    "height_mm": 210,
+    "trim": "exact intake.book_format.trim",
+    "width_mm": "exact intake.book_format.width_mm",
+    "height_mm": "exact intake.book_format.height_mm",
     "interior_pages": "exact intake.page_count",
     "bleed_mm": 3
   },

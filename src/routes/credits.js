@@ -1,10 +1,12 @@
 import express from "express";
-import { previewEntitlementsEnabled, previewPriceCents } from "../config/previewPricing.js";
+import { previewEntitlementsEnabled, previewGenerationContract } from "../config/previewPricing.js";
+import { existingBookProductContract } from "../services/bookProductContract.js";
 import { creditStore } from "../services/creditStore.js";
 import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
 import { technicalPreviewRetryAvailable } from "../services/previewGenerationCheckpoint.js";
+import { previewAccessState } from "../services/temporaryPreviewAccess.js";
 
 const router = express.Router();
 
@@ -26,13 +28,31 @@ router.get("/credits/summary", async (req, res) => {
     const projectId = String(req.query.projectId || "");
     const project = await ownedProject(identity, projectId);
     if (projectId && !project) return res.status(404).json({ error: "Project not found" });
-    const pageCount = project?.questionnaire?.page_count || project?.productConfiguration?.pageCount || 24;
+    const pageCount = project?.questionnaire?.page_count
+      || project?.productConfiguration?.page_count
+      || project?.productConfiguration?.pageCount
+      || 24;
+    const productContract = project ? existingBookProductContract(project) : null;
+    const generation = previewGenerationContract(pageCount, productContract?.pricingVersion);
     const summary = await creditStore.summary(identity, projectId || null);
+    const access = project ? previewAccessState(project) : null;
     const technicalRetry = technicalReferenceRetryAvailable(project) || technicalPreviewRetryAvailable(project);
-    const requiredCents = technicalRetry ? 0 : previewPriceCents(pageCount);
+    const requiredCents = technicalRetry ? 0 : generation.requiredCents;
     res.set("Cache-Control", "no-store");
     res.json({
       enabled: previewEntitlementsEnabled(), pageCount: Number(pageCount), requiredCents, technicalRetry,
+      generationPricingVersion: generation.version,
+      unitPagePriceEur: generation.unitPagePriceEur,
+      interactiveReaderIncluded: generation.interactiveReaderIncluded,
+      temporaryInteractivePreviewIncluded: generation.temporaryInteractivePreviewIncluded,
+      previewAccessDurationHours: generation.previewAccessDurationHours,
+      purchaseCreditCents: generation.purchaseCreditCents,
+      permanentDigitalPurchaseIncludesInteractiveReader: generation.permanentDigitalPurchaseIncludesInteractiveReader,
+      permanentDigitalPurchaseIncludesPdf: generation.permanentDigitalPurchaseIncludesPdf,
+      ebookIncluded: generation.ebookIncluded,
+      previewExpiresAt: access?.expiresAt || null,
+      previewExpired: Boolean(access?.expired),
+      permanentDigitalAccess: Boolean(access?.permanent),
       ...summary, missingCents: Math.max(0, requiredCents - summary.balanceCents),
       buyCreditsUrl: process.env.WOOCOMMERCE_CREDITS_URL || "",
     });

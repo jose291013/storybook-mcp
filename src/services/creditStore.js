@@ -135,6 +135,15 @@ export class JsonCreditStore {
     this.write(store);
     return { projectId, deleted: true };
   }
+  async expireProjectRebate(identity, { projectId }) {
+    const customer = await this.customer(identity); const store = this.read(); let expiredCents = 0;
+    store.checkoutReservations.filter((item) => item.customerId === customer.id && item.projectId === projectId && item.status === "reserved")
+      .forEach((item) => { item.status = "expired"; item.updatedAt = now(); });
+    store.rebates.filter((item) => item.customerId === customer.id && item.projectId === projectId && ["available", "reserved"].includes(item.status))
+      .forEach((item) => { expiredCents += Number(item.amountCents || 0); item.status = "expired"; item.checkoutReservationId = null; item.updatedAt = now(); });
+    this.write(store);
+    return { projectId, expiredCents };
+  }
   async reserveProjectRebate(identity, { projectId, idempotencyKey }) {
     const customer = await this.customer(identity); const store = this.read(); const timestamp = Date.now();
     for (const reservation of store.checkoutReservations) {
@@ -299,6 +308,22 @@ export class PostgresCreditStore {
     // PostgreSQL foreign keys preserve ledger history and cascade project-bound
     // reservations/rebates atomically when the project deletion commits.
     return { projectId, deleted: true, managedByDatabase: true };
+  }
+  async expireProjectRebate(identity, { projectId }) {
+    const customer = await this.customer(identity); const client = await this.database.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "UPDATE checkout_credit_reservations SET status='expired',updated_at=now() WHERE customer_id=$1 AND project_id=$2 AND status='reserved'",
+        [customer.id, projectId],
+      );
+      const { rows } = await client.query(
+        "UPDATE project_purchase_rebates SET status='expired',checkout_reservation_id=NULL,updated_at=now() WHERE customer_id=$1 AND project_id=$2 AND status IN ('available','reserved') RETURNING amount_cents",
+        [customer.id, projectId],
+      );
+      await client.query("COMMIT");
+      return { projectId, expiredCents: rows.reduce((sum, row) => sum + Number(row.amount_cents || 0), 0) };
+    } catch (error) { await client.query("ROLLBACK"); throw error; } finally { client.release(); }
   }
   async reserveProjectRebate(identity, { projectId, idempotencyKey }) {
     const customer = await this.customer(identity); const client = await this.database.connect();

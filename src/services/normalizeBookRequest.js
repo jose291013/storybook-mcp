@@ -8,6 +8,8 @@ import { findIllustrationStyle } from "../config/illustrationStyles.js";
 import { normalizeBookLanguage } from "../config/bookLanguages.js";
 import { findUniverse, normalizePageCount, normalizeProductType, normalizeTypography } from "../config/bookOptions.js";
 import { normalizeOutfitSelection } from "../config/outfitOptions.js";
+import { findBookFormat } from "../config/bookFormats.js";
+import { normalizePricingVersion } from "../config/productPricing.js";
 
 function clean(value) {
   return value == null ? "" : String(value).trim();
@@ -136,6 +138,12 @@ export function normalizeBookRequest(body = {}) {
     ),
     page_count: normalizePageCount(source.page_count || body.page_count),
     product_type: normalizeProductType(source.product_type || body.product_type),
+    book_format_id: findBookFormat(
+      source.book_format_id || body.book_format_id || body.productConfiguration?.book_format_id,
+    ).id,
+    pricing_version: normalizePricingVersion(
+      source.pricing_version || body.pricing_version || body.productConfiguration?.pricing_version,
+    ),
     font_style: normalizeTypography(source.font_style || body.font_style),
     extra_notes: clean(source.extra_notes || body.extra_notes),
   };

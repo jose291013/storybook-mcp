@@ -1,5 +1,15 @@
 import { commerceOrderStore } from "./commerceOrderStore.js";
 import { projectStore } from "./projectStore.js";
+import { previewAccessState, revokePermanentDigitalAccess } from "./temporaryPreviewAccess.js";
+
+function revokedProjectPatch(project) {
+  const productConfiguration = revokePermanentDigitalAccess(project);
+  const access = previewAccessState({ ...project, status: "preview_ready", productConfiguration });
+  return {
+    status: project.previewResult && access.allowed ? "preview_ready" : "preview_expired",
+    productConfiguration,
+  };
+}
 
 export function normalizePaidProjectIds(values = []) {
   return [...new Set((Array.isArray(values) ? values : [])
@@ -24,9 +34,7 @@ export async function reconcileCustomerPaidBookPurchases(
   let restoredCount = 0;
   for (const project of customerProjects) {
     if (project.status !== "purchased" || paid.has(project.id)) continue;
-    const restored = await projects.update(project.id, {
-      status: project.previewResult ? "preview_ready" : "preview_failed",
-    });
+    const restored = await projects.update(project.id, revokedProjectPatch(project));
     if (restored) restoredCount += 1;
   }
   return { paidProjectIds: authoritativeIds, restoredCount, revokedCount: Number(commerce?.revokedCount || 0) };
@@ -45,6 +53,6 @@ export async function reconcileProjectAfterBookOrderRevocation(
     customerId: project.customerId,
   });
   if (paidPurchase) return { reconciled: false, reason: "another_paid_order" };
-  const restored = await projects.update(project.id, { status: project.previewResult ? "preview_ready" : "preview_failed" });
+  const restored = await projects.update(project.id, revokedProjectPatch(project));
   return { reconciled: Boolean(restored), reason: restored ? "purchase_revoked" : "project_not_found", project: restored };
 }

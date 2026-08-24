@@ -1,6 +1,58 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-22
+Last updated: 2026-08-24
+
+## Book format and digital pricing V1
+
+New books may choose one immutable physical trim before generation: square
+21 × 21 cm (`square_21`), portrait 17 × 24 cm (`portrait_17x24`) or portrait
+21 × 29.7 cm (`portrait_21x29_7`). The choice belongs to the project product
+contract, drives the blueprint, image aspect, composed preview pages,
+interactive reader and exact PDF media box, and will later be reused by print
+fulfillment. A retry, repair, language correction, checkout payload or client
+update cannot replace it. Projects created before this contract remain square.
+
+New eBooks use the versioned TTC rate `digital_ttc_037_v1`: EUR 0.37 per
+interior page for every trim. The totals are EUR 8.88, 10.36, 11.84, 13.32,
+14.80 and 16.28 for 24, 28, 32, 36, 40 and 44 pages respectively. Existing
+projects without a pricing version retain `digital_legacy_v1` and EUR 0.27875
+per page; a historical 24-page project therefore remains EUR 6.69.
+
+The generation authorization for the same new-book contract uses
+`generation_ttc_0185_v1`: EUR 0.185 TTC per generated interior page, snapshotted
+before generation. The exact wallet debits are EUR 4.44, 5.18, 5.92, 6.66,
+7.40 and 8.14 for 24, 28, 32, 36, 40 and 44 pages. This payment opens the
+owner's complete private interactive preview for exactly 72 hours; it is not a
+permanent reader entitlement and includes no downloadable file. A signed,
+idempotent WooCommerce e-mail is sent 24 hours before expiry. If no checkout is
+active and no purchase exists at expiry, the generated cover, pages, blueprint
+and generation rebate are deleted while the non-generated draft answers remain.
+
+The WooCommerce digital purchase at the price above is the permanent product:
+it preserves the authenticated interactive reader and adds the downloadable PDF
+in the immutable chosen format. The full V1 generation amount is deducted from
+that purchase. An active checkout reservation postpones destructive expiry so a
+customer cannot lose the book during payment. Historical projects without the
+V1 pricing contract retain their historical generation debit and durable reader
+behavior; free technical retries never create a second debit.
+
+Rollout is fail-closed behind `BOOK_FORMAT_V1_ENABLED=false`. Before enabling
+it, WooCommerce must publish the following variation attributes on the eBook
+product and Calitiki Bridge 0.8.1 must be installed:
+
+- `pa_format-calitiki`: `carre-21`, `portrait-17x24`,
+  `portrait-21x29-7`;
+- `pa_nombre-pages`: `24`, `28`, `32`, `36`, `40`, `44`;
+- `pa_tarification-calitiki`: `ttc-037-v1` for new books and
+  `historique-v1` only where historical checkout compatibility is required.
+
+Create the 18 new V1 eBook variations as the Cartesian product of three trims
+and six page counts, with the exact TTC total for that page count. The signed
+checkout identifies format, page count and pricing version; Bridge 0.8.1 must
+find one exact variation or refuse checkout. Legacy square/page-only
+variations remain a compatibility route for old projects and are never used
+for a V1 book. The cover title now floats over a responsive top gradient and
+shadow rather than an opaque rounded rectangle.
 
 ## Narrative V3 structural replacement direction
 
@@ -1222,7 +1274,8 @@ The pre-editor compilation is explicitly mechanical and non-persistent. It refre
 - After a successful preview, the questionnaire and generation controls are replaced by one action center directly below the book reader. The original preview is immutable and a second generation can never be triggered accidentally.
 - The connected creator header shows the current wallet balance at every step. Immediately before preview, a separate confirmation button displays the exact amount that will be used; promotion codes remain available before that decision. The WooCommerce **My account** area shows the same balance, recent ledger history and a **Buy credits** action.
 - The post-preview action center shows the remaining credit balance, **Request a change**, **Regenerate**, **Buy the eBook**, **Buy the printed book**, and **Buy credits**. Production and delivery estimates are shown beside the printed-book action before checkout.
-- Preview credit is stored as a euro-cent wallet. The configured preview prices are **EUR 2.50 / 3.00 / 3.50 / 4.00 / 4.50 / 5.00 including tax** for 24 / 28 / 32 / 36 / 40 / 44 pages. The amount is snapshotted on reservation.
+- Generation credit is stored as a euro-cent wallet. New V1 books use **EUR 4.44 / 5.18 / 5.92 / 6.66 / 7.40 / 8.14 including tax** for 24 / 28 / 32 / 36 / 40 / 44 generated interior pages (EUR 0.185 TTC per page). Historical projects keep the former **EUR 2.50 / 3.00 / 3.50 / 4.00 / 4.50 / 5.00** schedule through their immutable legacy contract. The amount is snapshotted on reservation.
+- Successful generation includes the authenticated owner's private interactive reader without requiring an eBook order. The downloadable eBook is a distinct WooCommerce product and purchase; buying it is optional for continued interactive reading.
 - A Render restart or lost background job is an infrastructure interruption, not a consumed customer attempt. The persisted checkpoint must remain eligible for a free idempotent resume even when a previous technical retry had already started.
 - Promotion codes have a configurable euro-cent value of EUR 2.50 or more. A campaign code may be redeemed once per WooCommerce customer; an individual code can use the same mechanism with a single intended customer. If the code does not cover the selected preview, the missing wallet credit must be purchased before generation.
 - Every successful preview consumes its reserved wallet amount and creates an equal purchase rebate tied to that book project. Multiple previews remain possible while the wallet is funded; their successful charges accumulate as purchase rebate for that project only. A targeted modification creates a new revision and must quote the affected spreads before reservation.
@@ -1430,7 +1483,7 @@ quality-review and private cost metrics reviewed at each step.
 - The storefront is mobile-first: on a visitor's first visit the browser language selects an available TranslatePress language, while an explicit language choice is remembered and takes precedence afterward. The mobile navigation must cover the page instead of being clipped by it, and WooCommerce account navigation scrolls the requested account panel into view on small screens.
 - Long passages in the interactive reader keep the customer's selected typography and scroll directly inside the text card; no separate “read more” expansion step is required.
 - The interactive reader is installable from iPhone and compatible browsers only after a private customer book has loaded successfully. Its per-book manifest carries the non-secret project id in the installed start URL, because iPhone Home Screen apps may not share Safari storage. It also remembers only that project id on the device, never private assets or credentials. An expired private session uses the existing signed WooCommerce bridge to reauthenticate and return to the same book. The public demonstration cannot be installed, iPhone installation guidance is visible in the reader, and service-worker upgrades reload the app automatically.
-- The launch offer is presented as one **Calitiki digital pack**: the downloadable PDF and the private interactive reader are included in the same eBook purchase. Calitiki Bridge 0.5.6 independently keeps the printed WooCommerce product non-purchasable by default, labels it **Coming soon** in the catalog, and blocks direct or signed checkout attempts. It can later be enabled from WooCommerce > Calitiki Bridge when the print supplier is ready; Render's `PRINT_BOOK_ENABLED` flag must be enabled at the same time.
+- The digital offer has two explicit stages. Successful paid generation includes the authenticated private interactive reader, without any eBook order. The optional WooCommerce eBook purchase adds the downloadable PDF in the project's immutable format; it does not gate or extend interactive-reader access. Calitiki Bridge independently keeps the printed WooCommerce product non-purchasable by default, labels it **Coming soon** in the catalog, and blocks direct or signed checkout attempts. It can later be enabled from WooCommerce > Calitiki Bridge when the print supplier is ready; Render's `PRINT_BOOK_ENABLED` flag must be enabled at the same time.
 - The external creator header provides a localized return to Calitiki. It remembers a trusted Calitiki referrer path without retaining query parameters or commerce authentication tokens, and otherwise falls back to the FR, ES or EN storefront home.
 - A paid personalized eBook order now creates one idempotent commerce record, generates the low-definition unwatermarked PDF, stores it in a private S3-compatible bucket and returns an expiring signed link. WooCommerce sends a separate localized “eBook ready” email and exposes a fresh link under **My creations Calitiki**. Processing/completed orders with a zero total after coupons follow the exact same paid flow; failed callbacks are retried with WP-Cron, and refunded deliveries are revoked.
 - Purchased cards in **My creations Calitiki** use the authoritative project/cover title instead of the generic WooCommerce variation name. Existing orders resolve it from the authenticated Storybook creation library; new order items also retain a private stable title metadata fallback.
@@ -1898,6 +1951,8 @@ exposure, QA relaxation or series-canon mutation.
 - `PRINT_BOOK_ENABLED`: feature flag for printed-book selection and checkout. It defaults to `false`, leaving the format visible as **Coming soon** while the eBook remains purchasable.
 - `CUSTOMER_SESSION_DAYS`: lifetime of the generator's HTTP-only customer session, default 7 days.
 - `PREVIEW_ENTITLEMENTS_ENABLED`: activates the preview wallet gate after promotion codes or paid credit fulfillment are configured.
+- `PREVIEW_EXPIRY_WORKER_ENABLED`: enables the 72-hour temporary-preview warning and expiry worker for new pricing-V1 books; defaults to `true`.
+- `PREVIEW_EXPIRY_WORKER_INTERVAL_MS`: polling interval for preview warnings and expiry cleanup; defaults to 300000 ms and is bounded to a minimum of 60000 ms.
 - `PREVIEW_PROMO_CODES`: comma-separated `CODE:AMOUNT_IN_EURO_CENTS` campaign codes; each code can be redeemed once per WooCommerce customer.
 - `WOOCOMMERCE_CREDITS_URL`: WooCommerce URL used by the generator's **Buy credits** action.
 - `PRIVATE_STORAGE_BACKEND=s3`: private production delivery backend. `local` is allowed only for local development.

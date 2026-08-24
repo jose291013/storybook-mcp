@@ -123,6 +123,7 @@ const state = {
   fontStyle: "school_round",
   pageCount: 24,
   productType: "ebook",
+  bookFormatId: "square_21",
   photos: [],
   jobId: "",
   projectId: "",
@@ -173,7 +174,7 @@ const requestedProductType = ["ebook", "print"].includes(initialUrl.searchParams
 
 const elements = {
   form: document.querySelector("#bookForm"), intentionAgeQuestion: document.querySelector("#intentionAgeQuestion"), childQuestions: document.querySelector("#childQuestions"), storyQuestions: document.querySelector("#storyQuestions"),
-  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), safetyResourcePanel: document.querySelector("#safetyResourcePanel"), safetyCountryLabel: document.querySelector("#safetyCountryLabel"), safetyCountry: document.querySelector("#safetyCountry"), safetyImmediateDanger: document.querySelector("#safetyImmediateDanger"), safetyResourceFallback: document.querySelector("#safetyResourceFallback"), safetyResourceList: document.querySelector("#safetyResourceList"), intentionSensitivityGuidance: document.querySelector("#intentionSensitivityGuidance"), sensitivityGuidanceAcknowledgement: document.querySelector("#sensitivityGuidanceAcknowledgement"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionPerspectiveNav: document.querySelector("#intentionPerspectiveNav"), intentionPerspectivePage: document.querySelector("#intentionPerspectivePage"), previousIntentionPerspectives: document.querySelector("#previousIntentionPerspectives"), nextIntentionPerspectives: document.querySelector("#nextIntentionPerspectives"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), pageCountGrid: document.querySelector("#pageCountGrid"),
+  styleGrid: document.querySelector("#styleGrid"), universeGrid: document.querySelector("#universeGrid"), universeSelectionSummary: document.querySelector("#universeSelectionSummary"), intentionExampleList: document.querySelector("#intentionExampleList"), interpretIntentionButton: document.querySelector("#interpretIntentionButton"), intentionLoading: document.querySelector("#intentionLoading"), intentionSafetyNotice: document.querySelector("#intentionSafetyNotice"), intentionSafetyTitle: document.querySelector("#intentionSafetyTitle"), intentionSafetyMessage: document.querySelector("#intentionSafetyMessage"), safetyResourcePanel: document.querySelector("#safetyResourcePanel"), safetyCountryLabel: document.querySelector("#safetyCountryLabel"), safetyCountry: document.querySelector("#safetyCountry"), safetyImmediateDanger: document.querySelector("#safetyImmediateDanger"), safetyResourceFallback: document.querySelector("#safetyResourceFallback"), safetyResourceList: document.querySelector("#safetyResourceList"), intentionSensitivityGuidance: document.querySelector("#intentionSensitivityGuidance"), sensitivityGuidanceAcknowledgement: document.querySelector("#sensitivityGuidanceAcknowledgement"), storyIntentionGrid: document.querySelector("#storyIntentionGrid"), intentionPerspectiveNav: document.querySelector("#intentionPerspectiveNav"), intentionPerspectivePage: document.querySelector("#intentionPerspectivePage"), previousIntentionPerspectives: document.querySelector("#previousIntentionPerspectives"), nextIntentionPerspectives: document.querySelector("#nextIntentionPerspectives"), intentionChoiceStatus: document.querySelector("#intentionChoiceStatus"), adventureProposals: document.querySelector("#adventureProposals"), suggestionUniverseSummary: document.querySelector("#suggestionUniverseSummary"), suggestionLoading: document.querySelector("#suggestionLoading"), storySuggestionGrid: document.querySelector("#storySuggestionGrid"), refreshStorySuggestions: document.querySelector("#refreshStorySuggestions"), customStoryChoice: document.querySelector("#customStoryChoice"), suggestionChoiceStatus: document.querySelector("#suggestionChoiceStatus"), selectedSuggestionSummary: document.querySelector("#selectedSuggestionSummary"), fontGrid: document.querySelector("#fontGrid"), productTypeGrid: document.querySelector("#productTypeGrid"), bookFormatGrid: document.querySelector("#bookFormatGrid"), pageCountGrid: document.querySelector("#pageCountGrid"), headerBookFormat: document.querySelector("#headerBookFormat"),
   photoInput: document.querySelector("#photoInput"), photoDropZone: document.querySelector("#photoDropZone"), photoList: document.querySelector("#photoList"), photoCount: document.querySelector("#photoCount"),
   reviewCard: document.querySelector("#reviewCard"), prevButton: document.querySelector("#prevButton"), nextButton: document.querySelector("#nextButton"), formError: document.querySelector("#formError"),
   generationPanel: document.querySelector("#generationPanel"), generationCreationJourney: document.querySelector("#generationCreationJourney"), generationKicker: document.querySelector("#generationKicker"), generationTitle: document.querySelector("#generationTitle"), generationMessage: document.querySelector("#generationMessage"), generationNextStep: document.querySelector("#generationNextStep"), generationBar: document.querySelector("#generationBar"), generationStep: document.querySelector("#generationStep"), resultSection: document.querySelector("#resultSection"), bookPreview: document.querySelector("#bookPreview"),
@@ -564,6 +565,7 @@ const defaultStoryRole = (role) => ({ child: "hero", mascot: "companion", friend
 const tr = (key, params) => translate(state.locale, key, params);
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const formatPrice = (value) => new Intl.NumberFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { style: "currency", currency: "EUR" }).format(value);
+const formatDateTime = (value) => new Intl.DateTimeFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date(value));
 const selectedPageOption = () => state.config?.pageCountOptions?.find((option) => option.pageCount === state.pageCount);
 const isProductAvailable = (productType) => productType === "ebook" || state.config?.productAvailability?.[productType]?.enabled === true;
 const availableProductType = (productType) => isProductAvailable(productType) ? productType : "ebook";
@@ -581,7 +583,7 @@ function persistLocalDraft() {
   localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify({
     flowVersion: FLOW_VERSION, values: formValues(), step: state.step, locale: state.locale, selectedStyle: state.selectedStyle,
     selectedUniverse: state.selectedUniverse, fontStyle: state.fontStyle, pageCount: state.pageCount,
-    productType: state.productType, projectId: state.projectId, storyIntentions: state.storyIntentions,
+    productType: state.productType, bookFormatId: state.bookFormatId, projectId: state.projectId, storyIntentions: state.storyIntentions,
     storyIntentionBatches: state.storyIntentionBatches, storyIntentionPage: state.storyIntentionPage,
     storyIntentionRoundsUsed: state.storyIntentionRoundsUsed,
     intentionSessionId: state.intentionSessionId,
@@ -1431,7 +1433,13 @@ async function renderPreviewActionCenter({ locked = false, qualityReview = false
     elements.actionReadInteractive.removeAttribute("aria-disabled");
   }
   elements.actionRecoverReferences.hidden = !state.referenceRecoveryAvailable;
-  elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
+  elements.previewRebateText.textContent = summary
+    ? tr(summary.permanentDigitalAccess || !summary.previewExpiresAt ? "previewRebatePermanent" : "previewRebate", {
+      amount: formatPrice((summary.rebateCents || 0) / 100),
+      balance: formatPrice((summary.balanceCents || 0) / 100),
+      expires: summary.previewExpiresAt ? formatDateTime(summary.previewExpiresAt) : "",
+    })
+    : tr("checkoutReady");
   setCreditPurchaseLink(elements.actionBuyCredits, summary?.buyCreditsUrl, "action_center");
   elements.actionBuyEbook.disabled = locked;
   elements.actionRequestChange.disabled = locked;
@@ -1665,6 +1673,7 @@ async function beginReferenceRecovery() {
     const project = payload.project;
     const questionnaire = project.questionnaire || {};
     state.pageCount = Number(questionnaire.page_count || project.productConfiguration?.page_count || state.pageCount);
+    state.bookFormatId = questionnaire.book_format_id || project.productConfiguration?.book_format_id || state.bookFormatId;
     state.selectedStyle = questionnaire.style_id || project.productConfiguration?.style_id || state.selectedStyle;
     state.selectedUniverse = questionnaire.universe_id || project.productConfiguration?.universe_id || state.selectedUniverse;
     state.fontStyle = questionnaire.font_style || project.productConfiguration?.font_style || state.fontStyle;
@@ -1766,7 +1775,7 @@ function applyTranslations() {
     elements.headerCreationsLink.setAttribute("aria-label", tr("myCreations"));
     elements.headerCreationsLink.title = tr("myCreations");
   }
-  const firstPrice = state.config?.pageCountOptions?.[0]?.ebookPriceEur;
+  const firstPrice = state.config?.pageCountOptions?.[0]?.generationPriceEur;
   if (elements.heroStartingPrice && firstPrice != null) elements.heroStartingPrice.textContent = tr("startingAt", { price: formatPrice(firstPrice) });
   if (elements.heroPageRange) elements.heroPageRange.textContent = tr("pageRange", { min: 24, max: 44 });
   const universeIndex = state.config?.questions?.findIndex((question) => question.id === "universe") ?? -1;
@@ -2510,6 +2519,29 @@ function renderProductTypes() {
   elements.productTypeGrid.querySelectorAll("[data-product-type]:not(:disabled)").forEach((button) => button.addEventListener("click", () => { state.productType = availableProductType(button.dataset.productType); renderProductTypes(); renderPageCounts(); updateBookMetrics(); emitWooConfiguration(); }));
 }
 
+function selectedBookFormat() {
+  return state.config?.bookFormats?.find((format) => format.id === state.bookFormatId)
+    || state.config?.bookFormats?.[0]
+    || state.config?.bookFormat;
+}
+
+function renderBookFormats() {
+  const formats = state.config?.bookFormats || [state.config?.bookFormat].filter(Boolean);
+  if (!formats.some((format) => format.id === state.bookFormatId)) state.bookFormatId = formats[0]?.id || "square_21";
+  elements.bookFormatGrid.innerHTML = formats.map((format) => {
+    const ratio = Number(format.widthMm || 210) / Number(format.heightMm || 210);
+    const family = format.layoutFamily === "square" ? tr("bookFormatSquare") : tr("bookFormatPortrait");
+    return `<button type="button" class="book-format-card ${format.id === state.bookFormatId ? "is-selected" : ""}" data-book-format-id="${escapeHtml(format.id)}" role="radio" aria-checked="${format.id === state.bookFormatId}"><span class="book-format-shape" style="--format-ratio:${ratio}"></span><strong>${escapeHtml(format.label)}</strong><small>${escapeHtml(family)}</small></button>`;
+  }).join("");
+  elements.bookFormatGrid.querySelectorAll("[data-book-format-id]").forEach((button) => button.addEventListener("click", () => {
+    state.bookFormatId = button.dataset.bookFormatId;
+    renderBookFormats();
+    emitWooConfiguration();
+    scheduleLocalDraft();
+  }));
+  if (elements.headerBookFormat) elements.headerBookFormat.textContent = `${tr("bookFormatAlbum")} · ${selectedBookFormat()?.label || "21 × 21 cm"}`;
+}
+
 function renderPageCounts() {
   const age = Number(document.querySelector("#age")?.value);
   const profile = state.config.readingGuidanceProfiles?.find((item) => age >= item.minAge && age <= item.maxAge);
@@ -2686,7 +2718,7 @@ function renderReview() {
   const chosenSuggestion = selectedStorySuggestion();
   const chosenIntention = selectedStoryIntention();
   const inspiration = chosenSuggestion?.title || (state.storySuggestionMode === "custom" ? tr("suggestionCustomSelected") : "—");
-  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewIntention"), chosenIntention?.title || tr("suggestionCustomSelected")], [tr("reviewInspiration"), inspiration], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewFirstStep"), values.story_seed_first_step || values.story_intent_first_step || "—"], [tr("reviewReward"), values.story_seed_reward || values.story_intent_reward || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
+  const rows = [[tr("reviewHero"), `${values.hero_name || "—"}, ${values.age || "—"}`], [tr("reviewIntention"), chosenIntention?.title || tr("suggestionCustomSelected")], [tr("reviewInspiration"), inspiration], [tr("reviewDream"), values.dream || "—"], [tr("reviewChallenge"), values.challenge || "—"], [tr("reviewFirstStep"), values.story_seed_first_step || values.story_intent_first_step || "—"], [tr("reviewReward"), values.story_seed_reward || values.story_intent_reward || "—"], [tr("reviewMessage"), values.message || "—"], [tr("reviewUniverse"), localizedUniverseName()], [tr("reviewDetail"), values.extra_notes || tr("none")], [tr("reviewStyle"), localizedStyleName()], [tr("reviewFont"), document.querySelector(`.font-${state.fontStyle} span`)?.textContent || state.fontStyle], [tr("reviewProduct"), state.productType === "ebook" ? tr("ebook") : tr("printBook")], [tr("reviewBookFormat"), selectedBookFormat()?.label || "21 × 21 cm"], [tr("reviewPages"), `${tr("pages", { count: state.pageCount })} · ${formatPrice(selectedProductPrice() || 0)}`], [tr("reviewPhotos"), state.photos.length ? tr("referenceCharacters", { count: state.photos.length }) : tr("noPhotos")], [tr("reviewRoles"), state.photos.length ? state.photos.map((photo) => `${photo.name}: ${labels[photo.storyRole]}`).join(" · ") : "—"]];
   elements.reviewCard.innerHTML = rows.map(([label, value]) => `<div class="review-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`).join("");
 }
 
@@ -2703,7 +2735,7 @@ function showStep(nextStep, shouldScroll = true) {
     renderStorySuggestions();
     if (state.selectedUniverse && selectedStoryIntention()) requestStorySuggestions().catch(() => null);
   }
-  if (state.step === 4) renderPageCounts();
+  if (state.step === 4) { renderBookFormats(); renderPageCounts(); }
   if (state.step === REVIEW_STEP) renderReview();
   if (shouldScroll) document.querySelector("#creator").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -2730,6 +2762,8 @@ function productConfiguration() {
   return {
     page_count: state.pageCount,
     product_type: state.productType,
+    book_format_id: state.bookFormatId,
+    pricing_version: state.config?.pricing?.pricingVersion || "digital_legacy_v1",
     font_style: state.fontStyle,
     style_id: state.selectedStyle,
     rendering_mode: selectedStyle?.renderingMode || "illustrated_faithful",
@@ -2738,7 +2772,7 @@ function productConfiguration() {
     book_language: document.querySelector("#language").value,
     price_eur: selectedProductPrice() || 0,
     unit_page_price_eur: selectedUnitPrice() || 0,
-    woo_variation_key: `${state.productType}_pages_${state.pageCount}`,
+    woo_variation_key: `${state.productType}_${state.bookFormatId}_${state.pageCount}_${state.config?.pricing?.pricingVersion || "digital_legacy_v1"}`,
   };
 }
 function emitWooConfiguration() { const detail = productConfiguration(); window.dispatchEvent(new CustomEvent("storybook:configuration", { detail })); document.documentElement.dataset.storybookVariation = detail.woo_variation_key; }
@@ -2896,6 +2930,9 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
     readerPages.innerHTML = frame.map(pageMarkup).join("");
     watchRenderedAssets(readerPages);
     readerBook.classList.toggle("is-cover", Boolean(frame[0]?.isCover));
+    const activeFormat = selectedBookFormat();
+    const pageRatio = Number(activeFormat?.widthMm || 210) / Number(activeFormat?.heightMm || 210);
+    readerBook.style.aspectRatio = String(frame[0]?.isCover ? pageRatio : pageRatio * 2);
     counter.textContent = tr("readerPosition", { current: frameIndex + 1, total: frames.length });
     previousButton.disabled = frameIndex === 0;
     nextButton.disabled = frameIndex === frames.length - 1;
@@ -3868,6 +3905,7 @@ function loadSeriesDraft(project) {
   const configuration = project.productConfiguration || {};
   state.projectId = project.id;
   state.pageCount = Number(questionnaire.page_count || configuration.page_count || state.pageCount);
+  state.bookFormatId = questionnaire.book_format_id || configuration.book_format_id || state.bookFormatId;
   state.selectedStyle = questionnaire.style_id || configuration.style_id || state.selectedStyle;
   state.selectedUniverse = questionnaire.universe_id || configuration.universe_id || state.selectedUniverse;
   state.fontStyle = questionnaire.font_style || configuration.font_style || state.fontStyle;
@@ -3983,7 +4021,7 @@ function changeLocale(locale) {
     : values;
   try { localStorage.setItem("storybook-ui-language", state.locale); } catch { /* Browser storage is optional. */ }
   applyTranslations();
-  if (state.config) { renderQuestions(renderedValues); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
+  if (state.config) { renderQuestions(renderedValues); renderUniverses(); renderStoryIntentions(); renderStorySuggestions(); renderSelectedSuggestionSummary(); renderStyles(); renderFonts(); renderProductTypes(); renderBookFormats(); renderPageCounts(); renderPhotos(); if (state.step === REVIEW_STEP) renderReview(); showStep(state.step, false); }
   syncNewBookLanguageDefault();
   if (activeSafetyIntervention()) refreshSafetyResources().catch(() => null);
 }
@@ -3995,6 +4033,7 @@ async function init() {
     if (!response.ok) throw new Error("Configuration unavailable");
     const saved = newBookRequested ? null : readLocalDraft();
     state.pageCount = saved?.pageCount || state.config.bookFormat.interiorPageCount;
+    state.bookFormatId = saved?.bookFormatId || state.config.bookFormats?.[0]?.id || state.config.bookFormat.id || "square_21";
     state.selectedStyle = saved?.selectedStyle || "";
     state.selectedUniverse = saved?.selectedUniverse || "";
     state.fontStyle = saved?.fontStyle || state.fontStyle;

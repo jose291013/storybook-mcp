@@ -35,7 +35,13 @@ import {
 import { JsonProjectStore, PostgresProjectStore } from "../src/services/projectStore.js";
 import { inspectPageStructure } from "../src/agents/qa.js";
 import { buildFacingPageSceneContract, normalizeWorldReality } from "../src/services/worldReality.js";
-import { previewPriceCents, PREVIEW_PRICE_CENTS_BY_PAGE_COUNT } from "../src/config/previewPricing.js";
+import {
+  LEGACY_PREVIEW_PRICE_CENTS_BY_PAGE_COUNT,
+  previewGenerationContract,
+  previewPriceCents,
+  PREVIEW_PRICE_CENTS_BY_PAGE_COUNT,
+} from "../src/config/previewPricing.js";
+import { DIGITAL_PRICING_VERSION_V1 } from "../src/config/productPricing.js";
 import { configuredPromoCodes, InsufficientCreditError, JsonCreditStore, PostgresCreditStore } from "../src/services/creditStore.js";
 import { signBookOrderWebhook, signCommercePayload, verifyBookOrderWebhook } from "../src/services/commerceToken.js";
 import { JsonCommerceOrderStore } from "../src/services/commerceOrderStore.js";
@@ -308,8 +314,8 @@ test("the creator can start a fresh book and see the WooCommerce session state",
   assert.match(html, /id="actionReadInteractive"/);
   assert.match(html, /assets\/brand\/calitiki-logo-transparent\.png/);
   assert.match(app, /\/interactive-reader\/\?project=/);
-  assert.match(app, /pageCountOptions\?\.\[0\]\?\.ebookPriceEur/);
-  assert.match(html, /À partir de 6,69 €/);
+  assert.match(app, /pageCountOptions\?\.\[0\]\?\.generationPriceEur/);
+  assert.match(html, /Génération dès 4,44 € TTC/);
   assert.match(styles, /\[hidden\] \{ display: none !important; \}/);
 });
 
@@ -356,11 +362,12 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(frontPage, /wonder-city\.webp/);
   assert.match(frontPage, /calitiki_product_url\('ebook'\)/);
   assert.doesNotMatch(frontPage, /calitiki_product_url\('print'\)/);
-  assert.match(frontPage, /À partir de 6,69 € · Découvrir/);
+  assert.match(frontPage, /À partir de 8,88 € TTC · Découvrir/);
   assert.match(frontPage, /Prochainement disponible/);
   assert.match(frontPage, /Pas encore disponible à l’achat/);
-  assert.match(frontPage, /Pack numérique/);
-  assert.match(frontPage, /Deux expériences incluses/);
+  assert.match(frontPage, /eBook PDF/);
+  assert.match(frontPage, /Achat facultatif après génération/);
+  assert.match(frontPage, /lecture interactive privée reste accessible même sans cet achat/);
   assert.match(frontPage, /Ce que vous aimeriez lui transmettre devient une aventure/);
   assert.match(frontPage, /id="exemples"/);
   assert.match(frontPage, /L’intention de l’adulte/);
@@ -390,10 +397,26 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(i18n, /Création assistée par intelligence artificielle/);
 });
 
-test("preview prices follow the approved progressive 24-to-44-page schedule", () => {
-  assert.deepEqual(PREVIEW_PRICE_CENTS_BY_PAGE_COUNT, { 24: 250, 28: 300, 32: 350, 36: 400, 40: 450, 44: 500 });
+test("new generation prices are 0.185 euro per page and open a credited 72-hour preview", () => {
+  assert.deepEqual(LEGACY_PREVIEW_PRICE_CENTS_BY_PAGE_COUNT, { 24: 250, 28: 300, 32: 350, 36: 400, 40: 450, 44: 500 });
+  assert.deepEqual(PREVIEW_PRICE_CENTS_BY_PAGE_COUNT, { 24: 444, 28: 518, 32: 592, 36: 666, 40: 740, 44: 814 });
   assert.equal(previewPriceCents(24), 250);
   assert.equal(previewPriceCents(44), 500);
+  assert.equal(previewPriceCents(24, DIGITAL_PRICING_VERSION_V1), 444);
+  assert.equal(previewPriceCents(44, DIGITAL_PRICING_VERSION_V1), 814);
+  assert.deepEqual(previewGenerationContract(32, DIGITAL_PRICING_VERSION_V1), {
+    version: "generation_ttc_0185_v1",
+    pageCount: 32,
+    requiredCents: 592,
+    unitPagePriceEur: 0.185,
+    interactiveReaderIncluded: false,
+    temporaryInteractivePreviewIncluded: true,
+    previewAccessDurationHours: 72,
+    purchaseCreditCents: 592,
+    permanentDigitalPurchaseIncludesInteractiveReader: true,
+    permanentDigitalPurchaseIncludesPdf: true,
+    ebookIncluded: false,
+  });
 });
 
 test("promotion credit is redeemable once per customer and successful preview spend becomes a project rebate", async () => {
@@ -770,7 +793,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.7\.8/);
+  assert.match(plugin, /Version: 0\.8\.1/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -811,7 +834,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Aperçu personnalisé/);
   assert.match(plugin, /Voir mon livre/);
   assert.match(plugin, /Vérifier le scénario/);
-  assert.match(plugin, /Version: 0\.7\.8/);
+  assert.match(plugin, /Version: 0\.8\.1/);
   assert.match(plugin, /Pilotage Calitiki/);
   assert.match(plugin, /current_user_can\('manage_woocommerce'\)/);
   assert.match(plugin, /\/api\/internal\/book-costs/);
@@ -832,7 +855,9 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /PRINT_BOOK_ENABLED_OPTION/);
   assert.match(plugin, /woocommerce_product_is_purchasable/);
   assert.match(plugin, /calitiki-coming-soon-button/);
-  assert.match(plugin, /eBook \+ livre interactif inclus/);
+  assert.match(plugin, /Livre numérique permanent · liseuse \+ PDF/);
+  assert.match(plugin, /aperçu interactif pendant 3 jours/);
+  assert.match(plugin, /montant déjà payé pour la génération/);
   assert.match(plugin, /Pack numérique personnalisé/);
   assert.match(plugin, /NARRATION_SLUG/);
   assert.match(plugin, /Choisir une narration IA/);
@@ -867,7 +892,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(narrationApp, /readerUrl/);
   assert.match(narrationApp, /setTimeout\(\(\) => refreshStatus\(\), 10000\)/);
   assert.match(narrationRoute, /readerUrl: active/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.7.8.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.8.1.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
 });

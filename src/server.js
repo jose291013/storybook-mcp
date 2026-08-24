@@ -32,6 +32,7 @@ import { startGenerationRecoveryWorker } from "./services/generationRecoveryWork
 import { storyModelRoutes } from "./services/modelRouting.js";
 import { startStoryScenarioWorker } from "./services/storyScenarioWorker.js";
 import { startNarrativeV3ProductionShadowWorker } from "./services/narrativeV3ProductionShadow.js";
+import { startTemporaryPreviewExpiryWorker } from "./services/temporaryPreviewExpiryWorker.js";
 
 const app = express();
 const imageMemory = configureImageMemory();
@@ -87,6 +88,7 @@ startProjectDeletionCleanupWorker();
 startGenerationRecoveryWorker();
 startStoryScenarioWorker();
 startNarrativeV3ProductionShadowWorker();
+startTemporaryPreviewExpiryWorker();
 app.listen(port, () => {
   logMemory("server.ready", { sharpConcurrency: imageMemory.concurrency, sharpCacheMemoryMb: imageMemory.memoryMb });
   console.info("story-model-routing ready", storyModelRoutes());
