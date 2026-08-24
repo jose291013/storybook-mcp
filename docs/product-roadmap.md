@@ -38,7 +38,7 @@ behavior; free technical retries never create a second debit.
 
 Rollout is fail-closed behind `BOOK_FORMAT_V1_ENABLED=false`. Before enabling
 it, WooCommerce must publish the following variation attributes on the eBook
-product and Calitiki Bridge 0.8.1 must be installed:
+product and Calitiki Bridge 0.8.2 must be installed:
 
 - `pa_format-calitiki`: `carre-21`, `portrait-17x24`,
   `portrait-21x29-7`;
@@ -48,11 +48,18 @@ product and Calitiki Bridge 0.8.1 must be installed:
 
 Create the 18 new V1 eBook variations as the Cartesian product of three trims
 and six page counts, with the exact TTC total for that page count. The signed
-checkout identifies format, page count and pricing version; Bridge 0.8.1 must
+checkout identifies format, page count and pricing version; Bridge 0.8.2 must
 find one exact variation or refuse checkout. Legacy square/page-only
 variations remain a compatibility route for old projects and are never used
 for a V1 book. The cover title now floats over a responsive top gradient and
 shadow rather than an opaque rounded rectangle.
+
+Public pricing follows the same immutable distinction. Store and product price
+ranges include only published `ttc-037-v1` variations for new books; historical
+variations remain in WooCommerce solely for signed legacy checkout. The home
+page derives its minimum from those V1 variations instead of duplicating a
+legacy amount. Cover approval and the interactive reader preserve the exact
+selected trim ratio; a portrait cover is contained, never square-cropped.
 
 ## Narrative V3 structural replacement direction
 

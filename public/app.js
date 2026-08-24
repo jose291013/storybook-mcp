@@ -3552,6 +3552,10 @@ function showVisualProof(job, { scroll = true, attempts = 1 } = {}) {
   elements.visualProofTitle.textContent = copy.title;
   elements.visualProofLead.textContent = copy.lead;
   elements.visualProofChecklist.innerHTML = copy.checks.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const proofFormat = job?.final_blueprint?.format || selectedBookFormat() || {};
+  const proofWidth = Number(proofFormat.width_mm || proofFormat.widthMm || 210);
+  const proofHeight = Number(proofFormat.height_mm || proofFormat.heightMm || 210);
+  elements.visualProofImage.style.setProperty("--cover-page-ratio", String(proofWidth / proofHeight));
   elements.visualProofImage.src = result.coverPreviewUrl || result.coverImageUrl || "";
   elements.visualProofImage.alt = copy.alt;
   elements.approveVisualProofButton.textContent = copy.approve;

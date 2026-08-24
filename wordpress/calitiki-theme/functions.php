@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CALITIKI_THEME_VERSION', '1.2.2');
+define('CALITIKI_THEME_VERSION', '1.2.3');
 
 function calitiki_setup() {
     load_theme_textdomain('calitiki', get_template_directory() . '/languages');
@@ -156,6 +156,36 @@ function calitiki_product_url($format) {
     }
 
     return home_url('/');
+}
+
+function calitiki_v1_ebook_minimum_price_html() {
+    if (!function_exists('wc_get_product_id_by_sku') || !function_exists('wc_get_product') || !function_exists('wc_price')) {
+        return '8,88 €';
+    }
+    $product_id = wc_get_product_id_by_sku('CAL-EBOOK');
+    $product = $product_id ? wc_get_product($product_id) : null;
+    if (!$product || !$product->is_type('variable')) {
+        return '8,88 €';
+    }
+    $format_slugs = array('carre-21', 'portrait-17x24', 'portrait-21x29-7');
+    $prices = array();
+    foreach ($product->get_children() as $variation_id) {
+        $variation = wc_get_product($variation_id);
+        if (!$variation || !$variation->exists() || !$variation->is_purchasable()) {
+            continue;
+        }
+        $values = array_map('strval', array_values($variation->get_attributes()));
+        if (!in_array('ttc-037-v1', $values, true) || !array_intersect($format_slugs, $values)) {
+            continue;
+        }
+        $price = function_exists('wc_get_price_to_display')
+            ? (float) wc_get_price_to_display($variation)
+            : (float) $variation->get_price();
+        if ($price > 0) {
+            $prices[] = $price;
+        }
+    }
+    return empty($prices) ? '8,88 €' : wc_price(min($prices));
 }
 
 function calitiki_customize_register($customizer) {

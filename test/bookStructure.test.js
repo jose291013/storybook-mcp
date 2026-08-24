@@ -348,7 +348,7 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(app, /referrer\.hostname === "calitiki\.com"/);
   assert.match(themeFunctions, /livre-enfant-personnalise-ebook/);
   assert.match(themeFunctions, /livre-enfant-personnalise-imprime/);
-  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.2\.2'/);
+  assert.match(themeFunctions, /CALITIKI_THEME_VERSION', '1\.2\.3'/);
   assert.match(themeFunctions, /'libraryUrl' => calitiki_creations_url\(\)/);
   assert.match(themeFunctions, /wc_get_account_endpoint_url\('calitiki-creations'\)/);
   assert.match(header, /account-link-creations/);
@@ -362,7 +362,8 @@ test("the Calitiki theme starts a localized creator flow and contains the WooCom
   assert.match(frontPage, /wonder-city\.webp/);
   assert.match(frontPage, /calitiki_product_url\('ebook'\)/);
   assert.doesNotMatch(frontPage, /calitiki_product_url\('print'\)/);
-  assert.match(frontPage, /À partir de 8,88 € TTC · Découvrir/);
+  assert.match(frontPage, /calitiki_v1_ebook_minimum_price_html\(\)/);
+  assert.match(themeFunctions, /in_array\('ttc-037-v1', \$values, true\)/);
   assert.match(frontPage, /Prochainement disponible/);
   assert.match(frontPage, /Pas encore disponible à l’achat/);
   assert.match(frontPage, /eBook PDF/);
@@ -793,7 +794,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   const plugin = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
   const parser = new PhpParser({ parser: { extractDoc: true }, ast: { withPositions: true } });
   assert.equal(parser.parseCode(plugin).kind, "program");
-  assert.match(plugin, /Version: 0\.8\.1/);
+  assert.match(plugin, /Version: 0\.8\.2/);
   assert.match(plugin, /woocommerce_checkout_order_processed/);
   assert.match(plugin, /get_total\(\) <= 0/);
   assert.match(plugin, /payment_complete\(\)/);
@@ -834,7 +835,7 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(plugin, /Aperçu personnalisé/);
   assert.match(plugin, /Voir mon livre/);
   assert.match(plugin, /Vérifier le scénario/);
-  assert.match(plugin, /Version: 0\.8\.1/);
+  assert.match(plugin, /Version: 0\.8\.2/);
   assert.match(plugin, /Pilotage Calitiki/);
   assert.match(plugin, /current_user_can\('manage_woocommerce'\)/);
   assert.match(plugin, /\/api\/internal\/book-costs/);
@@ -892,9 +893,25 @@ test("Calitiki Bridge emails ready ebooks and recognizes coupon-funded zero-tota
   assert.match(narrationApp, /readerUrl/);
   assert.match(narrationApp, /setTimeout\(\(\) => refreshStatus\(\), 10000\)/);
   assert.match(narrationRoute, /readerUrl: active/);
-  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.8.1.zip");
+  const archive = await fs.readFile("wordpress/calitiki-bridge-v0.8.2.zip");
   assert.equal(archive.includes(Buffer.from("calitiki-bridge\\calitiki-bridge.php")), false);
   assert.equal(archive.includes(Buffer.from("calitiki-bridge/calitiki-bridge.php")), true);
+});
+
+test("cover approval preserves the immutable page ratio without cropping portrait titles", async () => {
+  const [app, styles] = await Promise.all([
+    fs.readFile("public/app.js", "utf8"),
+    fs.readFile("public/styles.css", "utf8"),
+  ]);
+  assert.match(app, /job\?\.final_blueprint\?\.format \|\| selectedBookFormat\(\)/);
+  assert.match(app, /--cover-page-ratio/);
+  const rule = styles.slice(
+    styles.indexOf(".visual-proof-cover img"),
+    styles.indexOf(".visual-proof-actions"),
+  );
+  assert.match(rule, /height: auto/);
+  assert.match(rule, /object-fit: contain/);
+  assert.doesNotMatch(rule, /aspect-ratio: 1;/);
 });
 
 test("anonymous drafts can be claimed and then listed as customer creations", async () => {

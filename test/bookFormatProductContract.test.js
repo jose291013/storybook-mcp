@@ -121,13 +121,17 @@ test("page-plan, PNG and PDF dimensions follow the chosen portrait trim", async 
   }
 });
 
-test("Bridge 0.8.1 requires the exact format, pages and pricing version", async () => {
+test("Bridge 0.8.2 requires the exact format, pages and pricing version and excludes legacy prices from the public range", async () => {
   const source = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
-  assert.match(source, /Version: 0\.8\.1/);
+  assert.match(source, /Version: 0\.8\.2/);
   assert.match(source, /variation_for_configuration/);
   assert.match(source, /digital_ttc_037_v1/);
   assert.match(source, /portrait_21x29_7/);
   assert.match(source, /Format du livre/);
+  assert.match(source, /woocommerce_variable_price_html/);
+  assert.match(source, /public_v1_ebook_variation_prices/);
+  assert.match(source, /ttc-037-v1/);
+  assert.match(source, /array\('carre-21', 'portrait-17x24', 'portrait-21x29-7'\)/);
 });
 
 test("the model-facing intake cannot reinterpret the locked format", async () => {
