@@ -77,7 +77,7 @@ test("only identity-bearing ordinary wardrobe authorities suppress duplicate raw
   );
 });
 
-test("V19 spends a distinct reference attempt before using targeted wardrobe editing", () => {
+test("a single attributed wardrobe defect bypasses whole-scene reference arbitration", () => {
   const evidence = {
     approved: false,
     failedDomains: ["wardrobe"],
@@ -94,13 +94,16 @@ test("V19 spends a distinct reference attempt before using targeted wardrobe edi
       }],
     },
   };
-  const regenerate = strictV3IllustrationRetryStrategy(evidence, {
+  const targeted = strictV3IllustrationRetryStrategy(evidence, {
     attempt: 1,
     maximumAttempts: 3,
     targetedRepairAvailable: true,
     referenceArbitrationAvailable: true,
   });
-  assert.equal(regenerate.mode, "regenerate");
+  assert.equal(targeted.version, 2);
+  assert.equal(targeted.mode, "targeted_repair");
+  assert.equal(targeted.reason, "single_confirmed_wardrobe_target");
+  assert.deepEqual(targeted.wardrobeTargets.map((target) => target.characterId), ["hero"]);
   const final = strictV3IllustrationRetryStrategy(evidence, {
     attempt: 3,
     maximumAttempts: 3,
@@ -108,4 +111,40 @@ test("V19 spends a distinct reference attempt before using targeted wardrobe edi
     referenceArbitrationAvailable: false,
   });
   assert.equal(final.mode, "targeted_repair");
+});
+
+test("several attributed wardrobe defects still use bounded whole-scene arbitration", () => {
+  const evidence = {
+    approved: false,
+    failedDomains: ["wardrobe"],
+    uncertainDomains: [],
+    wardrobeDiagnostics: {
+      targetingComplete: true,
+      failedTargets: [
+        {
+          characterId: "hero",
+          outfitStateId: "reef_explorer",
+          wardrobeAuthorityId: "wardrobe_hero",
+          status: "fail",
+          evidenceCode: "wardrobe_state_mismatch",
+          observationCode: "categorically_different_state",
+        },
+        {
+          characterId: "brother",
+          outfitStateId: "reef_explorer",
+          wardrobeAuthorityId: "wardrobe_brother",
+          status: "fail",
+          evidenceCode: "wardrobe_state_mismatch",
+          observationCode: "categorically_different_state",
+        },
+      ],
+    },
+  };
+  const strategy = strictV3IllustrationRetryStrategy(evidence, {
+    attempt: 1,
+    maximumAttempts: 3,
+    targetedRepairAvailable: true,
+    referenceArbitrationAvailable: true,
+  });
+  assert.equal(strategy.mode, "regenerate");
 });

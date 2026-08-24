@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch after delivery: `main`
-- Main checkpoint after delivery: PR #281 (formats, TTC pricing and temporary interactive preview)
-- Completed brick: book format and pricing V1; 806/806 complete repository tests pass
-- Current focused checkpoint: install Calitiki Bridge 0.8.2 and theme 1.2.3 after delivery, then verify the public V1 range and one portrait cover. Existing books remain on their immutable historical product contract.
+- Current branch: `codex/v3-single-wardrobe-target-repair`
+- Main checkpoint: PR #282 (`5517778`, public V1 prices and exact-ratio cover proof)
+- Completed storefront brick: book format and pricing V1; 806/806 complete repository tests pass
+- Current focused checkpoint: V29.1 single-target wardrobe repair. After delivery, retry one policy-30 strict wardrobe quarantine and verify that one attributed character enters targeted editing before any whole-scene regeneration.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -58,6 +58,27 @@ database migration, generation-call, credit or entitlement change.
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26
 adds the append-only artifact-type migration 034 and no environment variable.
+
+## Candidate brick: V29.1 single-target wardrobe repair
+
+Strict V3 now distinguishes one exact attributed wardrobe defect from a
+scene-wide wardrobe failure. When the final evidence names exactly one
+character, one active outfit state and one private wardrobe authority while all
+other illustration domains are verified, the accepted candidate immediately
+enters isolated targeted editing. It no longer spends another whole-scene
+reference-arbitration attempt that could regress the already verified cast,
+objects, physics or style.
+
+Several wardrobe targets, uncertain evidence and structural domains retain the
+existing bounded regeneration/quarantine behavior. Retry policy 31 opens one
+free resume for policy-30 failures; strict recovery reuses accepted pages and
+regenerates only non-accepted pages, allowing the new single-target decision to
+run from fresh evidence. There is no migration, environment variable, commerce
+or credit change, added model call, private-asset exposure, QA relaxation or
+series-canon mutation.
+
+Repository verification for V29.1: 79/79 focused tests and 808/808 complete
+repository tests pass.
 
 ## Product brick: V27.1 lossless image-boundary transport
 

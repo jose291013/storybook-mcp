@@ -1886,6 +1886,29 @@ This brick adds no migration, environment variable, model call, credit or
 commerce rule, private-asset exposure, acceptance relaxation or series-canon
 mutation.
 
+## V29.1 single-target wardrobe repair
+
+One nominative wardrobe contradiction is a local pixel defect, not permission
+to reinterpret a complete scene. If strict evidence verifies every other
+domain and attributes the only wardrobe failure to exactly one canonical
+character, active outfit state and private authority, the retry strategy must
+preserve that candidate and immediately perform an isolated edit of that
+person. A remaining full-scene attempt is not spent first: doing so can turn one
+known defect into new regressions on already verified characters.
+
+The fast path is fail-closed. It is unavailable for incomplete attribution,
+more than one failed wardrobe target, any uncertain domain or any independent
+structural failure. Those cases retain bounded reference arbitration and
+private quarantine. Retry policy 31 grants one bounded resume to books
+exhausted under policy 30; accepted pages remain reusable and non-accepted
+pages are regenerated so the new evidence policy can run from the first
+candidate. This adds no migration, environment variable, model-call budget,
+commerce or credit rule, private-asset exposure, acceptance relaxation or
+series-canon mutation.
+
+Repository verification for V29.1: 79/79 focused tests and 808/808 complete
+repository tests pass.
+
 ## V27 exact scene-state boundary
 
 Journey lifecycle facts are necessary but not sufficient when several visual
