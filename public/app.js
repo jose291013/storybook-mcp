@@ -1768,7 +1768,7 @@ function applyTranslations() {
     elements.headerCreationsLink.setAttribute("aria-label", tr("myCreations"));
     elements.headerCreationsLink.title = tr("myCreations");
   }
-  const firstPrice = state.config?.pageCountOptions?.[0]?.ebookPriceEur;
+  const firstPrice = state.config?.pageCountOptions?.[0]?.generationPriceEur;
   if (elements.heroStartingPrice && firstPrice != null) elements.heroStartingPrice.textContent = tr("startingAt", { price: formatPrice(firstPrice) });
   if (elements.heroPageRange) elements.heroPageRange.textContent = tr("pageRange", { min: 24, max: 44 });
   const universeIndex = state.config?.questions?.findIndex((question) => question.id === "universe") ?? -1;

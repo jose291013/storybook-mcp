@@ -1172,7 +1172,7 @@ final class Calitiki_Woo_Bridge {
         global $product;
         $format = self::personalized_format($product);
         if ($format === 'ebook') {
-            echo '<span class="calitiki-product-badge calitiki-digital-pack-badge">' . esc_html__('eBook + livre interactif inclus', 'calitiki-bridge') . '</span>';
+            echo '<span class="calitiki-product-badge calitiki-digital-pack-badge">' . esc_html__('eBook PDF téléchargeable', 'calitiki-bridge') . '</span>';
         } elseif ($format === 'narration') {
             echo '<span class="calitiki-product-badge calitiki-narration-badge">' . esc_html__('Option audio générée après paiement', 'calitiki-bridge') . '</span>';
         } elseif ($format === 'print' && !self::print_book_enabled()) {
@@ -1260,9 +1260,9 @@ final class Calitiki_Woo_Bridge {
             echo '<a class="button alt" href="' . esc_url(wc_get_account_endpoint_url('calitiki-creations')) . '">' . esc_html__('Ouvrir mes créations', 'calitiki-bridge') . ' &rarr;</a></div>';
             return;
         }
-        $label = $format === 'ebook' ? __('Personnaliser mon pack numérique', 'calitiki-bridge') : __('Personnaliser votre livre imprimé', 'calitiki-bridge');
+        $label = $format === 'ebook' ? __('Créer mon livre puis choisir l’eBook', 'calitiki-bridge') : __('Personnaliser votre livre imprimé', 'calitiki-bridge');
         echo '<div class="calitiki-personalize-cta">';
-        echo '<p>' . esc_html($format === 'ebook' ? __('Le pack numérique comprend le PDF à télécharger et le livre interactif à lire en ligne. Personnalisez et prévisualisez votre histoire avant de l’ajouter au panier.', 'calitiki-bridge') : __('Ce livre est créé sur mesure. Personnalisez et prévisualisez votre histoire avant de l’ajouter au panier.', 'calitiki-bridge')) . '</p>';
+        echo '<p>' . esc_html($format === 'ebook' ? __('La génération comprend déjà votre livre interactif privé. Cet achat séparé ajoute le fichier eBook PDF téléchargeable, dans le format choisi au début de la création.', 'calitiki-bridge') : __('Ce livre est créé sur mesure. Personnalisez et prévisualisez votre histoire avant de l’ajouter au panier.', 'calitiki-bridge')) . '</p>';
         echo '<a class="button alt" href="' . esc_url(self::generator_personalize_url($format)) . '">' . esc_html($label) . ' &rarr;</a>';
         echo '</div>';
     }

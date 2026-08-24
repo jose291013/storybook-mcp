@@ -7,6 +7,7 @@ import {
   normalizePricingVersion,
   pricingVersionForNewBook,
 } from "../config/productPricing.js";
+import { previewGenerationContract } from "../config/previewPricing.js";
 
 function contractFields(source = {}) {
   return {
@@ -42,6 +43,7 @@ function buildBookProductContract({ source = {}, formatId, pricingVersion }) {
   const price = productType === "ebook"
     ? calculateVersionedEbookPrice(pageCount, normalizedPricingVersion)
     : calculateBookPrice(pageCount, "print");
+  const generation = previewGenerationContract(pageCount, normalizedPricingVersion);
   return Object.freeze({
     version: 1,
     bookFormatId: format.id,
@@ -50,6 +52,11 @@ function buildBookProductContract({ source = {}, formatId, pricingVersion }) {
     productType,
     unitPagePriceEur: unitPrice,
     priceEur: price,
+    generationPricingVersion: generation.version,
+    generationUnitPagePriceEur: generation.unitPagePriceEur,
+    generationPriceEur: generation.requiredCents / 100,
+    interactiveReaderIncluded: generation.interactiveReaderIncluded,
+    ebookIncludedInGeneration: generation.ebookIncluded,
     wooVariationKey: `${productType}_${format.wooSlug}_${pageCount}_${normalizedPricingVersion}`,
   });
 }
@@ -63,6 +70,11 @@ export function applyBookProductContract(source = {}, contract) {
     pricing_version: contract.pricingVersion,
     price_eur: contract.priceEur,
     unit_page_price_eur: contract.unitPagePriceEur,
+    generation_pricing_version: contract.generationPricingVersion,
+    generation_unit_page_price_eur: contract.generationUnitPagePriceEur,
+    generation_price_eur: contract.generationPriceEur,
+    interactive_reader_included: contract.interactiveReaderIncluded,
+    ebook_included_in_generation: contract.ebookIncludedInGeneration,
     woo_variation_key: contract.wooVariationKey,
   };
 }

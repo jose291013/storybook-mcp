@@ -590,10 +590,14 @@ router.post("/preview", async (req, res) => {
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
   const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
+  const productContract = existingBookProductContract({
+    questionnaire: normalized.answers,
+    productConfiguration: project.productConfiguration,
+  });
 
   let creditReservation = existingCheckpoint?.creditReservationId ? { id: existingCheckpoint.creditReservationId } : null;
   if (previewEntitlementsEnabled() && !isTechnicalRetry && !creditReservation) {
-    const requiredCents = previewPriceCents(normalized.answers.page_count);
+    const requiredCents = previewPriceCents(normalized.answers.page_count, productContract.pricingVersion);
     try {
       creditReservation = await creditStore.reservePreview(identity, {
         projectId,
@@ -632,10 +636,6 @@ router.post("/preview", async (req, res) => {
     project = await projectStore.updateForCustomer(projectId, identity, { continuitySnapshot }) || project;
   }
 
-  const productContract = existingBookProductContract({
-    questionnaire: normalized.answers,
-    productConfiguration: project.productConfiguration,
-  });
   const job = createJob({
     status: "running",
     kind: "draft_book",
@@ -655,6 +655,11 @@ router.post("/preview", async (req, res) => {
       pricing_version: productContract.pricingVersion,
       price_eur: productContract.priceEur,
       unit_page_price_eur: productContract.unitPagePriceEur,
+      generation_pricing_version: productContract.generationPricingVersion,
+      generation_unit_page_price_eur: productContract.generationUnitPagePriceEur,
+      generation_price_eur: productContract.generationPriceEur,
+      interactive_reader_included: productContract.interactiveReaderIncluded,
+      ebook_included_in_generation: productContract.ebookIncludedInGeneration,
       woo_variation_key: productContract.wooVariationKey,
     },
   });

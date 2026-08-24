@@ -18,21 +18,26 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: book format and TTC pricing V1
+## Candidate brick: book format, generation and TTC pricing V1
 
 Branch `codex/book-format-v1-pricing` adds immutable trims 21 × 21, 17 × 24
 and 21 × 29.7 cm for new books, exact-format preview/PDF/repair composition,
-and digital pricing version `digital_ttc_037_v1` at EUR 0.37 TTC per page.
+digital pricing version `digital_ttc_037_v1` at EUR 0.37 TTC per page, and
+generation pricing `generation_ttc_0185_v1` at EUR 0.185 TTC per page.
 Existing projects without format/pricing fields remain square under
-`digital_legacy_v1`; their historical price does not change.
+`digital_legacy_v1`; their historical generation and eBook prices do not
+change. New generation totals are EUR 4.44, 5.18, 5.92, 6.66, 7.40 and 8.14
+for 24, 28, 32, 36, 40 and 44 pages. Successful generation includes the
+owner's authenticated private interactive reader; the downloadable eBook is a
+separate optional WooCommerce purchase.
 
 The rollout remains disabled through `BOOK_FORMAT_V1_ENABLED=false` until the
 18 exact WooCommerce V1 eBook variations are published and Calitiki Bridge
 0.8.0 is installed. Bridge matching is fail-closed across format + page count
 + pricing version. The cover title no longer uses an opaque rounded panel.
-Complete repository verification passes: 800/800 tests. PR #281 is published
-and awaits explicit merge approval; production behavior is unchanged while the
-rollout flag is disabled.
+The expanded format, generation-price and entitlement checkpoint passes
+800/800 repository tests. PR #281 remains open and production behavior remains
+unchanged while the rollout flag is disabled.
 
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26

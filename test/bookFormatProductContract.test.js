@@ -42,6 +42,10 @@ test("new V1 ebooks lock 0.37 EUR TTC per page and the selected format", () => {
   assert.equal(contract.pricingVersion, "digital_ttc_037_v1");
   assert.equal(contract.unitPagePriceEur, 0.37);
   assert.equal(contract.priceEur, 11.84);
+  assert.equal(contract.generationPriceEur, 5.92);
+  assert.equal(contract.generationUnitPagePriceEur, 0.185);
+  assert.equal(contract.interactiveReaderIncluded, true);
+  assert.equal(contract.ebookIncludedInGeneration, false);
   assert.equal(contract.wooVariationKey, "ebook_portrait-17x24_32_digital_ttc_037_v1");
 });
 
@@ -52,6 +56,8 @@ test("existing projects without the new fields remain historical square books", 
   assert.equal(contract.bookFormatId, "square_21");
   assert.equal(contract.pricingVersion, "digital_legacy_v1");
   assert.equal(contract.priceEur, 6.69);
+  assert.equal(contract.generationPriceEur, 2.5);
+  assert.equal(contract.generationUnitPagePriceEur, null);
 });
 
 test("a locked product contract cannot be replaced by a later client payload", () => {

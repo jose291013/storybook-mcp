@@ -22,6 +22,7 @@ import {
   ebookUnitPriceForVersion,
   pricingVersionForNewBook,
 } from "../config/productPricing.js";
+import { previewGenerationContract } from "../config/previewPricing.js";
 
 const router = express.Router();
 
@@ -43,6 +44,7 @@ router.get("/questionnaire", (req, res) => {
       unitPagePrice: PRINT_PAGE_PRICE_EUR,
       printUnitPagePrice: PRINT_PAGE_PRICE_EUR,
       ebookUnitPagePrice,
+      generationUnitPagePrice: previewGenerationContract(PAGE_COUNT_OPTIONS[0].pageCount, pricingVersion).unitPagePriceEur,
       pricingVersion,
       taxIncluded: true,
     },
@@ -51,6 +53,7 @@ router.get("/questionnaire", (req, res) => {
     pageCountOptions: PAGE_COUNT_OPTIONS.map((option) => ({
       ...option,
       ebookPriceEur: calculateVersionedEbookPrice(option.pageCount, pricingVersion),
+      generationPriceEur: previewGenerationContract(option.pageCount, pricingVersion).requiredCents / 100,
     })),
     readingGuidanceProfiles: buildReadingGuidanceProfiles(),
     typographyOptions: TYPOGRAPHY_OPTIONS,
