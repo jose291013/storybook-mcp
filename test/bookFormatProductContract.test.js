@@ -44,7 +44,12 @@ test("new V1 ebooks lock 0.37 EUR TTC per page and the selected format", () => {
   assert.equal(contract.priceEur, 11.84);
   assert.equal(contract.generationPriceEur, 5.92);
   assert.equal(contract.generationUnitPagePriceEur, 0.185);
-  assert.equal(contract.interactiveReaderIncluded, true);
+  assert.equal(contract.interactiveReaderIncluded, false);
+  assert.equal(contract.temporaryInteractivePreviewIncluded, true);
+  assert.equal(contract.previewAccessDurationHours, 72);
+  assert.equal(contract.purchaseCreditCents, 592);
+  assert.equal(contract.permanentDigitalPurchaseIncludesInteractiveReader, true);
+  assert.equal(contract.permanentDigitalPurchaseIncludesPdf, true);
   assert.equal(contract.ebookIncludedInGeneration, false);
   assert.equal(contract.wooVariationKey, "ebook_portrait-17x24_32_digital_ttc_037_v1");
 });
@@ -116,9 +121,9 @@ test("page-plan, PNG and PDF dimensions follow the chosen portrait trim", async 
   }
 });
 
-test("Bridge 0.8.0 requires the exact format, pages and pricing version", async () => {
+test("Bridge 0.8.1 requires the exact format, pages and pricing version", async () => {
   const source = await fs.readFile("wordpress/calitiki-bridge/calitiki-bridge.php", "utf8");
-  assert.match(source, /Version: 0\.8\.0/);
+  assert.match(source, /Version: 0\.8\.1/);
   assert.match(source, /variation_for_configuration/);
   assert.match(source, /digital_ttc_037_v1/);
   assert.match(source, /portrait_21x29_7/);

@@ -56,6 +56,11 @@ function buildBookProductContract({ source = {}, formatId, pricingVersion }) {
     generationUnitPagePriceEur: generation.unitPagePriceEur,
     generationPriceEur: generation.requiredCents / 100,
     interactiveReaderIncluded: generation.interactiveReaderIncluded,
+    temporaryInteractivePreviewIncluded: generation.temporaryInteractivePreviewIncluded,
+    previewAccessDurationHours: generation.previewAccessDurationHours,
+    purchaseCreditCents: generation.purchaseCreditCents,
+    permanentDigitalPurchaseIncludesInteractiveReader: generation.permanentDigitalPurchaseIncludesInteractiveReader,
+    permanentDigitalPurchaseIncludesPdf: generation.permanentDigitalPurchaseIncludesPdf,
     ebookIncludedInGeneration: generation.ebookIncluded,
     wooVariationKey: `${productType}_${format.wooSlug}_${pageCount}_${normalizedPricingVersion}`,
   });
@@ -74,6 +79,11 @@ export function applyBookProductContract(source = {}, contract) {
     generation_unit_page_price_eur: contract.generationUnitPagePriceEur,
     generation_price_eur: contract.generationPriceEur,
     interactive_reader_included: contract.interactiveReaderIncluded,
+    temporary_interactive_preview_included: contract.temporaryInteractivePreviewIncluded,
+    preview_access_duration_hours: contract.previewAccessDurationHours,
+    purchase_credit_cents: contract.purchaseCreditCents,
+    permanent_digital_purchase_includes_interactive_reader: contract.permanentDigitalPurchaseIncludesInteractiveReader,
+    permanent_digital_purchase_includes_pdf: contract.permanentDigitalPurchaseIncludesPdf,
     ebook_included_in_generation: contract.ebookIncludedInGeneration,
     woo_variation_key: contract.wooVariationKey,
   };

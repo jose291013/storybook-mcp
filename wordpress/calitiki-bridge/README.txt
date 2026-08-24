@@ -2,7 +2,7 @@
 Contributors: calitiki
 Requires at least: 6.5
 Requires PHP: 7.4
-Stable tag: 0.8.0
+Stable tag: 0.8.1
 License: GPLv2 or later
 
 Connecte de manière signée les comptes WooCommerce au générateur Calitiki hébergé sur Render.
@@ -38,7 +38,7 @@ Les projets dont le scénario attend une précision ou une validation apparaisse
 
 == Notifications de création ==
 
-Lorsque le client active l’option e-mail dans le créateur, WooCommerce l’avertit lorsque la couverture attend sa validation, si la génération est interrompue et lorsque l’aperçu complet est prêt. Chaque message utilise un événement signé et idempotent puis ramène le propriétaire vers l’écran privé correspondant. Une nouvelle proposition de couverture ou une nouvelle tentative technique peut envoyer un nouveau message, mais le même événement ne peut jamais être envoyé deux fois.
+Lorsque le client active l’option e-mail dans le créateur, WooCommerce l’avertit lorsque la couverture attend sa validation, si la génération est interrompue et lorsque l’aperçu complet est prêt. Pour les nouveaux livres V1, WooCommerce envoie aussi un rappel transactionnel 24 heures avant l’expiration de l’aperçu de 3 jours. Chaque message utilise un événement signé et idempotent puis ramène le propriétaire vers l’écran privé correspondant. Une nouvelle proposition de couverture ou une nouvelle tentative technique peut envoyer un nouveau message, mais le même événement ne peut jamais être envoyé deux fois.
 
 == Produits de crédits ==
 
@@ -50,12 +50,12 @@ Lorsqu’un achat de crédits commence depuis un livre, le projet et l’étape 
 == Livres personnalisés ==
 
 Les produits ayant les slugs `livre-enfant-personnalise-ebook` et `livre-enfant-personnalise-imprime` ne peuvent pas être ajoutés directement au panier.
-Après un aperçu réussi, le générateur émet un lien signé et limité dans le temps. L’extension sélectionne alors la variation du nombre de pages, attache l’identifiant du projet au panier et déduit le crédit d’aperçu réservé.
+Après un aperçu réussi, le générateur émet un lien signé et limité dans le temps. L’extension sélectionne alors la variation exacte du format et du nombre de pages, attache l’identifiant du projet au panier et déduit la totalité du prix de génération déjà payé.
 Le paiement capture la remise ; une annulation, un échec ou un remboursement la rend de nouveau disponible pour cette création.
 
 == Livraison eBook ==
 
-Une commande eBook payée, y compris une commande dont les coupons ramènent le total à 0 €, déclenche la création du PDF privé. WooCommerce envoie ensuite un e-mail « Votre eBook est prêt » avec un lien temporaire et affiche un nouveau lien dans « Mes créations Calitiki ».
+Une commande numérique payée, y compris une commande dont les coupons ramènent le total à 0 €, rend la liseuse interactive permanente et déclenche la création du PDF privé. WooCommerce envoie ensuite un e-mail « Votre eBook est prêt » avec un lien temporaire et affiche les deux accès dans « Mes créations Calitiki ».
 Dans cette bibliothèque, une création achetée conserve le vrai titre de sa couverture au lieu du nom générique de la variation WooCommerce. Les anciennes commandes récupèrent ce titre depuis le projet associé et les nouvelles le conservent aussi dans la ligne de commande.
 Si Render ou le stockage privé est momentanément indisponible, l’extension planifie une nouvelle tentative avec WP-Cron. Un remboursement révoque l’accès au fichier.
 Le client peut renvoyer le message depuis « Mes créations Calitiki ». Les anciens PDF sont reconstruits automatiquement dans l’ordre de lecture numérique, sans nouvelle génération d’illustrations.
@@ -66,7 +66,7 @@ Dans Mes créations Calitiki, chaque livre personnalisé propose aussi le bouton
 
 == Bibliothèque des aperçus ==
 
-« Mes créations Calitiki » affiche aussi les aperçus générés avant achat, ainsi que les générations en cours ou interrompues. WooCommerce reçoit uniquement des métadonnées signées ; les réponses, photos et fichiers privés restent sur le service de génération.
+« Mes créations Calitiki » affiche aussi les aperçus générés avant achat, ainsi que les générations en cours ou interrompues. Un nouvel aperçu V1 reste lisible pendant 3 jours et sa date limite est affichée sur la carte. Sans achat, ses fichiers générés sont supprimés à l’échéance ; une commande numérique les conserve avec la liseuse et le PDF. WooCommerce reçoit uniquement des métadonnées signées ; les réponses, photos et fichiers privés restent sur le service de génération.
 Chaque bouton renouvelle la session client puis ouvre directement le bon projet. Le lien « Ouvrir mon livre » de l’e-mail de fin de génération suit le même parcours et affiche immédiatement la preview terminée.
 
 == Narration IA optionnelle ==

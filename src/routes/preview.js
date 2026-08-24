@@ -82,6 +82,7 @@ import {
   upsertPreviewDraftPage,
 } from "../services/previewPageRecovery.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
+import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 import { generationRunStore } from "../services/generationRunStore.js";
 import {
@@ -659,6 +660,11 @@ router.post("/preview", async (req, res) => {
       generation_unit_page_price_eur: productContract.generationUnitPagePriceEur,
       generation_price_eur: productContract.generationPriceEur,
       interactive_reader_included: productContract.interactiveReaderIncluded,
+      temporary_interactive_preview_included: productContract.temporaryInteractivePreviewIncluded,
+      preview_access_duration_hours: productContract.previewAccessDurationHours,
+      purchase_credit_cents: productContract.purchaseCreditCents,
+      permanent_digital_purchase_includes_interactive_reader: productContract.permanentDigitalPurchaseIncludesInteractiveReader,
+      permanent_digital_purchase_includes_pdf: productContract.permanentDigitalPurchaseIncludesPdf,
       ebook_included_in_generation: productContract.ebookIncludedInGeneration,
       woo_variation_key: productContract.wooVariationKey,
     },
@@ -2536,8 +2542,10 @@ router.post("/preview", async (req, res) => {
       if (job.projectId) {
         if (creditReservation?.id) await creditStore.capturePreview(creditReservation.id);
         const latest = await projectStore.get(job.projectId);
+        const completedAt = new Date().toISOString();
         const readyProject = await projectStore.update(job.projectId, {
           status: "preview_ready",
+          productConfiguration: startTemporaryPreviewAccess(latest || project, completedAt),
           finalBlueprint: final_blueprint,
           continuitySnapshot: mergeGenerationCheckpoint({
             ...(latest?.continuitySnapshot || project.continuitySnapshot),
@@ -2550,7 +2558,7 @@ router.post("/preview", async (req, res) => {
                 completedAt: new Date().toISOString(),
               },
             } : {}),
-          }, { ...checkpoint, phase: "done", retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION, retryAvailable: false, retryExhausted: false, completedAt: new Date().toISOString() }),
+          }, { ...checkpoint, phase: "done", retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION, retryAvailable: false, retryExhausted: false, completedAt }),
           previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
           generationJobId: job.id,
         });

@@ -21,16 +21,24 @@ per page; a historical 24-page project therefore remains EUR 6.69.
 The generation authorization for the same new-book contract uses
 `generation_ttc_0185_v1`: EUR 0.185 TTC per generated interior page, snapshotted
 before generation. The exact wallet debits are EUR 4.44, 5.18, 5.92, 6.66,
-7.40 and 8.14 for 24, 28, 32, 36, 40 and 44 pages. This payment includes the
-owner's durable private interactive reader as soon as the complete preview is
-ready; it does not include an eBook file. The downloadable eBook remains a
-separate WooCommerce purchase at the digital price above. Historical projects
-without the V1 pricing contract retain their historical generation debit and
-free technical retries never create a second debit.
+7.40 and 8.14 for 24, 28, 32, 36, 40 and 44 pages. This payment opens the
+owner's complete private interactive preview for exactly 72 hours; it is not a
+permanent reader entitlement and includes no downloadable file. A signed,
+idempotent WooCommerce e-mail is sent 24 hours before expiry. If no checkout is
+active and no purchase exists at expiry, the generated cover, pages, blueprint
+and generation rebate are deleted while the non-generated draft answers remain.
+
+The WooCommerce digital purchase at the price above is the permanent product:
+it preserves the authenticated interactive reader and adds the downloadable PDF
+in the immutable chosen format. The full V1 generation amount is deducted from
+that purchase. An active checkout reservation postpones destructive expiry so a
+customer cannot lose the book during payment. Historical projects without the
+V1 pricing contract retain their historical generation debit and durable reader
+behavior; free technical retries never create a second debit.
 
 Rollout is fail-closed behind `BOOK_FORMAT_V1_ENABLED=false`. Before enabling
 it, WooCommerce must publish the following variation attributes on the eBook
-product and Calitiki Bridge 0.8.0 must be installed:
+product and Calitiki Bridge 0.8.1 must be installed:
 
 - `pa_format-calitiki`: `carre-21`, `portrait-17x24`,
   `portrait-21x29-7`;
@@ -40,7 +48,7 @@ product and Calitiki Bridge 0.8.0 must be installed:
 
 Create the 18 new V1 eBook variations as the Cartesian product of three trims
 and six page counts, with the exact TTC total for that page count. The signed
-checkout identifies format, page count and pricing version; Bridge 0.8.0 must
+checkout identifies format, page count and pricing version; Bridge 0.8.1 must
 find one exact variation or refuse checkout. Legacy square/page-only
 variations remain a compatibility route for old projects and are never used
 for a V1 book. The cover title now floats over a responsive top gradient and
@@ -1943,6 +1951,8 @@ exposure, QA relaxation or series-canon mutation.
 - `PRINT_BOOK_ENABLED`: feature flag for printed-book selection and checkout. It defaults to `false`, leaving the format visible as **Coming soon** while the eBook remains purchasable.
 - `CUSTOMER_SESSION_DAYS`: lifetime of the generator's HTTP-only customer session, default 7 days.
 - `PREVIEW_ENTITLEMENTS_ENABLED`: activates the preview wallet gate after promotion codes or paid credit fulfillment are configured.
+- `PREVIEW_EXPIRY_WORKER_ENABLED`: enables the 72-hour temporary-preview warning and expiry worker for new pricing-V1 books; defaults to `true`.
+- `PREVIEW_EXPIRY_WORKER_INTERVAL_MS`: polling interval for preview warnings and expiry cleanup; defaults to 300000 ms and is bounded to a minimum of 60000 ms.
 - `PREVIEW_PROMO_CODES`: comma-separated `CODE:AMOUNT_IN_EURO_CENTS` campaign codes; each code can be redeemed once per WooCommerce customer.
 - `WOOCOMMERCE_CREDITS_URL`: WooCommerce URL used by the generator's **Buy credits** action.
 - `PRIVATE_STORAGE_BACKEND=s3`: private production delivery backend. `local` is allowed only for local development.

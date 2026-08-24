@@ -5,6 +5,7 @@ import {
   technicalPreviewRetryExhausted,
 } from "./previewGenerationCheckpoint.js";
 import { publicPreviewFailureReason } from "./providerBillingError.js";
+import { previewAccessState } from "./temporaryPreviewAccess.js";
 
 const LIBRARY_STATUSES = new Set([
   "scenario_generating",
@@ -17,6 +18,7 @@ const LIBRARY_STATUSES = new Set([
   "preview_ready",
   "preview_repairing",
   "purchased",
+  "preview_expired",
 ]);
 
 function pageCount(project) {
@@ -38,6 +40,7 @@ export function customerCreationSummary(project, {
   const narrationStatus = latestNarration?.paymentStatus === "paid"
     ? String(latestNarration.fulfillmentStatus || "")
     : "";
+  const previewAccess = previewAccessState(project);
   return {
     id: String(project.id),
     title: String(project.finalBlueprint?.cover?.title || project.continuitySnapshot?.storyScenario?.title || project.title || project.questionnaire?.hero_name || "Calitiki"),
@@ -45,7 +48,10 @@ export function customerCreationSummary(project, {
     locale: String(project.locale || "FR"),
     pageCount: pageCount(project),
     updatedAt: project.updatedAt || null,
-    previewReady: Boolean(project.previewResult && ["preview_quality_review", "preview_ready", "preview_repairing", "purchased"].includes(project.status)),
+    previewReady: Boolean(previewAccess.allowed && project.previewResult && ["preview_quality_review", "preview_ready", "preview_repairing", "purchased"].includes(project.status)),
+    previewExpiresAt: previewAccess.expiresAt,
+    previewExpired: previewAccess.expired,
+    permanentDigitalAccess: previewAccess.permanent,
     qualityReviewRequired: project.status === "preview_quality_review",
     deletable: !paidPurchase,
     technicalRetryAvailable: technicalPreviewRetryAvailable(project),

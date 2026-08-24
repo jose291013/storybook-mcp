@@ -565,6 +565,7 @@ const defaultStoryRole = (role) => ({ child: "hero", mascot: "companion", friend
 const tr = (key, params) => translate(state.locale, key, params);
 const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 const formatPrice = (value) => new Intl.NumberFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { style: "currency", currency: "EUR" }).format(value);
+const formatDateTime = (value) => new Intl.DateTimeFormat(state.locale === "EN" ? "en-IE" : state.locale === "ES" ? "es-ES" : "fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date(value));
 const selectedPageOption = () => state.config?.pageCountOptions?.find((option) => option.pageCount === state.pageCount);
 const isProductAvailable = (productType) => productType === "ebook" || state.config?.productAvailability?.[productType]?.enabled === true;
 const availableProductType = (productType) => isProductAvailable(productType) ? productType : "ebook";
@@ -1432,7 +1433,13 @@ async function renderPreviewActionCenter({ locked = false, qualityReview = false
     elements.actionReadInteractive.removeAttribute("aria-disabled");
   }
   elements.actionRecoverReferences.hidden = !state.referenceRecoveryAvailable;
-  elements.previewRebateText.textContent = summary ? tr("previewRebate", { amount: formatPrice((summary.rebateCents || 0) / 100), balance: formatPrice((summary.balanceCents || 0) / 100) }) : tr("checkoutReady");
+  elements.previewRebateText.textContent = summary
+    ? tr(summary.permanentDigitalAccess || !summary.previewExpiresAt ? "previewRebatePermanent" : "previewRebate", {
+      amount: formatPrice((summary.rebateCents || 0) / 100),
+      balance: formatPrice((summary.balanceCents || 0) / 100),
+      expires: summary.previewExpiresAt ? formatDateTime(summary.previewExpiresAt) : "",
+    })
+    : tr("checkoutReady");
   setCreditPurchaseLink(elements.actionBuyCredits, summary?.buyCreditsUrl, "action_center");
   elements.actionBuyEbook.disabled = locked;
   elements.actionRequestChange.disabled = locked;

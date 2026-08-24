@@ -9,11 +9,11 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch after delivery: `main`
-- Main checkpoint after delivery: PR #280 (V27.1 lossless image-contract boundary transport)
-- Completed brick: V27.1; 792/792 complete repository tests pass
-- Current focused checkpoint: production project `5d31b5a7-e09f-45d8-b72b-45b46e066ffa` proved that V27 compiled a valid scenario and manuscript but exposed an older image-adapter limit: blocking prohibitions were truncated after twelve entries while binding validation compared the complete authority. V27.1 transports `SceneStateBoundary.v1` as structured image input, removes the truncation of blocking prohibitions and bumps the deterministic storyboard plan to version 17 so an interrupted V27 project is rebuilt from its immutable spec on free retry.
+- Main checkpoint after delivery: PR #281 (formats, TTC pricing and temporary interactive preview)
+- Completed brick: book format and pricing V1; 805/805 complete repository tests pass
+- Current focused checkpoint: install Calitiki Bridge 0.8.1, then enable `BOOK_FORMAT_V1_ENABLED=true` for controlled new-book verification. Existing books remain on their immutable historical product contract.
 - Migration hotfix: PR #234
-- WordPress Bridge source candidate: `0.7.8`; installed production package last recorded as `0.7.5`
+- WordPress Bridge source candidate: `0.8.1`; installed production package last reported as `0.7.8`
 - WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
@@ -27,17 +27,21 @@ generation pricing `generation_ttc_0185_v1` at EUR 0.185 TTC per page.
 Existing projects without format/pricing fields remain square under
 `digital_legacy_v1`; their historical generation and eBook prices do not
 change. New generation totals are EUR 4.44, 5.18, 5.92, 6.66, 7.40 and 8.14
-for 24, 28, 32, 36, 40 and 44 pages. Successful generation includes the
-owner's authenticated private interactive reader; the downloadable eBook is a
-separate optional WooCommerce purchase.
+for 24, 28, 32, 36, 40 and 44 pages. Successful V1 generation opens the
+owner's complete authenticated interactive preview for 72 hours. A signed
+WooCommerce e-mail warns the owner 24 hours before expiry. Without purchase or
+active checkout, generated assets and the generation rebate expire; the
+questionnaire draft remains. The permanent digital purchase includes both the
+interactive reader and downloadable PDF, less the full generation amount.
 
 The rollout remains disabled through `BOOK_FORMAT_V1_ENABLED=false` until the
 18 exact WooCommerce V1 eBook variations are published and Calitiki Bridge
-0.8.0 is installed. Bridge matching is fail-closed across format + page count
+0.8.1 is installed. Bridge matching is fail-closed across format + page count
 + pricing version. The cover title no longer uses an opaque rounded panel.
-The expanded format, generation-price and entitlement checkpoint passes
-800/800 repository tests. PR #281 remains open and production behavior remains
-unchanged while the rollout flag is disabled.
+The expanded format, generation-price and entitlement checkpoint passes all
+805 repository tests. Production behavior remains unchanged while the rollout
+flag is disabled. Calitiki Bridge 0.8.1 is packaged
+at `wordpress/calitiki-bridge-v0.8.1.zip` but is not yet installed.
 
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26

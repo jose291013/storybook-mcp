@@ -14,6 +14,7 @@ import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { signCommercePayload, verifyBookOrderWebhook, verifyDeliveryLinkRequest, woocommerceCheckoutBridgeUrl } from "../services/commerceToken.js";
 import { existingBookProductContract } from "../services/bookProductContract.js";
+import { previewAccessState } from "../services/temporaryPreviewAccess.js";
 
 const router = express.Router();
 
@@ -32,6 +33,8 @@ router.post("/commerce/checkout-link", async (req, res) => {
   try {
     const project = await projectStore.getForCustomer(projectId, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
+    const access = previewAccessState(project);
+    if (!access.allowed) return res.status(410).json({ error: "Temporary preview expired", code: "temporary_preview_expired", expiresAt: access.expiresAt });
     if (!project.previewResult || !["preview_ready", "purchased"].includes(project.status)) return res.status(409).json({ error: "Generate and validate the preview before purchase" });
     if (project.status !== "purchased" && await previewRevisionStore.activeForProject(project.id)) {
       return res.status(409).json({ error: "Approve or reject the pending preview modification before checkout" });

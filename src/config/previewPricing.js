@@ -39,7 +39,12 @@ export function previewGenerationContract(pageCount, pricingVersion) {
     pageCount: normalizedPageCount,
     requiredCents,
     unitPagePriceEur: v1 ? GENERATION_PAGE_PRICE_EUR_V1 : null,
-    interactiveReaderIncluded: true,
+    interactiveReaderIncluded: !v1,
+    temporaryInteractivePreviewIncluded: v1,
+    previewAccessDurationHours: v1 ? 72 : null,
+    purchaseCreditCents: v1 ? requiredCents : 0,
+    permanentDigitalPurchaseIncludesInteractiveReader: true,
+    permanentDigitalPurchaseIncludesPdf: true,
     ebookIncluded: false,
   });
 }

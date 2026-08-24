@@ -6,6 +6,7 @@ import { readWooCustomer } from "../services/draftIdentity.js";
 import { projectStore } from "../services/projectStore.js";
 import { technicalReferenceRetryAvailable } from "../services/referencePhotoRecovery.js";
 import { technicalPreviewRetryAvailable } from "../services/previewGenerationCheckpoint.js";
+import { previewAccessState } from "../services/temporaryPreviewAccess.js";
 
 const router = express.Router();
 
@@ -34,6 +35,7 @@ router.get("/credits/summary", async (req, res) => {
     const productContract = project ? existingBookProductContract(project) : null;
     const generation = previewGenerationContract(pageCount, productContract?.pricingVersion);
     const summary = await creditStore.summary(identity, projectId || null);
+    const access = project ? previewAccessState(project) : null;
     const technicalRetry = technicalReferenceRetryAvailable(project) || technicalPreviewRetryAvailable(project);
     const requiredCents = technicalRetry ? 0 : generation.requiredCents;
     res.set("Cache-Control", "no-store");
@@ -42,7 +44,15 @@ router.get("/credits/summary", async (req, res) => {
       generationPricingVersion: generation.version,
       unitPagePriceEur: generation.unitPagePriceEur,
       interactiveReaderIncluded: generation.interactiveReaderIncluded,
+      temporaryInteractivePreviewIncluded: generation.temporaryInteractivePreviewIncluded,
+      previewAccessDurationHours: generation.previewAccessDurationHours,
+      purchaseCreditCents: generation.purchaseCreditCents,
+      permanentDigitalPurchaseIncludesInteractiveReader: generation.permanentDigitalPurchaseIncludesInteractiveReader,
+      permanentDigitalPurchaseIncludesPdf: generation.permanentDigitalPurchaseIncludesPdf,
       ebookIncluded: generation.ebookIncluded,
+      previewExpiresAt: access?.expiresAt || null,
+      previewExpired: Boolean(access?.expired),
+      permanentDigitalAccess: Boolean(access?.permanent),
       ...summary, missingCents: Math.max(0, requiredCents - summary.balanceCents),
       buyCreditsUrl: process.env.WOOCOMMERCE_CREDITS_URL || "",
     });

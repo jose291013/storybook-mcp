@@ -7,6 +7,7 @@ import { normalizePageCount } from "../config/bookOptions.js";
 import { logMemory } from "./runtimeMemory.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
 import { existingBookProductContract } from "./bookProductContract.js";
+import { grantPermanentDigitalAccess, previewAccessState } from "./temporaryPreviewAccess.js";
 
 export const EBOOK_LAYOUT_ID = "digital-v3-format-v1";
 
@@ -42,6 +43,7 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
   const identity = { wooCustomerId: String(input.wooCustomerId), email: String(input.email || "") };
   const project = await projects.getForCustomer(String(input.projectId), identity);
   if (!project) throw new Error("Purchased project not found for this customer");
+  if (!previewAccessState(project).allowed) throw new Error("The temporary preview expired before purchase");
   if (!project.previewResult || !["preview_ready", "purchased"].includes(project.status)) throw new Error("A completed preview is required before fulfillment");
 
   const productType = String(input.productType || "").toLowerCase();
@@ -59,7 +61,11 @@ export async function fulfillPaidBookOrder(input, dependencies = {}) {
     orderId: String(input.orderId), projectId: project.id, customerId: project.customerId, wooCustomerId: identity.wooCustomerId,
     productType, pageCount: expectedPageCount, orderTotalCents: Math.max(0, Math.round(Number(input.orderTotalCents || 0))),
   });
-  await projects.update(project.id, { status: "purchased", expiresAt: null });
+  await projects.update(project.id, {
+    status: "purchased",
+    expiresAt: null,
+    productConfiguration: grantPermanentDigitalAccess(project),
+  });
   if (productType !== "ebook") return { status: "paid", productType };
   const storage = dependencies.deliveryStorage || getDeliveryStorage();
   if (record.fulfillmentStatus === "ready" && record.storageKey && usesCurrentEbookLayout(record)) {

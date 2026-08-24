@@ -36,6 +36,7 @@ import {
   createBookProductContract,
   existingBookProductContract,
 } from "../services/bookProductContract.js";
+import { previewAccessState } from "../services/temporaryPreviewAccess.js";
 
 const router = express.Router();
 
@@ -137,6 +138,8 @@ router.post("/projects/:id/preview-notification", async (req, res) => {
   try {
     const project = await projectStore.getForCustomer(req.params.id, identity);
     if (!project) return res.status(404).json({ error: "Project not found" });
+    const access = previewAccessState(project);
+    if (!access.allowed) return res.status(410).json({ error: "Temporary preview expired", code: "temporary_preview_expired", expiresAt: access.expiresAt });
     const current = project.continuitySnapshot?.previewNotification || {};
     const continuitySnapshot = {
       ...project.continuitySnapshot,
@@ -265,6 +268,7 @@ router.get("/projects/:id/reference-photos/:photoId", async (req, res) => {
   try {
     const project = await projectStore.getForCustomer(req.params.id, identity);
     if (!project) return res.status(404).end();
+    if (!previewAccessState(project).allowed) return res.status(410).end();
     const photo = (project.photoRefs || []).find((item) => String(item.id) === String(req.params.photoId));
     if (!photo) return res.status(404).end();
     const asset = await loadReferencePhoto(photo);

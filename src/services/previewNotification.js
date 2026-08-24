@@ -53,6 +53,7 @@ function sharedPayload({ project, identity }) {
     title: project.finalBlueprint?.cover?.title || project.title || "Calitiki",
     locale: project.locale || "FR",
     readyUrl: `${baseUrl}/?resumeProject=${encodeURIComponent(project.id)}#project-resume`,
+    previewExpiresAt: project.productConfiguration?.preview_access_expires_at || "",
   };
 }
 
@@ -70,7 +71,7 @@ export async function notifyPreviewMilestone({
   eventId,
   retryAvailable = false,
 }) {
-  if (!["scenario_ready", "scenario_failed", "cover_ready", "generation_failed", "quality_review_required"].includes(event)) {
+  if (!["scenario_ready", "scenario_failed", "cover_ready", "generation_failed", "quality_review_required", "preview_expiring"].includes(event)) {
     throw new Error("Unsupported preview notification event");
   }
   return postNotification({
