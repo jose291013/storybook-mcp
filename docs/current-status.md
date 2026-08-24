@@ -30,8 +30,9 @@ The rollout remains disabled through `BOOK_FORMAT_V1_ENABLED=false` until the
 18 exact WooCommerce V1 eBook variations are published and Calitiki Bridge
 0.8.0 is installed. Bridge matching is fail-closed across format + page count
 + pricing version. The cover title no longer uses an opaque rounded panel.
-Complete repository verification passes: 800/800 tests. PR publication remains
-pending; production behavior is unchanged while the rollout flag is disabled.
+Complete repository verification passes: 800/800 tests. PR #281 is published
+and awaits explicit merge approval; production behavior is unchanged while the
+rollout flag is disabled.
 
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26
