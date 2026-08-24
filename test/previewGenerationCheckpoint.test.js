@@ -306,8 +306,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the dual ordinary and adventure wardrobe recovery policy is version thirty", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 30);
+test("the single-target wardrobe recovery policy is version thirty-one", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 31);
+});
+
+test("a single-target wardrobe quarantine exhausted under V30 receives one focused resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v30-single-target-wardrobe-book",
+      retryPolicyVersion: 30,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-24T18:00:00.000Z",
+      failureReason: "narrative_v3_illustration_evidence_incomplete",
+      phase: "strict-quarantine:page:31",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("a book exhausted under V28 receives one split identity and wardrobe resume", () => {

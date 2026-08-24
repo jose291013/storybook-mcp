@@ -1188,12 +1188,25 @@ export function strictV3IllustrationRetryStrategy(
     && failedDomains.length === 1
     && STRICT_V3_LOCAL_REPAIR_DOMAINS.has(failedDomains[0])
     && (failedDomains[0] !== "wardrobe" || evidence?.wardrobeDiagnostics?.targetingComplete === true);
+  const failedWardrobeTargets = Array.isArray(evidence?.wardrobeDiagnostics?.failedTargets)
+    ? evidence.wardrobeDiagnostics.failedTargets
+    : [];
+  const singleConfirmedWardrobeTarget = singleConfirmedLocalDomain
+    && failedDomains[0] === "wardrobe"
+    && failedWardrobeTargets.length === 1;
 
   let mode = "quarantine";
   let reason = "repair_budget_exhausted";
   if (unresolvedDomains.length === 0 && evidence?.approved === true) {
     mode = "accept";
     reason = "all_domains_verified";
+  } else if (singleConfirmedWardrobeTarget && targetedRepairAvailable) {
+    // Once the arbiter has named exactly one character and one canonical
+    // outfit authority, another whole-scene generation is strictly riskier:
+    // it can regress already verified people, objects, physics and style.
+    // Preserve the accepted candidate and edit only the attributed target.
+    mode = "targeted_repair";
+    reason = "single_confirmed_wardrobe_target";
   } else if (singleConfirmedLocalDomain && targetedRepairAvailable
     && !(referenceArbitrationAvailable && attemptsRemaining > 0)) {
     mode = "targeted_repair";
@@ -1211,7 +1224,7 @@ export function strictV3IllustrationRetryStrategy(
   }
 
   return {
-    version: 1,
+    version: 2,
     mode,
     reason,
     failedDomains,
@@ -1247,7 +1260,7 @@ export function strictV3TargetedRepairPolicy(evidence = {}, options = {}) {
     };
   });
   return {
-    version: 6,
+    version: 7,
     strategy,
     classifications,
     targetCodes: strategy.targetCodes,
