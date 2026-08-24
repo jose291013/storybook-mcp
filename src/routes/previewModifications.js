@@ -20,6 +20,7 @@ import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
 import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
+import { findBookFormat } from "../config/bookFormats.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -181,7 +182,7 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
       }] : []),
       ...(continuity.referenceImages || []),
     ],
-    size: "1024x1024",
+    size: findBookFormat(project.finalBlueprint?.format?.id).imageSize,
     quality: "low",
     renderingMode: style.renderingMode,
     likenessGoal: style.likeness,
@@ -245,6 +246,7 @@ async function buildCandidate(modification, jobId) {
       pageNumber: spread.textPageNumber,
       fontStyle: project.finalBlueprint.typography?.id,
       readerAge: project.finalBlueprint.hero?.age,
+      bookFormat: project.finalBlueprint?.format,
       dpi: 150,
     });
     const persistedText = await persistPreviewAsset({ projectId: project.id, assetUrl: composedTextUrl });
@@ -283,6 +285,7 @@ async function buildCandidate(modification, jobId) {
       pageNumber: spread.imagePageNumber,
       fontStyle: project.finalBlueprint.typography?.id,
       readerAge: project.finalBlueprint.hero?.age,
+      bookFormat: project.finalBlueprint?.format,
       dpi: 150,
     });
     const persistedPage = await persistPreviewAsset({ projectId: project.id, assetUrl: composedImageUrl });

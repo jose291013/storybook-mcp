@@ -18,7 +18,7 @@
         </a>
         <a class="creations-return" id="headerCreationsLink" href="https://calitiki.com/mon-compte/calitiki-creations/" data-i18n="myCreations">Mes créations</a>
         <a class="wallet-pill" id="headerCreditBalance" href="#creator" hidden><span data-i18n="walletBalance">Solde</span> <strong id="headerCreditBalanceValue">—</strong></a>
-        <span class="format-pill" data-i18n="format">Album carre · 21 × 21 cm</span>
+        <span class="format-pill" id="headerBookFormat">Album · 21 × 21 cm</span>
         <label class="ui-language"><span data-i18n="interfaceLanguage">Interface</span>
           <select id="uiLanguage" aria-label="Langue de l'interface">
             <option value="FR">FR</option><option value="ES">ES</option><option value="EN">EN</option>
@@ -206,6 +206,12 @@
                 <h3 data-i18n="productTypeTitle">Quel format souhaitez-vous acheter ?</h3>
                 <p data-i18n="productTypeLead">L’eBook est disponible dès maintenant. Le livre imprimé arrive prochainement.</p>
                 <div class="product-type-grid" id="productTypeGrid" role="radiogroup"></div>
+              </div>
+
+              <div class="choice-section">
+                <h3 data-i18n="bookFormatTitle">Quel format doit avoir votre livre ?</h3>
+                <p data-i18n="bookFormatLead">Ce choix détermine la mise en page de l’eBook et du futur livre imprimé.</p>
+                <div class="book-format-grid" id="bookFormatGrid" role="radiogroup"></div>
               </div>
 
               <div class="choice-section">

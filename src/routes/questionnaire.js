@@ -9,7 +9,6 @@ import {
 import { ILLUSTRATION_STYLES, RENDERING_MODES } from "../config/illustrationStyles.js";
 import { buildReadingGuidanceProfiles } from "../config/readingGuidance.js";
 import {
-  EBOOK_PAGE_PRICE_EUR,
   PAGE_COUNT_OPTIONS,
   PRINT_PAGE_PRICE_EUR,
   PRODUCT_TYPES,
@@ -17,10 +16,18 @@ import {
   UNIVERSE_OPTIONS,
 } from "../config/bookOptions.js";
 import { getProductAvailability } from "../config/productAvailability.js";
+import { availableBookFormats, bookFormatV1Enabled, publicBookFormat } from "../config/bookFormats.js";
+import {
+  calculateVersionedEbookPrice,
+  ebookUnitPriceForVersion,
+  pricingVersionForNewBook,
+} from "../config/productPricing.js";
 
 const router = express.Router();
 
 router.get("/questionnaire", (req, res) => {
+  const pricingVersion = pricingVersionForNewBook();
+  const ebookUnitPagePrice = ebookUnitPriceForVersion(pricingVersion);
   res.json({
     questions: BOOK_QUESTIONS,
     photos: {
@@ -28,16 +35,23 @@ router.get("/questionnaire", (req, res) => {
       roles: PHOTO_ROLES,
       storyRoles: PHOTO_STORY_ROLES,
     },
-    bookFormat: BOOK_FORMAT,
+    bookFormat: { ...BOOK_FORMAT, ...publicBookFormat("square_21") },
+    bookFormats: availableBookFormats().map(publicBookFormat),
+    bookFormatV1Enabled: bookFormatV1Enabled(),
     pricing: {
       currency: "EUR",
       unitPagePrice: PRINT_PAGE_PRICE_EUR,
       printUnitPagePrice: PRINT_PAGE_PRICE_EUR,
-      ebookUnitPagePrice: EBOOK_PAGE_PRICE_EUR,
+      ebookUnitPagePrice,
+      pricingVersion,
+      taxIncluded: true,
     },
     productTypes: PRODUCT_TYPES,
     productAvailability: getProductAvailability(),
-    pageCountOptions: PAGE_COUNT_OPTIONS,
+    pageCountOptions: PAGE_COUNT_OPTIONS.map((option) => ({
+      ...option,
+      ebookPriceEur: calculateVersionedEbookPrice(option.pageCount, pricingVersion),
+    })),
     readingGuidanceProfiles: buildReadingGuidanceProfiles(),
     typographyOptions: TYPOGRAPHY_OPTIONS,
     universeOptions: UNIVERSE_OPTIONS,

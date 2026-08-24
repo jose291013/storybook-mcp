@@ -30,7 +30,8 @@ import {
   adjacentApprovedIllustrationReferences,
   adjacentContinuityPageNumbers,
 } from "../services/adjacentVisualContinuity.js";
-import { calculateBookPrice, EBOOK_PAGE_PRICE_EUR, PRINT_PAGE_PRICE_EUR } from "../config/bookOptions.js";
+import { findBookFormat } from "../config/bookFormats.js";
+import { existingBookProductContract } from "../services/bookProductContract.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -631,6 +632,10 @@ router.post("/preview", async (req, res) => {
     project = await projectStore.updateForCustomer(projectId, identity, { continuitySnapshot }) || project;
   }
 
+  const productContract = existingBookProductContract({
+    questionnaire: normalized.answers,
+    productConfiguration: project.productConfiguration,
+  });
   const job = createJob({
     status: "running",
     kind: "draft_book",
@@ -646,9 +651,11 @@ router.post("/preview", async (req, res) => {
       likeness_goal: normalized.answers.likeness_goal,
       universe_id: normalized.answers.universe_id,
       book_language: normalized.answers.language,
-      price_eur: calculateBookPrice(normalized.answers.page_count, normalized.answers.product_type),
-      unit_page_price_eur: normalized.answers.product_type === "ebook" ? EBOOK_PAGE_PRICE_EUR : PRINT_PAGE_PRICE_EUR,
-      woo_variation_key: `${normalized.answers.product_type}_pages_${normalized.answers.page_count}`,
+      book_format_id: productContract.bookFormatId,
+      pricing_version: productContract.pricingVersion,
+      price_eur: productContract.priceEur,
+      unit_page_price_eur: productContract.unitPagePriceEur,
+      woo_variation_key: productContract.wooVariationKey,
     },
   });
   try {
@@ -909,6 +916,7 @@ router.post("/preview", async (req, res) => {
           language: answers.language,
           pageCount: answers.page_count,
           fontStyle: answers.font_style,
+          bookFormatId: answers.book_format_id,
           approvedScenario,
         });
         updateJob(job.id, {
@@ -1657,7 +1665,7 @@ router.post("/preview", async (req, res) => {
             assetCache: candidateAssetCache,
           }),
           ...coverContinuity,
-          size: "1024x1024",
+          size: findBookFormat(answers.book_format_id).imageSize,
           quality: "medium",
           renderingMode: answers.rendering_mode,
           likenessGoal: answers.likeness_goal,
@@ -1669,6 +1677,7 @@ router.post("/preview", async (req, res) => {
           title: final_blueprint.cover.title,
           outName: `draft-cover-page-${job.id}`,
           pageType: "cover",
+          bookFormat: final_blueprint.format,
           dpi: 150,
         });
         const persistedCoverImage = candidateAssetCache.get(localCoverImageUrl)
@@ -2071,7 +2080,7 @@ router.post("/preview", async (req, res) => {
                 assetCache: candidateAssetCache,
               }),
               ...sceneContinuity,
-              size: "1024x1024",
+              size: findBookFormat(final_blueprint.format?.id || answers.book_format_id).imageSize,
               quality: "low",
               renderingMode: answers.rendering_mode,
               likenessGoal: answers.likeness_goal,
@@ -2150,6 +2159,7 @@ router.post("/preview", async (req, res) => {
           pageNumber: page.page_number,
           fontStyle: final_blueprint.typography?.id,
           readerAge: final_blueprint.hero?.age,
+          bookFormat: final_blueprint.format,
           dpi: 150,
         });
         const persistedPage = await persistPreviewAsset({ projectId, assetUrl: localPreviewUrl });
@@ -2267,7 +2277,7 @@ router.post("/preview", async (req, res) => {
             }),
             ...sceneContinuity,
             referenceImages: repairReferences,
-            size: "1024x1024",
+            size: findBookFormat(final_blueprint.format?.id || answers.book_format_id).imageSize,
             quality: "low",
             renderingMode: answers.rendering_mode,
             likenessGoal: answers.likeness_goal,
@@ -2286,6 +2296,7 @@ router.post("/preview", async (req, res) => {
             pageNumber: page.page_number,
             fontStyle: final_blueprint.typography?.id,
             readerAge: final_blueprint.hero?.age,
+            bookFormat: final_blueprint.format,
             dpi: 150,
           });
           const persistedPage = await persistPreviewAsset({ projectId, assetUrl: repairedPreviewUrl });

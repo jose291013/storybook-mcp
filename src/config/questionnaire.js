@@ -76,6 +76,8 @@ export const DEFAULT_STORY_ROLE_BY_PHOTO_ROLE = {
 export const MAX_REFERENCE_PHOTOS = 5;
 
 export const BOOK_FORMAT = {
+  id: "square_21",
+  version: 1,
   trim: "SQUARE_21",
   widthMm: 210,
   heightMm: 210,

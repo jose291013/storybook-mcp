@@ -1,6 +1,40 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-22
+Last updated: 2026-08-24
+
+## Book format and digital pricing V1
+
+New books may choose one immutable physical trim before generation: square
+21 × 21 cm (`square_21`), portrait 17 × 24 cm (`portrait_17x24`) or portrait
+21 × 29.7 cm (`portrait_21x29_7`). The choice belongs to the project product
+contract, drives the blueprint, image aspect, composed preview pages,
+interactive reader and exact PDF media box, and will later be reused by print
+fulfillment. A retry, repair, language correction, checkout payload or client
+update cannot replace it. Projects created before this contract remain square.
+
+New eBooks use the versioned TTC rate `digital_ttc_037_v1`: EUR 0.37 per
+interior page for every trim. The totals are EUR 8.88, 10.36, 11.84, 13.32,
+14.80 and 16.28 for 24, 28, 32, 36, 40 and 44 pages respectively. Existing
+projects without a pricing version retain `digital_legacy_v1` and EUR 0.27875
+per page; a historical 24-page project therefore remains EUR 6.69.
+
+Rollout is fail-closed behind `BOOK_FORMAT_V1_ENABLED=false`. Before enabling
+it, WooCommerce must publish the following variation attributes on the eBook
+product and Calitiki Bridge 0.8.0 must be installed:
+
+- `pa_format-calitiki`: `carre-21`, `portrait-17x24`,
+  `portrait-21x29-7`;
+- `pa_nombre-pages`: `24`, `28`, `32`, `36`, `40`, `44`;
+- `pa_tarification-calitiki`: `ttc-037-v1` for new books and
+  `historique-v1` only where historical checkout compatibility is required.
+
+Create the 18 new V1 eBook variations as the Cartesian product of three trims
+and six page counts, with the exact TTC total for that page count. The signed
+checkout identifies format, page count and pricing version; Bridge 0.8.0 must
+find one exact variation or refuse checkout. Legacy square/page-only
+variations remain a compatibility route for old projects and are never used
+for a V1 book. The cover title now floats over a responsive top gradient and
+shadow rather than an opaque rounded rectangle.
 
 ## Narrative V3 structural replacement direction
 

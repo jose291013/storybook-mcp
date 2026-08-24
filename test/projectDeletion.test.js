@@ -306,7 +306,7 @@ test("customer metadata and the WordPress bridge expose deletion without exposin
   });
   assert.equal(narrated.narrationStatus, "ready");
   assert.equal(narrated.narrationReady, true);
-  assert.match(bridge, /Version: 0\.7\.8/);
+  assert.match(bridge, /Version: 0\.8\.0/);
   assert.match(bridge, /admin_post_calitiki_delete_creation/);
   assert.match(bridge, /check_admin_referer\('calitiki_delete_creation_'/);
   assert.match(bridge, /window\.confirm/);

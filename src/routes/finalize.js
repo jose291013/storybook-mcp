@@ -10,6 +10,7 @@ import { buildSceneContinuity } from "../services/visualContinuity.js";
 import { createEbookPdf } from "../services/createEbookPdf.js";
 import { sceneContractImagePrompt } from "../agents/storyScenePlanner.js";
 import { withOpenAICostContext } from "../services/openaiCostContext.js";
+import { findBookFormat } from "../config/bookFormats.js";
 
 const router = express.Router();
 
@@ -46,6 +47,7 @@ router.post("/finalize", async (req, res) => {
           language: blueprint.language,
           coverPreviewUrl: job.result?.coverPreviewUrl,
           pages: draftPages,
+          bookFormat: blueprint.format,
         });
         updateJob(jobId, {
           status: "done",
@@ -77,7 +79,7 @@ router.post("/finalize", async (req, res) => {
           prompt: blueprint.cover.image_prompt,
           outName: `final-cover-${jobId}`,
           ...coverContinuity,
-          size: "1024x1024",
+          size: findBookFormat(blueprint.format?.id).imageSize,
           quality: process.env.FINAL_IMAGE_QUALITY || "high",
           model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",
         });
@@ -87,6 +89,7 @@ router.post("/finalize", async (req, res) => {
           title: blueprint.cover.title,
           outName: `final-cover-page-${jobId}`,
           pageType: "cover",
+          bookFormat: blueprint.format,
           dpi: 300,
         });
       }
@@ -137,7 +140,7 @@ router.post("/finalize", async (req, res) => {
             }),
             outName: `final-page${page.page_number}-${jobId}`,
             ...sceneContinuity,
-            size: "1024x1024",
+            size: findBookFormat(blueprint.format?.id).imageSize,
             quality: process.env.FINAL_IMAGE_QUALITY || "high",
             model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",
           });
@@ -153,6 +156,7 @@ router.post("/finalize", async (req, res) => {
           pageNumber: page.page_number,
           fontStyle: blueprint.typography?.id,
           readerAge: blueprint.hero?.age,
+          bookFormat: blueprint.format,
           dpi: 300,
         });
         finalPages.push({

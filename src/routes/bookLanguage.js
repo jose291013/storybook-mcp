@@ -110,6 +110,7 @@ router.post("/projects/:id/book-language-repair", async (req, res) => {
           pageNumber: Number(page.page_number),
           fontStyle: latest.finalBlueprint?.typography?.id,
           readerAge: latest.finalBlueprint?.hero?.age,
+          bookFormat: latest.finalBlueprint?.format,
           dpi: 150,
         });
         const persisted = await persistPreviewAsset({ projectId: latest.id, assetUrl: composedUrl });
@@ -133,6 +134,7 @@ router.post("/projects/:id/book-language-repair", async (req, res) => {
           title: coverTitle,
           outName: `language-repair-cover-${job.id}`,
           pageType: "cover",
+          bookFormat: latest.finalBlueprint?.format,
           dpi: 150,
         });
         const persistedCover = await persistPreviewAsset({ projectId: latest.id, assetUrl: coverPageUrl });

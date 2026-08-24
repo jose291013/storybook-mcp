@@ -31,6 +31,11 @@ import {
 } from "../services/storyScenarioRetry.js";
 import { createNarrativeEngineAssignment } from "../services/narrativeEngineAssignment.js";
 import { publicPreviewFailureReason } from "../services/providerBillingError.js";
+import {
+  applyBookProductContract,
+  createBookProductContract,
+  existingBookProductContract,
+} from "../services/bookProductContract.js";
 
 const router = express.Router();
 
@@ -163,11 +168,14 @@ router.post("/drafts", async (req, res) => {
     const body = req.body || {};
     const safety = await safeQuestionnaire(body.questionnaire, body.locale, "draft_create");
     if (safety.intervention) return sendSafetyIntervention(res, safety.intervention);
+    const productContract = createBookProductContract({
+      requested: { ...(safety.questionnaire || {}), ...(body.productConfiguration || {}) },
+    });
     const project = await projectStore.create({
       anonymousOwnerHash: owner.ownerHash, status: body.status || "draft",
       title: body.title || body.questionnaire?.hero_name || "", locale: body.locale || "FR",
-      questionnaire: safety.questionnaire, photoRefs: body.photos || [],
-      productConfiguration: body.productConfiguration || {},
+      questionnaire: applyBookProductContract(safety.questionnaire, productContract), photoRefs: body.photos || [],
+      productConfiguration: applyBookProductContract(body.productConfiguration, productContract),
       continuitySnapshot: {
         narrativeEngine: createNarrativeEngineAssignment(),
       },
@@ -195,10 +203,12 @@ router.put("/drafts/:id", async (req, res) => {
       ? null
       : await safeQuestionnaire(body.questionnaire, body.locale || existing.locale, "draft_update");
     if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention);
+    const productContract = existingBookProductContract(existing);
     const project = await projectStore.update(existing.id, {
       status: body.status, title: body.title, locale: body.locale,
-      questionnaire: body.questionnaire === undefined ? undefined : safety.questionnaire,
-      photoRefs: body.photos, productConfiguration: body.productConfiguration,
+      questionnaire: body.questionnaire === undefined ? undefined : applyBookProductContract(safety.questionnaire, productContract),
+      photoRefs: body.photos,
+      productConfiguration: body.productConfiguration === undefined ? undefined : applyBookProductContract(body.productConfiguration, productContract),
     });
     res.json({ project: publicProject(project) });
   } catch (error) { res.status(500).json({ error: String(error?.message || error) }); }
@@ -363,10 +373,12 @@ router.put("/projects/:id", async (req, res) => {
       ? null
       : await safeQuestionnaire(body.questionnaire, body.locale || existing.locale, "project_update");
     if (safety?.intervention) return sendSafetyIntervention(res, safety.intervention);
+    const productContract = existingBookProductContract(existing);
     const project = await projectStore.updateForCustomer(req.params.id, identity, {
       status: body.status, title: body.title, locale: body.locale,
-      questionnaire: body.questionnaire === undefined ? undefined : safety.questionnaire,
-      photoRefs: body.photos, productConfiguration: body.productConfiguration,
+      questionnaire: body.questionnaire === undefined ? undefined : applyBookProductContract(safety.questionnaire, productContract),
+      photoRefs: body.photos,
+      productConfiguration: body.productConfiguration === undefined ? undefined : applyBookProductContract(body.productConfiguration, productContract),
     });
     if (!project) return res.status(404).json({ error: "Project not found" });
     res.json({ project: publicProject(project) });

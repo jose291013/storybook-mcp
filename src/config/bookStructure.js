@@ -1,5 +1,6 @@
 import { normalizePageCount } from "./bookOptions.js";
 import { storyActForRole } from "./storyActs.js";
+import { findBookFormat } from "./bookFormats.js";
 
 const CORE_STORY_ROLES = [
   "character_and_desire",
@@ -92,19 +93,22 @@ export function createPagePlan(interiorPageCount = 24) {
   return pages;
 }
 
-export function applyPagePlan(blueprint, interiorPageCount = blueprint?.format?.interior_pages || 24) {
+export function applyPagePlan(blueprint, interiorPageCount = blueprint?.format?.interior_pages || 24, bookFormatId = blueprint?.format?.id) {
   const pageCount = normalizePageCount(interiorPageCount);
+  const selectedFormat = findBookFormat(bookFormatId);
   const plan = createPagePlan(pageCount);
   const generated = Array.isArray(blueprint?.pages) ? blueprint.pages : [];
   const byNumber = new Map(generated.map((page) => [Number(page?.page_number), page]));
 
   blueprint.format = {
     ...(blueprint.format || {}),
-    trim: "SQUARE_21",
-    width_mm: 210,
-    height_mm: 210,
+    version: 1,
+    id: selectedFormat.id,
+    trim: selectedFormat.trim,
+    width_mm: selectedFormat.widthMm,
+    height_mm: selectedFormat.heightMm,
     interior_pages: pageCount,
-    bleed_mm: 3,
+    bleed_mm: selectedFormat.bleedMm,
   };
   blueprint.pages = plan.map((planned) => {
     const page = byNumber.get(planned.page_number) || {};

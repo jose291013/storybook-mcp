@@ -17,6 +17,7 @@ import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisualContinuity.js";
 import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
 import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
+import { findBookFormat } from "../config/bookFormats.js";
 
 const router = express.Router();
 const repairingProjects = new Set();
@@ -283,7 +284,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
           },
           ...(continuity.referenceImages || []),
         ],
-        size: "1024x1024",
+        size: findBookFormat(refreshed.finalBlueprint?.format?.id).imageSize,
         quality: "low",
         renderingMode: selectedStyle.renderingMode,
         likenessGoal: selectedStyle.likeness,
@@ -303,6 +304,7 @@ router.post("/projects/:id/preview-pages/:pageNumber/repair", async (req, res) =
         pageNumber,
         fontStyle: refreshed.finalBlueprint.typography?.id,
         readerAge: refreshed.finalBlueprint.hero?.age,
+        bookFormat: refreshed.finalBlueprint?.format,
         dpi: 150,
       });
       const persistedPage = await persistPreviewAsset({ projectId: refreshed.id, assetUrl: localPreviewUrl });

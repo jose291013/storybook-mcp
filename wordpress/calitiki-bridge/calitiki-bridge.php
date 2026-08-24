@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.7.8
+ * Version: 0.8.0
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -85,8 +85,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.7.8') {
-            update_option(self::VERSION_OPTION, '0.7.8');
+        if (get_option(self::VERSION_OPTION) !== '0.8.0') {
+            update_option(self::VERSION_OPTION, '0.8.0');
             flush_rewrite_rules(false);
         }
     }
@@ -1186,8 +1186,22 @@ final class Calitiki_Woo_Bridge {
         return $post && function_exists('wc_get_product') ? wc_get_product($post->ID) : null;
     }
 
-    private static function variation_for_pages($product, $pages) {
+    private static function variation_for_configuration($product, $pages, $book_format_id, $pricing_version) {
         if (!$product || !$product->is_type('variable')) {
+            return null;
+        }
+        $format_slugs = array(
+            'square_21' => 'carre-21',
+            'portrait_17x24' => 'portrait-17x24',
+            'portrait_21x29_7' => 'portrait-21x29-7',
+        );
+        $pricing_slugs = array(
+            'digital_legacy_v1' => 'historique-v1',
+            'digital_ttc_037_v1' => 'ttc-037-v1',
+        );
+        $expected_format = $format_slugs[$book_format_id] ?? '';
+        $expected_pricing = $pricing_slugs[$pricing_version] ?? '';
+        if (!$expected_format || !$expected_pricing) {
             return null;
         }
         foreach ($product->get_children() as $variation_id) {
@@ -1195,10 +1209,16 @@ final class Calitiki_Woo_Bridge {
             if (!$variation) {
                 continue;
             }
-            foreach ($variation->get_attributes() as $value) {
-                if ((string) $value === (string) $pages) {
-                    return $variation;
-                }
+            $attributes = $variation->get_attributes();
+            $values = array_map('strval', array_values($attributes));
+            $matches_pages = in_array((string) $pages, $values, true);
+            $matches_format = in_array($expected_format, $values, true);
+            $matches_pricing = in_array($expected_pricing, $values, true);
+            if ($pricing_version === 'digital_legacy_v1' && $book_format_id === 'square_21' && $matches_pages && !$matches_format && !$matches_pricing) {
+                return $variation;
+            }
+            if ($matches_pages && $matches_format && $matches_pricing) {
+                return $variation;
             }
         }
         return null;
@@ -1300,15 +1320,17 @@ final class Calitiki_Woo_Bridge {
         }
         $format = sanitize_key($payload['productType'] ?? '');
         $pages = absint($payload['pageCount'] ?? 0);
+        $book_format_id = sanitize_key($payload['bookFormatId'] ?? 'square_21');
+        $pricing_version = sanitize_key($payload['pricingVersion'] ?? 'digital_legacy_v1');
         $project_id = sanitize_text_field($payload['projectId'] ?? '');
-        if (!in_array($format, array('ebook', 'print', 'narration'), true) || !in_array($pages, array(24, 28, 32, 36, 40, 44), true) || !$project_id) {
+        if (!in_array($format, array('ebook', 'print', 'narration'), true) || !in_array($pages, array(24, 28, 32, 36, 40, 44), true) || !in_array($book_format_id, array('square_21', 'portrait_17x24', 'portrait_21x29_7'), true) || !in_array($pricing_version, array('digital_legacy_v1', 'digital_ttc_037_v1'), true) || !$project_id) {
             wp_die(esc_html__('La configuration du livre est invalide.', 'calitiki-bridge'), 'Calitiki', array('response' => 400));
         }
         if ($format === 'print' && !self::print_book_enabled()) {
             wp_die(esc_html__('Le livre imprimé sera prochainement disponible. Aucun achat ne peut encore être créé pour ce format.', 'calitiki-bridge'), 'Calitiki', array('response' => 409));
         }
         $product = self::product_for_format($format);
-        $variation = self::variation_for_pages($product, $pages);
+        $variation = self::variation_for_configuration($product, $pages, $book_format_id, $pricing_version);
         if (!$product || !$variation || !function_exists('WC') || !WC()->cart) {
             wp_die(esc_html__('La variation WooCommerce correspondant à ce livre est introuvable.', 'calitiki-bridge'), 'Calitiki', array('response' => 503));
         }
@@ -1329,12 +1351,14 @@ final class Calitiki_Woo_Bridge {
             'calitiki_project_title' => sanitize_text_field($payload['projectTitle'] ?? __('Livre personnalisé', 'calitiki-bridge')),
             'calitiki_product_type' => $format,
             'calitiki_page_count' => $pages,
+            'calitiki_book_format_id' => $book_format_id,
+            'calitiki_pricing_version' => $pricing_version,
             'calitiki_rebate_cents' => $format === 'narration' ? 0 : max(0, absint($payload['rebateCents'] ?? 0)),
             'calitiki_reservation_id' => $format === 'narration' ? '' : sanitize_text_field($payload['reservationId'] ?? ''),
             'calitiki_narration_voice' => $narration_voice,
             'calitiki_narration_style' => $narration_style,
             'calitiki_base_price_cents' => $base_price_cents,
-            'unique_key' => md5($project_id . '|' . $format . '|' . $narration_voice . '|' . $narration_style),
+            'unique_key' => md5($project_id . '|' . $format . '|' . $book_format_id . '|' . $pricing_version . '|' . $narration_voice . '|' . $narration_style),
         );
         $added = WC()->cart->add_to_cart($product->get_id(), 1, $variation->get_id(), $variation->get_variation_attributes(), $cart_data);
         if (!$added) {
@@ -1369,6 +1393,9 @@ final class Calitiki_Woo_Bridge {
         }
         $data[] = array('key' => __('Création Calitiki', 'calitiki-bridge'), 'value' => sanitize_text_field($cart_item['calitiki_project_title']));
         $data[] = array('key' => __('Nombre de pages', 'calitiki-bridge'), 'value' => absint($cart_item['calitiki_page_count']));
+        $format_labels = array('square_21' => '21 × 21 cm', 'portrait_17x24' => '17 × 24 cm', 'portrait_21x29_7' => '21 × 29,7 cm');
+        $book_format_id = sanitize_key($cart_item['calitiki_book_format_id'] ?? 'square_21');
+        $data[] = array('key' => __('Format du livre', 'calitiki-bridge'), 'value' => $format_labels[$book_format_id] ?? $book_format_id);
         if (!empty($cart_item['calitiki_rebate_cents'])) {
             $data[] = array('key' => __('Crédit d’aperçu déduit', 'calitiki-bridge'), 'value' => wp_strip_all_tags(wc_price($cart_item['calitiki_rebate_cents'] / 100)));
         }
@@ -1389,11 +1416,16 @@ final class Calitiki_Woo_Bridge {
         $item->add_meta_data('_calitiki_rebate_cents', absint($values['calitiki_rebate_cents'] ?? 0), true);
         $item->add_meta_data('_calitiki_product_type', sanitize_key($values['calitiki_product_type'] ?? ''), true);
         $item->add_meta_data('_calitiki_page_count', absint($values['calitiki_page_count'] ?? 0), true);
+        $item->add_meta_data('_calitiki_book_format_id', sanitize_key($values['calitiki_book_format_id'] ?? 'square_21'), true);
+        $item->add_meta_data('_calitiki_pricing_version', sanitize_key($values['calitiki_pricing_version'] ?? 'digital_legacy_v1'), true);
         $item->add_meta_data('_calitiki_narration_voice', sanitize_key($values['calitiki_narration_voice'] ?? ''), true);
         $item->add_meta_data('_calitiki_narration_style', sanitize_key($values['calitiki_narration_style'] ?? ''), true);
         $item->add_meta_data('_calitiki_project_title', sanitize_text_field($values['calitiki_project_title'] ?? ''), true);
         $item->add_meta_data(__('Création Calitiki', 'calitiki-bridge'), sanitize_text_field($values['calitiki_project_title']), true);
         $item->add_meta_data(__('Nombre de pages', 'calitiki-bridge'), absint($values['calitiki_page_count']), true);
+        $format_labels = array('square_21' => '21 × 21 cm', 'portrait_17x24' => '17 × 24 cm', 'portrait_21x29_7' => '21 × 29,7 cm');
+        $book_format_id = sanitize_key($values['calitiki_book_format_id'] ?? 'square_21');
+        $item->add_meta_data(__('Format du livre', 'calitiki-bridge'), $format_labels[$book_format_id] ?? $book_format_id, true);
     }
 
     private static function schedule_book_order_retry($order_id, $status) {
@@ -1479,6 +1511,8 @@ final class Calitiki_Woo_Bridge {
                 $product_type = (string) self::book_format_for_product($item->get_product());
             }
             $page_count = absint($item->get_meta('_calitiki_page_count', true));
+            $book_format_id = sanitize_key((string) $item->get_meta('_calitiki_book_format_id', true)) ?: 'square_21';
+            $pricing_version = sanitize_key((string) $item->get_meta('_calitiki_pricing_version', true)) ?: 'digital_legacy_v1';
             $order_total_cents = (int) round((float) $order->get_total() * 100);
             if (!in_array($product_type, array('ebook', 'print', 'narration'), true) || !$page_count) {
                 continue;
@@ -1490,12 +1524,12 @@ final class Calitiki_Woo_Bridge {
                 continue;
             }
             $customer_id = (string) $order->get_customer_id();
-            $signature_value = implode('|', array((string) $order_id, $customer_id, $project_id, $reservation_id, $product_type, (string) $page_count, (string) $order_total_cents, $status, $narration_voice, $narration_style));
+            $signature_value = implode('|', array((string) $order_id, $customer_id, $project_id, $reservation_id, $product_type, (string) $page_count, (string) $order_total_cents, $status, $narration_voice, $narration_style, $book_format_id, $pricing_version));
             $signature = hash_hmac('sha256', $signature_value, $secret);
             $response = wp_remote_post($generator_url . '/api/commerce/book-order-status', array(
                 'timeout' => 60,
                 'headers' => array('Content-Type' => 'application/json', 'X-Calitiki-Signature' => $signature),
-                'body' => wp_json_encode(array('orderId' => (string) $order_id, 'wooCustomerId' => $customer_id, 'email' => $order->get_billing_email(), 'projectId' => $project_id, 'reservationId' => $reservation_id, 'productType' => $product_type, 'pageCount' => $page_count, 'orderTotalCents' => $order_total_cents, 'status' => $status, 'narrationVoiceId' => $narration_voice, 'narrationStyleId' => $narration_style)),
+                'body' => wp_json_encode(array('orderId' => (string) $order_id, 'wooCustomerId' => $customer_id, 'email' => $order->get_billing_email(), 'projectId' => $project_id, 'reservationId' => $reservation_id, 'productType' => $product_type, 'pageCount' => $page_count, 'orderTotalCents' => $order_total_cents, 'status' => $status, 'narrationVoiceId' => $narration_voice, 'narrationStyleId' => $narration_style, 'bookFormatId' => $book_format_id, 'pricingVersion' => $pricing_version)),
             ));
             if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) >= 200 && wp_remote_retrieve_response_code($response) < 300) {
                 $payload = json_decode(wp_remote_retrieve_body($response), true);

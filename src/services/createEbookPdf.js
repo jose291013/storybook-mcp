@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
+import { findBookFormat } from "../config/bookFormats.js";
 
 const PAGE_SIZE_PT = (210 / 25.4) * 72;
 const TEXT_PAGE_TYPES = new Set(["text", "opening_text", "closing_text"]);
@@ -61,6 +62,8 @@ export async function createEbookPdfBuffer({
   outputsDir = "data/outputs",
   onProgress,
   loadAsset,
+  bookFormatId = "square_21",
+  bookFormat,
 }) {
   if (!coverPreviewUrl) throw new Error("createEbookPdf: missing cover");
 
@@ -71,6 +74,13 @@ export async function createEbookPdfBuffer({
   ];
 
   const pdf = await PDFDocument.create();
+  const selectedFormat = findBookFormat(bookFormat?.id || bookFormatId);
+  const widthMm = Number(bookFormat?.width_mm || bookFormat?.widthMm || selectedFormat.widthMm);
+  const heightMm = Number(bookFormat?.height_mm || bookFormat?.heightMm || selectedFormat.heightMm);
+  const pageWidthPt = (widthMm / 25.4) * 72;
+  const pageHeightPt = (heightMm / 25.4) * 72;
+  const renderWidth = 1240;
+  const renderHeight = Math.round(renderWidth * (heightMm / widthMm));
   pdf.setTitle(title);
   pdf.setLanguage(language.toLowerCase());
   pdf.setCreator("Mon Histoire Magique");
@@ -83,12 +93,12 @@ export async function createEbookPdfBuffer({
     const imageSource = loadedAsset || localOutputPath(asset.previewUrl, outputsDir);
     const imageBytes = await sharp(imageSource, { sequentialRead: true })
       .flatten({ background: "#fff8ed" })
-      .resize(1240, 1240, { fit: "inside", withoutEnlargement: true })
+      .resize(renderWidth, renderHeight, { fit: "inside", withoutEnlargement: true })
       .jpeg({ quality, chromaSubsampling: "4:4:4" })
       .toBuffer();
     const image = await pdf.embedJpg(imageBytes);
-    const page = pdf.addPage([PAGE_SIZE_PT, PAGE_SIZE_PT]);
-    page.drawImage(image, { x: 0, y: 0, width: PAGE_SIZE_PT, height: PAGE_SIZE_PT });
+    const page = pdf.addPage([pageWidthPt, pageHeightPt]);
+    page.drawImage(image, { x: 0, y: 0, width: pageWidthPt, height: pageHeightPt });
     await onProgress?.({ completed: index + 1, total: orderedAssets.length, pageNumber: asset.pageNumber || 0 });
   }
 
@@ -103,9 +113,11 @@ export async function createEbookPdf({
   coverPreviewUrl,
   pages = [],
   outputsDir = "data/outputs",
+  bookFormatId = "square_21",
+  bookFormat,
 }) {
   if (!jobId) throw new Error("createEbookPdf: missing jobId");
-  const bytes = await createEbookPdfBuffer({ title, language, coverPreviewUrl, pages, outputsDir });
+  const bytes = await createEbookPdfBuffer({ title, language, coverPreviewUrl, pages, outputsDir, bookFormatId, bookFormat });
   await fs.mkdir(outputsDir, { recursive: true });
   const filename = `ebook-${jobId}.pdf`;
   await fs.writeFile(path.join(outputsDir, filename), bytes);

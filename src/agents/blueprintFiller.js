@@ -241,11 +241,12 @@ export function lockBlueprintContinuity(blueprint, {
   language,
   pageCount,
   fontStyle,
+  bookFormatId,
   approvedScenario = null,
 } = {}) {
   const selectedPageCount = normalizePageCount(pageCount ?? blueprint?.format?.interior_pages);
   const selectedFontStyle = normalizeTypography(fontStyle ?? blueprint?.typography?.id);
-  const result = applyPagePlan(blueprint, selectedPageCount);
+  const result = applyPagePlan(blueprint, selectedPageCount, bookFormatId);
   result.language = normalizeBookLanguage(language || result.language);
   result.typography = { id: selectedFontStyle };
   result.world = normalizeWorldReality(result.world);
@@ -457,6 +458,7 @@ export async function blueprintFillerAgent({
   const intakeData = intake?.intake || intake || {};
   const pageCount = normalizePageCount(intakeData.page_count);
   const fontStyle = normalizeTypography(intakeData.font_style);
+  const bookFormatId = intakeData.book_format_id;
 
   const out = await runAgent({
     name: "blueprintFiller",
@@ -497,7 +499,7 @@ export async function blueprintFillerAgent({
 
   // If it's already an object, return it
   if (candidate && typeof candidate === "object") {
-    return lockBlueprintContinuity(extractBlueprintCandidate(candidate), { heroProfile, characterCanons, language, pageCount, fontStyle, approvedScenario });
+    return lockBlueprintContinuity(extractBlueprintCandidate(candidate), { heroProfile, characterCanons, language, pageCount, fontStyle, bookFormatId, approvedScenario });
   }
 
   // Otherwise parse from string
@@ -505,6 +507,6 @@ export async function blueprintFillerAgent({
   if (!parsed) {
     throw new Error("blueprintFillerAgent: could not parse JSON from agent output");
   }
-  return lockBlueprintContinuity(extractBlueprintCandidate(parsed), { heroProfile, characterCanons, language, pageCount, fontStyle, approvedScenario });
+  return lockBlueprintContinuity(extractBlueprintCandidate(parsed), { heroProfile, characterCanons, language, pageCount, fontStyle, bookFormatId, approvedScenario });
 }
 

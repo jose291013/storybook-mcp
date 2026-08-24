@@ -1,5 +1,6 @@
 import path from "path";
 import { privatePreviewAssetUrl } from "./previewAssetStorage.js";
+import { publicBookFormat } from "../config/bookFormats.js";
 
 const LANGUAGE_TAGS = { FR: "fr-FR", ES: "es-ES", EN: "en-GB" };
 const COPY = {
@@ -90,9 +91,9 @@ export function buildInteractiveBookManifest(project) {
     const textPage = pages.find((page) => pageType(page) === "text");
     const imagePage = pages.find((page) => pageType(page) === "image");
     const text = String(textPage?.text || "").trim();
-    // The composed preview is the authoritative 21 x 21 cm page seen by the
-    // creator and used for print. Prefer it so the interactive reader preserves
-    // that exact square framing; the raw image remains a legacy fallback.
+    // The composed preview is the authoritative format-specific page seen by
+    // the creator and used for PDF/print. Prefer it so the interactive reader
+    // preserves that exact framing; the raw image remains a legacy fallback.
     const image = privateAsset(
       project.id,
       imagePage?.previewUrl || imagePage?.imageUrl,
@@ -132,6 +133,7 @@ export function buildInteractiveBookManifest(project) {
     title,
     language,
     fontStyle: String(blueprint.typography?.id || project.productConfiguration?.font_style || "school_round"),
+    bookFormat: publicBookFormat(blueprint.format || project.questionnaire?.book_format_id || "square_21"),
     pageCount: Number(blueprint.format?.interior_pages || draftPages.length),
     narrativeSceneCount: orderedSpreads.length,
     scenes: sections,
