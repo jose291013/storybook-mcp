@@ -2304,7 +2304,7 @@ test("the creator must approve a persisted scenario before the preview route can
   assert.match(scenarioGeneration, /series_continuity_contract/);
   assert.match(scenarioWorker, /seriesScenarioContract/);
   assert.doesNotMatch(scenarioRoute, /res\.status\([^)]*\)\.json\(\{[^}]*issues:/s);
-  assert.match(bridge, /Version: 0\.8\.1/);
+  assert.match(bridge, /Version: 0\.8\.2/);
   assert.match(bridge, /scenario_generating/);
   assert.match(bridge, /Scénario à valider/);
 });

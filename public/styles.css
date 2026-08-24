@@ -330,7 +330,7 @@ h1 { font-size: clamp(46px, 5.2vw, 76px); line-height: 0.98; margin: 0; max-widt
 .visual-proof-copy li { position: relative; padding-left: 28px; line-height: 1.45; }
 .visual-proof-copy li::before { content: "✓"; position: absolute; left: 0; top: -1px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #315f55; background: #dcece5; font-size: 12px; font-weight: 900; }
 .visual-proof-cover { margin: 0; padding: 10px; border-radius: 22px; background: #eee6da; box-shadow: 0 18px 42px rgba(31,52,57,.18); transform: rotate(1deg); }
-.visual-proof-cover img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; background: var(--cream); }
+.visual-proof-cover img { display: block; width: 100%; height: auto; aspect-ratio: var(--cover-page-ratio, 1); object-fit: contain; border-radius: 14px; background: var(--cream); }
 .visual-proof-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .visual-proof-actions .primary-button { width: auto; }
 .visual-proof-note { font-size: 12px; }.visual-proof-feedback { min-height: 22px; color: #9b3b34 !important; font-weight: 700; }

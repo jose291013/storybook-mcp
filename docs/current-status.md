@@ -10,11 +10,11 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch after delivery: `main`
 - Main checkpoint after delivery: PR #281 (formats, TTC pricing and temporary interactive preview)
-- Completed brick: book format and pricing V1; 805/805 complete repository tests pass
-- Current focused checkpoint: install Calitiki Bridge 0.8.1, then enable `BOOK_FORMAT_V1_ENABLED=true` for controlled new-book verification. Existing books remain on their immutable historical product contract.
+- Completed brick: book format and pricing V1; 806/806 complete repository tests pass
+- Current focused checkpoint: install Calitiki Bridge 0.8.2 and theme 1.2.3 after delivery, then verify the public V1 range and one portrait cover. Existing books remain on their immutable historical product contract.
 - Migration hotfix: PR #234
-- WordPress Bridge source candidate: `0.8.1`; installed production package last reported as `0.7.8`
-- WordPress theme source candidate: `1.2.2`; installed production theme last recorded as `1.2.0`
+- WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
+- WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
@@ -34,14 +34,26 @@ active checkout, generated assets and the generation rebate expire; the
 questionnaire draft remains. The permanent digital purchase includes both the
 interactive reader and downloadable PDF, less the full generation amount.
 
-The rollout remains disabled through `BOOK_FORMAT_V1_ENABLED=false` until the
-18 exact WooCommerce V1 eBook variations are published and Calitiki Bridge
-0.8.1 is installed. Bridge matching is fail-closed across format + page count
-+ pricing version. The cover title no longer uses an opaque rounded panel.
-The expanded format, generation-price and entitlement checkpoint passes all
-805 repository tests. Production behavior remains unchanged while the rollout
-flag is disabled. Calitiki Bridge 0.8.1 is packaged
-at `wordpress/calitiki-bridge-v0.8.1.zip` but is not yet installed.
+The rollout gate remains `BOOK_FORMAT_V1_ENABLED`. The 18 exact WooCommerce
+V1 eBook variations are now published and Bridge 0.8.1 was reported installed;
+Bridge matching is fail-closed across format + page count + pricing version.
+The cover title no longer uses an opaque rounded panel. The expanded format,
+generation-price and entitlement checkpoint passed 806 complete repository
+tests. Bridge 0.8.2 is the current display-correction candidate, packaged at
+`wordpress/calitiki-bridge-v0.8.2.zip` but not yet installed.
+
+## Candidate brick: public V1 prices and exact-ratio cover proof
+
+The public eBook price range now includes only the 18 `ttc-037-v1`
+variations, so historical EUR 6.69 variations remain available for signed old
+book checkout without lowering the storefront range. The home-page minimum is
+read from the same published V1 variations with EUR 8.88 as a safe fallback.
+
+Cover approval no longer forces a square crop. It reads the immutable blueprint
+format and preserves the raster's exact page ratio with `object-fit: contain`,
+so portrait title safe areas remain visible. Candidate packages are Calitiki
+Bridge 0.8.2 and Calitiki theme 1.2.3. There is no Render environment variable,
+database migration, generation-call, credit or entitlement change.
 
 The Render migration replay incident is closed by the append-only migration
 ledger. V25.1 and V26.1 add no database migration or environment variable; V26

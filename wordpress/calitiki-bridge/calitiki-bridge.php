@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Calitiki Bridge
  * Description: Connecte les comptes WooCommerce Calitiki au générateur de livres hébergé sur Render.
- * Version: 0.8.1
+ * Version: 0.8.2
  * Author: Calitiki
  * Requires at least: 6.5
  * Requires PHP: 7.4
@@ -51,6 +51,8 @@ final class Calitiki_Woo_Bridge {
         add_filter('woocommerce_loop_add_to_cart_link', array(__CLASS__, 'personalized_loop_link'), 10, 3);
         add_filter('woocommerce_product_is_purchasable', array(__CLASS__, 'product_is_purchasable'), 10, 2);
         add_filter('woocommerce_variation_is_purchasable', array(__CLASS__, 'product_is_purchasable'), 10, 2);
+        add_filter('woocommerce_variable_price_html', array(__CLASS__, 'public_v1_ebook_price_html'), 20, 2);
+        add_filter('woocommerce_variable_sale_price_html', array(__CLASS__, 'public_v1_ebook_price_html'), 20, 2);
         add_filter('woocommerce_add_to_cart_validation', array(__CLASS__, 'validate_personalized_add_to_cart'), 10, 6);
         add_action('woocommerce_before_calculate_totals', array(__CLASS__, 'apply_preview_rebate'));
         add_filter('woocommerce_get_item_data', array(__CLASS__, 'personalized_cart_item_data'), 10, 2);
@@ -85,8 +87,8 @@ final class Calitiki_Woo_Bridge {
     public static function register_account_endpoint() {
         add_rewrite_endpoint('calitiki-credits', EP_ROOT | EP_PAGES);
         add_rewrite_endpoint('calitiki-creations', EP_ROOT | EP_PAGES);
-        if (get_option(self::VERSION_OPTION) !== '0.8.1') {
-            update_option(self::VERSION_OPTION, '0.8.1');
+        if (get_option(self::VERSION_OPTION) !== '0.8.2') {
+            update_option(self::VERSION_OPTION, '0.8.2');
             flush_rewrite_rules(false);
         }
     }
@@ -1182,6 +1184,50 @@ final class Calitiki_Woo_Bridge {
 
     public static function product_is_purchasable($purchasable, $product) {
         return self::personalized_format($product) === 'print' && !self::print_book_enabled() ? false : $purchasable;
+    }
+
+    private static function public_v1_ebook_variation_prices($product) {
+        if (!$product || !$product->is_type('variable') || self::personalized_format($product) !== 'ebook') {
+            return array();
+        }
+        $format_slugs = array('carre-21', 'portrait-17x24', 'portrait-21x29-7');
+        $prices = array();
+        foreach ($product->get_children() as $variation_id) {
+            $variation = function_exists('wc_get_product') ? wc_get_product($variation_id) : null;
+            if (!$variation || !$variation->exists() || !$variation->is_purchasable()) {
+                continue;
+            }
+            $values = array_map('strval', array_values($variation->get_attributes()));
+            if (!in_array('ttc-037-v1', $values, true) || !array_intersect($format_slugs, $values)) {
+                continue;
+            }
+            $price = function_exists('wc_get_price_to_display')
+                ? (float) wc_get_price_to_display($variation)
+                : (float) $variation->get_price();
+            if ($price > 0) {
+                $prices[] = $price;
+            }
+        }
+        sort($prices, SORT_NUMERIC);
+        return $prices;
+    }
+
+    public static function public_v1_ebook_price_html($price_html, $product) {
+        $prices = self::public_v1_ebook_variation_prices($product);
+        if (empty($prices) || !function_exists('wc_price')) {
+            return $price_html;
+        }
+        $minimum = reset($prices);
+        $maximum = end($prices);
+        if ((float) $minimum === (float) $maximum) {
+            return wc_price($minimum);
+        }
+        return sprintf(
+            /* translators: 1: minimum price, 2: maximum price. */
+            __('%1$s – %2$s', 'calitiki-bridge'),
+            wc_price($minimum),
+            wc_price($maximum)
+        );
     }
 
     public static function catalog_product_badge() {
