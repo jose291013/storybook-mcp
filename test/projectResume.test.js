@@ -40,3 +40,25 @@ test("email project resume is explicit, account-bound and independent from brows
     }
   }
 });
+
+test("project resume keeps a cover-only visual proof out of the completed reader", async () => {
+  const app = await fs.readFile("public/app.js", "utf8");
+
+  assert.match(
+    app,
+    /if \(job\.status === "awaiting_visual_approval"\) \{[\s\S]*?showVisualProof\([\s\S]*?job\.result \|\| project\.previewResult/,
+  );
+  assert.match(
+    app,
+    /else if \(job\.status === "quality_review_required"\)[\s\S]*?else if \(job\.status === "done"\) \{[\s\S]*?showCompletedPreview/,
+  );
+  assert.match(
+    app,
+    /function completedPreviewCanDeclareAssetsUnavailable\(job = \{\}\)[\s\S]*?job\?\.status === "done"[\s\S]*?"preview_ready"/,
+  );
+  assert.match(app, /if \(canDeclareAssetsUnavailable[\s\S]*?orderedPages\.length < total/);
+  assert.match(
+    app,
+    /function showVisualProof[\s\S]*?state\.previewAssetsUnavailable = false;[\s\S]*?elements\.previewAssetsUnavailable\.hidden = true/,
+  );
+});

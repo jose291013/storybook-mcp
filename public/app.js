@@ -1455,6 +1455,11 @@ function markPreviewAssetsUnavailable() {
   renderPreviewActionCenter({ locked: true }).catch(() => null);
 }
 
+function completedPreviewCanDeclareAssetsUnavailable(job = {}) {
+  return job?.status === "done"
+    || ["preview_ready", "preview_repairing", "purchased"].includes(job?.projectStatus);
+}
+
 function selectedModificationScope() {
   return document.querySelector('input[name="modificationScope"]:checked')?.value || "illustration";
 }
@@ -2917,8 +2922,10 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
   const repairButton = document.querySelector("#repairCurrentIllustration");
   const repairFeedback = document.querySelector("#readerRepairFeedback");
   let repairPage = null;
+  const canDeclareAssetsUnavailable = completedPreviewCanDeclareAssetsUnavailable(job);
   const watchRenderedAssets = (root) => {
     for (const image of root.querySelectorAll("img")) {
+      if (!canDeclareAssetsUnavailable) continue;
       image.addEventListener("error", markPreviewAssetsUnavailable, { once: true });
       if (image.complete && image.naturalWidth === 0) markPreviewAssetsUnavailable();
     }
@@ -3037,7 +3044,8 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
       elements.actionBuyPrint.disabled = !isProductAvailable("print");
     }
   });
-  if (!coverPreviewUrl || orderedPages.length < total || orderedPages.some((page) => !page.previewUrl)) {
+  if (canDeclareAssetsUnavailable
+    && (!coverPreviewUrl || orderedPages.length < total || orderedPages.some((page) => !page.previewUrl))) {
     markPreviewAssetsUnavailable();
   }
   paintFrame();
@@ -3547,6 +3555,8 @@ function showVisualProof(job, { scroll = true, attempts = 1 } = {}) {
   elements.generationPanel.hidden = true;
   elements.generationFailurePanel.hidden = true;
   elements.resultSection.hidden = true;
+  state.previewAssetsUnavailable = false;
+  elements.previewAssetsUnavailable.hidden = true;
   elements.visualProofPanel.hidden = false;
   elements.visualProofKicker.textContent = copy.kicker;
   elements.visualProofTitle.textContent = copy.title;
@@ -3783,8 +3793,22 @@ async function restoreCompletedPreview() {
       if (jobResponse.ok) {
         const job = await pollJob(project.generationJobId);
         elements.generationBar.style.width = "100%";
-        if (job.status === "quality_review_required") showQualityReview(job, { scroll: false });
-        else showCompletedPreview(job, { scroll: false });
+        if (job.status === "awaiting_visual_approval") {
+          showVisualProof({
+            ...job,
+            result: job.result || project.previewResult,
+            final_blueprint: job.final_blueprint || project.finalBlueprint,
+          }, {
+            scroll: false,
+            attempts: job.visualProof?.attempts || visualProof?.attempts || 1,
+          });
+        } else if (job.status === "quality_review_required") {
+          showQualityReview(job, { scroll: false });
+        } else if (job.status === "done") {
+          showCompletedPreview(job, { scroll: false });
+        } else {
+          throw new Error(tr("generationFailed"));
+        }
       } else {
         await fetch(`/api/projects/${encodeURIComponent(project.id)}/preview-recover`, { method: "POST" });
         await showGenerationFailure();

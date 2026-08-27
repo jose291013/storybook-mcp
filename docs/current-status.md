@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-24
+Last updated: 2026-08-27
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,15 +8,30 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-single-wardrobe-target-repair`
-- Main checkpoint: PR #282 (`5517778`, public V1 prices and exact-ratio cover proof)
-- Completed storefront brick: book format and pricing V1; 806/806 complete repository tests pass
-- Current focused checkpoint: V29.1 single-target wardrobe repair. After delivery, retry one policy-30 strict wardrobe quarantine and verify that one attributed character enters targeted editing before any whole-scene regeneration.
+- Current branch: `codex/cover-proof-resume-routing`
+- Main checkpoint: PR #283 (`ce5902f`, V29.1 single-target wardrobe repair)
+- Completed storefront brick: book format and pricing V1; 808/808 complete repository tests pass
+- Current focused checkpoint: cover-proof resume routing. A cover-only preview waiting for customer approval must reopen the cover proof on desktop, mobile and reload; it must never enter the completed reader or be labelled as an expired full preview.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
+
+## Candidate brick: cover-proof resume routing
+
+The creator now treats `awaiting_visual_approval` as a first-class resumable
+state. Polling an existing preview job routes that state back to the cover
+approval panel, while only a completed job may open the full reader. Entering
+cover approval also clears any stale missing-assets banner left by a previously
+viewed project. Missing interior pages are expected during this phase and can
+only declare an expired preview after the project reaches a completed delivery
+state.
+
+This changes no generation sequence, model call, database schema, environment
+variable, commerce rule, credit, private-asset policy or series canon. Focused
+resume and commerce regressions pass; complete repository verification passes
+809/809 tests.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 
