@@ -61,6 +61,13 @@ page derives its minimum from those V1 variations instead of duplicating a
 legacy amount. Cover approval and the interactive reader preserve the exact
 selected trim ratio; a portrait cover is contained, never square-cropped.
 
+Cover approval is a durable waiting-input boundary, not a partial book
+delivery. A project containing only its approved cover candidate must reopen
+the cover proof after reload, account resume or device change. The full reader
+is reserved for a completed preview job. Missing interior assets are normal
+before cover approval and must never produce the expired-preview message at
+that stage.
+
 ## Narrative V3 structural replacement direction
 
 The current narrative pipeline is frozen for new product repair bricks except
