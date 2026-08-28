@@ -6,9 +6,11 @@ import { storageBodyToBuffer } from "./previewAssetStorage.js";
 import { canonicalDigest } from "../contracts/narrativeV3Canonical.js";
 
 export const WARDROBE_VISUAL_AUTHORITY_VERSION = 1;
-export const WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION = 3;
+export const WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION = 4;
 export const WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT = "direct_identity_outfit";
 export const WARDROBE_AUTHORITY_MODE_GARMENT_ONLY = "garment_only_sheet";
+export const WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES = "broad_garment_attributes";
+export const WARDROBE_EVIDENCE_MODE_EXACT_DESIGN = "exact_garment_design";
 
 function text(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
@@ -51,6 +53,17 @@ export function compileWardrobeVisualAuthorityPlan(sceneRenderContracts = []) {
         authorityMode: text(character?.outfit?.source) === "private_identity_binding"
           ? WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT
           : WARDROBE_AUTHORITY_MODE_GARMENT_ONLY,
+        evidenceMode: text(character?.outfit?.source) === "private_identity_binding"
+          ? WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES
+          : WARDROBE_EVIDENCE_MODE_EXACT_DESIGN,
+        semanticSignature: canonicalDigest({
+          characterId,
+          stateId,
+          description,
+          evidenceMode: text(character?.outfit?.source) === "private_identity_binding"
+            ? WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES
+            : WARDROBE_EVIDENCE_MODE_EXACT_DESIGN,
+        }),
         sceneNumbers: [],
         imagePageNumbers: [],
       };
@@ -117,6 +130,55 @@ export function assertWardrobeVisualAuthorityCoverage(plan, assets) {
   return true;
 }
 
+/**
+ * Prove that generation and private QA consume the same outfit authority with
+ * one explicit comparison rule. A checkpoint is not sealed merely because a
+ * file exists: its immutable character/state/source binding must still match.
+ */
+export function assertWardrobeVisualAuthoritySatisfiability(plan, assets) {
+  assertWardrobeVisualAuthorityCoverage(plan, assets);
+  const accepted = assets instanceof Map ? assets : new Map();
+  const bindings = [];
+  for (const entry of plan?.authorities || []) {
+    const asset = accepted.get(entry.authorityId);
+    const problems = [];
+    if (text(asset?.characterId) !== entry.characterId) problems.push("character_binding_mismatch");
+    if (text(asset?.stateId) !== entry.stateId) problems.push("outfit_state_binding_mismatch");
+    if (text(asset?.authorityMode) !== entry.authorityMode) problems.push("authority_mode_mismatch");
+    if (text(asset?.evidenceMode) !== entry.evidenceMode) problems.push("evidence_mode_mismatch");
+    if (text(asset?.semanticSignature) !== entry.semanticSignature) problems.push("semantic_signature_mismatch");
+    if (entry.authorityMode === WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT
+      && (asset?.directSource !== true || asset?.identityBearing !== true)) {
+      problems.push("ordinary_identity_source_mismatch");
+    }
+    if (entry.authorityMode === WARDROBE_AUTHORITY_MODE_GARMENT_ONLY
+      && asset?.identityBearing === true) {
+      problems.push("garment_authority_contains_identity");
+    }
+    if (problems.length) {
+      fail(
+        "wardrobe_visual_authority_unsatisfiable",
+        "A wardrobe authority cannot be used consistently by generation and verification.",
+        problems.map((message) => ({ path: `/authorities/${entry.authorityId}`, message })),
+      );
+    }
+    bindings.push({
+      authorityId: entry.authorityId,
+      characterId: entry.characterId,
+      stateId: entry.stateId,
+      authorityMode: entry.authorityMode,
+      evidenceMode: entry.evidenceMode,
+      semanticSignature: entry.semanticSignature,
+    });
+  }
+  return Object.freeze({
+    version: 1,
+    planDigest: plan.validation.artifactDigest,
+    bindingDigest: canonicalDigest(bindings),
+    bindings,
+  });
+}
+
 export function wardrobeAuthorityPrompt(entry) {
   if (entry.authorityMode !== WARDROBE_AUTHORITY_MODE_GARMENT_ONLY) {
     fail("wardrobe_visual_authority_direct_source", "An ordinary outfit must use its private identity source directly.");
@@ -147,6 +209,8 @@ export function directWardrobeAuthorityAsset(entry, identityReference) {
     stateId: entry.stateId,
     description: entry.description,
     authorityMode: entry.authorityMode,
+    evidenceMode: entry.evidenceMode,
+    semanticSignature: entry.semanticSignature,
     identityBearing: true,
     directSource: true,
     status: "accepted",
@@ -245,12 +309,14 @@ export function wardrobeVisualReferencesForScene(sceneRenderContract, assets) {
       storageKey: authority.storageKey,
       kind: "wardrobe",
       label: authority.identityBearing
-        ? `${character.name}: LOCKED IDENTITY AND ORDINARY WARDROBE AUTHORITY for ${character.outfit.state_id}; preserve this person's identity and broad ordinary garment types, colors and footwear without copying the photo background or rendering style`
+        ? `${character.name}: LOCKED IDENTITY AND ORDINARY WARDROBE AUTHORITY for ${character.outfit.state_id}; REQUIRED OUTFIT ATTRIBUTES: ${authority.description}. Preserve this person's identity and the broad ordinary garment categories, dominant colors and footwear visible in this exact source. Remove logos and ignore harmless texture, fit or hidden-detail differences; never substitute an adventure or protective outfit. Do not copy the photo background or rendering style`
         : `${character.name}: LOCKED GARMENT-ONLY WARDROBE AUTHORITY for ${character.outfit.state_id}; copy this exact garment design, colors, material and footwear onto the separately supplied identity`,
       authorityId: authority.authorityId,
       characterId: text(character.character_id),
       outfitStateId: text(character.outfit.state_id),
       authorityMode: text(authority.authorityMode),
+      evidenceMode: text(authority.evidenceMode),
+      semanticSignature: text(authority.semanticSignature),
       identityBearing: authority.identityBearing === true,
     }];
   });

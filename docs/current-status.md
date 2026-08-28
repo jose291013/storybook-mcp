@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-causal-preview-recovery`
-- Main checkpoint: PR #284 (`871e611`, cover-proof resume routing)
-- Completed storefront brick: book format and pricing V1; 808/808 complete repository tests pass
-- Current focused checkpoint: V3 causal preview recovery. A free retry must compile a new bounded input strategy from the exact persisted blocker set; it must not replay identical image references and prompts.
+- Current branch: `codex/v3-wardrobe-authority-satisfiability`
+- Main checkpoint: PR #285 (`a48f89b`, V3 causal preview recovery)
+- Completed storefront brick: book format and pricing V1
+- Current focused checkpoint: V3 wardrobe-authority satisfiability. Generation and private QA must share one immutable per-character outfit binding and one explicit evidence rule before image spend.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -51,6 +51,27 @@ strategies. No customer prose, names, photos or provider prompts are persisted
 in the recovery plan. This adds no migration, environment variable, commerce
 or credit change, series-canon mutation or QA relaxation. Focused verification:
 79/79 focused tests and the complete 814/814 repository tests pass.
+
+## Candidate brick: V3 wardrobe-authority satisfiability
+
+Wardrobe authority policy 4 no longer treats every clothing reference as an
+exact pixel-copy target. An ordinary outfit derived from the customer's
+private identity photo is bound to broad visible garment categories, dominant
+colors and footwear; logos, print, folds, fit, minor texture and hidden detail
+cannot create a false rejection. A generated special/adventure garment sheet
+remains an exact design authority. Generation and private QA receive the same
+evidence mode and digest-bound semantic signature.
+
+Before any scene image is generated, a fail-closed satisfiability manifest
+proves the character, outfit state, authority mode, evidence mode and semantic
+signature of every accepted source. Causal recovery version 2 detects one
+authority failing on several pages, removes rejected/adjacent/cover pixels,
+reconstructs from wardrobe plus identity authorities only and suppresses a
+redundant local edit. Retry policy 33 gives older policy-32 checkpoints one
+bounded resume while preserving every accepted page. No migration, environment
+variable, model-call allowance, commerce/credit rule, private-asset exposure,
+QA relaxation or series-canon mutation is introduced. Focused and complete
+verification pass; the complete repository suite is 817/817.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 

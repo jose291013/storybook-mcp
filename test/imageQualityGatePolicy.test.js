@@ -163,8 +163,8 @@ test("strict V3 enters targeted editing only after convergence to one confirmed 
 
 test("strict V3 attributes a wardrobe conflict to the exact canonical character and authority", () => {
   const expectedWardrobeTargets = [
-    { characterId: "character_hero", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_hero" },
-    { characterId: "character_brother", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_brother" },
+    { characterId: "character_hero", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_hero", evidenceMode: "exact_garment_design", semanticSignature: "hero-signature" },
+    { characterId: "character_brother", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_brother", evidenceMode: "exact_garment_design", semanticSignature: "brother-signature" },
   ];
   const rawDomains = Object.fromEntries(STRICT_DOMAINS.map((domain) => [
     domain,
@@ -201,6 +201,8 @@ test("strict V3 attributes a wardrobe conflict to the exact canonical character 
     characterId: "character_hero",
     outfitStateId: "reef_explorer",
     wardrobeAuthorityId: "wardrobe_hero",
+    evidenceMode: "exact_garment_design",
+    semanticSignature: "hero-signature",
     status: "fail",
     evidenceCode: "wardrobe_state_mismatch",
     observationCode: "categorically_different_state",
@@ -278,6 +280,8 @@ test("wardrobe diagnostic targets bind exact cast ids to exact pixel authorities
     characterId: "character_hero",
     outfitStateId: "reef_explorer",
     wardrobeAuthorityId: "wardrobe_hero",
+    evidenceMode: "exact_garment_design",
+    semanticSignature: "",
   }]);
 });
 
@@ -826,6 +830,29 @@ test("a targeted repair edits the preserved candidate before continuity and iden
   assert.match(prompt, /do not redesign or regenerate the scene/);
   assert.match(prompt, /ADJACENT APPROVED SCENE/);
   assert.match(prompt, /never copy their prior action, pose, composition, camera/i);
+});
+
+test("generation applies the same broad-versus-exact wardrobe evidence modes as strict QA", () => {
+  const prompt = buildFinalPrompt({
+    prompt: "Illustrate the immutable scene.",
+    referenceImages: [
+      {
+        kind: "wardrobe",
+        label: "hero ordinary source",
+        evidenceMode: "broad_garment_attributes",
+      },
+      {
+        kind: "wardrobe",
+        label: "companion adventure sheet",
+        evidenceMode: "exact_garment_design",
+      },
+    ],
+  });
+  assert.match(prompt, /LOCKED ORDINARY WARDROBE ATTRIBUTES/);
+  assert.match(prompt, /broad garment categories, dominant colors and footwear/i);
+  assert.match(prompt, /ignoring logos, print, minor texture, folds, fit and hidden details/i);
+  assert.match(prompt, /LOCKED EXACT WARDROBE DESIGN/);
+  assert.match(prompt, /preserve its exact design, colors, material and footwear/i);
 });
 
 test("a likeness or invariant regression against the preserved revision source is blocking", () => {
