@@ -17,6 +17,7 @@ import { generateImage } from "../services/imageRunner.js";
 import {
   acceptedWardrobeAuthorityAssets,
   assertWardrobeVisualAuthorityCoverage,
+  assertWardrobeVisualAuthoritySatisfiability,
   compileWardrobeVisualAuthorityPlan,
   directWardrobeAuthorityAsset,
   inspectWardrobeVisualAuthority,
@@ -1915,6 +1916,8 @@ router.post("/preview", async (req, res) => {
               stateId: authority.stateId,
               description: authority.description,
               authorityMode: authority.authorityMode,
+              evidenceMode: authority.evidenceMode,
+              semanticSignature: authority.semanticSignature,
               identityBearing: false,
               status: "accepted",
               storageKey: persisted.storageKey,
@@ -1949,11 +1952,16 @@ router.post("/preview", async (req, res) => {
           }
         }
         assertWardrobeVisualAuthorityCoverage(wardrobeAuthorityPlan, wardrobeAuthorityAssets);
+        const wardrobeSatisfiability = assertWardrobeVisualAuthoritySatisfiability(
+          wardrobeAuthorityPlan,
+          wardrobeAuthorityAssets,
+        );
         console.info("[preview] wardrobe visual authority sealed", JSON.stringify({
           jobId: job.id,
           projectId,
           authorityCount: wardrobeAuthorityPlan.authorities.length,
           planDigest: wardrobeAuthorityPlan.validation.artifactDigest.slice(0, 12),
+          bindingDigest: wardrobeSatisfiability.bindingDigest.slice(0, 12),
         }));
       }
 
@@ -2157,7 +2165,9 @@ router.post("/preview", async (req, res) => {
               likenessGoal: answers.likeness_goal,
               model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
               retryRepairableFindings: economicDecision.optionalVisualRetry,
-              targetedRepairAvailable: true,
+              targetedRepairAvailable: !pageRecovery?.strategies?.includes(
+                "wardrobe_authority_satisfiability_recovery",
+              ),
               verifyExactCast: Boolean(sceneContinuity.sceneFidelityContract?.scene_render_contract),
               strictV3EvidenceRequired: strictV3Rendering,
             });

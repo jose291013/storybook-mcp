@@ -2088,6 +2088,37 @@ stores no customer text, names, images or provider prompts. This checkpoint
 adds no environment variable, migration, commerce/credit change, series-canon
 mutation or acceptance relaxation.
 
+## V3 wardrobe-authority satisfiability checkpoint
+
+Sealing an image file is insufficient proof that an outfit can be generated
+and verified consistently. Every accepted wardrobe source now carries one
+digest-bound semantic signature and one comparison mode. Ordinary clothing
+whose source is the customer's private identity photo uses
+`broad_garment_attributes`: garment categories, dominant colors and footwear
+remain authoritative, while logos, print, folds, fit, minor texture and hidden
+details are deliberately non-blocking. A generated anonymous adventure or
+protective garment sheet uses `exact_garment_design` and remains authoritative
+for its declared design, colors, material and footwear.
+
+Generation and private QA consume those same modes and signatures. A
+pre-generation satisfiability manifest fails closed if any character, outfit
+state, source mode, evidence mode or signature differs, if an ordinary outfit
+is detached from its identity-bearing source, or if a garment-only sheet
+contains identity. This prevents the system from demanding one visual state
+while verifying another.
+
+Causal recovery version 2 groups failures by canonical wardrobe authority. If
+one authority fails on several pages, the problem is treated as shared input
+arbitration rather than several unrelated scene defects: rejected, adjacent
+and cover pixels are excluded; only the exact wardrobe and identity
+authorities remain; and the redundant local edit is skipped. Older recovery
+signatures do not consume the new policy. Retry policy 33 opens one bounded
+resume for policy-32 checkpoints and reuses every accepted page.
+
+This checkpoint adds no migration, environment variable, model-call budget,
+commerce or credit change, private-asset exposure, QA relaxation or
+series-canon mutation. Verification is 817/817 complete repository tests.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

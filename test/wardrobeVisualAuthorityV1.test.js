@@ -7,6 +7,7 @@ import sharp from "sharp";
 import {
   acceptedWardrobeAuthorityAssets,
   assertWardrobeVisualAuthorityCoverage,
+  assertWardrobeVisualAuthoritySatisfiability,
   compileWardrobeVisualAuthorityPlan,
   directWardrobeAuthorityAsset,
   inspectWardrobeVisualAuthority,
@@ -18,6 +19,8 @@ import {
   WARDROBE_VISUAL_AUTHORITY_POLICY_VERSION,
   WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT,
   WARDROBE_AUTHORITY_MODE_GARMENT_ONLY,
+  WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+  WARDROBE_EVIDENCE_MODE_EXACT_DESIGN,
 } from "../src/services/wardrobeVisualAuthorityV1.js";
 
 async function createTinyPng(filePath, background) {
@@ -61,6 +64,10 @@ test("V1 compiles direct identity clothing and garment-only adventure authoritie
   assert.deepEqual(ordinary.imagePageNumbers, [31]);
   assert.equal(adventure.authorityMode, WARDROBE_AUTHORITY_MODE_GARMENT_ONLY);
   assert.equal(ordinary.authorityMode, WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT);
+  assert.equal(adventure.evidenceMode, WARDROBE_EVIDENCE_MODE_EXACT_DESIGN);
+  assert.equal(ordinary.evidenceMode, WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES);
+  assert.ok(adventure.semanticSignature);
+  assert.ok(ordinary.semanticSignature);
   assert.match(wardrobeAuthorityPrompt(adventure), /anonymous headless mannequin/i);
   assert.match(wardrobeAuthorityPrompt(adventure), /no person, face/i);
   assert.match(wardrobeAuthorityPrompt(adventure), /turquoise reef explorer suit/i);
@@ -106,7 +113,7 @@ test("post-preview repair paths reuse the same accepted authority checkpoint", (
   assert.equal(wardrobeVisualReferencesFromCheckpoint(contract(), { ...checkpoint, policyVersion: 0 }).length, 0);
 });
 
-test("policy three rejects face-bearing authorities from older policies", () => {
+test("the current policy rejects face-bearing garment sheets from older policies", () => {
   const plan = compileWardrobeVisualAuthorityPlan([
     contract(),
     contract({ scene: 15, page: 31, outfit: "ordinary_outfit", description: "blue shirt and dark trousers" }),
@@ -133,17 +140,47 @@ test("an ordinary outfit is sealed directly from the durable private identity ph
   assert.equal(asset.storageKey, "reference-photos/hero.jpg");
   assert.equal(asset.identityBearing, true);
   assert.equal(asset.directSource, true);
+  assert.equal(asset.evidenceMode, WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES);
+  assert.equal(asset.semanticSignature, authority.semanticSignature);
+});
+
+test("a sealed authority is satisfiable only when generation and QA share the immutable binding", () => {
+  const plan = compileWardrobeVisualAuthorityPlan([
+    contract(),
+    contract({ scene: 15, page: 31, outfit: "ordinary_outfit", description: "blue shirt and dark trousers" }),
+  ]);
+  const assets = new Map(plan.authorities.map((entry) => [entry.authorityId, entry.authorityMode === WARDROBE_AUTHORITY_MODE_DIRECT_IDENTITY_OUTFIT
+    ? directWardrobeAuthorityAsset(entry, { storageKey: "reference-photos/hero.jpg" })
+    : {
+      ...entry,
+      identityBearing: false,
+      status: "accepted",
+      storageKey: "private/reef.png",
+    }]));
+  const manifest = assertWardrobeVisualAuthoritySatisfiability(plan, assets);
+  assert.equal(manifest.bindings.length, 2);
+  assert.ok(manifest.bindingDigest);
+
+  const adventure = plan.authorities.find((entry) => entry.stateId === "reef_explorer");
+  assets.set(adventure.authorityId, {
+    ...assets.get(adventure.authorityId),
+    evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+  });
+  assert.throws(
+    () => assertWardrobeVisualAuthoritySatisfiability(plan, assets),
+    (error) => error.code === "wardrobe_visual_authority_unsatisfiable"
+      && error.issues.some((issue) => issue.message === "evidence_mode_mismatch"),
+  );
 });
 
 test("a scene receives only the exact active outfit authority for each character", () => {
   const scene = contract();
+  const authority = compileWardrobeVisualAuthorityPlan([scene]).authorities[0];
   const assets = new Map([
     ["active", {
+      ...authority,
       authorityId: "active",
-      characterId: "character_hero",
-      stateId: "reef_explorer",
       storageKey: "private/active.png",
-      authorityMode: WARDROBE_AUTHORITY_MODE_GARMENT_ONLY,
       identityBearing: false,
     }],
     ["obsolete", {
@@ -160,6 +197,8 @@ test("a scene receives only the exact active outfit authority for each character
   assert.equal(references[0].authorityId, "active");
   assert.equal(references[0].characterId, "character_hero");
   assert.equal(references[0].outfitStateId, "reef_explorer");
+  assert.equal(references[0].evidenceMode, WARDROBE_EVIDENCE_MODE_EXACT_DESIGN);
+  assert.equal(references[0].semanticSignature, authority.semanticSignature);
   assert.equal(references[0].identityBearing, false);
 });
 

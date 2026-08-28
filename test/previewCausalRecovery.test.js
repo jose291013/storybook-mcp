@@ -93,3 +93,41 @@ test("wardrobe recovery excludes adjacent and rejected pixels and deduplicates i
   assert.equal(references.filter((reference) => reference.storageKey === "hero-photo").length, 1);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /character_hero must wear only ordinary_outfit/);
 });
+
+test("repeated failures of one wardrobe authority escalate once to authority-level reconstruction", () => {
+  const target = {
+    characterId: "character_hero",
+    outfitStateId: "ordinary_outfit",
+    wardrobeAuthorityId: "wardrobe_hero_ordinary",
+  };
+  const recovery = buildPreviewCausalRecovery({
+    previewResult: {
+      draftPages: [
+        quarantinedPage(3, ["wardrobe_state_mismatch"], [target]),
+        quarantinedPage(11, ["wardrobe_state_mismatch"], [target]),
+      ],
+    },
+    priorRecovery: {
+      version: 1,
+      signature: "old-policy-signature",
+      consumedAt: "2026-08-28T09:00:00.000Z",
+      attemptedSignatures: ["old-policy-signature"],
+    },
+  });
+  assert.equal(recovery.available, true);
+  assert.deepEqual(recovery.attemptedSignatures, []);
+  for (const page of recovery.pages) {
+    assert.deepEqual(page.sharedAuthorityIds, ["wardrobe_hero_ordinary"]);
+    assert.ok(page.strategies.includes("wardrobe_authority_satisfiability_recovery"));
+  }
+
+  const references = causalRecoveryReferences([
+    { kind: "continuity", storageKey: "cover" },
+    { kind: "adjacent_scene", storageKey: "previous" },
+    { kind: "wardrobe", storageKey: "hero-photo", characterId: "character_hero" },
+    { kind: "identity", storageKey: "hero-photo", characterId: "character_hero" },
+  ], recovery.pages[0]);
+  assert.deepEqual(references.map((reference) => reference.kind), ["wardrobe"]);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", recovery.pages[0]), /SHARED WARDROBE AUTHORITY V1/);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", recovery.pages[0]), /broad garment categories/);
+});

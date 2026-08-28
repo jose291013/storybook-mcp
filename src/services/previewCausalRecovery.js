@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 1;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 2;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -87,12 +87,31 @@ export function buildPreviewCausalRecovery({ previewResult = {}, priorRecovery =
     }));
   }
 
-  const pages = [...byPage.values()].sort((left, right) => left.pageNumber - right.pageNumber);
+  const rawPages = [...byPage.values()].sort((left, right) => left.pageNumber - right.pageNumber);
+  const authorityUseCounts = new Map();
+  for (const page of rawPages) {
+    for (const target of page.wardrobeTargets || []) {
+      const authorityId = text(target.wardrobeAuthorityId);
+      if (authorityId) authorityUseCounts.set(authorityId, (authorityUseCounts.get(authorityId) || 0) + 1);
+    }
+  }
+  const pages = rawPages.map((page) => {
+    const sharedAuthorityIds = unique((page.wardrobeTargets || [])
+      .map((target) => target.wardrobeAuthorityId)
+      .filter((authorityId) => (authorityUseCounts.get(text(authorityId)) || 0) > 1));
+    if (!sharedAuthorityIds.length) return page;
+    return {
+      ...page,
+      sharedAuthorityIds,
+      strategies: unique([...(page.strategies || []), "wardrobe_authority_satisfiability_recovery"]),
+    };
+  });
   if (!pages.length) return null;
   const signature = signatureFor(pages);
+  const compatiblePrior = priorRecovery?.version === PREVIEW_CAUSAL_RECOVERY_VERSION ? priorRecovery : null;
   const attemptedSignatures = unique([
-    ...(Array.isArray(priorRecovery?.attemptedSignatures) ? priorRecovery.attemptedSignatures : []),
-    ...(priorRecovery?.consumedAt && priorRecovery?.signature ? [priorRecovery.signature] : []),
+    ...(Array.isArray(compatiblePrior?.attemptedSignatures) ? compatiblePrior.attemptedSignatures : []),
+    ...(compatiblePrior?.consumedAt && compatiblePrior?.signature ? [compatiblePrior.signature] : []),
   ]).slice(-PREVIEW_CAUSAL_RECOVERY_LIMIT);
   const available = !attemptedSignatures.includes(signature)
     && attemptedSignatures.length < PREVIEW_CAUSAL_RECOVERY_LIMIT;
@@ -139,7 +158,12 @@ export function causalRecoveryReferences(references = [], pageRecovery = null) {
   if (!pageRecovery) return source;
   if (pageRecovery.strategies?.includes("provider_safe_reexpression")) return [];
   if (!pageRecovery.strategies?.includes("wardrobe_reference_isolation")) return source;
-  const allowed = source.filter((reference) => ["continuity", "wardrobe", "identity"].includes(reference?.kind));
+  const authorityRecovery = pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery");
+  const allowed = source.filter((reference) => (
+    authorityRecovery
+      ? ["wardrobe", "identity"].includes(reference?.kind)
+      : ["continuity", "wardrobe", "identity"].includes(reference?.kind)
+  ));
   const wardrobeStorageKeys = new Set(allowed
     .filter((reference) => reference?.kind === "wardrobe")
     .map(referenceKey)
@@ -167,6 +191,10 @@ Create a fresh, calm, non-threatening children's-book composition from the immut
       .join("; ");
     directives.push(`CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V1:
 Recompose this one instant from the canonical scene contract. Adjacent-scene pixels and the rejected candidate are deliberately excluded because they carried a conflicting outfit. Treat each supplied wardrobe authority as exclusive for its named character in this scene. ${targets || "Use only the exact per-character outfit state declared below."} Never transfer one person's clothing to another person and never combine ordinary and adventure outfits.`);
+    if (pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery")) {
+      directives.push(`CAUSAL RECOVERY MODE — SHARED WARDROBE AUTHORITY V1:
+The same wardrobe authority failed on more than one page, so no scene or cover pixels may reinterpret it. Build each required person directly from that person's supplied authority and the immutable current-scene description. For an ordinary identity-bound outfit, preserve its broad garment categories, dominant colors and footwear; logos, minor texture, folds and hidden details are irrelevant. Never replace ordinary clothes with adventure, protective or universe clothing.`);
+    }
   } else if (pageRecovery.strategies?.includes("canonical_scene_recompose")) {
     directives.push("CAUSAL RECOVERY MODE — CANONICAL RECOMPOSITION V1: create a new composition from the immutable contract instead of editing or imitating the rejected candidate.");
   }
