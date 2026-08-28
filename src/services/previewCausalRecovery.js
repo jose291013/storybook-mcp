@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 4;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 5;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -159,21 +159,17 @@ function referenceKey(reference = {}) {
 
 /**
  * A provider-safety recovery gets genuinely new, reference-free input. A
- * wardrobe recovery keeps only canonical style/identity/wardrobe authorities
- * and removes adjacent scenes or rejected candidates that can reintroduce the
- * wrong outfit.
+ * wardrobe recovery keeps only canonical identity/wardrobe authorities and
+ * removes every scene-bearing pixel source. The approved cover remains in the
+ * independent QA evidence set, but it cannot teach the generator an obsolete
+ * or adventure outfit while an ordinary outfit is being reconstructed.
  */
 export function causalRecoveryReferences(references = [], pageRecovery = null) {
   const source = Array.isArray(references) ? references : [];
   if (!pageRecovery) return source;
   if (pageRecovery.strategies?.includes("provider_safe_reexpression")) return [];
   if (!pageRecovery.strategies?.includes("wardrobe_reference_isolation")) return source;
-  const authorityRecovery = pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery");
-  const allowed = source.filter((reference) => (
-    authorityRecovery
-      ? ["wardrobe", "identity"].includes(reference?.kind)
-      : ["continuity", "wardrobe", "identity"].includes(reference?.kind)
-  ));
+  const allowed = source.filter((reference) => ["wardrobe", "identity"].includes(reference?.kind));
   const wardrobeStorageKeys = new Set(allowed
     .filter((reference) => reference?.kind === "wardrobe")
     .map(referenceKey)
@@ -198,12 +194,12 @@ export function causalRecoveryPrompt(basePrompt, pageRecovery = null) {
 Create a fresh, calm, non-threatening children's-book composition from the immutable physical snapshot below. Use no supplied person or scene pixels. Preserve the exact cast cardinality, location, wardrobe, object states and central action, but express emotion through posture, gaze, spacing and environment. Avoid alarming close-ups, injury, restraint, peril, weapons, exposed bodies, medical detail, intense physical contact or imitating a real photograph. Every depicted person is an original illustrated character.`);
   }
   if (pageRecovery.strategies?.includes("wardrobe_reference_isolation")
-    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V1:")) {
+    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V2:")) {
     const targets = (pageRecovery.wardrobeTargets || [])
       .map((target) => `${target.characterId} must wear only ${target.outfitStateId}`)
       .join("; ");
-    directives.push(`CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V1:
-Recompose this one instant from the canonical scene contract. Adjacent-scene pixels and the rejected candidate are deliberately excluded because they carried a conflicting outfit. Treat each supplied wardrobe authority as exclusive for its named character in this scene. ${targets || "Use only the exact per-character outfit state declared below."} Never transfer one person's clothing to another person and never combine ordinary and adventure outfits.`);
+    directives.push(`CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V2:
+Recompose this one instant from the canonical scene contract. Cover, adjacent-scene and rejected-candidate pixels are deliberately excluded from generation because any of them may carry a conflicting outfit. The locked textual style contract controls the rendering family; the approved cover remains private QA evidence only. Treat each supplied wardrobe authority as exclusive for its named character in this scene. ${targets || "Use only the exact per-character outfit state declared below."} Never transfer one person's clothing to another person and never combine ordinary and adventure outfits.`);
     if (pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery")
       && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — SHARED WARDROBE AUTHORITY V1:")) {
       directives.push(`CAUSAL RECOVERY MODE — SHARED WARDROBE AUTHORITY V1:
