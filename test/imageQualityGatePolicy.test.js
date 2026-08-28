@@ -206,6 +206,64 @@ test("strict V3 hands every confirmed wardrobe target to one canonical final rec
   assert.match(directive, /character_jerome/u);
 });
 
+test("strict V3 wardrobe repair binds each target to its canonical alias and garment description", () => {
+  const policy = {
+    wardrobeTargets: [
+      {
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_hero",
+        evidenceMode: "broad_garment_attributes",
+        semanticSignature: "hero-signature",
+      },
+      {
+        characterId: "character_jerome",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_jerome",
+        evidenceMode: "broad_garment_attributes",
+        semanticSignature: "jerome-signature",
+      },
+    ],
+  };
+  const directive = strictV3WardrobeRepairDirective(policy, [
+    {
+      kind: "wardrobe",
+      characterId: "character_hero",
+      characterName: "child alpha",
+      outfitStateId: "ordinary_outfit",
+      authorityId: "wardrobe_hero",
+      semanticSignature: "hero-signature",
+      description: "a pale blue short-sleeved shirt, navy trousers and white trainers",
+    },
+    {
+      kind: "wardrobe",
+      characterId: "character_jerome",
+      characterName: "adult beta",
+      outfitStateId: "ordinary_outfit",
+      authorityId: "wardrobe_jerome",
+      semanticSignature: "jerome-signature",
+      description: "a black short-sleeved shirt, beige trousers and grey shoes",
+    },
+    {
+      kind: "wardrobe",
+      characterId: "unrelated",
+      characterName: "unrelated gamma",
+      outfitStateId: "ordinary_outfit",
+      authorityId: "unrelated-authority",
+      description: "a forbidden unrelated red coat",
+    },
+  ]);
+
+  assert.match(directive, /child alpha/u);
+  assert.match(directive, /pale blue short-sleeved shirt/u);
+  assert.match(directive, /"wardrobe_reference_number":1/u);
+  assert.match(directive, /adult beta/u);
+  assert.match(directive, /black short-sleeved shirt/u);
+  assert.match(directive, /"wardrobe_reference_number":2/u);
+  assert.match(directive, /never exchange clothes between targets/u);
+  assert.doesNotMatch(directive, /forbidden unrelated red coat/u);
+});
+
 test("strict V3 attributes a wardrobe conflict to the exact canonical character and authority", () => {
   const expectedWardrobeTargets = [
     { characterId: "character_hero", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_hero", evidenceMode: "exact_garment_design", semanticSignature: "hero-signature" },

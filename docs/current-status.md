@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/v3-wardrobe-semantic-recomposition`
 - Main checkpoint: PR #290 (V3 wardrobe generation pixel isolation)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: wardrobe generation pixel isolation is merged in PR #290. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and page 11 must be generated from Mathéo and Jérôme's exact ordinary-outfit authorities without cover, adjacent-scene or rejected-candidate pixels.
+- Current focused checkpoint: wardrobe generation pixel isolation is merged in PR #290. A candidate semantic-recomposition brick now binds each failed character to one exact numbered wardrobe reference, canonical character alias, outfit state, description and semantic signature. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a`; accepted pages must be reused and page 11 must give Mathéo and Jérôme their own ordinary outfits without exchanging their references.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -124,6 +124,26 @@ projects while preserving all accepted pages. This introduces no migration,
 environment variable, commerce or credit change, model-call allowance,
 private-asset exposure, QA relaxation or series-canon mutation. Focused
 verification: 94/94 tests. Complete repository verification: 820/820 tests.
+
+## Candidate brick: V3 wardrobe semantic recomposition
+
+Pixel isolation alone did not prove that a multi-person image generator would
+apply each supplied wardrobe authority to the correct person. The bounded
+recomposition directive now uses the exact same ordered reference list as the
+image request and binds every failed character to one numbered wardrobe image,
+canonical character alias, outfit-state id, canonical clothing description and
+semantic signature. It explicitly forbids exchanging clothes or using another
+person's reference.
+
+Broad-garment ordinary-outfit authority is fail-closed when its private
+reference lacks either the character alias or canonical clothing description;
+an ambiguous reference can no longer be presented as repairable evidence.
+Retry policy 37 gives the live policy-36 quarantine one bounded resume while
+preserving every accepted page. This adds no migration, environment variable,
+commerce or credit change, model-call allowance, private-asset exposure, QA
+relaxation or series-canon mutation. Focused verification: 102/102 tests.
+Complete repository verification:
+824/824 tests passing.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 

@@ -2329,7 +2329,6 @@ router.post("/preview", async (req, res) => {
           || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
             source: pendingPage.qualityKind || "scene",
           });
-        const wardrobeRepairDirective = strictV3WardrobeRepairDirective(repairPolicy);
         const repairSource = pendingPage.imageStorageKey ? {
             kind: "repair_source",
             storageKey: pendingPage.imageStorageKey,
@@ -2359,6 +2358,10 @@ router.post("/preview", async (req, res) => {
         const repairReferences = causalRecoveryReferences(
           plannedRepairReferences,
           pageRecovery,
+        );
+        const wardrobeRepairDirective = strictV3WardrobeRepairDirective(
+          repairPolicy,
+          repairReferences,
         );
         const wardrobeRecompose = wardrobeReferencePlan?.mode === "canonical_scene_recompose"
           || pageRecovery?.strategies?.includes("wardrobe_reference_isolation") === true;

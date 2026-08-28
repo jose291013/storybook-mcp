@@ -306,8 +306,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the wardrobe generation pixel-isolation recovery policy is version thirty-six", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 36);
+test("the wardrobe semantic recomposition recovery policy is version thirty-seven", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 37);
+});
+
+test("a wardrobe quarantine exhausted under pixel-isolation policy receives one semantic recomposition resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v36-wardrobe-semantic-recomposition-book",
+      retryPolicyVersion: 36,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-28T12:00:00.000Z",
+      failureReason: "narrative_v3_illustration_evidence_incomplete",
+      phase: "strict-quarantine:page:11",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("a prepared causal recovery remains retryable independently of the legacy retry flag", () => {

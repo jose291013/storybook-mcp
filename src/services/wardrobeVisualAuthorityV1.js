@@ -313,7 +313,9 @@ export function wardrobeVisualReferencesForScene(sceneRenderContract, assets) {
         : `${character.name}: LOCKED GARMENT-ONLY WARDROBE AUTHORITY for ${character.outfit.state_id}; copy this exact garment design, colors, material and footwear onto the separately supplied identity`,
       authorityId: authority.authorityId,
       characterId: text(character.character_id),
+      characterName: text(character.name),
       outfitStateId: text(character.outfit.state_id),
+      description: text(authority.description),
       authorityMode: text(authority.authorityMode),
       evidenceMode: text(authority.evidenceMode),
       semanticSignature: text(authority.semanticSignature),
@@ -355,10 +357,20 @@ export function wardrobeRepairReferencePlan({
     text(reference.characterId) === text(target.characterId)
     && text(reference.outfitStateId) === text(target.outfitStateId)
     && text(reference.authorityId) === text(target.wardrobeAuthorityId)
+    && (!text(target.semanticSignature)
+      || text(reference.semanticSignature) === text(target.semanticSignature))
   )));
+  const targetSemanticsComplete = targetReferences.every((reference, index) => {
+    if (!reference) return false;
+    const target = targets[index];
+    if (!text(reference.characterName)) return false;
+    if (text(target?.evidenceMode) === WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES
+      && !text(reference.description)) return false;
+    return true;
+  });
   const continuity = references.find((reference) => reference?.kind === "continuity");
   const singleTarget = targets.length === 1;
-  if (targetReferences.some((reference) => !reference)
+  if (!targetSemanticsComplete
     || !continuity
     || (singleTarget && !repairSource)) {
     return { version: 1, complete: false, mode: "quarantine", references: [] };

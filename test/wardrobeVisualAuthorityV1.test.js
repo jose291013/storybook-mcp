@@ -196,7 +196,9 @@ test("a scene receives only the exact active outfit authority for each character
   assert.equal(references[0].kind, "wardrobe");
   assert.equal(references[0].authorityId, "active");
   assert.equal(references[0].characterId, "character_hero");
+  assert.equal(references[0].characterName, "child_1");
   assert.equal(references[0].outfitStateId, "reef_explorer");
+  assert.equal(references[0].description, authority.description);
   assert.equal(references[0].evidenceMode, WARDROBE_EVIDENCE_MODE_EXACT_DESIGN);
   assert.equal(references[0].semanticSignature, authority.semanticSignature);
   assert.equal(references[0].identityBearing, false);
@@ -215,7 +217,7 @@ test("one failed outfit is edited with only its source, continuity anchor and ex
     repairSource: { kind: "repair_source", path: "candidate.png" },
     sceneReferences: [
       { kind: "continuity", storageKey: "cover.png" },
-      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png", identityBearing: true },
+      { kind: "wardrobe", characterId: "character_hero", characterName: "child alpha", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES, description: "blue shirt and navy trousers", storageKey: "hero.png", identityBearing: true },
       { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png" },
       { kind: "adjacent_scene", storageKey: "previous.png" },
       { kind: "identity", characterId: "character_hero", storageKey: "raw-hero.png" },
@@ -240,7 +242,7 @@ test("one failed adventure outfit retains its separate identity reference", () =
     repairSource: { kind: "repair_source", path: "candidate.png" },
     sceneReferences: [
       { kind: "continuity", storageKey: "cover.png" },
-      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "reef_explorer", authorityId: "wardrobe_hero_reef", storageKey: "reef-garment.png", identityBearing: false },
+      { kind: "wardrobe", characterId: "character_hero", characterName: "child alpha", outfitStateId: "reef_explorer", authorityId: "wardrobe_hero_reef", storageKey: "reef-garment.png", identityBearing: false },
       { kind: "identity", characterId: "character_hero", storageKey: "reference-photos/hero.jpg" },
     ],
   });
@@ -260,8 +262,8 @@ test("several failed outfits recompose the scene from canonical sheets without d
     repairSource: { kind: "repair_source", path: "candidate.png" },
     sceneReferences: [
       { kind: "continuity", storageKey: "cover.png" },
-      { kind: "wardrobe", characterId: "character_hero", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", storageKey: "hero.png", identityBearing: true },
-      { kind: "wardrobe", characterId: "character_friend", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", storageKey: "friend.png", identityBearing: true },
+      { kind: "wardrobe", characterId: "character_hero", characterName: "child alpha", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES, description: "blue shirt and navy trousers", storageKey: "hero.png", identityBearing: true },
+      { kind: "wardrobe", characterId: "character_friend", characterName: "adult beta", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_friend_ordinary", evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES, description: "black shirt and beige trousers", storageKey: "friend.png", identityBearing: true },
       { kind: "adjacent_scene", storageKey: "previous.png" },
       { kind: "identity", characterId: "character_hero", storageKey: "raw-hero.png" },
       { kind: "identity", characterId: "character_dog", storageKey: "dog.png" },
@@ -271,6 +273,71 @@ test("several failed outfits recompose the scene from canonical sheets without d
   assert.equal(plan.mode, "canonical_scene_recompose");
   assert.deepEqual(plan.references.map((reference) => reference.kind), ["continuity", "wardrobe", "wardrobe", "identity"]);
   assert.equal(plan.references.at(-1).characterId, "character_dog");
+});
+
+test("a repair target cannot bind a wardrobe authority with a different semantic signature", () => {
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: {
+      targetDomains: ["wardrobe"],
+      wardrobeTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_hero_ordinary",
+        semanticSignature: "expected-signature",
+      }],
+    },
+    repairSource: { kind: "repair_source", path: "candidate.png" },
+    sceneReferences: [
+      { kind: "continuity", storageKey: "cover.png" },
+      {
+        kind: "wardrobe",
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        authorityId: "wardrobe_hero_ordinary",
+        semanticSignature: "foreign-signature",
+        storageKey: "hero.png",
+        identityBearing: true,
+      },
+    ],
+  });
+  assert.equal(plan.complete, false);
+  assert.deepEqual(plan.references, []);
+});
+
+test("a broad wardrobe recomposition fails closed without its canonical alias and garment description", () => {
+  const base = {
+    kind: "wardrobe",
+    characterId: "character_hero",
+    characterName: "child alpha",
+    outfitStateId: "ordinary_outfit",
+    authorityId: "wardrobe_hero_ordinary",
+    evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+    semanticSignature: "expected-signature",
+    storageKey: "hero.png",
+    identityBearing: true,
+  };
+  const repairPolicy = {
+    targetDomains: ["wardrobe"],
+    wardrobeTargets: [{
+      characterId: "character_hero",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_hero_ordinary",
+      evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+      semanticSignature: "expected-signature",
+    }],
+  };
+  for (const reference of [
+    { ...base, characterName: "", description: "blue shirt and navy trousers" },
+    { ...base, description: "" },
+  ]) {
+    const plan = wardrobeRepairReferencePlan({
+      repairPolicy,
+      repairSource: { kind: "repair_source", path: "candidate.png" },
+      sceneReferences: [{ kind: "continuity", storageKey: "cover.png" }, reference],
+    });
+    assert.equal(plan.complete, false);
+    assert.deepEqual(plan.references, []);
+  }
 });
 
 test("a wardrobe repair is quarantined when its exact accepted authority is absent", () => {
