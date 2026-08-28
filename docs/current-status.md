@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after the documentation checkpoint is merged
-- Main checkpoint: PR #286 (`cd73e2f`, V3 wardrobe-authority satisfiability)
+- Current branch: `main` after PR #288 is merged
+- Main checkpoint: PR #288 (V3 causal final-repair)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: V3 wardrobe-authority satisfiability is merged. The next live verification is one bounded free resume of a policy-32 wardrobe quarantine after Render is Live.
+- Current focused checkpoint: V3 causal final-repair is merged through PR #288. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and pages 3/11 must generate without rejected or contaminated continuity pixels.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -72,6 +72,23 @@ bounded resume while preserving every accepted page. No migration, environment
 variable, model-call allowance, commerce/credit rule, private-asset exposure,
 QA relaxation or series-canon mutation is introduced. Focused and complete
 verification pass; the complete repository suite is 817/817.
+
+## Candidate brick: V3 causal final-repair
+
+Causal recovery version 3 now survives the complete page lifecycle. The final
+`repair_pending` sweep proves its wardrobe targets against the full private
+authority set, then filters generation references with the same causal plan as
+the preceding page attempt. A shared wardrobe failure therefore cannot
+reintroduce the rejected page, adjacent scenes or cover continuity; generation
+uses only the canonical wardrobe/identity authorities while independent QA
+keeps the complete evidence set.
+
+Older recovery documents are recompiled before their migration resume starts,
+and recovery prompts are idempotent. Retry policy 34 gives policy-33 failures
+one bounded resume while preserving every accepted page. No migration,
+environment variable, commerce/credit rule, model-call allowance, private
+asset policy, QA threshold or series canon changes. Verification: 91/91
+focused tests and 817/817 complete repository tests pass.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 
