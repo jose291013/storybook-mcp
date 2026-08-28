@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after the documentation checkpoint is merged
-- Main checkpoint: PR #286 (`cd73e2f`, V3 wardrobe-authority satisfiability)
+- Current branch: `main` after PR #288 is merged
+- Main checkpoint: PR #288 (V3 causal final-repair)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: V3 causal final-repair is the active candidate. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and pages 3/11 must generate without rejected or contaminated continuity pixels.
+- Current focused checkpoint: V3 causal final-repair is merged through PR #288. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and pages 3/11 must generate without rejected or contaminated continuity pixels.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
