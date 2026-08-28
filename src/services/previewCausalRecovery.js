@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 2;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 3;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -179,24 +179,29 @@ export function causalRecoveryReferences(references = [], pageRecovery = null) {
 }
 
 export function causalRecoveryPrompt(basePrompt, pageRecovery = null) {
-  if (!pageRecovery) return text(basePrompt);
+  const normalizedBasePrompt = text(basePrompt);
+  if (!pageRecovery) return normalizedBasePrompt;
   const directives = [];
-  if (pageRecovery.strategies?.includes("provider_safe_reexpression")) {
+  if (pageRecovery.strategies?.includes("provider_safe_reexpression")
+    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — PROVIDER-SAFE RE-EXPRESSION V1:")) {
     directives.push(`CAUSAL RECOVERY MODE — PROVIDER-SAFE RE-EXPRESSION V1:
 Create a fresh, calm, non-threatening children's-book composition from the immutable physical snapshot below. Use no supplied person or scene pixels. Preserve the exact cast cardinality, location, wardrobe, object states and central action, but express emotion through posture, gaze, spacing and environment. Avoid alarming close-ups, injury, restraint, peril, weapons, exposed bodies, medical detail, intense physical contact or imitating a real photograph. Every depicted person is an original illustrated character.`);
   }
-  if (pageRecovery.strategies?.includes("wardrobe_reference_isolation")) {
+  if (pageRecovery.strategies?.includes("wardrobe_reference_isolation")
+    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V1:")) {
     const targets = (pageRecovery.wardrobeTargets || [])
       .map((target) => `${target.characterId} must wear only ${target.outfitStateId}`)
       .join("; ");
     directives.push(`CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V1:
 Recompose this one instant from the canonical scene contract. Adjacent-scene pixels and the rejected candidate are deliberately excluded because they carried a conflicting outfit. Treat each supplied wardrobe authority as exclusive for its named character in this scene. ${targets || "Use only the exact per-character outfit state declared below."} Never transfer one person's clothing to another person and never combine ordinary and adventure outfits.`);
-    if (pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery")) {
+    if (pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery")
+      && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — SHARED WARDROBE AUTHORITY V1:")) {
       directives.push(`CAUSAL RECOVERY MODE — SHARED WARDROBE AUTHORITY V1:
 The same wardrobe authority failed on more than one page, so no scene or cover pixels may reinterpret it. Build each required person directly from that person's supplied authority and the immutable current-scene description. For an ordinary identity-bound outfit, preserve its broad garment categories, dominant colors and footwear; logos, minor texture, folds and hidden details are irrelevant. Never replace ordinary clothes with adventure, protective or universe clothing.`);
     }
-  } else if (pageRecovery.strategies?.includes("canonical_scene_recompose")) {
+  } else if (pageRecovery.strategies?.includes("canonical_scene_recompose")
+    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — CANONICAL RECOMPOSITION V1:")) {
     directives.push("CAUSAL RECOVERY MODE — CANONICAL RECOMPOSITION V1: create a new composition from the immutable contract instead of editing or imitating the rejected candidate.");
   }
-  return [...directives, text(basePrompt)].filter(Boolean).join("\n\n");
+  return [...directives, normalizedBasePrompt].filter(Boolean).join("\n\n");
 }

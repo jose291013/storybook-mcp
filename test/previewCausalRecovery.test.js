@@ -67,6 +67,8 @@ test("provider recovery removes all source pixels and changes the prompt", () =>
   ], page), []);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /PROVIDER-SAFE RE-EXPRESSION V1/);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /BASE CONTRACT/);
+  const once = causalRecoveryPrompt("BASE CONTRACT", page);
+  assert.equal(causalRecoveryPrompt(once, page), once);
 });
 
 test("wardrobe recovery excludes adjacent and rejected pixels and deduplicates identity authority", () => {
@@ -122,12 +124,14 @@ test("repeated failures of one wardrobe authority escalate once to authority-lev
   }
 
   const references = causalRecoveryReferences([
+    { kind: "repair_source", storageKey: "rejected-page" },
     { kind: "continuity", storageKey: "cover" },
     { kind: "adjacent_scene", storageKey: "previous" },
     { kind: "wardrobe", storageKey: "hero-photo", characterId: "character_hero" },
     { kind: "identity", storageKey: "hero-photo", characterId: "character_hero" },
   ], recovery.pages[0]);
   assert.deepEqual(references.map((reference) => reference.kind), ["wardrobe"]);
+  assert.equal(references.some((reference) => reference.storageKey === "rejected-page"), false);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", recovery.pages[0]), /SHARED WARDROBE AUTHORITY V1/);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", recovery.pages[0]), /broad garment categories/);
 });

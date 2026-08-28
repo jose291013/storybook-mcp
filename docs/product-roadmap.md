@@ -2119,6 +2119,27 @@ This checkpoint adds no migration, environment variable, model-call budget,
 commerce or credit change, private-asset exposure, QA relaxation or
 series-canon mutation. Verification is 817/817 complete repository tests.
 
+## V3 causal final-repair checkpoint
+
+Causal recovery version 3 remains authoritative through the bounded final
+repair sweep. That sweep may no longer rebuild its own generation-reference
+set and silently reintroduce a rejected page, an adjacent scene or a cover
+whose pixels carried the wardrobe contradiction. It first proves target
+satisfiability from the complete private authority set, then applies the same
+causal reference isolation and canonical recovery prompt used by the page
+generation attempt. Independent private QA still receives the complete
+identity, wardrobe and style evidence; only generation input is isolated.
+
+A stored recovery document from an older causal version is recompiled before
+the migration retry starts, rather than consuming the retry merely to persist
+the new document. Recovery prompts are idempotent, so the final sweep cannot
+duplicate recovery directives. Retry policy 34 grants one bounded resume to
+policy-33 checkpoints, reusing every accepted page and regenerating only the
+remaining quarantined pages. This adds no migration, environment variable,
+commerce or credit change, model-call allowance, private-asset exposure, QA
+relaxation or series-canon mutation. Verification: 91/91 focused tests and
+817/817 complete repository tests pass.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

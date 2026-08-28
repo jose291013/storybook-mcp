@@ -88,6 +88,7 @@ import {
   causalRecoveryPrompt,
   causalRecoveryReferences,
   consumePreviewCausalRecovery,
+  PREVIEW_CAUSAL_RECOVERY_VERSION,
   previewCausalRecoveryPage,
 } from "../services/previewCausalRecovery.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
@@ -598,8 +599,16 @@ router.post("/preview", async (req, res) => {
   // a changed non-empty answer compatible.
   const fingerprint = approvedScenario?.fingerprint || fingerprintCandidates[0] || previewRequestFingerprint(normalized);
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
-  const preparedCausalRecovery = existingCheckpoint?.causalRecovery
-    || buildPreviewCausalRecovery({ previewResult: project.previewResult || {} });
+  const storedCausalRecovery = existingCheckpoint?.causalRecovery || null;
+  // A retry-policy bump must not consume its one resume merely to carry an
+  // obsolete recovery document forward. Recompile the current blocker set
+  // before this run so the new causal strategy is used immediately.
+  const preparedCausalRecovery = storedCausalRecovery?.version === PREVIEW_CAUSAL_RECOVERY_VERSION
+    ? storedCausalRecovery
+    : buildPreviewCausalRecovery({
+        previewResult: project.previewResult || {},
+        priorRecovery: storedCausalRecovery,
+      });
   const isTechnicalGenerationRetry = Boolean(existingCheckpoint)
     && (technicalPreviewRetryAvailable(project) || preparedCausalRecovery?.available === true);
   const causalRecoveryRun = isTechnicalGenerationRetry && preparedCausalRecovery?.available === true
@@ -2310,6 +2319,7 @@ router.post("/preview", async (req, res) => {
           sceneContinuity,
           visualPrompt,
           qualityReferenceImages,
+          pageRecovery,
         } = buildPageVisualRequest(page);
         const repairPolicy = pendingPage.qualityRepairPolicy
           || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
@@ -2323,16 +2333,35 @@ router.post("/preview", async (req, res) => {
           } : null;
         const wardrobeReferencePlan = wardrobeRepairReferencePlan({
           repairPolicy,
-          sceneReferences: sceneContinuity.referenceImages || [],
+          // The plan needs the complete private authority set to prove that
+          // every target is satisfiable. Its returned generation references
+          // are filtered by causalRecoveryReferences immediately below.
+          sceneReferences: pageRecovery
+            ? qualityReferenceImages
+            : sceneContinuity.referenceImages || [],
           repairSource,
         });
-        const repairReferences = wardrobeReferencePlan
+        const plannedRepairReferences = wardrobeReferencePlan
           ? wardrobeReferencePlan.references
           : [
               ...(repairSource ? [repairSource] : []),
               ...(sceneContinuity.referenceImages || []),
             ];
-        const wardrobeRecompose = wardrobeReferencePlan?.mode === "canonical_scene_recompose";
+        // A causal retry must remain causal through the final repair sweep.
+        // Reintroducing the rejected candidate or a contaminated continuity
+        // image here would silently undo the reference isolation already
+        // applied by buildPageVisualRequest(). Independent QA still receives
+        // the complete canonical evidence set below.
+        const repairReferences = causalRecoveryReferences(
+          plannedRepairReferences,
+          pageRecovery,
+        );
+        const wardrobeRecompose = wardrobeReferencePlan?.mode === "canonical_scene_recompose"
+          || pageRecovery?.strategies?.includes("wardrobe_reference_isolation") === true;
+        const repairPrompt = causalRecoveryPrompt(
+          `${visualPrompt}\n\n${wardrobeRecompose ? "CANONICAL WARDROBE SCENE RECOMPOSITION (policy V8): the preserved candidate and incompatible continuity pixels are deliberately excluded. Recreate the same immutable scene from its contract and the complete canonical identity and wardrobe authorities." : "FINAL TARGETED IMAGE EDIT (policy V8): edit the preserved candidate instead of redesigning it."} Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium wherever the selected repair mode permits. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical wardrobe sheets are the combined identity-and-outfit authority for every represented human. Do not introduce any other narrative change.`,
+          pageRecovery,
+        );
         try {
           if (wardrobeReferencePlan && !wardrobeReferencePlan.complete) {
             const error = new Error("The exact accepted wardrobe authority required for isolated repair is unavailable.");
@@ -2340,7 +2369,7 @@ router.post("/preview", async (req, res) => {
             throw error;
           }
           const repairedLocalImageUrl = await generateQualityCheckedImage({
-            prompt: `${visualPrompt}\n\n${wardrobeRecompose ? "CANONICAL WARDROBE SCENE RECOMPOSITION (policy V7): the preserved candidate had several incorrect people and is deliberately excluded. Recreate the same immutable scene from its contract and the complete canonical wardrobe sheets." : "FINAL TARGETED IMAGE EDIT (policy V7): edit the preserved candidate instead of redesigning it."} Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium wherever the selected repair mode permits. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical wardrobe sheets are the combined identity-and-outfit authority for every represented human. Do not introduce any other narrative change.`,
+            prompt: repairPrompt,
             safetyFallbackPrompt: sceneContractImagePrompt({
               contract: page.scene_contract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
