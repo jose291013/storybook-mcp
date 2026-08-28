@@ -28,10 +28,15 @@ viewed project. Missing interior pages are expected during this phase and can
 only declare an expired preview after the project reaches a completed delivery
 state.
 
+The preview start endpoint now also returns one authoritative `generationStage`
+derived from the persisted visual-proof decision. A free technical retry after
+cover approval therefore opens the interior-generation journey directly instead
+of showing the already-approved cover as a pending customer decision.
+
 This changes no generation sequence, model call, database schema, environment
 variable, commerce rule, credit, private-asset policy or series canon. Focused
 resume and commerce regressions pass; complete repository verification passes
-809/809 tests.
+823/823 tests.
 
 ## Candidate brick: V3 causal preview recovery
 
