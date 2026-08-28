@@ -43,6 +43,62 @@ test("causal recovery compiles distinct page strategies without customer prose",
   assert.equal(JSON.stringify(recovery).includes("customer sentence"), false);
 });
 
+test("causal recovery restores exact wardrobe targets retained by complete quarantine diagnostics", () => {
+  const page = quarantinedPage(11, ["wardrobe_state_mismatch"]);
+  page.qualityRepairPolicy.wardrobeDiagnostics = {
+    targetingComplete: true,
+    failedTargets: [
+      {
+        characterId: "character_jerome",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_jerome_ordinary",
+      },
+      {
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_hero_ordinary",
+      },
+    ],
+  };
+
+  const recovery = buildPreviewCausalRecovery({
+    previewResult: { draftPages: [page] },
+  });
+
+  assert.deepEqual(recovery.pages[0].wardrobeTargets, [
+    {
+      characterId: "character_hero",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_hero_ordinary",
+    },
+    {
+      characterId: "character_jerome",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_jerome_ordinary",
+    },
+  ]);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", recovery.pages[0]), /character_hero must wear only ordinary_outfit/);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", recovery.pages[0]), /character_jerome must wear only ordinary_outfit/);
+});
+
+test("causal recovery never promotes incomplete diagnostic wardrobe guesses", () => {
+  const page = quarantinedPage(11, ["wardrobe_state_mismatch"]);
+  page.qualityRepairPolicy.wardrobeDiagnostics = {
+    targetingComplete: false,
+    failedTargets: [{
+      characterId: "character_hero",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_hero_ordinary",
+    }],
+  };
+
+  const recovery = buildPreviewCausalRecovery({
+    previewResult: { draftPages: [page] },
+  });
+
+  assert.deepEqual(recovery.pages[0].wardrobeTargets, []);
+});
+
 test("an identical consumed blocker signature cannot expose another fake free retry", () => {
   const previewResult = {
     deferredIllustrationPages: [{ pageNumber: 8, issueCodes: ["provider_safety_rejection"] }],

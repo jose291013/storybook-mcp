@@ -39,9 +39,11 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /const repairPrompt = causalRecoveryPrompt\(/);
   assert.match(preview, /pageRecovery\?\.strategies\?\.includes\("wardrobe_reference_isolation"\)/);
   assert.match(preview, /sceneReferences: pageRecovery\s*\? qualityReferenceImages/);
+  assert.match(preview, /targetedRepairAvailable: true/);
+  assert.doesNotMatch(preview, /targetedRepairAvailable: !pageRecovery/);
   assert.match(preview, /qualityReviewScope: repairPolicy\.targetCodes/);
-  assert.match(preview, /FINAL TARGETED IMAGE EDIT \(policy V8\)/);
-  assert.match(preview, /CANONICAL WARDROBE SCENE RECOMPOSITION \(policy V8\)/);
+  assert.match(preview, /FINAL TARGETED IMAGE EDIT \(policy V9\)/);
+  assert.match(preview, /CANONICAL WARDROBE SCENE RECOMPOSITION \(policy V9\)/);
   assert.match(preview, /preserve exactly one complete instance of every required named identity/);
   assert.match(preview, /accepted_after_repair/);
   assert.match(preview, /status: "preview_quality_review"/);

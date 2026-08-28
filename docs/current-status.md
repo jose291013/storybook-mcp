@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after PR #288 is merged
-- Main checkpoint: PR #288 (V3 causal final-repair)
+- Current branch: `main` after PR #289 is merged
+- Main checkpoint: PR #289 (V3 shared-authority final recomposition)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: V3 causal final-repair is merged through PR #288. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and pages 3/11 must generate without rejected or contaminated continuity pixels.
+- Current focused checkpoint: shared-authority final recomposition is merged through PR #289. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and page 11 must recompose Mathéo and Jérôme from their exact ordinary-outfit authorities.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -89,6 +89,24 @@ one bounded resume while preserving every accepted page. No migration,
 environment variable, commerce/credit rule, model-call allowance, private
 asset policy, QA threshold or series canon changes. Verification: 91/91
 focused tests and 817/817 complete repository tests pass.
+
+## Candidate brick: V3 shared-authority final recomposition
+
+The final page attempt no longer disables its repair hand-off merely because a
+shared wardrobe authority was already isolated. When strict QA has complete
+nominative diagnostics for several people, every exact character, outfit and
+wardrobe-authority id is retained and passed to one canonical scene
+recomposition. Rejected candidates, adjacent scenes and cover pixels remain
+excluded from generation; private QA still uses the complete authority set.
+
+Causal recovery version 4 can resume an older quarantine whose explicit target
+list was empty by recovering the same canonical ids from
+`targetingComplete: true` diagnostic evidence. It never infers a person or an
+outfit from prose or pixels. Retry policy 35 opens one bounded resume for the
+live policy-34 failure while reusing accepted pages. This adds no migration,
+environment variable, commerce/credit change, model-call allowance, private
+asset exposure, QA relaxation or series-canon mutation. Focused verification:
+94/94 tests. Complete repository verification: 820/820 tests passing.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 
