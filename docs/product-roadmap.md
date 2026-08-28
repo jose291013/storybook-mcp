@@ -2062,6 +2062,32 @@ private-checkpoint retry to object-only failures exhausted under version 1; it
 reuses the preserved candidate and does not rerun the architect. This adds no
 environment variable, systematic model call, credit use or canon mutation.
 
+## V3 causal preview recovery checkpoint
+
+An illustration retry is no longer permission to replay the same failed model
+input. Retry policy 32 derives a stable blocker signature from the private
+delivery evidence and assigns one explicit strategy per unresolved page:
+
+1. Provider-safety rejection uses a new calm, contract-only re-expression and
+   sends no previously rejected person or scene pixels to generation.
+2. Wardrobe mismatch excludes the rejected candidate and adjacent-scene pixels,
+   then generates only from canonical identity, wardrobe and style authorities
+   with exact character/outfit targets.
+3. Other strict local defects recompose the immutable scene instead of copying
+   the rejected candidate.
+4. Every already accepted page remains immutable and is reused.
+5. Generation inputs may be reduced, but the independent private QA boundary
+   still receives the complete canonical evidence set. Safety adaptation can
+   therefore never weaken identity, wardrobe or style acceptance.
+6. One blocker signature can be consumed only once. A new free retry exists
+   only when the persisted blocker set materially changes, with at most three
+   distinct causal recovery signatures.
+
+The durable plan contains only page numbers, issue codes and canonical ids; it
+stores no customer text, names, images or provider prompts. This checkpoint
+adds no environment variable, migration, commerce/credit change, series-canon
+mutation or acceptance relaxation.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

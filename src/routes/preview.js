@@ -2,6 +2,7 @@ import express from "express";
 import { createJob, getJob, updateJob } from "../services/jobStore.js";
 import {
   generateQualityCheckedImage,
+  IMAGE_SAFETY_FALLBACK_STAGES,
   IllustrationQualityError,
   IllustrationSafetyQuarantineError,
   outputImagePath,
@@ -81,6 +82,13 @@ import {
   strictPageIssueCodes,
   upsertPreviewDraftPage,
 } from "../services/previewPageRecovery.js";
+import {
+  buildPreviewCausalRecovery,
+  causalRecoveryPrompt,
+  causalRecoveryReferences,
+  consumePreviewCausalRecovery,
+  previewCausalRecoveryPage,
+} from "../services/previewCausalRecovery.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
@@ -589,7 +597,13 @@ router.post("/preview", async (req, res) => {
   // a changed non-empty answer compatible.
   const fingerprint = approvedScenario?.fingerprint || fingerprintCandidates[0] || previewRequestFingerprint(normalized);
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
-  const isTechnicalGenerationRetry = technicalPreviewRetryAvailable(project) && Boolean(existingCheckpoint);
+  const preparedCausalRecovery = existingCheckpoint?.causalRecovery
+    || buildPreviewCausalRecovery({ previewResult: project.previewResult || {} });
+  const isTechnicalGenerationRetry = Boolean(existingCheckpoint)
+    && (technicalPreviewRetryAvailable(project) || preparedCausalRecovery?.available === true);
+  const causalRecoveryRun = isTechnicalGenerationRetry && preparedCausalRecovery?.available === true
+    ? consumePreviewCausalRecovery(preparedCausalRecovery)
+    : null;
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
   const productContract = existingBookProductContract({
     questionnaire: normalized.answers,
@@ -629,6 +643,7 @@ router.post("/preview", async (req, res) => {
     if (isTechnicalGenerationRetry) {
       continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
         ...existingCheckpoint,
+        ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
         retryAvailable: false,
         retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
         retryConsumedAt: new Date().toISOString(),
@@ -693,7 +708,12 @@ router.post("/preview", async (req, res) => {
       code: "generation_queue_unavailable",
     });
   }
-  const initialCheckpoint = existingCheckpoint || { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION };
+  const initialCheckpoint = existingCheckpoint
+    ? {
+        ...existingCheckpoint,
+        ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
+      }
+    : { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION };
   let checkpoint = initialCheckpoint;
   const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = project.continuitySnapshot || {};
   const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? project.continuitySnapshot : continuityWithoutOldCheckpoint, {
@@ -1950,6 +1970,19 @@ router.post("/preview", async (req, res) => {
           policyVersion: PREVIEW_RETRY_POLICY_VERSION,
         }));
       }
+      if (causalRecoveryRun?.pages?.length) {
+        console.info("[preview] causal recovery applied", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          version: causalRecoveryRun.version,
+          signature: causalRecoveryRun.signature,
+          pages: causalRecoveryRun.pages.map((page) => ({
+            pageNumber: page.pageNumber,
+            issueCodes: page.issueCodes,
+            strategies: page.strategies,
+          })),
+        }));
+      }
       const deferredIllustrationPages = [];
       const previewResultSnapshot = () => ({
         coverImageUrl,
@@ -2016,13 +2049,31 @@ router.post("/preview", async (req, res) => {
             wardrobeAuthorityReferences,
           });
         }
-        const visualPrompt = sceneContractImagePrompt({
+        const qualityReferenceImages = sceneContinuity.referenceImages || [];
+        const pageRecovery = previewCausalRecoveryPage(causalRecoveryRun, page.page_number);
+        if (pageRecovery) {
+          sceneContinuity = {
+            ...sceneContinuity,
+            referenceImages: causalRecoveryReferences(
+              sceneContinuity.referenceImages || [],
+              pageRecovery,
+            ),
+          };
+        }
+        const visualPrompt = causalRecoveryPrompt(sceneContractImagePrompt({
           contract: page.scene_contract,
           stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
           fallbackPrompt: page.image_prompt,
           visualAliases: sceneContinuity.visualAliases,
-        });
-        return { pairedText, sceneContinuity, visualPrompt, adjacentReferenceImages };
+        }), pageRecovery);
+        return {
+          pairedText,
+          sceneContinuity,
+          visualPrompt,
+          adjacentReferenceImages,
+          pageRecovery,
+          qualityReferenceImages,
+        };
       };
       for (const page of final_blueprint.pages) {
         updateJob(job.id, { step: `draft:page:${page.page_number}` });
@@ -2046,7 +2097,12 @@ router.post("/preview", async (req, res) => {
           text = draftTextByPage.get(page.page_number) || "";
         } else if (page.page_type === "image") {
           const visualRequest = buildPageVisualRequest(page);
-          const { sceneContinuity, visualPrompt } = visualRequest;
+          const {
+            sceneContinuity,
+            visualPrompt,
+            pageRecovery,
+            qualityReferenceImages,
+          } = visualRequest;
           adjacentReferenceImages = visualRequest.adjacentReferenceImages;
           const remainingRequiredImageCount = final_blueprint.pages.filter((candidate) => (
             candidate.page_type === "image"
@@ -2071,17 +2127,21 @@ router.post("/preview", async (req, res) => {
           try {
             localImageUrl = await generateQualityCheckedImage({
               prompt: visualPrompt,
-              safetyFallbackPrompt: sceneContractImagePrompt({
+              safetyFallbackPrompt: causalRecoveryPrompt(sceneContractImagePrompt({
                 contract: page.scene_contract,
                 stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
                 fallbackPrompt: page.image_prompt,
                 visualAliases: sceneContinuity.visualAliases,
                 safetyFallback: true,
-              }),
+              }), pageRecovery),
+              initialSafetyFallbackStage: pageRecovery?.strategies?.includes("provider_safe_reexpression")
+                ? IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY
+                : IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES,
+              qualityReferenceImages,
               outName: `draft-page${page.page_number}-${job.id}`,
               castPresent: page.cast_present || [],
               pageLabel: `interior illustration for page ${page.page_number}`,
-              maximumAttempts: strictRecoveryPageNumbers.has(Number(page.page_number)) ? 3 : 2,
+              maximumAttempts: pageRecovery || strictRecoveryPageNumbers.has(Number(page.page_number)) ? 3 : 2,
               onAttempt: reportImageAttempt(job.id, `draft:page:${page.page_number}`),
               onCandidate: createImageCandidateRecorder({
                 jobId: job.id,
@@ -2236,7 +2296,11 @@ router.post("/preview", async (req, res) => {
           status: "running",
           currentStep: `draft:repair:page:${page.page_number}`,
         });
-        const { sceneContinuity, visualPrompt } = buildPageVisualRequest(page);
+        const {
+          sceneContinuity,
+          visualPrompt,
+          qualityReferenceImages,
+        } = buildPageVisualRequest(page);
         const repairPolicy = pendingPage.qualityRepairPolicy
           || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
             source: pendingPage.qualityKind || "scene",
@@ -2288,6 +2352,10 @@ router.post("/preview", async (req, res) => {
             }),
             ...sceneContinuity,
             referenceImages: repairReferences,
+            qualityReferenceImages: [
+              ...(repairSource ? [repairSource] : []),
+              ...qualityReferenceImages,
+            ],
             size: findBookFormat(final_blueprint.format?.id || answers.book_format_id).imageSize,
             quality: "low",
             renderingMode: answers.rendering_mode,
@@ -2633,6 +2701,14 @@ router.post("/preview", async (req, res) => {
         const interruptionIsRecoverable = boundedErrorCode === "preview_interrupted";
         const providerBillingIsRecoverable = boundedErrorCode === "preview_provider_billing_unavailable";
         const failureIsRecoverable = interruptionIsRecoverable || providerBillingIsRecoverable;
+        const nextCausalRecovery = buildPreviewCausalRecovery({
+          previewResult: latest?.previewResult || {},
+          priorRecovery: priorCheckpoint?.causalRecovery || causalRecoveryRun,
+        });
+        const causalFailureDetected = Boolean(nextCausalRecovery?.pages?.length);
+        const retryAvailable = failureIsRecoverable
+          || nextCausalRecovery?.available === true
+          || (!causalFailureDetected && !retryWasConsumed);
         let continuitySnapshot = {
           ...(latest?.continuitySnapshot || project.continuitySnapshot),
           ...(isTechnicalReferenceRecovery ? {
@@ -2643,8 +2719,9 @@ router.post("/preview", async (req, res) => {
           ...priorCheckpoint,
           fingerprint,
           retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
-          retryAvailable: failureIsRecoverable || !retryWasConsumed,
-          retryExhausted: failureIsRecoverable ? false : retryWasConsumed,
+          retryAvailable,
+          retryExhausted: !retryAvailable,
+          ...(nextCausalRecovery ? { causalRecovery: nextCausalRecovery } : {}),
           failureReason: boundedErrorCode,
           failedAt: new Date().toISOString(),
         });
@@ -2659,7 +2736,7 @@ router.post("/preview", async (req, res) => {
             identity,
             event: "generation_failed",
             eventId: `${job.id}:generation_failed`,
-            retryAvailable: failureIsRecoverable || !retryWasConsumed,
+            retryAvailable,
           });
         } catch (notificationError) {
           console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));

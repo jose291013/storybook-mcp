@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const VERSION = 1;
-export const PREVIEW_RETRY_POLICY_VERSION = 31;
+export const PREVIEW_RETRY_POLICY_VERSION = 32;
 
 // Fingerprints created before V23 did not contain this optional authority.
 // Keep every compatibility projection explicit and append-only: future input
@@ -76,6 +76,7 @@ export function mergeGenerationCheckpoint(snapshot = {}, checkpoint = {}) {
 export function technicalPreviewRetryAvailable(project) {
   const checkpoint = generationCheckpoint(project);
   if (!checkpoint) return false;
+  if (checkpoint.causalRecovery?.available === true) return true;
   if (["preview_interrupted", "preview_provider_billing_unavailable"].includes(checkpoint.failureReason)) return true;
   if (checkpoint.retryAvailable === true) return true;
   return checkpoint.retryExhausted === true
