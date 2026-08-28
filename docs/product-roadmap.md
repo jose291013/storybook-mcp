@@ -2140,6 +2140,27 @@ commerce or credit change, model-call allowance, private-asset exposure, QA
 relaxation or series-canon mutation. Verification: 91/91 focused tests and
 817/817 complete repository tests pass.
 
+## V3 shared-authority final-recomposition checkpoint
+
+A complete wardrobe diagnosis is now an executable repair contract through
+the final image attempt. Shared-authority recovery no longer disables the
+bounded final repair and then discards its nominative targets. If one remaining
+page has several confirmed wardrobe failures, the system retains every exact
+character id, outfit-state id and wardrobe-authority id and performs one
+canonical scene recomposition. It does not edit or reference the rejected
+candidate, adjacent scene images or cover pixels; generation receives only the
+canonical identity and wardrobe authorities, while independent private QA
+continues to receive the complete evidence set.
+
+Causal recovery version 4 also upgrades stored quarantines produced by the old
+guard. An empty explicit target list may be restored only from the checkpoint's
+own `targetingComplete: true` failed-target diagnostics. Customer prose, image
+interpretation and role guessing can never create a target. Retry policy 35
+grants one bounded resume to policy-34 projects and preserves all accepted
+pages. This checkpoint changes no schema, environment variable, commerce or
+credit rule, model-call allowance, private-asset policy, acceptance threshold
+or series canon.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

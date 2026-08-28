@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 3;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 4;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -31,9 +31,19 @@ function signatureFor(pages) {
 }
 
 function normalizedWardrobeTargets(page = {}) {
-  return (Array.isArray(page?.qualityRepairPolicy?.wardrobeTargets)
+  const explicitTargets = Array.isArray(page?.qualityRepairPolicy?.wardrobeTargets)
     ? page.qualityRepairPolicy.wardrobeTargets
-    : []).map((target) => ({
+    : [];
+  // A formerly exhausted shared-authority run stored the nominative evidence
+  // under wardrobeDiagnostics.failedTargets while its strategy deliberately
+  // emitted an empty repair target list. Recover those same canonical ids;
+  // never infer a target from prose or from an image.
+  const diagnosticTargets = page?.qualityRepairPolicy?.wardrobeDiagnostics?.targetingComplete === true
+    && Array.isArray(page?.qualityRepairPolicy?.wardrobeDiagnostics?.failedTargets)
+    ? page.qualityRepairPolicy.wardrobeDiagnostics.failedTargets
+    : [];
+  const sourceTargets = explicitTargets.length ? explicitTargets : diagnosticTargets;
+  return sourceTargets.map((target) => ({
       characterId: text(target?.characterId).slice(0, 120),
       outfitStateId: text(target?.outfitStateId).slice(0, 120),
       wardrobeAuthorityId: text(target?.wardrobeAuthorityId).slice(0, 120),

@@ -161,6 +161,51 @@ test("strict V3 enters targeted editing only after convergence to one confirmed 
   assert.doesNotMatch(strictV3WardrobeRepairDirective(policy), /child_1/u);
 });
 
+test("strict V3 hands every confirmed wardrobe target to one canonical final recompose", () => {
+  const evidence = {
+    approved: false,
+    failedDomains: ["wardrobe"],
+    uncertainDomains: [],
+    wardrobeDiagnostics: {
+      targetingComplete: true,
+      failedTargets: [
+        {
+          characterId: "character_hero",
+          outfitStateId: "ordinary_outfit",
+          wardrobeAuthorityId: "wardrobe_hero_ordinary",
+          status: "fail",
+          evidenceCode: "wardrobe_state_mismatch",
+          observationCode: "categorically_different_state",
+        },
+        {
+          characterId: "character_jerome",
+          outfitStateId: "ordinary_outfit",
+          wardrobeAuthorityId: "wardrobe_jerome_ordinary",
+          status: "fail",
+          evidenceCode: "wardrobe_state_mismatch",
+          observationCode: "categorically_different_state",
+        },
+      ],
+    },
+  };
+
+  const policy = strictV3TargetedRepairPolicy(evidence, {
+    attempt: 3,
+    maximumAttempts: 3,
+    targetedRepairAvailable: true,
+  });
+
+  assert.equal(policy.strategy.mode, "targeted_repair");
+  assert.equal(policy.automaticRepair, true);
+  assert.deepEqual(policy.wardrobeTargets.map((target) => target.characterId), [
+    "character_hero",
+    "character_jerome",
+  ]);
+  const directive = strictV3WardrobeRepairDirective(policy);
+  assert.match(directive, /character_hero/u);
+  assert.match(directive, /character_jerome/u);
+});
+
 test("strict V3 attributes a wardrobe conflict to the exact canonical character and authority", () => {
   const expectedWardrobeTargets = [
     { characterId: "character_hero", outfitStateId: "reef_explorer", wardrobeAuthorityId: "wardrobe_hero", evidenceMode: "exact_garment_design", semanticSignature: "hero-signature" },

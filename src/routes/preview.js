@@ -2174,9 +2174,13 @@ router.post("/preview", async (req, res) => {
               likenessGoal: answers.likeness_goal,
               model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
               retryRepairableFindings: economicDecision.optionalVisualRetry,
-              targetedRepairAvailable: !pageRecovery?.strategies?.includes(
-                "wardrobe_authority_satisfiability_recovery",
-              ),
+              // Shared-authority causal recovery used to disable the final
+              // repair hand-off because the old sweep could reintroduce the
+              // rejected candidate. The causal V3/V4 sweep now recomposes
+              // several attributed wardrobe targets from canonical private
+              // authorities only, so suppressing this hand-off would discard
+              // complete diagnostics and quarantine the page with no targets.
+              targetedRepairAvailable: true,
               verifyExactCast: Boolean(sceneContinuity.sceneFidelityContract?.scene_render_contract),
               strictV3EvidenceRequired: strictV3Rendering,
             });
@@ -2359,7 +2363,7 @@ router.post("/preview", async (req, res) => {
         const wardrobeRecompose = wardrobeReferencePlan?.mode === "canonical_scene_recompose"
           || pageRecovery?.strategies?.includes("wardrobe_reference_isolation") === true;
         const repairPrompt = causalRecoveryPrompt(
-          `${visualPrompt}\n\n${wardrobeRecompose ? "CANONICAL WARDROBE SCENE RECOMPOSITION (policy V8): the preserved candidate and incompatible continuity pixels are deliberately excluded. Recreate the same immutable scene from its contract and the complete canonical identity and wardrobe authorities." : "FINAL TARGETED IMAGE EDIT (policy V8): edit the preserved candidate instead of redesigning it."} Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium wherever the selected repair mode permits. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical wardrobe sheets are the combined identity-and-outfit authority for every represented human. Do not introduce any other narrative change.`,
+          `${visualPrompt}\n\n${wardrobeRecompose ? "CANONICAL WARDROBE SCENE RECOMPOSITION (policy V9): the preserved candidate and incompatible continuity pixels are deliberately excluded. Recreate the same immutable scene from its contract and the complete canonical identity and wardrobe authorities." : "FINAL TARGETED IMAGE EDIT (policy V9): edit the preserved candidate instead of redesigning it."} Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium wherever the selected repair mode permits. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical wardrobe sheets are the combined identity-and-outfit authority for every represented human. Do not introduce any other narrative change.`,
           pageRecovery,
         );
         try {
