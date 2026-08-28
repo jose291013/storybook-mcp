@@ -34,6 +34,7 @@ import {
 } from "../services/adjacentVisualContinuity.js";
 import { findBookFormat } from "../config/bookFormats.js";
 import { existingBookProductContract } from "../services/bookProductContract.js";
+import { previewGenerationStage } from "../services/previewGenerationStage.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -541,7 +542,14 @@ router.post("/preview", async (req, res) => {
         continuitySnapshot: nextContinuitySnapshot,
       }) || project;
     } else if (isActiveDurableRun(durableRun) || isActivePreviewJob(existingJob)) {
-      return res.json({ jobId: durableRun?.id || existingJob.id, resumed: true });
+      return res.json({
+        jobId: durableRun?.id || existingJob.id,
+        resumed: true,
+        generationStage: previewGenerationStage({
+          visualProofStatus: pendingVisualProof?.status,
+          visualProofAction,
+        }),
+      });
     } else {
       return res.status(409).json({
         error: "Preview generation was interrupted. Confirm the free technical retry before continuing.",
@@ -767,7 +775,13 @@ router.post("/preview", async (req, res) => {
     });
   }
   console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
-  res.json({ jobId: job.id });
+  res.json({
+    jobId: job.id,
+    generationStage: previewGenerationStage({
+      visualProofStatus: generationCheckpoint(project)?.visualProof?.status,
+      visualProofAction,
+    }),
+  });
 
   withOpenAICostContext({
     projectId,

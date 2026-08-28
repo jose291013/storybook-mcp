@@ -3592,7 +3592,14 @@ async function generatePreviewForProject(projectId, visualProofAction = "") {
     error.code = payload.code || "preview_start_failed";
     throw error;
   }
-  showGenerationPanel(visualProofAction === "approve" ? "interior" : visualProofAction === "regenerate" ? "regenerate" : "cover");
+  const generationStage = ["cover", "regenerate", "interior"].includes(payload.generationStage)
+    ? payload.generationStage
+    : visualProofAction === "approve"
+      ? "interior"
+      : visualProofAction === "regenerate"
+        ? "regenerate"
+        : "cover";
+  showGenerationPanel(generationStage);
   state.jobId = payload.jobId;
   const job = await pollJob(payload.jobId);
   if (job.status === "awaiting_visual_approval") {
