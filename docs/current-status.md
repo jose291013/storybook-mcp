@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main` after PR #289 is merged
-- Main checkpoint: PR #289 (V3 shared-authority final recomposition)
+- Current branch: `main`
+- Main checkpoint: PR #290 (V3 wardrobe generation pixel isolation)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: shared-authority final recomposition is merged through PR #289. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and page 11 must recompose Mathéo and Jérôme from their exact ordinary-outfit authorities.
+- Current focused checkpoint: wardrobe generation pixel isolation is merged in PR #290. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a` after Render is Live; accepted pages must be reused and page 11 must be generated from Mathéo and Jérôme's exact ordinary-outfit authorities without cover, adjacent-scene or rejected-candidate pixels.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -107,6 +107,23 @@ live policy-34 failure while reusing accepted pages. This adds no migration,
 environment variable, commerce/credit change, model-call allowance, private
 asset exposure, QA relaxation or series-canon mutation. Focused verification:
 94/94 tests. Complete repository verification: 820/820 tests passing.
+
+## Candidate brick: V3 wardrobe generation pixel isolation
+
+Every causal wardrobe recomposition now removes the approved cover as well as
+rejected and adjacent-scene pixels from generation. The cover can otherwise
+show an adventure outfit and silently contradict an `ordinary_outfit`
+authority even though the target ids are correct. Generation receives only
+the exact canonical wardrobe and identity authorities plus the locked textual
+style contract. Independent private QA still receives the approved cover and
+the complete evidence set, so style and acceptance thresholds are unchanged.
+
+Causal recovery version 5 recompiles older recovery documents before their
+resume is consumed. Retry policy 36 grants one bounded resume to policy-35
+projects while preserving all accepted pages. This introduces no migration,
+environment variable, commerce or credit change, model-call allowance,
+private-asset exposure, QA relaxation or series-canon mutation. Focused
+verification: 94/94 tests. Complete repository verification: 820/820 tests.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 

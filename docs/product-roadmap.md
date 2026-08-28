@@ -2161,6 +2161,24 @@ pages. This checkpoint changes no schema, environment variable, commerce or
 credit rule, model-call allowance, private-asset policy, acceptance threshold
 or series canon.
 
+## V3 wardrobe-generation pixel-isolation checkpoint
+
+Wardrobe-isolated generation is now literal for every causal recomposition,
+not only when one authority has failed on several pages. An approved cover is
+a valid style and QA reference, but its people may visibly wear adventure or
+protective clothing that contradicts the current scene's ordinary state.
+Therefore cover, adjacent-scene, rejected-candidate and all other scene-bearing
+pixels are excluded from the generator whenever wardrobe isolation is active.
+Only the exact canonical wardrobe and identity authorities are supplied; the
+released textual style contract controls the rendering family.
+
+The approved cover remains in the separate private QA evidence set, preserving
+the same style, identity and wardrobe thresholds. Causal recovery version 5
+recompiles prior documents, and retry policy 36 opens one bounded resume for
+policy-35 projects while reusing accepted pages. No schema, environment
+variable, commerce or credit rule, model-call allowance, private-asset policy,
+acceptance threshold or series canon changes.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

@@ -127,7 +127,7 @@ test("provider recovery removes all source pixels and changes the prompt", () =>
   assert.equal(causalRecoveryPrompt(once, page), once);
 });
 
-test("wardrobe recovery excludes adjacent and rejected pixels and deduplicates identity authority", () => {
+test("wardrobe recovery excludes cover, adjacent and rejected pixels while deduplicating identity authority", () => {
   const recovery = buildPreviewCausalRecovery({
     previewResult: { draftPages: [quarantinedPage(11, ["wardrobe_state_mismatch"], [{
       characterId: "character_hero",
@@ -146,9 +146,12 @@ test("wardrobe recovery excludes adjacent and rejected pixels and deduplicates i
     { kind: "identity", storageKey: "friend-photo", characterId: "character_friend" },
   ], page);
 
-  assert.deepEqual(references.map((reference) => reference.kind), ["continuity", "wardrobe", "wardrobe", "identity"]);
+  assert.deepEqual(references.map((reference) => reference.kind), ["wardrobe", "wardrobe", "identity"]);
+  assert.equal(references.some((reference) => reference.storageKey === "cover"), false);
   assert.equal(references.some((reference) => reference.storageKey === "adjacent"), false);
   assert.equal(references.filter((reference) => reference.storageKey === "hero-photo").length, 1);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /WARDROBE-ISOLATED RECOMPOSITION V2/);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /approved cover remains private QA evidence only/i);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /character_hero must wear only ordinary_outfit/);
 });
 

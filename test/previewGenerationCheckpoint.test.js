@@ -306,8 +306,8 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the shared-authority final-recompose recovery policy is version thirty-five", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 35);
+test("the wardrobe generation pixel-isolation recovery policy is version thirty-six", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 36);
 });
 
 test("a prepared causal recovery remains retryable independently of the legacy retry flag", () => {
