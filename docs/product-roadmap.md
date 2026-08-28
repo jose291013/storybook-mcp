@@ -2179,6 +2179,26 @@ policy-35 projects while reusing accepted pages. No schema, environment
 variable, commerce or credit rule, model-call allowance, private-asset policy,
 acceptance threshold or series canon changes.
 
+## V3 wardrobe semantic-recomposition checkpoint
+
+Wardrobe pixel isolation is necessary but is not sufficient for a scene with
+several named people: a generator can receive two correct outfit authorities
+and still exchange them. A strict V3 wardrobe recomposition must therefore bind
+each failed character to the exact numbered wardrobe reference in the final
+ordered image request. The directive includes the canonical character alias,
+outfit-state id, canonical clothing description and digest-bound semantic
+signature, and explicitly forbids using that reference for another person.
+
+For an ordinary outfit verified through broad garment attributes, the private
+authority is usable only when the exact matched reference carries both the
+canonical character alias and canonical clothing description. Missing
+person-to-reference semantics make the plan incomplete rather than triggering a
+guess from prose or pixels. The QA evidence set and acceptance thresholds remain
+unchanged. Retry policy 37 opens one bounded recovery for a policy-36 quarantine
+while preserving accepted pages. This checkpoint adds no schema, environment
+variable, commerce or credit rule, model-call allowance, private-asset
+exposure, QA relaxation or series-canon mutation.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

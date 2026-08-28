@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
-import { generateImage } from "./imageRunner.js";
+import { generateImage, prioritizeVisualReferences } from "./imageRunner.js";
 import { createOpenAIClient } from "./openaiClient.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
@@ -1290,17 +1290,41 @@ export function strictV3TargetedRepairPolicy(evidence = {}, options = {}) {
   };
 }
 
-export function strictV3WardrobeRepairDirective(repairPolicy = null) {
+function boundedPromptText(value, maximumLength = 700) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, maximumLength);
+}
+
+export function strictV3WardrobeRepairDirective(repairPolicy = null, referenceImages = []) {
+  const references = prioritizeVisualReferences(
+    Array.isArray(referenceImages) ? referenceImages : [],
+  );
   const targets = (Array.isArray(repairPolicy?.wardrobeTargets) ? repairPolicy.wardrobeTargets : [])
-    .map((entry) => ({
-      character_id: boundedDiagnosticId(entry?.characterId),
-      outfit_state_id: boundedDiagnosticId(entry?.outfitStateId),
-      wardrobe_authority_id: boundedDiagnosticId(entry?.wardrobeAuthorityId),
-      evidence_mode: boundedDiagnosticId(entry?.evidenceMode),
-    }))
+    .map((entry) => {
+      const characterId = boundedDiagnosticId(entry?.characterId);
+      const outfitStateId = boundedDiagnosticId(entry?.outfitStateId);
+      const wardrobeAuthorityId = boundedDiagnosticId(entry?.wardrobeAuthorityId);
+      const semanticSignature = boundedDiagnosticId(entry?.semanticSignature);
+      const authority = references.find((reference) => (
+        reference?.kind === "wardrobe"
+        && boundedDiagnosticId(reference?.characterId) === characterId
+        && boundedDiagnosticId(reference?.outfitStateId) === outfitStateId
+        && boundedDiagnosticId(reference?.authorityId) === wardrobeAuthorityId
+        && (!semanticSignature
+          || boundedDiagnosticId(reference?.semanticSignature) === semanticSignature)
+      ));
+      return {
+        character_id: characterId,
+        character_alias: boundedPromptText(authority?.characterName, 160),
+        wardrobe_reference_number: authority ? references.indexOf(authority) + 1 : null,
+        outfit_state_id: outfitStateId,
+        wardrobe_authority_id: wardrobeAuthorityId,
+        evidence_mode: boundedDiagnosticId(entry?.evidenceMode),
+        required_outfit_description: boundedPromptText(authority?.description),
+      };
+    })
     .filter((entry) => entry.character_id && entry.outfit_state_id);
   if (!targets.length) return "";
-  return `WARDROBE REPAIR TARGETS (canonical ids only): ${JSON.stringify(targets)}. Change the outfit only on these exact character ids. Copy the matching wardrobe authority when one is listed. Preserve every other person's outfit, identity, body, pose and position.`;
+  return `WARDROBE REPAIR TARGETS (immutable semantic bindings): ${JSON.stringify(targets)}. For every target, render exactly one complete instance of character_alias wearing required_outfit_description. wardrobe_reference_number is the exact numbered input image for that person and outfit; never use another numbered image for that target and never exchange clothes between targets. broad_garment_attributes means the visible top, bottom, dominant colors and footwear must match the description and authority; it never permits adventure, protective or universe equipment in an ordinary_outfit. exact_garment_design means copy the declared garment design. Change clothing only: preserve each identity, body and scene role, and preserve every non-target person's outfit, identity, pose and position.`;
 }
 
 export async function inspectStrictV3IllustrationEvidence({
@@ -1450,7 +1474,10 @@ export async function generateQualityCheckedImage({
       referencePolicyStage: visualReferencePolicyStage,
       referenceKinds: visualReferencePolicyKinds(generationOptions.referenceImages, visualReferencePolicyStage),
     });
-    const wardrobeRepairDirective = strictV3WardrobeRepairDirective(lastRepairPolicy);
+    const wardrobeRepairDirective = strictV3WardrobeRepairDirective(
+      lastRepairPolicy,
+      referenceImagesForAttempt,
+    );
     const repairNote = previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
