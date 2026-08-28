@@ -433,6 +433,12 @@ export function nextImageSafetyFallbackStage(referenceImages = [], stage = IMAGE
   return null;
 }
 
+export function normalizeImageSafetyFallbackStage(stage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES) {
+  return Object.values(IMAGE_SAFETY_FALLBACK_STAGES).includes(stage)
+    ? stage
+    : IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
+}
+
 export class IllustrationSafetyQuarantineError extends Error {
   constructor({ attemptCount = 0 } = {}) {
     super("The image provider could not produce a policy-safe candidate for this page. The page remains private and the rest of the book can continue.");
@@ -1384,6 +1390,8 @@ Return only JSON with all ten model-assessed keys (asset_integrity is determinis
 export async function generateQualityCheckedImage({
   prompt,
   safetyFallbackPrompt = "",
+  initialSafetyFallbackStage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES,
+  qualityReferenceImages = null,
   castPresent = [],
   pageLabel = "illustration",
   maximumAttempts = Math.max(1, Number.parseInt(process.env.IMAGE_GENERATION_ATTEMPTS || "2", 10) || 2),
@@ -1398,9 +1406,12 @@ export async function generateQualityCheckedImage({
   strictV3EvidenceRequired = false,
   ...generationOptions
 }) {
+  const evidenceReferenceImages = Array.isArray(qualityReferenceImages)
+    ? qualityReferenceImages
+    : (generationOptions.referenceImages || []);
   let previousIssues = [];
   let previousRejectionKind = "technical";
-  let safetyFallbackStage = IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
+  let safetyFallbackStage = normalizeImageSafetyFallbackStage(initialSafetyFallbackStage);
   let visualReferencePolicyStage = VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE;
   let attemptLimit = maximumAttempts;
   let lastCandidateImageUrl = "";
@@ -1453,7 +1464,7 @@ export async function generateQualityCheckedImage({
         pageLabel,
         sceneContract: sceneFidelityContract,
       });
-      const styleReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "continuity");
+      const styleReference = evidenceReferenceImages.find((reference) => reference?.kind === "continuity");
       const advisoryCheck = async (check) => {
         try { return await check; }
         catch (error) {
@@ -1462,8 +1473,8 @@ export async function generateQualityCheckedImage({
           return { approved: true, issues: [], warning: String(error?.message || error) };
         }
       };
-      const identityReferences = generationOptions.referenceImages?.filter((reference) => reference?.kind === "identity") || [];
-      const repairSourceReference = generationOptions.referenceImages?.find((reference) => reference?.kind === "repair_source") || null;
+      const identityReferences = evidenceReferenceImages.filter((reference) => reference?.kind === "identity");
+      const repairSourceReference = evidenceReferenceImages.find((reference) => reference?.kind === "repair_source") || null;
       const scopedRepairVerification = Array.isArray(qualityReviewScope) && qualityReviewScope.length > 0;
       const focusedCastVerification = Boolean(verifyExactCast)
         || (scopedRepairVerification && requiresFocusedCastVerification(qualityReviewScope));
@@ -1556,7 +1567,7 @@ export async function generateQualityCheckedImage({
           // but the separate private QA boundary must still compare the result
           // with every canonical identity/style reference. Generation input and
           // acceptance evidence are intentionally independent authorities.
-          referenceImages: generationOptions.referenceImages || [],
+          referenceImages: evidenceReferenceImages,
           pageLabel,
           technicalApproved: inspection.approved,
         })

@@ -1071,6 +1071,7 @@ test("provider safety fallback removes risky pixels monotonically and ends in pr
   assert.match(qualityGate, /if \(attempt === attemptLimit\) attemptLimit \+= 1/);
   assert.match(qualityGate, /IMAGE_SAFETY_FALLBACK_STAGES\.CONTINUITY_ONLY/);
   assert.match(qualityGate, /IMAGE_SAFETY_FALLBACK_STAGES\.CONTRACT_ONLY/);
-  assert.match(qualityGate, /referenceImages: generationOptions\.referenceImages \|\| \[\]/);
+  assert.match(qualityGate, /qualityReferenceImages = null/);
+  assert.match(qualityGate, /referenceImages: evidenceReferenceImages/);
   assert.match(app, /if \(error\?\.technical\) \{\s*await showGenerationFailure\(\)/);
 });

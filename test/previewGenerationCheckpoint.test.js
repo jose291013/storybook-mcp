@@ -306,8 +306,22 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the single-target wardrobe recovery policy is version thirty-one", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 31);
+test("the causal illustration recovery policy is version thirty-two", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 32);
+});
+
+test("a prepared causal recovery remains retryable independently of the legacy retry flag", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "causal-recovery-book",
+      retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
+      retryAvailable: false,
+      retryExhausted: true,
+      causalRecovery: { version: 1, available: true, signature: "new-input" },
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("a single-target wardrobe quarantine exhausted under V30 receives one focused resume", () => {

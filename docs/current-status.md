@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-27
+Last updated: 2026-08-28
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/cover-proof-resume-routing`
-- Main checkpoint: PR #283 (`ce5902f`, V29.1 single-target wardrobe repair)
+- Current branch: `codex/v3-causal-preview-recovery`
+- Main checkpoint: PR #284 (`871e611`, cover-proof resume routing)
 - Completed storefront brick: book format and pricing V1; 808/808 complete repository tests pass
-- Current focused checkpoint: cover-proof resume routing. A cover-only preview waiting for customer approval must reopen the cover proof on desktop, mobile and reload; it must never enter the completed reader or be labelled as an expired full preview.
+- Current focused checkpoint: V3 causal preview recovery. A free retry must compile a new bounded input strategy from the exact persisted blocker set; it must not replay identical image references and prompts.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -32,6 +32,25 @@ This changes no generation sequence, model call, database schema, environment
 variable, commerce rule, credit, private-asset policy or series canon. Focused
 resume and commerce regressions pass; complete repository verification passes
 809/809 tests.
+
+## Candidate brick: V3 causal preview recovery
+
+Retry policy 32 compiles a durable, non-sensitive recovery prescription from
+provider-safety gaps and strict V3 quarantines. Provider-safety pages restart
+from a calm contract-only re-expression; wardrobe pages exclude the rejected
+candidate and adjacent-scene pixels, retain only canonical style, identity and
+wardrobe authorities, and name the exact character/outfit targets. Accepted
+pages remain immutable and are reused.
+
+Generation references and private acceptance evidence are now independent:
+the generator may receive a safer reduced set, while QA still compares the
+candidate with every canonical identity, wardrobe and style authority. A
+blocker signature is attempted at most once; only a materially changed blocker
+set can expose another free retry, with a hard bound of three distinct causal
+strategies. No customer prose, names, photos or provider prompts are persisted
+in the recovery plan. This adds no migration, environment variable, commerce
+or credit change, series-canon mutation or QA relaxation. Focused verification:
+79/79 focused tests and the complete 814/814 repository tests pass.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 
