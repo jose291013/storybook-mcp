@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-wardrobe-authority-satisfiability`
-- Main checkpoint: PR #285 (`a48f89b`, V3 causal preview recovery)
+- Current branch: `main` after the documentation checkpoint is merged
+- Main checkpoint: PR #286 (`cd73e2f`, V3 wardrobe-authority satisfiability)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: V3 wardrobe-authority satisfiability. Generation and private QA must share one immutable per-character outfit binding and one explicit evidence rule before image spend.
+- Current focused checkpoint: V3 wardrobe-authority satisfiability is merged. The next live verification is one bounded free resume of a policy-32 wardrobe quarantine after Render is Live.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
