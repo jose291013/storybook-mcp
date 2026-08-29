@@ -2199,6 +2199,30 @@ while preserving accepted pages. This checkpoint adds no schema, environment
 variable, commerce or credit rule, model-call allowance, private-asset
 exposure, QA relaxation or series-canon mutation.
 
+## V3 recovery-policy rehydration checkpoint
+
+An older multi-person wardrobe quarantine may carry complete nominative
+diagnostics while its stored bounded strategy has deliberately emptied the
+executable target arrays. The final repair sweep must not prefer that stale
+shape and silently fall back to editing the rejected page. It now rehydrates a
+wardrobe-only repair policy only when the causal recovery and the durable
+`targetingComplete` diagnostics agree exactly on every character id,
+outfit-state id and wardrobe-authority id. Evidence modes and semantic
+signatures are copied from those diagnostics; nothing is inferred from prose,
+names or pixels.
+
+Two or more confirmed targets produce a canonical scene recomposition whose
+generation references exclude the rejected candidate, adjacent scenes and the
+approved cover. Independent QA retains the complete private evidence set. Any
+mixed defect domain, missing target, duplicate key or disagreement remains
+quarantined. Retry policy 38 grants one bounded recovery to policy-37
+checkpoints and reuses every accepted page. The structured worker log proves
+the policy source, target count, repair mode, reference kinds and whether scene
+pixels were excluded. This checkpoint adds no schema, environment variable,
+commerce or credit rule, model-call allowance, acceptance relaxation,
+private-asset exposure or series-canon mutation. Focused verification is 60/60
+tests and complete repository verification is 829/829 tests passing.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

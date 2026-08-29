@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-wardrobe-semantic-recomposition`
-- Main checkpoint: PR #290 (V3 wardrobe generation pixel isolation)
+- Current branch: `codex/v3-recovery-policy-rehydration`
+- Main checkpoint: PR #291 (V3 wardrobe semantic recomposition), after PR #292 (cover-proof resume routing)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: wardrobe generation pixel isolation is merged in PR #290. A candidate semantic-recomposition brick now binds each failed character to one exact numbered wardrobe reference, canonical character alias, outfit state, description and semantic signature. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a`; accepted pages must be reused and page 11 must give Mathéo and Jérôme their own ordinary outfits without exchanging their references.
+- Current focused checkpoint: a candidate recovery-policy rehydration brick converts complete legacy checkpoint diagnostics into the exact executable multi-person wardrobe policy used by the final repair sweep. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a`; accepted pages and the approved cover must be reused, while page 11 must be recomposed from Mathéo's and Jérôme's separate ordinary-outfit authorities without rejected, adjacent or cover pixels.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -149,6 +149,28 @@ commerce or credit change, model-call allowance, private-asset exposure, QA
 relaxation or series-canon mutation. Focused verification: 102/102 tests.
 Complete repository verification:
 824/824 tests passing.
+
+## Candidate brick: V3 recovery-policy rehydration
+
+The causal checkpoint already retained Mathéo's and Jérôme's exact failed
+wardrobe targets, but the final repair sweep preferred the older stored policy
+whose executable target arrays were empty. That bypassed canonical wardrobe
+recomposition and reintroduced the rejected candidate plus scene-continuity
+pixels. The sweep now rehydrates an executable wardrobe-only policy only when
+the causal recovery, complete durable diagnostics and all three canonical ids
+(character, outfit state and wardrobe authority) agree exactly.
+
+Several confirmed targets now force canonical scene recomposition from their
+matched wardrobe and identity authorities. Rejected, adjacent and cover pixels
+remain excluded from generation; complete private evidence remains available
+to QA. A mismatch, incomplete diagnostic or mixed defect domain still fails
+closed. The worker logs the policy source, target count, repair mode, reference
+kinds and scene-pixel exclusion without customer prose or photos. Retry policy
+38 grants the exhausted live checkpoint one bounded resume and preserves every
+accepted page. No migration, environment variable, commerce/credit rule,
+model-call allowance, acceptance threshold, private-asset policy or series
+canon changes. Focused verification: 60/60 tests. Complete repository
+verification: 829/829 tests passing.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 

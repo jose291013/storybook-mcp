@@ -153,6 +153,68 @@ export function previewCausalRecoveryPage(recovery, number) {
   return recovery.pages?.find((page) => page.pageNumber === Number(number)) || null;
 }
 
+function wardrobeTargetKey(target = {}) {
+  const characterId = text(target.characterId);
+  const outfitStateId = text(target.outfitStateId);
+  const wardrobeAuthorityId = text(target.wardrobeAuthorityId);
+  return characterId && outfitStateId && wardrobeAuthorityId
+    ? `${characterId}:${outfitStateId}:${wardrobeAuthorityId}`
+    : "";
+}
+
+/**
+ * Old exhausted checkpoints can contain complete nominative wardrobe evidence
+ * while their stored strategy intentionally has no executable target list.
+ * Rehydrate that list only when the causal recovery and the complete durable
+ * diagnostics agree exactly. No name, prose or image observation is inferred.
+ */
+export function rehydrateCausalWardrobeRepairPolicy(repairPolicy = null, pageRecovery = null) {
+  const policy = repairPolicy && typeof repairPolicy === "object" ? repairPolicy : null;
+  if (!policy || !pageRecovery?.strategies?.includes("wardrobe_reference_isolation")) return policy;
+  const issueCodes = unique(pageRecovery.issueCodes || []);
+  if (!issueCodes.length || issueCodes.some((code) => code !== "wardrobe_state_mismatch")) return policy;
+  if (policy?.wardrobeDiagnostics?.targetingComplete !== true) return policy;
+
+  const recoveryTargets = Array.isArray(pageRecovery.wardrobeTargets)
+    ? pageRecovery.wardrobeTargets
+    : [];
+  const diagnosticTargets = Array.isArray(policy?.wardrobeDiagnostics?.failedTargets)
+    ? policy.wardrobeDiagnostics.failedTargets
+    : [];
+  if (!recoveryTargets.length || !diagnosticTargets.length) return policy;
+
+  const diagnosticsByKey = new Map(diagnosticTargets
+    .map((target) => [wardrobeTargetKey(target), target])
+    .filter(([key]) => key));
+  const hydratedTargets = recoveryTargets.map((target) => {
+    const diagnostic = diagnosticsByKey.get(wardrobeTargetKey(target));
+    if (!diagnostic) return null;
+    return {
+      characterId: text(diagnostic.characterId).slice(0, 120),
+      outfitStateId: text(diagnostic.outfitStateId).slice(0, 120),
+      wardrobeAuthorityId: text(diagnostic.wardrobeAuthorityId).slice(0, 120),
+      ...(text(diagnostic.evidenceMode) ? { evidenceMode: text(diagnostic.evidenceMode).slice(0, 120) } : {}),
+      ...(text(diagnostic.semanticSignature) ? { semanticSignature: text(diagnostic.semanticSignature).slice(0, 160) } : {}),
+    };
+  });
+  if (hydratedTargets.some((target) => !target)) return policy;
+  const uniqueTargetKeys = new Set(hydratedTargets.map(wardrobeTargetKey));
+  if (uniqueTargetKeys.size !== recoveryTargets.length) return policy;
+
+  return {
+    ...policy,
+    automaticRepair: true,
+    targetCodes: unique([...(policy.targetCodes || []), "wardrobe_state_mismatch"]),
+    targetDomains: ["wardrobe"],
+    wardrobeTargets: hydratedTargets.sort((left, right) => wardrobeTargetKey(left).localeCompare(wardrobeTargetKey(right))),
+    causalRecoveryHydration: {
+      version: 1,
+      source: "checkpoint_diagnostics",
+      targetCount: hydratedTargets.length,
+    },
+  };
+}
+
 function referenceKey(reference = {}) {
   return text(reference.storageKey || reference.path || `${reference.kind}:${reference.authorityId || reference.characterId || reference.label}`);
 }
