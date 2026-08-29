@@ -306,8 +306,8 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the wardrobe semantic recomposition recovery policy is version thirty-seven", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 37);
+test("the checkpoint repair-policy rehydration is version thirty-eight", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 38);
 });
 
 test("a wardrobe quarantine exhausted under pixel-isolation policy receives one semantic recomposition resume", () => {

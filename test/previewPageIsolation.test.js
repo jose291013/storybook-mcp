@@ -36,6 +36,8 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /maximumAttempts: 1/);
   assert.match(preview, /kind: "repair_source"/);
   assert.match(preview, /causalRecoveryReferences\(\s*plannedRepairReferences,\s*pageRecovery,/);
+  assert.match(preview, /rehydrateCausalWardrobeRepairPolicy\(\s*storedRepairPolicy,\s*pageRecovery,/);
+  assert.match(preview, /strict V3 repair policy rehydrated/);
   assert.match(preview, /const repairPrompt = causalRecoveryPrompt\(/);
   assert.match(preview, /pageRecovery\?\.strategies\?\.includes\("wardrobe_reference_isolation"\)/);
   assert.match(preview, /sceneReferences: pageRecovery\s*\? qualityReferenceImages/);

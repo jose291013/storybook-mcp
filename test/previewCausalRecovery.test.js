@@ -6,7 +6,12 @@ import {
   causalRecoveryReferences,
   consumePreviewCausalRecovery,
   previewCausalRecoveryPage,
+  rehydrateCausalWardrobeRepairPolicy,
 } from "../src/services/previewCausalRecovery.js";
+import {
+  wardrobeRepairReferencePlan,
+  WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+} from "../src/services/wardrobeVisualAuthorityV1.js";
 
 function quarantinedPage(pageNumber, issueCodes, wardrobeTargets = []) {
   return {
@@ -97,6 +102,93 @@ test("causal recovery never promotes incomplete diagnostic wardrobe guesses", ()
   });
 
   assert.deepEqual(recovery.pages[0].wardrobeTargets, []);
+});
+
+test("causal recovery rehydrates an exact executable multi-person wardrobe policy from durable diagnostics", () => {
+  const repairPolicy = {
+    targetCodes: ["wardrobe_state_mismatch"],
+    targetDomains: [],
+    wardrobeTargets: [],
+    wardrobeDiagnostics: {
+      targetingComplete: true,
+      failedTargets: [
+        {
+          characterId: "character_hero",
+          outfitStateId: "ordinary_outfit",
+          wardrobeAuthorityId: "wardrobe_hero_ordinary",
+          evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+          semanticSignature: "hero-signature",
+        },
+        {
+          characterId: "character_jerome",
+          outfitStateId: "ordinary_outfit",
+          wardrobeAuthorityId: "wardrobe_jerome_ordinary",
+          evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+          semanticSignature: "jerome-signature",
+        },
+      ],
+    },
+  };
+  const pageRecovery = {
+    issueCodes: ["wardrobe_state_mismatch"],
+    strategies: ["canonical_scene_recompose", "wardrobe_reference_isolation"],
+    wardrobeTargets: [
+      { characterId: "character_hero", outfitStateId: "ordinary_outfit", wardrobeAuthorityId: "wardrobe_hero_ordinary" },
+      { characterId: "character_jerome", outfitStateId: "ordinary_outfit", wardrobeAuthorityId: "wardrobe_jerome_ordinary" },
+    ],
+  };
+  const hydrated = rehydrateCausalWardrobeRepairPolicy(repairPolicy, pageRecovery);
+  assert.deepEqual(hydrated.targetDomains, ["wardrobe"]);
+  assert.equal(hydrated.wardrobeTargets.length, 2);
+  assert.equal(hydrated.wardrobeTargets[0].semanticSignature, "hero-signature");
+  assert.deepEqual(hydrated.causalRecoveryHydration, {
+    version: 1,
+    source: "checkpoint_diagnostics",
+    targetCount: 2,
+  });
+
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: hydrated,
+    repairSource: { kind: "repair_source", storageKey: "rejected.png" },
+    sceneReferences: [
+      { kind: "continuity", storageKey: "cover.png" },
+      { kind: "wardrobe", characterId: "character_hero", characterName: "child alpha", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_hero_ordinary", evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES, semanticSignature: "hero-signature", description: "blue shirt and navy trousers", storageKey: "hero.png", identityBearing: true },
+      { kind: "wardrobe", characterId: "character_jerome", characterName: "adult beta", outfitStateId: "ordinary_outfit", authorityId: "wardrobe_jerome_ordinary", evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES, semanticSignature: "jerome-signature", description: "black shirt and beige trousers", storageKey: "jerome.png", identityBearing: true },
+    ],
+  });
+  assert.equal(plan.complete, true);
+  assert.equal(plan.mode, "canonical_scene_recompose");
+  assert.deepEqual(plan.references.map((reference) => reference.kind), ["continuity", "wardrobe", "wardrobe"]);
+  assert.equal(plan.references.some((reference) => reference.kind === "repair_source"), false);
+});
+
+test("repair-policy rehydration fails closed when diagnostics and recovery targets disagree", () => {
+  const repairPolicy = {
+    targetDomains: [],
+    wardrobeTargets: [],
+    wardrobeDiagnostics: {
+      targetingComplete: true,
+      failedTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_hero_ordinary",
+      }],
+    },
+  };
+  const pageRecovery = {
+    issueCodes: ["wardrobe_state_mismatch"],
+    strategies: ["wardrobe_reference_isolation"],
+    wardrobeTargets: [{
+      characterId: "character_jerome",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_jerome_ordinary",
+    }],
+  };
+  assert.equal(rehydrateCausalWardrobeRepairPolicy(repairPolicy, pageRecovery), repairPolicy);
+  assert.equal(rehydrateCausalWardrobeRepairPolicy(repairPolicy, {
+    ...pageRecovery,
+    issueCodes: ["wardrobe_state_mismatch", "identity_duplicate"],
+  }), repairPolicy);
 });
 
 test("an identical consumed blocker signature cannot expose another fake free retry", () => {

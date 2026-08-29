@@ -91,6 +91,7 @@ import {
   consumePreviewCausalRecovery,
   PREVIEW_CAUSAL_RECOVERY_VERSION,
   previewCausalRecoveryPage,
+  rehydrateCausalWardrobeRepairPolicy,
 } from "../services/previewCausalRecovery.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
@@ -2339,10 +2340,14 @@ router.post("/preview", async (req, res) => {
           qualityReferenceImages,
           pageRecovery,
         } = buildPageVisualRequest(page);
-        const repairPolicy = pendingPage.qualityRepairPolicy
+        const storedRepairPolicy = pendingPage.qualityRepairPolicy
           || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
             source: pendingPage.qualityKind || "scene",
           });
+        const repairPolicy = rehydrateCausalWardrobeRepairPolicy(
+          storedRepairPolicy,
+          pageRecovery,
+        );
         const repairSource = pendingPage.imageStorageKey ? {
             kind: "repair_source",
             storageKey: pendingPage.imageStorageKey,
@@ -2373,6 +2378,18 @@ router.post("/preview", async (req, res) => {
           plannedRepairReferences,
           pageRecovery,
         );
+        if (repairPolicy?.causalRecoveryHydration) {
+          console.info("[preview] strict V3 repair policy rehydrated", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            pageNumber: page.page_number,
+            source: repairPolicy.causalRecoveryHydration.source,
+            targetCount: repairPolicy.causalRecoveryHydration.targetCount,
+            repairMode: wardrobeReferencePlan?.mode || "unavailable",
+            excludedScenePixels: wardrobeReferencePlan?.mode === "canonical_scene_recompose",
+            referenceKinds: [...new Set(repairReferences.map((reference) => reference.kind).filter(Boolean))],
+          }));
+        }
         const wardrobeRepairDirective = strictV3WardrobeRepairDirective(
           repairPolicy,
           repairReferences,
