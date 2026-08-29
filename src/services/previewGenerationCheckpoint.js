@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const VERSION = 1;
-export const PREVIEW_RETRY_POLICY_VERSION = 38;
+export const PREVIEW_RETRY_POLICY_VERSION = 39;
 
 // Fingerprints created before V23 did not contain this optional authority.
 // Keep every compatibility projection explicit and append-only: future input

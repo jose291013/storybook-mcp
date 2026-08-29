@@ -306,8 +306,24 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the checkpoint repair-policy rehydration is version thirty-eight", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 38);
+test("the monotonic wardrobe repair transaction is retry policy thirty-nine", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 39);
+});
+
+test("a wardrobe quarantine exhausted before monotonic repair receives one bounded resume", () => {
+  const project = {
+    continuitySnapshot: mergeGenerationCheckpoint({}, {
+      fingerprint: "v38-monotonic-wardrobe-book",
+      retryPolicyVersion: 38,
+      retryAvailable: false,
+      retryExhausted: true,
+      retryConsumedAt: "2026-08-29T12:00:00.000Z",
+      failureReason: "narrative_v3_illustration_evidence_incomplete",
+      phase: "strict-quarantine:page:11",
+    }),
+  };
+  assert.equal(technicalPreviewRetryAvailable(project), true);
+  assert.equal(technicalPreviewRetryExhausted(project), false);
 });
 
 test("a wardrobe quarantine exhausted under pixel-isolation policy receives one semantic recomposition resume", () => {

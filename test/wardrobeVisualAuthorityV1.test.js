@@ -275,6 +275,38 @@ test("several failed outfits recompose the scene from canonical sheets without d
   assert.equal(plan.references.at(-1).characterId, "character_dog");
 });
 
+test("one residual monotonic target edits the improved candidate without cover continuity", () => {
+  const plan = wardrobeRepairReferencePlan({
+    repairPolicy: {
+      targetDomains: ["wardrobe"],
+      monotonicProgress: { eligibleForTargetedEdit: true, stage: 1 },
+      wardrobeTargets: [{
+        characterId: "character_hero",
+        outfitStateId: "ordinary_outfit",
+        wardrobeAuthorityId: "wardrobe_hero_ordinary",
+        evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+        semanticSignature: "hero-signature",
+      }],
+    },
+    repairSource: { kind: "repair_source", storageKey: "improved-candidate.png" },
+    sceneReferences: [{
+      kind: "wardrobe",
+      characterId: "character_hero",
+      characterName: "child alpha",
+      outfitStateId: "ordinary_outfit",
+      authorityId: "wardrobe_hero_ordinary",
+      evidenceMode: WARDROBE_EVIDENCE_MODE_BROAD_ATTRIBUTES,
+      semanticSignature: "hero-signature",
+      description: "blue shirt and navy trousers",
+      storageKey: "hero.png",
+      identityBearing: true,
+    }],
+  });
+  assert.equal(plan.complete, true);
+  assert.equal(plan.mode, "monotonic_targeted_edit");
+  assert.deepEqual(plan.references.map((reference) => reference.kind), ["repair_source", "wardrobe"]);
+});
+
 test("a repair target cannot bind a wardrobe authority with a different semantic signature", () => {
   const plan = wardrobeRepairReferencePlan({
     repairPolicy: {
