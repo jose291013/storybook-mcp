@@ -9,9 +9,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/v3-adaptive-quality-controller`
-- Main checkpoint: PR #294 (V3 monotonic wardrobe repair), after PR #293 (V3 recovery-policy rehydration)
+- Main checkpoint: PR #295 (adaptive V3 illustration quality controller), after PR #294 (V3 monotonic wardrobe repair)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: the adaptive V3 quality controller keeps identity, cast cardinality, physical medium, safety equipment, story action and exact adventure garments blocking, but accepts a complete character-specific `acceptable_ordinary_variation` for photo-source everyday clothing. Complete nominative wardrobe observations override a coarse aggregate wardrobe verdict; incomplete evidence remains private. Retry policy 40 gives previously exhausted quarantines one bounded resume. The next live verification is one free resume or one new book: harmless everyday color/cut differences must no longer quarantine a page, while a wrong ordinary/adventure mode must still fail.
+- Current focused checkpoint: PR #295 delivers the adaptive V3 quality controller. Identity, cast cardinality, physical medium, safety equipment, story action and exact adventure garments remain blocking, while complete character-specific `acceptable_ordinary_variation` evidence accepts harmless photo-source everyday-clothing differences. Complete nominative observations override a coarse aggregate wardrobe verdict; incomplete evidence remains private. Retry policy 40 gives previously exhausted quarantines one bounded resume. The next live verification is one free resume or one new book: harmless everyday color/cut differences must no longer quarantine a page, while a wrong ordinary/adventure mode must still fail.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
