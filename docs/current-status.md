@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-recovery-policy-rehydration`
-- Main checkpoint: PR #291 (V3 wardrobe semantic recomposition), after PR #292 (cover-proof resume routing)
+- Current branch: `codex/v3-monotonic-wardrobe-repair`
+- Main checkpoint: PR #293 (V3 recovery-policy rehydration), after PR #292 (cover-proof resume routing)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: a candidate recovery-policy rehydration brick converts complete legacy checkpoint diagnostics into the exact executable multi-person wardrobe policy used by the final repair sweep. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a`; accepted pages and the approved cover must be reused, while page 11 must be recomposed from Mathéo's and Jérôme's separate ordinary-outfit authorities without rejected, adjacent or cover pixels.
+- Current focused checkpoint: a candidate monotonic wardrobe-repair brick preserves a strictly improved private page candidate when exact QA reduces several named wardrobe failures to one. It then performs one automatic local edit using only that candidate and the remaining character's canonical wardrobe/identity authority. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a`: accepted pages and the approved cover must be reused; page 11 may first log a `2 -> 1` monotonic checkpoint and must then target Mathéo alone without asking the customer to intervene.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -171,6 +171,27 @@ accepted page. No migration, environment variable, commerce/credit rule,
 model-call allowance, acceptance threshold, private-asset policy or series
 canon changes. Focused verification: 60/60 tests. Complete repository
 verification: 829/829 tests passing.
+
+## Candidate brick: V3 monotonic wardrobe repair
+
+Strict QA may reject a new page while proving that it is objectively better
+than its private source—for example, Jérôme's outfit is now correct and only
+Mathéo remains wrong. The final repair transaction no longer discards that
+progress. It checkpoints the new candidate only when complete nominative
+evidence proves a non-empty strict subset from at least two wardrobe targets
+to exactly one, with no identity, cast, object, physical or style regression.
+
+The same job then runs one additional bounded edit against the improved
+candidate. Generation receives that candidate plus only the remaining
+character's canonical wardrobe/identity authority; cover and adjacent-scene
+pixels stay excluded. Camera, background, other people and already-correct
+outfits are locked by the edit directive. Full independent strict QA remains
+mandatory. A stagnant, substituted, incomplete or mixed-domain result stays
+private. Causal recovery version 6 and retry policy 39 give exhausted older
+checkpoints one bounded resume while preserving accepted pages. No migration,
+environment variable, commerce/credit rule, series-canon change, private-asset
+exposure or acceptance-threshold relaxation is introduced. Focused verification:
+65/65 tests passing. Complete repository verification: 834/834 tests passing.
 
 ## Candidate brick: book format, generation and TTC pricing V1
 

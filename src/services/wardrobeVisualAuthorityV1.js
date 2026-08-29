@@ -370,8 +370,10 @@ export function wardrobeRepairReferencePlan({
   });
   const continuity = references.find((reference) => reference?.kind === "continuity");
   const singleTarget = targets.length === 1;
+  const monotonicTargetedEdit = singleTarget
+    && repairPolicy?.monotonicProgress?.eligibleForTargetedEdit === true;
   if (!targetSemanticsComplete
-    || !continuity
+    || (!continuity && !monotonicTargetedEdit)
     || (singleTarget && !repairSource)) {
     return { version: 1, complete: false, mode: "quarantine", references: [] };
   }
@@ -388,10 +390,14 @@ export function wardrobeRepairReferencePlan({
   return {
     version: 1,
     complete: true,
-    mode: singleTarget ? "targeted_edit" : "canonical_scene_recompose",
+    mode: monotonicTargetedEdit
+      ? "monotonic_targeted_edit"
+      : singleTarget
+        ? "targeted_edit"
+        : "canonical_scene_recompose",
     references: uniqueReferences([
       ...(singleTarget && repairSource ? [repairSource] : []),
-      ...(continuity ? [continuity] : []),
+      ...(!monotonicTargetedEdit && continuity ? [continuity] : []),
       ...selectedWardrobes,
       ...uncoveredIdentities,
     ]),

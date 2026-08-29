@@ -93,6 +93,7 @@ import {
   previewCausalRecoveryPage,
   rehydrateCausalWardrobeRepairPolicy,
 } from "../services/previewCausalRecovery.js";
+import { monotonicWardrobeRepairProgress } from "../services/previewMonotonicRepair.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
@@ -2317,7 +2318,12 @@ router.post("/preview", async (req, res) => {
           Number(candidate.page_number) === Number(pendingPage.page_number)
         ));
         if (!page) continue;
-        const stepKey = `repair:page:${page.page_number}`;
+        const monotonicStage = Math.max(0, Number(
+          pendingPage.qualityRepairPolicy?.monotonicProgress?.stage || 0,
+        ));
+        const stepKey = monotonicStage > 0
+          ? `repair:page:${page.page_number}:monotonic:${monotonicStage}`
+          : `repair:page:${page.page_number}`;
         const { step: repairStep } = await generationRunStore.upsertStep(job.id, {
           stepKey,
           stepType: "page_repair",
@@ -2344,9 +2350,19 @@ router.post("/preview", async (req, res) => {
           || targetedVisualRepairPolicy(pendingPage.qualityIssues || [], {
             source: pendingPage.qualityKind || "scene",
           });
+        const monotonicTargetedEdit = storedRepairPolicy?.monotonicProgress?.eligibleForTargetedEdit === true;
+        const effectivePageRecovery = monotonicTargetedEdit
+          ? {
+              ...(pageRecovery || {}),
+              pageNumber: Number(page.page_number),
+              issueCodes: ["wardrobe_state_mismatch"],
+              wardrobeTargets: storedRepairPolicy.wardrobeTargets || [],
+              strategies: ["monotonic_targeted_edit", "wardrobe_reference_isolation"],
+            }
+          : pageRecovery;
         const repairPolicy = rehydrateCausalWardrobeRepairPolicy(
           storedRepairPolicy,
-          pageRecovery,
+          effectivePageRecovery,
         );
         const repairSource = pendingPage.imageStorageKey ? {
             kind: "repair_source",
@@ -2358,7 +2374,7 @@ router.post("/preview", async (req, res) => {
           // The plan needs the complete private authority set to prove that
           // every target is satisfiable. Its returned generation references
           // are filtered by causalRecoveryReferences immediately below.
-          sceneReferences: pageRecovery
+          sceneReferences: effectivePageRecovery
             ? qualityReferenceImages
             : sceneContinuity.referenceImages || [],
           repairSource,
@@ -2370,13 +2386,13 @@ router.post("/preview", async (req, res) => {
               ...(sceneContinuity.referenceImages || []),
             ];
         // A causal retry must remain causal through the final repair sweep.
-        // Reintroducing the rejected candidate or a contaminated continuity
-        // image here would silently undo the reference isolation already
-        // applied by buildPageVisualRequest(). Independent QA still receives
-        // the complete canonical evidence set below.
+        // A scene recomposition excludes every scene-bearing pixel. Only a
+        // strictly improved monotonic candidate may return as repair_source,
+        // and then solely for the one proven residual wardrobe target.
+        // Independent QA still receives the complete canonical evidence set.
         const repairReferences = causalRecoveryReferences(
           plannedRepairReferences,
-          pageRecovery,
+          effectivePageRecovery,
         );
         if (repairPolicy?.causalRecoveryHydration) {
           console.info("[preview] strict V3 repair policy rehydrated", JSON.stringify({
@@ -2394,11 +2410,12 @@ router.post("/preview", async (req, res) => {
           repairPolicy,
           repairReferences,
         );
-        const wardrobeRecompose = wardrobeReferencePlan?.mode === "canonical_scene_recompose"
-          || pageRecovery?.strategies?.includes("wardrobe_reference_isolation") === true;
+        const wardrobeRecompose = wardrobeReferencePlan?.mode !== "monotonic_targeted_edit"
+          && (wardrobeReferencePlan?.mode === "canonical_scene_recompose"
+            || effectivePageRecovery?.strategies?.includes("wardrobe_reference_isolation") === true);
         const repairPrompt = causalRecoveryPrompt(
           `${visualPrompt}\n\n${wardrobeRecompose ? "CANONICAL WARDROBE SCENE RECOMPOSITION (policy V10): the preserved candidate and all scene-bearing continuity pixels are deliberately excluded from generation. Recreate the same immutable scene from its textual style contract and the complete canonical identity and wardrobe authorities. The approved cover remains QA evidence only." : "FINAL TARGETED IMAGE EDIT (policy V10): edit the preserved candidate instead of redesigning it."} Correct only these classified defects: ${(pendingPage.qualityIssues || []).join("; ")}. ${wardrobeRepairDirective} Preserve the camera, composition, background, lighting, unaffected people, unaffected objects and approved cover medium wherever the selected repair mode permits. For a cast or identity correction, do not simply add another person or animal: preserve exactly one complete instance of every required named identity, replace an incorrect identity in place, and remove any accidental duplicate. For a wardrobe correction, change only the explicitly targeted person's clothing to that person's FIXED OUTFIT FOR CURRENT SCENE and preserve face, body, pose and every other subject. The canonical wardrobe sheets are the combined identity-and-outfit authority for every represented human. Do not introduce any other narrative change.`,
-          pageRecovery,
+          effectivePageRecovery,
         );
         try {
           if (wardrobeReferencePlan && !wardrobeReferencePlan.complete) {
@@ -2503,6 +2520,78 @@ router.post("/preview", async (req, res) => {
             ? error.issues
             : [`The image provider could not complete the targeted repair: ${String(error?.message || error)}`];
           const index = draftPages.findIndex((candidate) => Number(candidate.page_number) === Number(page.page_number));
+          const candidateRepairPolicy = qualityError ? error.repairPolicy : null;
+          const monotonicProgress = qualityError
+            ? monotonicWardrobeRepairProgress(repairPolicy, candidateRepairPolicy)
+            : null;
+          if (monotonicProgress && error.candidateImageUrl) {
+            const persistedImage = candidateAssetCache.get(error.candidateImageUrl)
+              || await persistPreviewAsset({ projectId, assetUrl: error.candidateImageUrl });
+            const candidatePreviewUrl = await composeBookPagePNG({
+              baseUrl,
+              imageUrl: error.candidateImageUrl,
+              outName: `draft-page${page.page_number}-monotonic-repair-layout-${job.id}-${monotonicStage + 1}`,
+              pageType: page.page_type,
+              pageNumber: page.page_number,
+              fontStyle: final_blueprint.typography?.id,
+              readerAge: final_blueprint.hero?.age,
+              bookFormat: final_blueprint.format,
+              dpi: 150,
+            });
+            const persistedPage = await persistPreviewAsset({ projectId, assetUrl: candidatePreviewUrl });
+            const nextRepairPolicy = {
+              ...monotonicProgress.policy,
+              outcome: "strict_monotonic_progress",
+              remainingIssueCodes: qualityError.issueCodes,
+              monotonicProgress: {
+                ...monotonicProgress.policy.monotonicProgress,
+                stage: monotonicStage + 1,
+              },
+            };
+            draftPages[index] = {
+              ...draftPages[index],
+              imageUrl: persistedImage.previewUrl,
+              imageStorageKey: persistedImage.storageKey,
+              previewUrl: persistedPage.previewUrl,
+              storageKey: persistedPage.storageKey,
+              qualityStatus: "repair_pending",
+              qualityIssues: issues,
+              qualityIssueCodes: qualityError.issueCodes,
+              qualityKind: qualityError.rejectionKind,
+              qualityRepairPolicy: nextRepairPolicy,
+              strictEvidenceVersion: 2,
+            };
+            await generationRunStore.updateStep(repairStep.id, {
+              status: "completed",
+              completedAt: new Date().toISOString(),
+              output: {
+                pageNumber: page.page_number,
+                storageKey: persistedImage.storageKey,
+                previewUrl: persistedPage.previewUrl,
+                monotonicProgress: nextRepairPolicy.monotonicProgress,
+              },
+            });
+            const progressResult = previewResultSnapshot();
+            updateJob(job.id, { result: progressResult });
+            await persistCheckpoint({ phase: `monotonic-repair:page:${page.page_number}` }, {
+              previewResult: progressResult,
+              finalBlueprint: final_blueprint,
+            });
+            console.info("[preview] strict V3 monotonic repair progress checkpointed", JSON.stringify({
+              jobId: job.id,
+              projectId,
+              pageNumber: page.page_number,
+              previousTargetCount: monotonicProgress.previousTargetCount,
+              remainingTargetCount: monotonicProgress.remainingTargetCount,
+              resolvedTargetCount: monotonicProgress.resolvedTargetCount,
+              nextMode: "monotonic_targeted_edit",
+            }));
+            // The array is intentionally extended once. The strict-subset rule
+            // only accepts N>=2 -> 1, so the next iteration cannot enqueue a
+            // third pass. It either passes full QA or remains quarantined.
+            pendingRepairPages.push(draftPages[index]);
+            continue;
+          }
           const unresolvedStatus = strictV3Rendering ? "strict_quarantined" : "review_required";
           const unresolvedOutcome = strictV3Rendering
             ? "strict_internal_quarantine"

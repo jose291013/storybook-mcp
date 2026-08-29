@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 5;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 6;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -51,12 +51,19 @@ function normalizedWardrobeTargets(page = {}) {
     .sort((left, right) => `${left.characterId}:${left.outfitStateId}`.localeCompare(`${right.characterId}:${right.outfitStateId}`));
 }
 
-function recoveryPage({ number, issueCodes = [], wardrobeTargets = [], providerSafety = false }) {
+function recoveryPage({
+  number,
+  issueCodes = [],
+  wardrobeTargets = [],
+  providerSafety = false,
+  monotonicTargetedEdit = false,
+}) {
   const codes = unique(issueCodes);
   const strategies = unique([
     providerSafety ? "provider_safe_reexpression" : "",
     codes.includes("wardrobe_state_mismatch") ? "wardrobe_reference_isolation" : "",
-    !providerSafety ? "canonical_scene_recompose" : "",
+    monotonicTargetedEdit ? "monotonic_targeted_edit" : "",
+    !providerSafety && !monotonicTargetedEdit ? "canonical_scene_recompose" : "",
   ]);
   return {
     pageNumber: number,
@@ -94,6 +101,7 @@ export function buildPreviewCausalRecovery({ previewResult = {}, priorRecovery =
       issueCodes: codes,
       wardrobeTargets: normalizedWardrobeTargets(page),
       providerSafety: existing?.strategies?.includes("provider_safe_reexpression") === true,
+      monotonicTargetedEdit: page?.qualityRepairPolicy?.monotonicProgress?.eligibleForTargetedEdit === true,
     }));
   }
 
@@ -231,7 +239,11 @@ export function causalRecoveryReferences(references = [], pageRecovery = null) {
   if (!pageRecovery) return source;
   if (pageRecovery.strategies?.includes("provider_safe_reexpression")) return [];
   if (!pageRecovery.strategies?.includes("wardrobe_reference_isolation")) return source;
-  const allowed = source.filter((reference) => ["wardrobe", "identity"].includes(reference?.kind));
+  const monotonicTargetedEdit = pageRecovery.strategies?.includes("monotonic_targeted_edit") === true;
+  const allowedKinds = monotonicTargetedEdit
+    ? ["repair_source", "wardrobe", "identity"]
+    : ["wardrobe", "identity"];
+  const allowed = source.filter((reference) => allowedKinds.includes(reference?.kind));
   const wardrobeStorageKeys = new Set(allowed
     .filter((reference) => reference?.kind === "wardrobe")
     .map(referenceKey)
@@ -260,7 +272,11 @@ Create a fresh, calm, non-threatening children's-book composition from the immut
     const targets = (pageRecovery.wardrobeTargets || [])
       .map((target) => `${target.characterId} must wear only ${target.outfitStateId}`)
       .join("; ");
-    directives.push(`CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V2:
+    const monotonicTargetedEdit = pageRecovery.strategies?.includes("monotonic_targeted_edit") === true;
+    directives.push(monotonicTargetedEdit
+      ? `CAUSAL RECOVERY MODE — MONOTONIC WARDROBE EDIT V1:
+The preserved private candidate is already strictly better than its source and has exactly one verified wardrobe defect left. Edit only that named character in place from the supplied canonical wardrobe authority. Preserve every other person, face, pose, object, camera choice, background, lighting and accepted outfit exactly. ${targets || "Use only the exact per-character outfit state declared below."} Never recompose the scene and never transfer one person's clothing to another person.`
+      : `CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V2:
 Recompose this one instant from the canonical scene contract. Cover, adjacent-scene and rejected-candidate pixels are deliberately excluded from generation because any of them may carry a conflicting outfit. The locked textual style contract controls the rendering family; the approved cover remains private QA evidence only. Treat each supplied wardrobe authority as exclusive for its named character in this scene. ${targets || "Use only the exact per-character outfit state declared below."} Never transfer one person's clothing to another person and never combine ordinary and adventure outfits.`);
     if (pageRecovery.strategies?.includes("wardrobe_authority_satisfiability_recovery")
       && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — SHARED WARDROBE AUTHORITY V1:")) {

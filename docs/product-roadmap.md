@@ -2223,6 +2223,30 @@ commerce or credit rule, model-call allowance, acceptance relaxation,
 private-asset exposure or series-canon mutation. Focused verification is 60/60
 tests and complete repository verification is 829/829 tests passing.
 
+## V3 monotonic wardrobe-repair checkpoint
+
+A private wardrobe recomposition can make strict, measurable progress without
+yet becoming deliverable. When exact `targetingComplete` evidence reduces two
+or more failed `(character, outfit state, wardrobe authority)` tuples to one
+tuple from the same set, and wardrobe is the only unresolved domain, the
+candidate becomes the new private repair base. This is a state transition, not
+an acceptance relaxation: the page remains `repair_pending` and unavailable to
+the customer.
+
+The worker immediately performs one final targeted edit in the same job. Its
+generation evidence is limited to the improved page plus the residual named
+character's exact wardrobe and identity authority. It receives no cover or
+adjacent-scene pixels and is instructed to preserve every accepted person,
+pose, object, camera, background and outfit. The monotonic rule cannot enqueue
+again because only an `N >= 2` to `1` transition qualifies. Full strict QA is
+still required; no progress, a changed target, incomplete evidence or any new
+domain fails closed. Causal recovery version 6 and retry policy 39 make the
+transaction resumable and grant older exhausted checkpoints one bounded
+attempt while reusing all accepted pages. No database migration, environment
+variable, commerce/credit change, series-canon mutation, private-asset
+exposure or QA threshold change is introduced. Focused verification is 65/65
+tests and complete repository verification is 834/834 tests passing.
+
 ## Whole-checkpoint mechanical refresh checkpoint
 
 Migration recovery for an object-only private checkpoint now recompiles hidden

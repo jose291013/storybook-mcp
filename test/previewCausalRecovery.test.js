@@ -247,6 +247,29 @@ test("wardrobe recovery excludes cover, adjacent and rejected pixels while dedup
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /character_hero must wear only ordinary_outfit/);
 });
 
+test("monotonic wardrobe recovery edits the improved candidate with only the residual authority", () => {
+  const page = quarantinedPage(11, ["wardrobe_state_mismatch"], [{
+    characterId: "character_hero",
+    outfitStateId: "ordinary_outfit",
+    wardrobeAuthorityId: "wardrobe_hero_ordinary",
+  }]);
+  page.qualityRepairPolicy.monotonicProgress = { eligibleForTargetedEdit: true, stage: 1 };
+  const recovery = buildPreviewCausalRecovery({ previewResult: { draftPages: [page] } });
+  const pageRecovery = recovery.pages[0];
+  assert.deepEqual(pageRecovery.strategies, ["monotonic_targeted_edit", "wardrobe_reference_isolation"]);
+
+  const references = causalRecoveryReferences([
+    { kind: "repair_source", storageKey: "improved-candidate" },
+    { kind: "continuity", storageKey: "cover" },
+    { kind: "adjacent_scene", storageKey: "previous" },
+    { kind: "wardrobe", storageKey: "hero-authority", characterId: "character_hero" },
+    { kind: "identity", storageKey: "hero-identity", characterId: "character_hero" },
+  ], pageRecovery);
+  assert.deepEqual(references.map((reference) => reference.kind), ["repair_source", "wardrobe", "identity"]);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", pageRecovery), /MONOTONIC WARDROBE EDIT V1/);
+  assert.doesNotMatch(causalRecoveryPrompt("BASE CONTRACT", pageRecovery), /rejected-candidate pixels are deliberately excluded/i);
+});
+
 test("repeated failures of one wardrobe authority escalate once to authority-level reconstruction", () => {
   const target = {
     characterId: "character_hero",
