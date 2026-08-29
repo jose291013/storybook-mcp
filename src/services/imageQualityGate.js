@@ -1050,7 +1050,9 @@ function strictV3Assessment(value, domain) {
 
 const STRICT_V3_WARDROBE_OBSERVATION_CODES = new Set([
   "matches_expected_state",
+  "acceptable_ordinary_variation",
   "categorically_different_state",
+  "wrong_outfit_mode",
   "occluded_or_ambiguous",
   "reference_insufficient",
 ]);
@@ -1101,37 +1103,50 @@ function normalizeStrictV3WardrobeDiagnostics(rawObservations = [], expectedTarg
     const status = boundedDiagnosticId(entry?.status).toLowerCase();
     const evidenceCode = boundedDiagnosticId(entry?.evidence_code).toLowerCase();
     const observationCode = boundedDiagnosticId(entry?.observation_code).toLowerCase();
+    const acceptableOrdinaryVariation = target.evidenceMode === "broad_garment_attributes"
+      && observationCode === "acceptable_ordinary_variation";
     const validPass = status === "pass"
       && evidenceCode === "verified"
-      && observationCode === "matches_expected_state";
+      && (observationCode === "matches_expected_state" || acceptableOrdinaryVariation);
     const validFail = status === "fail"
       && evidenceCode === "wardrobe_state_mismatch"
-      && observationCode === "categorically_different_state";
+      && ["categorically_different_state", "wrong_outfit_mode"].includes(observationCode);
     const validUncertain = status === "uncertain"
       && evidenceCode === "insufficient_evidence"
       && STRICT_V3_WARDROBE_OBSERVATION_CODES.has(observationCode)
-      && !["matches_expected_state", "categorically_different_state"].includes(observationCode);
+      && ![
+        "matches_expected_state",
+        "acceptable_ordinary_variation",
+        "categorically_different_state",
+        "wrong_outfit_mode",
+      ].includes(observationCode);
     return {
       ...target,
       status: validPass ? "pass" : validFail ? "fail" : "uncertain",
       evidenceCode: validPass ? "verified" : validFail ? "wardrobe_state_mismatch" : "insufficient_evidence",
       observationCode: validPass
-        ? "matches_expected_state"
+        ? observationCode
         : validFail
-          ? "categorically_different_state"
+          ? observationCode
           : validUncertain
             ? observationCode
             : "reference_insufficient",
     };
   });
   const failedTargets = observations.filter((entry) => entry.status === "fail");
+  const assessmentComplete = expected.length > 0
+    && expected.every((entry) => Boolean(entry.wardrobeAuthorityId))
+    && expected.every((entry) => STRICT_V3_WARDROBE_EVIDENCE_MODES.has(entry.evidenceMode))
+    && observations.every((entry) => entry.status !== "uncertain");
   return {
-    version: 1,
+    version: 2,
     observations,
     failedTargets,
-    targetingComplete: expected.length > 0
-      && expected.every((entry) => Boolean(entry.wardrobeAuthorityId))
-      && expected.every((entry) => STRICT_V3_WARDROBE_EVIDENCE_MODES.has(entry.evidenceMode))
+    acceptedOrdinaryVariations: observations.filter((entry) => (
+      entry.status === "pass" && entry.observationCode === "acceptable_ordinary_variation"
+    )),
+    assessmentComplete,
+    targetingComplete: assessmentComplete
       && failedTargets.length > 0
       && observations.every((entry) => entry.status !== "uncertain"),
   };
@@ -1154,19 +1169,31 @@ export function normalizeStrictV3IllustrationEvidence(rawDomains = {}, {
     rawWardrobeObservations,
     expectedWardrobeTargets,
   );
-  // A character-specific confirmed contradiction may tighten the aggregate
-  // wardrobe domain. Missing diagnostic detail never loosens or invents a
-  // final decision; the existing aggregate evidence remains authoritative.
+  // Complete character-specific evidence is more precise than the aggregate
+  // wardrobe verdict. It may therefore clear a coarse global false positive
+  // when every named target is verified (including a harmless variation of an
+  // ordinary outfit), while any exact or mode-level contradiction stays
+  // blocking. Missing diagnostic detail never loosens the aggregate verdict.
   if (wardrobeDiagnostics.failedTargets.length > 0) {
     domains.wardrobe = { status: "fail", evidence_code: "wardrobe_state_mismatch" };
+  } else if (wardrobeDiagnostics.assessmentComplete) {
+    domains.wardrobe = { status: "pass", evidence_code: "verified" };
   }
   const failedDomains = STRICT_V3_ILLUSTRATION_DOMAINS.filter((domain) => domains[domain].status === "fail");
   const uncertainDomains = STRICT_V3_ILLUSTRATION_DOMAINS.filter((domain) => domains[domain].status === "uncertain");
   return {
-    version: 2,
+    version: 3,
     approved: failedDomains.length === 0 && uncertainDomains.length === 0,
     domains,
     wardrobeDiagnostics,
+    adaptiveQuality: {
+      version: 1,
+      criticalDomainsRemainBlocking: true,
+      acceptedOrdinaryVariationCount: wardrobeDiagnostics.acceptedOrdinaryVariations.length,
+      wardrobeDecisionSource: wardrobeDiagnostics.assessmentComplete
+        ? "character_specific_evidence"
+        : "aggregate_evidence",
+    },
     failedDomains,
     uncertainDomains,
     issues: [
@@ -1273,7 +1300,7 @@ export function strictV3TargetedRepairPolicy(evidence = {}, options = {}) {
     };
   });
   return {
-    version: 7,
+    version: 8,
     strategy,
     classifications,
     targetCodes: strategy.targetCodes,
@@ -1400,10 +1427,10 @@ ${JSON.stringify(expectedWardrobeTargets.map((entry) => ({
     semantic_signature: entry.semanticSignature,
   })))}
 
-For wardrobe_observations, return every listed target exactly once and copy its character_id and outfit_state_id verbatim. A target with evidence_mode=broad_garment_attributes is an ordinary photo-source outfit: compare only clearly visible broad garment categories, dominant colors and footwear against its exact wardrobe reference and the contract description. Ignore logos, print, harmless simplification, small texture differences, fit, folds and hidden details. Fail it only when the person clearly wears a categorically different state, such as adventure/protective equipment instead of the declared ordinary clothing, or clearly different broad garment categories/colors. A target with evidence_mode=exact_garment_design uses a garment-only authority and must preserve its declared design, colors, material and footwear. Use pass/verified/matches_expected_state only when the applicable rule is clearly confirmed. Use fail/wardrobe_state_mismatch/categorically_different_state only for a confirmed categorical contradiction. Otherwise use uncertain/insufficient_evidence with observation_code occluded_or_ambiguous or reference_insufficient. Do not return names, descriptions or free prose.
+For wardrobe_observations, return every listed target exactly once and copy its character_id and outfit_state_id verbatim. A target with evidence_mode=broad_garment_attributes is an ordinary photo-source outfit, not an exact costume model sheet. If the person is visibly in plausible ordinary clothing appropriate to the scene, return pass/verified/acceptable_ordinary_variation even when colors, garment cut, footwear, logos, print, texture, fit or folds differ from the source photo. Return pass/verified/matches_expected_state when the broad source attributes clearly match. Return fail/wardrobe_state_mismatch/wrong_outfit_mode only when ordinary clothing has objectively become an adventure, protective, underwater, space, ceremonial or otherwise different outfit mode (or the reverse). Never fail broad ordinary clothing merely for different colors or ordinary garment categories. A target with evidence_mode=exact_garment_design uses a plot-relevant special garment authority and must preserve its declared design, colors, material and footwear; return fail/wardrobe_state_mismatch/categorically_different_state for a confirmed contradiction. Otherwise use uncertain/insufficient_evidence with observation_code occluded_or_ambiguous or reference_insufficient. Identity, cardinality, safety equipment, physical-medium and main-action rules are never relaxed by this wardrobe policy. Do not return names, descriptions or free prose.
 
 Return only JSON with all ten model-assessed keys (asset_integrity is deterministic and must be omitted):
-{"domains":{"identity_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|duplicated_required_identity|insufficient_evidence"},"forbidden_cast":{"status":"pass|fail|uncertain","evidence_code":"verified|forbidden_character_present|insufficient_evidence"},"wardrobe":{"status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence"},"equipment":{"status":"pass|fail|uncertain","evidence_code":"verified|equipment_state_mismatch|insufficient_evidence"},"physical_medium":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_physical_medium|insufficient_evidence"},"location_boundary":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_location_or_boundary|insufficient_evidence"},"main_action":{"status":"pass|fail|uncertain","evidence_code":"verified|main_action_mismatch|insufficient_evidence"},"object_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|object_state_mismatch|insufficient_evidence"},"landmarks":{"status":"pass|fail|uncertain","evidence_code":"verified|landmark_cardinality_mismatch|insufficient_evidence"},"style_continuity":{"status":"pass|fail|uncertain","evidence_code":"verified|style_continuity_mismatch|insufficient_evidence"}},"wardrobe_observations":[{"character_id":"exact target id","outfit_state_id":"exact target state id","status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence","observation_code":"matches_expected_state|categorically_different_state|occluded_or_ambiguous|reference_insufficient"}]}.` },
+{"domains":{"identity_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|duplicated_required_identity|insufficient_evidence"},"forbidden_cast":{"status":"pass|fail|uncertain","evidence_code":"verified|forbidden_character_present|insufficient_evidence"},"wardrobe":{"status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence"},"equipment":{"status":"pass|fail|uncertain","evidence_code":"verified|equipment_state_mismatch|insufficient_evidence"},"physical_medium":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_physical_medium|insufficient_evidence"},"location_boundary":{"status":"pass|fail|uncertain","evidence_code":"verified|wrong_location_or_boundary|insufficient_evidence"},"main_action":{"status":"pass|fail|uncertain","evidence_code":"verified|main_action_mismatch|insufficient_evidence"},"object_cardinality":{"status":"pass|fail|uncertain","evidence_code":"verified|object_state_mismatch|insufficient_evidence"},"landmarks":{"status":"pass|fail|uncertain","evidence_code":"verified|landmark_cardinality_mismatch|insufficient_evidence"},"style_continuity":{"status":"pass|fail|uncertain","evidence_code":"verified|style_continuity_mismatch|insufficient_evidence"}},"wardrobe_observations":[{"character_id":"exact target id","outfit_state_id":"exact target state id","status":"pass|fail|uncertain","evidence_code":"verified|wardrobe_state_mismatch|insufficient_evidence","observation_code":"matches_expected_state|acceptable_ordinary_variation|wrong_outfit_mode|categorically_different_state|occluded_or_ambiguous|reference_insufficient"}]}.` },
       { type: "input_image", image_url: `data:image/jpeg;base64,${candidate.toString("base64")}`, detail: "high" },
       ...evidence.map((entry) => ({
         type: "input_image",

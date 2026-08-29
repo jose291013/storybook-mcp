@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-monotonic-wardrobe-repair`
-- Main checkpoint: PR #293 (V3 recovery-policy rehydration), after PR #292 (cover-proof resume routing)
+- Current branch: `codex/v3-adaptive-quality-controller`
+- Main checkpoint: PR #294 (V3 monotonic wardrobe repair), after PR #293 (V3 recovery-policy rehydration)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: a candidate monotonic wardrobe-repair brick preserves a strictly improved private page candidate when exact QA reduces several named wardrobe failures to one. It then performs one automatic local edit using only that candidate and the remaining character's canonical wardrobe/identity authority. The next live verification is one bounded free resume of project `9390c4cd-0079-48fb-ab9a-f81f0fcb2c9a`: accepted pages and the approved cover must be reused; page 11 may first log a `2 -> 1` monotonic checkpoint and must then target Mathéo alone without asking the customer to intervene.
+- Current focused checkpoint: the adaptive V3 quality controller keeps identity, cast cardinality, physical medium, safety equipment, story action and exact adventure garments blocking, but accepts a complete character-specific `acceptable_ordinary_variation` for photo-source everyday clothing. Complete nominative wardrobe observations override a coarse aggregate wardrobe verdict; incomplete evidence remains private. Retry policy 40 gives previously exhausted quarantines one bounded resume. The next live verification is one free resume or one new book: harmless everyday color/cut differences must no longer quarantine a page, while a wrong ordinary/adventure mode must still fail.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
