@@ -1,6 +1,34 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-24
+Last updated: 2026-08-30
+
+## Narrative V3 adaptive illustration quality controller
+
+Strict Narrative V3 separates semantic correctness from secondary visual
+fidelity. Identity and named-cast cardinality, forbidden cast, physical medium,
+location boundaries, conditional safety equipment, the main action, persistent
+object cardinality, unique landmarks and exact adventure/protective garment
+designs remain blocking delivery invariants. The target of 95% autonomous
+delivery is an operational metric, never a hard-coded acceptance score and
+never a reason to weaken those invariants.
+
+Ordinary clothing derived from a customer's identity photo is now a category,
+not a pixel-copy costume. Character-specific high-detail evidence may classify
+an otherwise plausible ordinary outfit as
+`acceptable_ordinary_variation`; differences in color, cut, footwear, logos,
+print, texture, fit or folds then do not quarantine the page. Crossing the
+ordinary/adventure/protective/underwater/space outfit boundary remains a
+blocking `wrong_outfit_mode`. Exact generated garment authorities remain exact.
+Complete nominative observations are more precise than a coarse aggregate
+wardrobe verdict and may clear that verdict; incomplete observations never do.
+
+The controller does not repair a crowd one person at a time. A single confirmed
+local critical defect can use one local edit; several confirmed critical
+targets use one scene-level recomposition, while secondary ordinary-clothing
+variation is accepted. Retry policy 40 grants older wardrobe quarantines one
+bounded evaluation under this contract. No new model-call allowance, database
+migration, environment variable, commerce/credit change, private-asset
+exposure or series-canon mutation is introduced.
 
 ## Book format and digital pricing V1
 

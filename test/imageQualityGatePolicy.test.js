@@ -103,6 +103,96 @@ test("missing or malformed strict V3 domains quarantine the candidate instead of
   assert.match(evidence.issues.join(" "), /remains private/);
 });
 
+test("adaptive V3 accepts a complete harmless variation of ordinary clothing", () => {
+  const rawDomains = Object.fromEntries(STRICT_DOMAINS.map((domain) => [
+    domain,
+    {
+      status: domain === "wardrobe" ? "fail" : "pass",
+      evidence_code: domain === "wardrobe" ? "wardrobe_state_mismatch" : "verified",
+    },
+  ]));
+  const evidence = normalizeStrictV3IllustrationEvidence(rawDomains, {
+    expectedWardrobeTargets: [{
+      characterId: "character_hero",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_hero_ordinary",
+      evidenceMode: "broad_garment_attributes",
+      semanticSignature: "ordinary-signature",
+    }],
+    rawWardrobeObservations: [{
+      character_id: "character_hero",
+      outfit_state_id: "ordinary_outfit",
+      status: "pass",
+      evidence_code: "verified",
+      observation_code: "acceptable_ordinary_variation",
+    }],
+  });
+
+  assert.equal(evidence.approved, true);
+  assert.equal(evidence.domains.wardrobe.status, "pass");
+  assert.equal(evidence.wardrobeDiagnostics.assessmentComplete, true);
+  assert.equal(evidence.adaptiveQuality.acceptedOrdinaryVariationCount, 1);
+  assert.equal(evidence.adaptiveQuality.wardrobeDecisionSource, "character_specific_evidence");
+});
+
+test("adaptive V3 keeps a wrong ordinary-versus-adventure outfit mode blocking", () => {
+  const rawDomains = Object.fromEntries(STRICT_DOMAINS.map((domain) => [
+    domain,
+    { status: "pass", evidence_code: "verified" },
+  ]));
+  const evidence = normalizeStrictV3IllustrationEvidence(rawDomains, {
+    expectedWardrobeTargets: [{
+      characterId: "character_hero",
+      outfitStateId: "ordinary_outfit",
+      wardrobeAuthorityId: "wardrobe_hero_ordinary",
+      evidenceMode: "broad_garment_attributes",
+      semanticSignature: "ordinary-signature",
+    }],
+    rawWardrobeObservations: [{
+      character_id: "character_hero",
+      outfit_state_id: "ordinary_outfit",
+      status: "fail",
+      evidence_code: "wardrobe_state_mismatch",
+      observation_code: "wrong_outfit_mode",
+    }],
+  });
+
+  assert.equal(evidence.approved, false);
+  assert.deepEqual(evidence.failedDomains, ["wardrobe"]);
+  assert.equal(evidence.wardrobeDiagnostics.failedTargets[0].observationCode, "wrong_outfit_mode");
+});
+
+test("adaptive V3 never relaxes an exact special-garment authority", () => {
+  const rawDomains = Object.fromEntries(STRICT_DOMAINS.map((domain) => [
+    domain,
+    {
+      status: domain === "wardrobe" ? "fail" : "pass",
+      evidence_code: domain === "wardrobe" ? "wardrobe_state_mismatch" : "verified",
+    },
+  ]));
+  const evidence = normalizeStrictV3IllustrationEvidence(rawDomains, {
+    expectedWardrobeTargets: [{
+      characterId: "character_hero",
+      outfitStateId: "reef_explorer",
+      wardrobeAuthorityId: "wardrobe_hero_reef",
+      evidenceMode: "exact_garment_design",
+      semanticSignature: "reef-signature",
+    }],
+    rawWardrobeObservations: [{
+      character_id: "character_hero",
+      outfit_state_id: "reef_explorer",
+      status: "pass",
+      evidence_code: "verified",
+      observation_code: "acceptable_ordinary_variation",
+    }],
+  });
+
+  assert.equal(evidence.approved, false);
+  assert.deepEqual(evidence.failedDomains, ["wardrobe"]);
+  assert.equal(evidence.wardrobeDiagnostics.observations[0].status, "uncertain");
+  assert.equal(evidence.adaptiveQuality.wardrobeDecisionSource, "aggregate_evidence");
+});
+
 test("strict V3 retries a full candidate when several independent domains fail", () => {
   const evidence = normalizeStrictV3IllustrationEvidence(Object.fromEntries(STRICT_DOMAINS.map((domain) => [
     domain,
