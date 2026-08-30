@@ -18,7 +18,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: V3 appearance/equipment resolver
+## PR #298: V3 appearance/equipment resolver
 
 Clothing and functional equipment now have separate authorities. Outfit catalog
 entries and legacy resumed locks are normalized to garment-only descriptions;
