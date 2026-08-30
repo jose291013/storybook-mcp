@@ -6,6 +6,7 @@ import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { previewRequestFingerprint } from "../services/previewGenerationCheckpoint.js";
 import { projectStore } from "../services/projectStore.js";
 import {
+  canonicalNarrativeV2Safety,
   compileNarrativeV2Shadow,
   narrativeV2ShadowEnabled,
 } from "../services/narrativeV2Shadow.js";
@@ -500,6 +501,7 @@ router.post("/projects/:id/story-scenario/approve", async (req, res) => {
         version: 1,
         scenarioAuditDigest: approved.auditEvidence.digest,
         artifactDigest: narrativeBookSpecV3.validation.artifactDigest,
+        childSafety: canonicalNarrativeV2Safety(project).childSafety,
         approvedAt: approved.approvedAt,
       };
       console.info("[narrative-v3] approved immutable contract", JSON.stringify({

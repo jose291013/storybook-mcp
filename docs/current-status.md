@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-adaptive-quality-controller`
+- Current branch: `codex/v3-sealed-safety-conformance`
 - Main checkpoint: PR #295 (adaptive V3 illustration quality controller), after PR #294 (V3 monotonic wardrobe repair)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: PR #295 delivers the adaptive V3 quality controller. Identity, cast cardinality, physical medium, safety equipment, story action and exact adventure garments remain blocking, while complete character-specific `acceptable_ordinary_variation` evidence accepts harmless photo-source everyday-clothing differences. Complete nominative observations override a coarse aggregate wardrobe verdict; incomplete evidence remains private. Retry policy 40 gives previously exhausted quarantines one bounded resume. The next live verification is one free resume or one new book: harmless everyday color/cut differences must no longer quarantine a page, while a wrong ordinary/adventure mode must still fail.
+- Current focused checkpoint: sealed V3 child-safety authority and generated-manuscript conformance. Child-safety remains customer-facing only before scenario approval; approval now seals the structured safety profile into the digest-bound V3 approval. Generated prose is checked only for AI-introduced drift, receives one private page-local repair when needed, and otherwise fails technically without reclassifying the customer's approved intent as a disclosure. Legacy entry-point enforcement and modification safety remain unchanged. Retry policy 41 gives the currently interrupted preview one bounded resume. The next live verification is one approved protective-education story: no `child_safety_support_required` may occur after scenario approval, while genuinely unsafe generated drift must remain private.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`

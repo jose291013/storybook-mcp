@@ -57,6 +57,7 @@ import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
 import { manuscriptPreflightNormalizerAgent } from "../agents/manuscriptPreflightNormalizer.js";
 import { manuscriptSceneCastNormalizerAgent } from "../agents/manuscriptSceneCastNormalizer.js";
+import { manuscriptSafetyConformanceAgent } from "../agents/manuscriptSafetyConformance.js";
 import { sceneContractImagePrompt, storyScenePlannerAgent } from "../agents/storyScenePlanner.js";
 import { deterministicStoryPlanIssues, storyScenePlanAuditAgent } from "../agents/storyScenePlanAudit.js";
 import { storySceneTextRepairAgent } from "../agents/storySceneTextRepair.js";
@@ -144,6 +145,12 @@ import {
   MANUSCRIPT_SCENE_CAST_PREFLIGHT_VERSION,
   normalizeManuscriptSceneCast,
 } from "../services/manuscriptSceneCastPreflight.js";
+import {
+  approvedChildSafetyAuthority,
+  GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION,
+  normalizeGeneratedManuscriptSafety,
+  sealedChildSafetyDecision,
+} from "../services/generatedManuscriptSafetyConformance.js";
 
 const router = express.Router();
 const BLUEPRINT_CONTRACT_VERSION = 1;
@@ -473,21 +480,44 @@ router.post("/preview", async (req, res) => {
   if (!projectId) return res.status(400).json({ error: "A saved project is required" });
   let project = await projectStore.getForCustomer(projectId, identity);
   if (!project) return res.status(404).json({ error: "Project not found" });
-  const safety = await guardChildSafety({
-    text: [
-      childSafetyTextFromQuestionnaire(project.questionnaire),
-      JSON.stringify(project.continuitySnapshot?.storyScenario || {}),
-    ].join("\n"),
-    childAge: Number(project.questionnaire?.age),
-    locale: project.locale,
-    scope: "preview_request",
-  }, {
-    onTrace: (trace) => console.info("child-safety assessed", trace),
-    onError: (error) => console.warn("child-safety deterministic fallback", {
+  let sealedNarrativeV3Spec = null;
+  let safetyAuthority = null;
+  let safety;
+  const scenarioApprovedAtRequest = approvedStoryScenario(project);
+  if (projectUsesNarrativeV3(project) && scenarioApprovedAtRequest) {
+    try {
+      sealedNarrativeV3Spec = narrativeBookSpecForPreview(project, scenarioApprovedAtRequest);
+      safetyAuthority = approvedChildSafetyAuthority({ project, spec: sealedNarrativeV3Spec });
+      safety = sealedChildSafetyDecision(safetyAuthority);
+      console.info("[child-safety] reused approved narrative authority", JSON.stringify({
+        projectId,
+        category: safety.profile.category,
+        source: safetyAuthority.source,
+        artifactDigest: safetyAuthority.artifactDigest.slice(0, 12),
+      }));
+    } catch (error) {
+      return res.status(409).json({
+        error: String(error?.message || error),
+        code: error?.code || "approved_safety_contract_invalid",
+      });
+    }
+  } else {
+    safety = await guardChildSafety({
+      text: [
+        childSafetyTextFromQuestionnaire(project.questionnaire),
+        JSON.stringify(project.continuitySnapshot?.storyScenario || {}),
+      ].join("\n"),
+      childAge: Number(project.questionnaire?.age),
+      locale: project.locale,
       scope: "preview_request",
-      error: String(error?.message || error),
-    }),
-  });
+    }, {
+      onTrace: (trace) => console.info("child-safety assessed", trace),
+      onError: (error) => console.warn("child-safety deterministic fallback", {
+        scope: "preview_request",
+        error: String(error?.message || error),
+      }),
+    });
+  }
   if (safety.intervention) {
     return res.status(safety.intervention.status).json(childSafetyResponse(safety.intervention, project.locale));
   }
@@ -596,7 +626,10 @@ router.post("/preview", async (req, res) => {
   }
   let narrativeBookSpec = null;
   try {
-    narrativeBookSpec = narrativeBookSpecForPreview(project, approvedScenario);
+    narrativeBookSpec = sealedNarrativeV3Spec || narrativeBookSpecForPreview(project, approvedScenario);
+    if (projectUsesNarrativeV3(project) && narrativeBookSpec && !safetyAuthority) {
+      safetyAuthority = approvedChildSafetyAuthority({ project, spec: narrativeBookSpec });
+    }
   } catch (error) {
     return res.status(409).json({
       error: String(error?.message || error),
@@ -1578,6 +1611,74 @@ router.post("/preview", async (req, res) => {
             changedPageNumbers: normalizedManuscript.changedPageNumbers,
           }));
         }
+        if (Number(checkpoint.manuscriptSafetyConformanceVersion || 0)
+          < GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION) {
+          const normalizedSafety = await normalizeGeneratedManuscriptSafety({
+            spec: narrativeBookSpec,
+            authority: safetyAuthority,
+            pageTexts: Object.fromEntries(draftTextByPage),
+            storyScenePlan,
+            assess: async ({ text, pageNumber }) => guardChildSafety({
+              text,
+              childAge: Number(project.questionnaire?.age),
+              locale: project.locale,
+              scope: pageNumber
+                ? `generated_manuscript_conformance_page_${pageNumber}`
+                : "generated_manuscript_conformance",
+            }, {
+              onTrace: (trace) => console.info("child-safety assessed", trace),
+              onError: (error) => console.warn("child-safety deterministic fallback", {
+                scope: pageNumber
+                  ? `generated_manuscript_conformance_page_${pageNumber}`
+                  : "generated_manuscript_conformance",
+                error: String(error?.message || error),
+              }),
+            }),
+            repair: async ({ attempt, approvedSafety, pages, priorFailure }) => {
+              updateJob(job.id, { step: `draft:manuscript:safety-conformance:${attempt}` });
+              await updateGenerationRun(job.id, {
+                status: "running",
+                currentStep: `draft:manuscript:safety-conformance:${attempt}`,
+              });
+              return manuscriptSafetyConformanceAgent({
+                language: final_blueprint.language,
+                approvedSafety,
+                pages,
+                priorFailure,
+              }, {
+                backgroundExecution: providerBackgroundExecution,
+                backgroundStep: `manuscript:safety-conformance:v${GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION}:attempt:${attempt}`,
+              });
+            },
+          });
+          if (normalizedSafety.changed) {
+            draftTextByPage.clear();
+            Object.entries(normalizedSafety.pageTexts).forEach(([pageNumber, text]) => {
+              draftTextByPage.set(Number(pageNumber), String(text || ""));
+            });
+            storyScenePlan = bindStoryboardPageTexts(storyScenePlan, normalizedSafety.pageTexts);
+          }
+          await persistCheckpoint({
+            draftTexts: Object.fromEntries(draftTextByPage),
+            storyScenePlan,
+            manuscriptSafetyConformanceVersion: GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION,
+            manuscriptSafetyConformance: {
+              version: normalizedSafety.version,
+              status: normalizedSafety.status,
+              attemptCount: normalizedSafety.attemptCount,
+              changedPageNumbers: normalizedSafety.changedPageNumbers,
+              approvedCategory: safetyAuthority.childSafety.category,
+            },
+            phase: "manuscript:safety-conformance",
+          });
+          console.info("[preview] strict V3 manuscript safety conformance", JSON.stringify({
+            jobId: job.id,
+            projectId,
+            status: normalizedSafety.status,
+            attemptCount: normalizedSafety.attemptCount,
+            changedPageNumbers: normalizedSafety.changedPageNumbers,
+          }));
+        }
       }
       if (narrativeBookSpec
         && Number(storyScenePlan?.storyboardFirstVersion || 0) >= STORYBOARD_FIRST_CONTRACT_VERSION) {
@@ -1614,22 +1715,27 @@ router.post("/preview", async (req, res) => {
         [...draftTextByPage].map(([page_number, text]) => ({ page_number, text })),
         final_blueprint.language,
       );
-      const manuscriptSafety = await guardChildSafety({
-        text: Object.values(storyScenePlan.pageTexts || {}).join("\n"),
-        childAge: Number(project.questionnaire?.age),
-        locale: project.locale,
-        scope: "generated_manuscript",
-      }, {
-        onTrace: (trace) => console.info("child-safety assessed", trace),
-        onError: (error) => console.warn("child-safety deterministic fallback", {
+      // Strict Narrative V3 conforms generated prose privately against the
+      // scenario-level authority above. Legacy projects retain their original
+      // post-generation guard until they leave the legacy rendering path.
+      if (!strictV3Rendering) {
+        const manuscriptSafety = await guardChildSafety({
+          text: Object.values(storyScenePlan.pageTexts || {}).join("\n"),
+          childAge: Number(project.questionnaire?.age),
+          locale: project.locale,
           scope: "generated_manuscript",
-          error: String(error?.message || error),
-        }),
-      });
-      if (manuscriptSafety.intervention) {
-        const safetyError = new Error("Generated manuscript did not pass child-safety review");
-        safetyError.code = manuscriptSafety.intervention.code;
-        throw safetyError;
+        }, {
+          onTrace: (trace) => console.info("child-safety assessed", trace),
+          onError: (error) => console.warn("child-safety deterministic fallback", {
+            scope: "generated_manuscript",
+            error: String(error?.message || error),
+          }),
+        });
+        if (manuscriptSafety.intervention) {
+          const safetyError = new Error("Generated manuscript did not pass child-safety review");
+          safetyError.code = manuscriptSafety.intervention.code;
+          throw safetyError;
+        }
       }
       for (const contract of storyScenePlan.sceneContracts || []) {
         const imagePage = final_blueprint.pages.find((page) => Number(page.page_number) === Number(contract.image_page_number));

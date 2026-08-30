@@ -2294,6 +2294,31 @@ for newly compiled mechanics. Object-render recovery version 3 opens one free
 attempt for checkpoints exhausted under version 2. This adds no environment
 variable, customer credit, series-canon change or creator-visible rewrite.
 
+## Sealed V3 child-safety authority and generated-output conformance
+
+Child-safety intervention is a pre-scenario product decision. The questionnaire,
+intention and scenario request remain subject to the existing deterministic and
+semantic safety gate. When the customer approves a valid strict V3 scenario,
+the resulting structured child-safety profile is sealed into the immutable,
+artifact-digest-bound approval. Later manuscript production must reuse that
+authority and cannot reinterpret AI-written prose as a new customer disclosure.
+
+Generated text still receives a private technical safety-conformance pass. If
+the model introduces unsafe drift, the worker localizes the affected pages and
+may rewrite them once while preserving the approved cast, named mentions,
+chronology, objects, physical-world rules, wardrobe, message and age-bound word
+range. The repaired whole manuscript and the affected pages must pass again.
+Unresolved drift fails as a technical generation error; it never exposes
+`child_safety_support_required` after scenario approval. Legacy projects may
+reuse their previously persisted questionnaire safety profile, but it is bound
+to the approved V3 artifact before use. Modification entry points and legacy
+pre-scenario enforcement remain unchanged. Retry policy 41 grants one bounded
+resume to previews interrupted by the previous post-scenario classifier.
+
+This checkpoint adds no database migration, environment variable, commerce or
+credit change, customer-data exposure, model-call allowance outside the single
+exceptional repair, or series-canon mutation.
+
 ## Resume prompt for a new Codex task
 
 > Continue the Storybook MCP project from `docs/product-roadmap.md` and `AGENTS.md`. Inspect Git status and open PRs first. Preserve `data/jobs.json`. Continue the first incomplete delivery phase, run tests, then publish a focused draft PR.
