@@ -2,6 +2,30 @@
 
 Last updated: 2026-08-30
 
+## Provider-safe minimal illustration projection
+
+A provider-safety rejection on one otherwise valid illustration receives one
+distinct bounded recovery, never a whole-book restart. Recovery version 7 and
+retry policy 43 compile an allowlisted, pseudonymous image request from the
+already approved scene authority. The request retains the same location,
+physical medium, exact visible cast count, main action, outfit states,
+functional equipment and required object quantities, but excludes reader
+prose, customer names, photo fingerprints, causal history, forbidden-list
+wording, rejected pixels and every visual reference.
+
+This minimal request is a generation transport only. The complete immutable
+scene contract and the private canonical identity, wardrobe and style evidence
+remain the independent acceptance authority after generation; no rejected or
+semantically altered image can be delivered. The image runner also discards
+accidentally supplied references and fingerprints whenever minimal mode is
+active. The recovery signature changes once for projects exhausted under the
+previous provider-safe wording, then becomes exhausted normally if the
+provider still refuses the same page.
+
+The brick adds no model-call allowance, migration, environment variable,
+credit, commerce, expiry, private-asset exposure, QA relaxation or series-canon
+mutation.
+
 ## Resilient per-page preview repair queue
 
 An illustration defect is a page-level pending state, not a reason to restart

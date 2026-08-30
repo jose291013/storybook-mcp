@@ -30,6 +30,10 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /strict V3 quarantine recovery queued/);
   assert.match(preview, /storedCausalRecovery\?\.version === PREVIEW_CAUSAL_RECOVERY_VERSION/);
   assert.match(preview, /priorRecovery: storedCausalRecovery/);
+  assert.match(preview, /buildProviderSafeImageProjection/);
+  assert.match(preview, /provider_safe_minimal_projection/);
+  assert.match(preview, /providerSafetyMinimal: true/);
+  assert.match(preview, /qualityReferenceImages/);
   assert.match(preview, /strictRecoveryPageNumbers\.has\(Number\(page\.page_number\)\) \? 3 : 2/);
   assert.match(preview, /upsertPreviewDraftPage\(draftPages/);
   assert.match(preview, /issueCodes: strictPageIssueCodes\(page\)/);

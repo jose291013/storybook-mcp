@@ -40,7 +40,7 @@ test("causal recovery compiles distinct page strategies without customer prose",
 
   assert.equal(recovery.available, true);
   assert.deepEqual(recovery.pages.map((page) => page.pageNumber), [8, 11]);
-  assert.deepEqual(previewCausalRecoveryPage(recovery, 8).strategies, ["provider_safe_reexpression"]);
+  assert.deepEqual(previewCausalRecoveryPage(recovery, 8).strategies, ["provider_safe_minimal_projection"]);
   assert.deepEqual(previewCausalRecoveryPage(recovery, 11).strategies, [
     "canonical_scene_recompose",
     "wardrobe_reference_isolation",
@@ -204,7 +204,7 @@ test("an identical consumed blocker signature cannot expose another fake free re
   assert.equal(repeated.repeatBlocked, true);
 });
 
-test("provider recovery removes all source pixels and changes the prompt", () => {
+test("provider recovery removes all source pixels and selects the minimal projection", () => {
   const recovery = buildPreviewCausalRecovery({
     previewResult: { deferredIllustrationPages: [{ pageNumber: 8 }] },
   });
@@ -213,7 +213,7 @@ test("provider recovery removes all source pixels and changes the prompt", () =>
     { kind: "continuity", storageKey: "cover" },
     { kind: "identity", storageKey: "child-photo" },
   ], page), []);
-  assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /PROVIDER-SAFE RE-EXPRESSION V1/);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /PROVIDER-SAFE MINIMAL PROJECTION V1/);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /BASE CONTRACT/);
   const once = causalRecoveryPrompt("BASE CONTRACT", page);
   assert.equal(causalRecoveryPrompt(once, page), once);

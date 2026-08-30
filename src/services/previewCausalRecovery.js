@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 6;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 7;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -60,7 +60,7 @@ function recoveryPage({
 }) {
   const codes = unique(issueCodes);
   const strategies = unique([
-    providerSafety ? "provider_safe_reexpression" : "",
+    providerSafety ? "provider_safe_minimal_projection" : "",
     codes.includes("wardrobe_state_mismatch") ? "wardrobe_reference_isolation" : "",
     monotonicTargetedEdit ? "monotonic_targeted_edit" : "",
     !providerSafety && !monotonicTargetedEdit ? "canonical_scene_recompose" : "",
@@ -100,7 +100,10 @@ export function buildPreviewCausalRecovery({ previewResult = {}, priorRecovery =
       number,
       issueCodes: codes,
       wardrobeTargets: normalizedWardrobeTargets(page),
-      providerSafety: existing?.strategies?.includes("provider_safe_reexpression") === true,
+      providerSafety: existing?.strategies?.some((strategy) => [
+        "provider_safe_reexpression",
+        "provider_safe_minimal_projection",
+      ].includes(strategy)) === true,
       monotonicTargetedEdit: page?.qualityRepairPolicy?.monotonicProgress?.eligibleForTargetedEdit === true,
     }));
   }
@@ -237,7 +240,10 @@ function referenceKey(reference = {}) {
 export function causalRecoveryReferences(references = [], pageRecovery = null) {
   const source = Array.isArray(references) ? references : [];
   if (!pageRecovery) return source;
-  if (pageRecovery.strategies?.includes("provider_safe_reexpression")) return [];
+  if (pageRecovery.strategies?.some((strategy) => [
+    "provider_safe_reexpression",
+    "provider_safe_minimal_projection",
+  ].includes(strategy))) return [];
   if (!pageRecovery.strategies?.includes("wardrobe_reference_isolation")) return source;
   const monotonicTargetedEdit = pageRecovery.strategies?.includes("monotonic_targeted_edit") === true;
   const allowedKinds = monotonicTargetedEdit
@@ -266,6 +272,10 @@ export function causalRecoveryPrompt(basePrompt, pageRecovery = null) {
     && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — PROVIDER-SAFE RE-EXPRESSION V1:")) {
     directives.push(`CAUSAL RECOVERY MODE — PROVIDER-SAFE RE-EXPRESSION V1:
 Create a fresh, calm, non-threatening children's-book composition from the immutable physical snapshot below. Use no supplied person or scene pixels. Preserve the exact cast cardinality, location, wardrobe, object states and central action, but express emotion through posture, gaze, spacing and environment. Avoid alarming close-ups, injury, restraint, peril, weapons, exposed bodies, medical detail, intense physical contact or imitating a real photograph. Every depicted person is an original illustrated character.`);
+  }
+  if (pageRecovery.strategies?.includes("provider_safe_minimal_projection")
+    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — PROVIDER-SAFE MINIMAL PROJECTION V1:")) {
+    directives.push("CAUSAL RECOVERY MODE — PROVIDER-SAFE MINIMAL PROJECTION V1: use only the allowlisted pseudonymous setting, exact cast, wardrobe, equipment, objects and main action supplied by the minimal projection. Reader prose, customer names, photo fingerprints, causal history and forbidden-list wording are deliberately absent. Do not invent any omitted event.");
   }
   if (pageRecovery.strategies?.includes("wardrobe_reference_isolation")
     && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V2:")) {

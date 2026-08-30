@@ -41,13 +41,19 @@ export function buildFinalPrompt({
   sceneContract = "",
   renderingMode = "illustrated_faithful",
   likenessGoal = "strong",
+  providerSafetyMinimal = false,
 }) {
   const renderingRule = renderingMode === "photorealistic"
     ? "Photorealistic fairy-tale photography: preserve natural facial geometry, true skin texture and realistic human proportions. Never turn a person into a cartoon, doll, figurine or CGI character; never enlarge the eyes."
     : renderingMode === "cartoon"
       ? "Clearly stylized children's-book art: preserve the strongest identity markers, face shape, hairstyle, colors and distinctive visible details while applying the selected cartoon medium honestly."
       : "Faithful children's-book illustration: change the artistic medium, but preserve natural facial proportions, face geometry, eye shape and spacing, nose, mouth, ears, hairstyle and every distinctive visible identity marker.";
-  const baseRules = [
+  const baseRules = providerSafetyMinimal ? [
+    "No text, captions, watermarks, logos, brands or copyrighted character lookalikes.",
+    "Create one calm, age-appropriate illustrated instant. Every figure wears the declared outfit, remains complete and keeps respectful personal space.",
+    "Obey the exact cast count, setting, physical medium, action, outfit, equipment and object quantities in the minimal scene contract.",
+    "Use a gentle, reassuring storybook presentation with a clear medium or wide composition and no additional dramatic event.",
+  ] : [
     "No text, captions, watermarks, logos, branded characters or copyrighted character lookalikes.",
     "Print-ready, clean square composition for a premium children's book.",
     renderingRule,
@@ -59,13 +65,15 @@ export function buildFinalPrompt({
     "Reference photos may contain printed words, labels or commercial logos on clothing. When the current scene explicitly requires the ordinary source outfit, remove those marks while preserving its broad garment type and color. When another scene outfit is active, do not preserve or copy the source-photo clothing.",
   ];
 
-  const combinedFingerprints = sanitizeBrandSensitiveText(characterFingerprints.length
-    ? characterFingerprints.filter(Boolean).join("\n")
-    : characterFingerprint);
+  const combinedFingerprints = providerSafetyMinimal
+    ? ""
+    : sanitizeBrandSensitiveText(characterFingerprints.length
+      ? characterFingerprints.filter(Boolean).join("\n")
+      : characterFingerprint);
   const canon = combinedFingerprints?.trim()
     ? `\n\nLOCKED CHARACTER CANON (higher priority than any conflicting scene wording):\n${combinedFingerprints.trim()}`
     : "";
-  const orderedReferences = prioritizeVisualReferences(referenceImages);
+  const orderedReferences = providerSafetyMinimal ? [] : prioritizeVisualReferences(referenceImages);
   const hasPrimaryStyleAnchor = orderedReferences.some((item) => item?.kind === "continuity");
   const hasRepairSource = orderedReferences.some((item) => item?.kind === "repair_source");
   const wardrobeReferenceLabel = (item) => item?.evidenceMode === "broad_garment_attributes"
@@ -147,13 +155,16 @@ export async function generateImage({
   size = "1024x1024",
   quality = process.env.IMAGE_QUALITY || "low",
   model = process.env.IMAGE_MODEL || "gpt-image-2",
+  providerSafetyMinimal = false,
 }) {
   if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
   if (!prompt || typeof prompt !== "string") throw new Error("Missing or invalid prompt");
 
-  const usableReferences = prioritizeVisualReferences(referenceImages)
-    .filter((item) => item?.path || item?.storageKey || Buffer.isBuffer(item?.buffer))
-    .slice(0, 8);
+  const usableReferences = providerSafetyMinimal
+    ? []
+    : prioritizeVisualReferences(referenceImages)
+      .filter((item) => item?.path || item?.storageKey || Buffer.isBuffer(item?.buffer))
+      .slice(0, 8);
   const finalPrompt = buildFinalPrompt({
     prompt,
     characterFingerprint,
@@ -162,6 +173,7 @@ export async function generateImage({
     sceneContract,
     renderingMode,
     likenessGoal,
+    providerSafetyMinimal,
   });
 
   let res;
