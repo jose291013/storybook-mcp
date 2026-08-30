@@ -32,8 +32,14 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /priorRecovery: storedCausalRecovery/);
   assert.match(preview, /buildProviderSafeImageProjection/);
   assert.match(preview, /provider_safe_minimal_projection/);
+  assert.match(preview, /provider_safe_two_pass_finishing/);
   assert.match(preview, /providerSafetyMinimal: true/);
   assert.match(preview, /qualityReferenceImages/);
+  assert.match(qualityGate, /providerSafetyTwoPass \? Math\.min\(2, maximumAttempts\)/);
+  assert.match(qualityGate, /phase: "scaffold-generated"/);
+  assert.match(qualityGate, /phase: "finishing-started"/);
+  assert.match(qualityGate, /providerSafeFinishingPrompt\(prompt, previousIssueCodes\)/);
+  assert.match(preview, /providerSafeTwoPassPage\s*\? "strict_quarantined"/);
   assert.match(preview, /strictRecoveryPageNumbers\.has\(Number\(page\.page_number\)\) \? 3 : 2/);
   assert.match(preview, /upsertPreviewDraftPage\(draftPages/);
   assert.match(preview, /issueCodes: strictPageIssueCodes\(page\)/);

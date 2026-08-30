@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import {
+  providerSafeFinishingPrompt,
+  providerSafePositiveCorrectionPrompt,
+} from "../src/services/imageQualityGate.js";
+import {
   buildProviderSafeImageProjection,
   PROVIDER_SAFE_IMAGE_PROJECTION_VERSION,
 } from "../src/services/providerSafeImageProjection.js";
@@ -101,4 +105,44 @@ test("minimal image mode ignores accidental fingerprints and reference pixels", 
   assert.doesNotMatch(finalPrompt, /LOCKED CHARACTER CANON|REFERENCE IMAGE CONTRACT/);
   assert.doesNotMatch(finalPrompt, /Identity fidelity target|Reference photos may contain/i);
   assert.doesNotMatch(finalPrompt, /injury|restraint|weapon|medical detail/i);
+});
+
+test("provider-safe finishing uses private pixels with generic positive-only instructions", () => {
+  const projection = buildProviderSafeImageProjection({ sceneFidelityContract: contract() });
+  const finishingPrompt = providerSafeFinishingPrompt(projection.prompt, [
+    "wardrobe_state_mismatch",
+    "wrong_physical_medium",
+    "main_action_mismatch",
+    "style_continuity_mismatch",
+  ]);
+  const finalPrompt = buildFinalPrompt({
+    prompt: finishingPrompt,
+    sceneContract: projection.sceneContract,
+    providerSafetyFinishing: true,
+    characterFingerprint: "PRIVATE FACE FINGERPRINT SHOULD NOT LEAK",
+    referenceImages: [
+      { kind: "repair_source", label: "rejected page with Mathéo" },
+      { kind: "continuity", label: "cover for Nolan" },
+      { kind: "identity", label: "Mathéo customer photo" },
+    ],
+  });
+
+  assert.match(finalPrompt, /PRIVATE TWO-PASS FINISHING V1/);
+  assert.match(finalPrompt, /Dress every traveler in the exact declared outfit state/i);
+  assert.match(finalPrompt, /Fill the complete camera environment with the declared physical medium/i);
+  assert.match(finalPrompt, /Apply the approved artistic medium consistently/i);
+  assert.match(finalPrompt, /Reference 1: scene composition and action/i);
+  assert.doesNotMatch(finalPrompt, /Mathéo|Nolan|PRIVATE FACE FINGERPRINT/u);
+  assert.doesNotMatch(finalPrompt, /rejected page|customer photo|previous output differed|because Required wardrobe/i);
+});
+
+test("positive correction compiler accepts codes rather than raw provider-sensitive prose", () => {
+  const prompt = providerSafePositiveCorrectionPrompt([
+    "wrong_location_or_boundary",
+    "identity_likeness_mismatch",
+    "unknown_raw_error_with_sensitive_words",
+  ]);
+  assert.match(prompt, /declared location on the declared side/i);
+  assert.match(prompt, /Apply each identity reference/i);
+  assert.doesNotMatch(prompt, /unknown_raw_error|sensitive_words/i);
 });

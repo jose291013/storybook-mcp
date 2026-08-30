@@ -2268,7 +2268,10 @@ router.post("/preview", async (req, res) => {
         }
         const qualityReferenceImages = sceneContinuity.referenceImages || [];
         const pageRecovery = previewCausalRecoveryPage(causalRecoveryRun, page.page_number);
-        const providerSafeProjection = pageRecovery?.strategies?.includes("provider_safe_minimal_projection")
+        const providerSafeProjection = pageRecovery?.strategies?.some((strategy) => [
+          "provider_safe_minimal_projection",
+          "provider_safe_two_pass_finishing",
+        ].includes(strategy))
           ? buildProviderSafeImageProjection({
               sceneFidelityContract: sceneContinuity.sceneFidelityContract,
               stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
@@ -2369,6 +2372,7 @@ router.post("/preview", async (req, res) => {
               initialSafetyFallbackStage: pageRecovery?.strategies?.some((strategy) => [
                 "provider_safe_reexpression",
                 "provider_safe_minimal_projection",
+                "provider_safe_two_pass_finishing",
               ].includes(strategy))
                 ? IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY
                 : IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES,
@@ -2427,17 +2431,20 @@ router.post("/preview", async (req, res) => {
               qualityIssueCodes = Array.isArray(error.issueCodes) && error.issueCodes.length
                 ? error.issueCodes
                 : qualityRepairPolicy.targetCodes;
+              const providerSafeTwoPassPage = pageRecovery?.strategies?.includes("provider_safe_two_pass_finishing") === true;
               console.warn("[preview] page quarantined for repair", JSON.stringify({
                 jobId: job.id,
                 projectId,
                 pageNumber: page.page_number,
                 rejectionKind: qualityKind,
                 issueCodes: qualityIssueCodes,
-                automaticRepair: qualityRepairPolicy.automaticRepair,
+                automaticRepair: providerSafeTwoPassPage ? false : qualityRepairPolicy.automaticRepair,
                 wardrobeTargets: qualityRepairPolicy.wardrobeTargets || [],
                 wardrobeDiagnostics: qualityRepairPolicy.wardrobeDiagnostics || undefined,
               }));
-              qualityStatus = qualityRepairPolicy.automaticRepair
+              qualityStatus = providerSafeTwoPassPage
+                ? "strict_quarantined"
+                : qualityRepairPolicy.automaticRepair
                 ? "repair_pending"
                 : strictV3Rendering
                   ? "strict_quarantined"

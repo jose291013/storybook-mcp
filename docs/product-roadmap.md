@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-30
 
-## Provider-safe minimal illustration projection
+## Provider-safe two-pass illustration finishing
 
 A provider-safety rejection on one otherwise valid illustration receives one
 distinct bounded recovery, never a whole-book restart. Recovery version 7 and
@@ -22,8 +22,22 @@ active. The recovery signature changes once for projects exhausted under the
 previous provider-safe wording, then becomes exhausted normally if the
 provider still refuses the same page.
 
-The brick adds no model-call allowance, migration, environment variable,
-credit, commerce, expiry, private-asset exposure, QA relaxation or series-canon
+Recovery version 8 and retry policy 44 add a bounded finishing stage after the
+minimal foundation. The first call produces only the pseudonymous physical
+scene. A separate private edit then uses that foundation as the exact
+composition plus the canonical identity, outfit and approved-style references.
+Its prompt contains no reader prose, customer names, photo fingerprints,
+provider error text or rejected scene wording. If strict QA returns objective
+codes, one final finishing edit receives only positive deterministic directives
+compiled from those codes; raw QA sentences can never be replayed to the image
+provider.
+
+The two QA attempts cost at most three image calls: one foundation, one normal
+finishing edit and one corrective finishing edit. A failed two-pass candidate
+goes directly back to the durable page queue and cannot enter the older repair
+sweep. The full immutable scene contract and all eleven strict domains remain
+the final authority. This adds no migration, environment variable, credit,
+commerce, expiry, private-asset exposure, QA relaxation or series-canon
 mutation.
 
 ## Resilient per-page preview repair queue
