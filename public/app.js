@@ -3088,11 +3088,34 @@ async function savePreviewNotificationPreference(enabled) {
   }
 }
 
+function awaitingVisualProofFromProject(project) {
+  const visualProof = project?.continuitySnapshot?.generationCheckpoint?.visualProof;
+  const result = project?.previewResult;
+  const hasCover = Boolean(result?.coverPreviewUrl || result?.coverImageUrl);
+  return visualProof?.status === "awaiting_approval" && hasCover
+    ? { visualProof, result }
+    : null;
+}
+
+function showPersistedVisualProof(project, { scroll = true } = {}) {
+  const pending = awaitingVisualProofFromProject(project);
+  if (!pending) return false;
+  showVisualProof({
+    result: pending.result,
+    final_blueprint: project.finalBlueprint,
+  }, {
+    scroll,
+    attempts: pending.visualProof.attempts || 1,
+  });
+  return true;
+}
+
 async function showGenerationFailure(project = null, feedback = "") {
   if (!project && state.projectId) {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
     if (response.ok) project = (await response.json()).project;
   }
+  if (showPersistedVisualProof(project)) return;
   const visualProofStatus = project?.continuitySnapshot?.generationCheckpoint?.visualProof?.status;
   const visualProofHasResumableDecision = ["approved", "regenerating"].includes(visualProofStatus);
   if (project?.status === "preview_generating" && !visualProofHasResumableDecision) {
@@ -3127,16 +3150,25 @@ async function retryPreviewFree() {
   try {
     const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
     const project = projectResponse.ok ? (await projectResponse.json()).project : null;
+    if (showPersistedVisualProof(project)) return;
     const visualProofStatus = project?.continuitySnapshot?.generationCheckpoint?.visualProof?.status;
     let visualProofAction = visualProofStatus === "regenerating"
       ? "regenerate"
       : visualProofStatus === "approved"
         ? "approve"
         : "";
-    if (project?.status === "preview_generating") {
+    if (["preview_generating", "preview_failed"].includes(project?.status)) {
       const recovery = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-recover`, { method: "POST" });
-      if (!recovery.ok) throw new TechnicalGenerationError(tr("generationFailed"));
       const recoveryResult = await recovery.json();
+      if (!recovery.ok) {
+        throw new TechnicalGenerationError(recoveryResult.error || tr("generationFailed"), recoveryResult.code);
+      }
+      if (recoveryResult.visualProofRequired) {
+        const refreshedResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
+        const refreshedProject = refreshedResponse.ok ? (await refreshedResponse.json()).project : project;
+        if (showPersistedVisualProof(refreshedProject)) return;
+        throw new TechnicalGenerationError(tr("generationRetryRejected"), "visual_proof_missing");
+      }
       visualProofAction = recoveryResult.visualProofAction || visualProofAction;
     }
     await generatePreviewForProject(state.projectId, visualProofAction);
@@ -3799,8 +3831,8 @@ async function restoreCompletedPreview() {
     return true;
   }
   const visualProof = project?.continuitySnapshot?.generationCheckpoint?.visualProof;
-  if (project?.status === "preview_generating" && visualProof?.status === "awaiting_approval" && project.previewResult) {
-    showVisualProof({ result: project.previewResult, final_blueprint: project.finalBlueprint }, { scroll: false, attempts: visualProof.attempts || 1 });
+  if (["preview_generating", "preview_failed"].includes(project?.status)
+    && showPersistedVisualProof(project, { scroll: false })) {
     return true;
   }
   if (project?.status === "preview_generating" && project.generationJobId) {

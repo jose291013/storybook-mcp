@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/transactional-cover-proof-retry`
-- Main checkpoint: PR #298 (V3 appearance/equipment resolver), after PR #297 (deterministic safety conformance recovery)
+- Current branch: `codex/preview-resume-state-machine`
+- Main checkpoint: PR #299 (transactional cover-proof retry), after PR #298 (V3 appearance/equipment resolver)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: transactional cover-proof decisions. Approving or regenerating a cover remains a reversible in-memory transition until a new durable generation run exists; the project then commits the decision and new job pointer together. A startup failure preserves the previous cover, waiting-input state and reservation. Projects stranded by the former destructive transition can resume their persisted `approved` or `regenerating` decision idempotently. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: retrying the cover must emit `[preview] visual proof decision queued`, then `[preview] started`, without the generic “reprise n'a pas pu démarrer” state.
+- Current focused checkpoint: preview resume state machine. A preserved cover awaiting customer approval is restored for both `preview_generating` and `preview_failed` projects instead of posting an empty retry. A missing preserved cover resumes as regeneration, and persisted `approved`/`regenerating` decisions remain technical retries without a second charge. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: reopening or retrying must either restore its cover proof or emit `[preview] visual proof decision queued` followed by `[preview] started`; repeated child-safety reuse without either transition is no longer valid.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -56,6 +56,26 @@ idempotent capture-on-success path, so this introduces neither a second debit
 nor an unearned permanent preview. No migration, environment variable,
 generation-order, model allowance, private-asset, commerce or series-canon rule
 changes.
+
+## Candidate brick: preview resume state machine
+
+Cover proof is now recovered before the generic project-status gate. A project
+marked `preview_failed` may still own a valid preserved cover awaiting the
+customer's decision; the creator restores that proof directly instead of
+hiding it behind the technical-failure screen. If the proof record exists but
+its cover asset does not, recovery selects bounded regeneration rather than
+asking for an impossible approval.
+
+The preview endpoint accepts an explicit approve/regenerate decision from both
+generating and failed states. That transition is always treated as the same
+technical generation transaction, so it neither requests another credit nor
+consumes another cover attempt. Recovery responses are parsed by the client;
+`visualProofRequired` opens the proof panel and backend refusal codes are no
+longer replaced by a generic silent retry. No migration, environment variable,
+generation allowance, commerce rule, private-asset rule or series-canon change.
+
+Verification: focused cover-proof and structure tests pass (81/81); the complete
+regression suite passes (856/856).
 
 ## Candidate brick: cover-proof resume routing
 
