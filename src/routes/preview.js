@@ -99,6 +99,11 @@ import {
   previewCausalRecoveryPage,
   rehydrateCausalWardrobeRepairPolicy,
 } from "../services/previewCausalRecovery.js";
+import {
+  buildPreviewRepairQueue,
+  finalizePreviewRepairQueue,
+  startPreviewRepairQueue,
+} from "../services/previewRepairQueue.js";
 import { monotonicWardrobeRepairProgress } from "../services/previewMonotonicRepair.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
@@ -690,6 +695,9 @@ router.post("/preview", async (req, res) => {
   const causalRecoveryRun = isTechnicalGenerationRetry && preparedCausalRecovery?.available === true
     ? consumePreviewCausalRecovery(preparedCausalRecovery)
     : null;
+  const activeRepairQueue = causalRecoveryRun && existingCheckpoint?.repairQueue
+    ? startPreviewRepairQueue(existingCheckpoint.repairQueue)
+    : existingCheckpoint?.repairQueue || null;
   const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
   const productContract = existingBookProductContract({
     questionnaire: normalized.answers,
@@ -743,6 +751,7 @@ router.post("/preview", async (req, res) => {
   const job = createJob({
     status: "running",
     kind: "draft_book",
+    ...(activeRepairQueue ? { repairQueue: activeRepairQueue } : {}),
     creditReservationId: creditReservation?.id || null,
     referencePhotos: normalized.photos,
     projectId,
@@ -816,6 +825,7 @@ router.post("/preview", async (req, res) => {
     ...initialCheckpoint,
     fingerprint,
     phase: "started",
+    ...(activeRepairQueue ? { repairQueue: activeRepairQueue } : {}),
     creditReservationId: creditReservation?.id || initialCheckpoint.creditReservationId || null,
     failureReason: null,
     failedAt: null,
@@ -897,6 +907,7 @@ router.post("/preview", async (req, res) => {
       visualProofStatus: generationCheckpoint(project)?.visualProof?.status,
       visualProofAction: visualProofTransition?.action || visualProofAction,
     }),
+    ...(activeRepairQueue ? { repairQueue: activeRepairQueue } : {}),
   });
 
   withOpenAICostContext({
@@ -2818,26 +2829,37 @@ router.post("/preview", async (req, res) => {
         }
       }
 
+      const repairQueue = buildPreviewRepairQueue({
+        previewResult: previewResultSnapshot(),
+        totalPageCount: Number(final_blueprint.format?.interior_pages || normalized.answers.page_count),
+        priorQueue: activeRepairQueue,
+      });
       if (deferredIllustrationPages.length) {
-        const error = new Error(`The image provider could not produce a policy-safe candidate for ${deferredIllustrationPages.length} page(s). Accepted pages remain checkpointed.`);
-        error.code = "preview_provider_safety_quarantine";
-        error.pages = deferredIllustrationPages.map((item) => item.pageNumber);
         console.warn("[preview] completed independent pages with provider-safety gaps", JSON.stringify({
           jobId: job.id,
           projectId,
-          pages: error.pages,
+          pages: deferredIllustrationPages.map((item) => item.pageNumber),
         }));
-        throw error;
       }
-
       if (unresolvedQualityPages.length && strictV3Rendering) {
-        const error = new Error(`Strict Narrative V3 kept ${unresolvedQualityPages.length} illustration candidate(s) private because delivery evidence is incomplete.`);
-        error.code = "narrative_v3_illustration_evidence_incomplete";
-        error.pages = unresolvedQualityPages.map((item) => item.pageNumber);
         console.warn("[preview] strict V3 delivery quarantined", JSON.stringify({
           jobId: job.id,
           projectId,
-          pages: error.pages,
+          pages: unresolvedQualityPages.map((item) => item.pageNumber),
+        }));
+      }
+      if (repairQueue && (deferredIllustrationPages.length || strictV3Rendering)) {
+        const error = new Error(`${repairQueue.readyPageCount}/${repairQueue.totalPageCount} pages are ready; ${repairQueue.pendingPageCount} page(s) require bounded private repair.`);
+        error.code = "preview_page_repair_required";
+        error.pages = repairQueue.pendingPageNumbers;
+        error.repairQueue = repairQueue;
+        console.warn("[preview] resilient page repair queued", JSON.stringify({
+          jobId: job.id,
+          projectId,
+          readyPageCount: repairQueue.readyPageCount,
+          totalPageCount: repairQueue.totalPageCount,
+          pendingPageNumbers: repairQueue.pendingPageNumbers,
+          queueDigest: repairQueue.digest,
         }));
         throw error;
       }
@@ -2964,7 +2986,7 @@ router.post("/preview", async (req, res) => {
                 completedAt: new Date().toISOString(),
               },
             } : {}),
-          }, { ...checkpoint, phase: "done", retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION, retryAvailable: false, retryExhausted: false, completedAt }),
+          }, { ...checkpoint, phase: "done", repairQueue: null, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION, retryAvailable: false, retryExhausted: false, completedAt }),
           previewResult: { coverImageUrl, coverImageStorageKey, coverPreviewUrl, coverStorageKey, draftPages },
           generationJobId: job.id,
         });
@@ -2991,8 +3013,10 @@ router.post("/preview", async (req, res) => {
       const classifiedError = isProviderBillingUnavailable(error)
         ? tagProviderBillingUnavailable(error)
         : error;
-      const boundedErrorCode = classifiedError?.code === "preview_provider_safety_quarantine"
-        ? "preview_provider_safety_quarantine"
+      const boundedErrorCode = classifiedError?.code === "preview_page_repair_required"
+        ? "preview_page_repair_required"
+        : classifiedError?.code === "preview_provider_safety_quarantine"
+          ? "preview_provider_safety_quarantine"
         : classifiedError?.code === "preview_provider_billing_unavailable"
           ? "preview_provider_billing_unavailable"
           : classifiedError?.code === "preview_interrupted"
@@ -3001,7 +3025,12 @@ router.post("/preview", async (req, res) => {
       const publicErrorMessage = boundedErrorCode === "preview_provider_billing_unavailable"
         ? "The illustration service is temporarily unavailable. The project remains saved and retryable."
         : String(classifiedError?.message || classifiedError);
-      updateJob(job.id, { status: "failed", errorCode: boundedErrorCode, error: publicErrorMessage });
+      updateJob(job.id, {
+        status: "failed",
+        errorCode: boundedErrorCode,
+        error: publicErrorMessage,
+        ...(classifiedError?.repairQueue ? { repairQueue: classifiedError.repairQueue } : {}),
+      });
       await updateGenerationRun(job.id, {
         status: "failed",
         currentStep: getJob(job.id)?.step || checkpoint?.phase || "unknown",
@@ -3020,6 +3049,7 @@ router.post("/preview", async (req, res) => {
         errorCode: String(classifiedError?.code || boundedErrorCode),
         artifactType: String(classifiedError?.artifactType || ""),
         pageNumber: classifiedError?.pageNumber != null && Number.isInteger(Number(classifiedError.pageNumber)) ? Number(classifiedError.pageNumber) : null,
+        pages: Array.isArray(classifiedError?.pages) ? classifiedError.pages.slice(0, 24) : [],
         issues: (Array.isArray(classifiedError?.issues) ? classifiedError.issues : []).slice(0, 12).map((issue) => ({
           keyword: String(issue?.keyword || ""),
           path: String(issue?.path || ""),
@@ -3047,6 +3077,14 @@ router.post("/preview", async (req, res) => {
         const retryAvailable = failureIsRecoverable
           || nextCausalRecovery?.available === true
           || (!causalFailureDetected && !retryWasConsumed);
+        const repairQueue = finalizePreviewRepairQueue(
+          classifiedError?.repairQueue || buildPreviewRepairQueue({
+            previewResult: latest?.previewResult || {},
+            totalPageCount: Number(latest?.finalBlueprint?.format?.interior_pages || normalized.answers.page_count),
+            priorQueue: priorCheckpoint?.repairQueue,
+          }),
+          { retryAvailable },
+        );
         let continuitySnapshot = {
           ...(latest?.continuitySnapshot || project.continuitySnapshot),
           ...(isTechnicalReferenceRecovery ? {
@@ -3060,6 +3098,7 @@ router.post("/preview", async (req, res) => {
           retryAvailable,
           retryExhausted: !retryAvailable,
           ...(nextCausalRecovery ? { causalRecovery: nextCausalRecovery } : {}),
+          ...(repairQueue ? { repairQueue } : {}),
           failureReason: boundedErrorCode,
           failedAt: new Date().toISOString(),
         });
