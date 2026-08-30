@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/provider-safe-structure-first`
-- Main checkpoint: PR #305 (provider-safe two-pass illustration finishing), after PR #304 (provider-safe minimal illustration projection)
+- Current branch: `main`
+- Main checkpoint: PR #306 (provider-safe structure-first finishing), after PR #305 (provider-safe two-pass illustration finishing)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: provider-safe structure-first candidate. Project `de94edbb-63bb-4966-bc31-bc325bceed78` still preserves 35/36 accepted pages. Live V8 generated and finished page 8, but QA rejected its wardrobe, physical medium, passage boundary and main action. The second finishing call then reused that structurally wrong image as an exact composition and was rejected by provider request `req_fe32744ae8da44efbd55b5046177d243`. Recovery version 9 / retry policy 45 must validate and, when necessary, recompose the reference-free foundation before private appearance finishing.
+- Current focused checkpoint: provider-safe structure-first finishing. Project `de94edbb-63bb-4966-bc31-bc325bceed78` still preserves 35/36 accepted pages. Live V8 generated and finished page 8, but QA rejected its wardrobe, physical medium, passage boundary and main action. The second finishing call then reused that structurally wrong image as an exact composition and was rejected by provider request `req_fe32744ae8da44efbd55b5046177d243`. Recovery version 9 / retry policy 45 validates and, when necessary, recomposes the reference-free foundation before private appearance finishing.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -42,7 +42,7 @@ repair target rather than restarting the book.
 Verification: focused recovery/projection tests pass 49/49 and the complete
 repository regression passes 861/861 tests.
 
-## Candidate brick: provider-safe structure-first finishing
+## Completed brick: provider-safe structure-first finishing
 
 The provider-safe foundation now receives its own bounded technical and scene
 review before any private visual reference is applied. That review covers exact
