@@ -3093,7 +3093,9 @@ async function showGenerationFailure(project = null, feedback = "") {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
     if (response.ok) project = (await response.json()).project;
   }
-  if (project?.status === "preview_generating") {
+  const visualProofStatus = project?.continuitySnapshot?.generationCheckpoint?.visualProof?.status;
+  const visualProofHasResumableDecision = ["approved", "regenerating"].includes(visualProofStatus);
+  if (project?.status === "preview_generating" && !visualProofHasResumableDecision) {
     await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-recover`, { method: "POST" }).catch(() => null);
     const refreshed = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" }).catch(() => null);
     if (refreshed?.ok) project = (await refreshed.json()).project;
@@ -3125,13 +3127,21 @@ async function retryPreviewFree() {
   try {
     const projectResponse = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
     const project = projectResponse.ok ? (await projectResponse.json()).project : null;
+    const visualProofStatus = project?.continuitySnapshot?.generationCheckpoint?.visualProof?.status;
+    let visualProofAction = visualProofStatus === "regenerating"
+      ? "regenerate"
+      : visualProofStatus === "approved"
+        ? "approve"
+        : "";
     if (project?.status === "preview_generating") {
       const recovery = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}/preview-recover`, { method: "POST" });
       if (!recovery.ok) throw new TechnicalGenerationError(tr("generationFailed"));
+      const recoveryResult = await recovery.json();
+      visualProofAction = recoveryResult.visualProofAction || visualProofAction;
     }
-    await generatePreviewForProject(state.projectId);
+    await generatePreviewForProject(state.projectId, visualProofAction);
   } catch (error) {
-    await showGenerationFailure(null, tr("generationRetryRejected"));
+    await showGenerationFailure(null, error?.message || tr("generationRetryRejected"));
   } finally {
     elements.retryPreviewButton.disabled = false;
     elements.retryPreviewButton.textContent = tr("retryPreviewFree");

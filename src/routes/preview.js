@@ -35,6 +35,11 @@ import {
 import { findBookFormat } from "../config/bookFormats.js";
 import { existingBookProductContract } from "../services/bookProductContract.js";
 import { previewGenerationStage } from "../services/previewGenerationStage.js";
+import {
+  prepareVisualProofTransition,
+  previewResultForVisualProofTransition,
+  resumableVisualProofAction,
+} from "../services/visualProofRetryTransaction.js";
 
 import { intakeAgent } from "../agents/intake.js";
 import { heroClassifierAgent } from "../agents/heroClassifier.js";
@@ -421,8 +426,18 @@ router.post("/projects/:id/preview-recover", async (req, res) => {
   if (project.status !== "preview_generating") {
     return res.json({ recovered: false, status: project.status, retryAvailable: technicalPreviewRetryAvailable(project) });
   }
-  if (generationCheckpoint(project)?.visualProof?.status === "awaiting_approval") {
+  const visualProof = generationCheckpoint(project)?.visualProof;
+  if (visualProof?.status === "awaiting_approval") {
     return res.json({ recovered: false, status: project.status, visualProofRequired: true, retryAvailable: false });
+  }
+  const visualProofAction = resumableVisualProofAction(visualProof);
+  if (visualProofAction) {
+    return res.json({
+      recovered: false,
+      status: project.status,
+      visualProofAction,
+      retryAvailable: true,
+    });
   }
   try {
     const recovered = await recoverAbandonedPreview({ project, identity });
@@ -524,55 +539,29 @@ router.post("/preview", async (req, res) => {
   const sensitivityContract = storySensitivityContract(project.questionnaire?.story_sensitivity_profile);
   const visualProofAction = String(req.body?.visualProofAction || "");
   const pendingVisualProof = generationCheckpoint(project)?.visualProof;
+  let visualProofTransition = null;
+  let priorVisualProofJob = null;
+  let priorVisualProofRun = null;
   if (project.status === "preview_generating") {
     const existingJob = project.generationJobId ? getJob(project.generationJobId) : null;
     const durableRun = project.generationJobId
       ? await generationRunStore.getRun(project.generationJobId).catch(() => null)
       : null;
     if (pendingVisualProof?.status === "awaiting_approval") {
-      if (!["approve", "regenerate"].includes(visualProofAction)) {
+      try {
+        visualProofTransition = prepareVisualProofTransition({
+          visualProof: pendingVisualProof,
+          requestedAction: visualProofAction,
+        });
+      } catch (error) {
         return res.status(409).json({
-          error: "Approve or regenerate the visual proof before continuing",
-          code: "visual_proof_required",
+          error: String(error?.message || error),
+          code: error?.code || "visual_proof_required",
           jobId: existingJob?.id || project.generationJobId || null,
         });
       }
-      if (visualProofAction === "regenerate" && Number(pendingVisualProof.attempts || 1) >= 2) {
-        return res.status(409).json({ error: "The included visual-proof retry has already been used", code: "visual_proof_limit" });
-      }
-      if (existingJob && existingJob.status === "awaiting_visual_approval") {
-        updateJob(existingJob.id, { status: "done", step: `visual-proof:${visualProofAction}` });
-      }
-      if (durableRun?.status === "waiting_input") {
-        await updateGenerationRun(durableRun.id, {
-          status: "completed",
-          currentStep: `visual-proof:${visualProofAction}`,
-          completedAt: new Date().toISOString(),
-          leaseOwner: "",
-          leaseExpiresAt: null,
-        });
-      }
-      const visualProof = {
-        ...pendingVisualProof,
-        status: visualProofAction === "approve" ? "approved" : "regenerating",
-        ...(visualProofAction === "approve" ? { approvedAt: new Date().toISOString() } : { regenerationRequestedAt: new Date().toISOString() }),
-      };
-      const previewResult = visualProofAction === "regenerate"
-        ? { ...(project.previewResult || {}), coverImageUrl: "", coverImageStorageKey: "", coverPreviewUrl: "", coverStorageKey: "" }
-        : project.previewResult;
-      const nextContinuitySnapshot = mergeGenerationCheckpoint(project.continuitySnapshot, {
-        ...generationCheckpoint(project),
-        visualProof,
-      });
-      if (visualProofAction === "approve") {
-        const visualBible = createApprovedCoverVisualBible({ ...project, previewResult }, visualProof.approvedAt);
-        if (visualBible) nextContinuitySnapshot.visualBible = visualBible;
-      }
-      project = await projectStore.updateForCustomer(projectId, identity, {
-        generationJobId: null,
-        previewResult,
-        continuitySnapshot: nextContinuitySnapshot,
-      }) || project;
+      priorVisualProofJob = existingJob;
+      priorVisualProofRun = durableRun;
     } else if (isActiveDurableRun(durableRun) || isActivePreviewJob(existingJob)) {
       return res.json({
         jobId: durableRun?.id || existingJob.id,
@@ -582,12 +571,26 @@ router.post("/preview", async (req, res) => {
           visualProofAction,
         }),
       });
+    } else if (resumableVisualProofAction(pendingVisualProof)) {
+      visualProofTransition = prepareVisualProofTransition({
+        visualProof: pendingVisualProof,
+        requestedAction: visualProofAction,
+        resume: true,
+      });
+      priorVisualProofJob = existingJob;
+      priorVisualProofRun = durableRun;
     } else {
       return res.status(409).json({
         error: "Preview generation was interrupted. Confirm the free technical retry before continuing.",
         code: "preview_interrupted",
       });
     }
+  } else if (project.status === "preview_failed" && resumableVisualProofAction(pendingVisualProof)) {
+    visualProofTransition = prepareVisualProofTransition({
+      visualProof: pendingVisualProof,
+      requestedAction: visualProofAction,
+      resume: true,
+    });
   }
   if (project.status === "preview_ready" && project.previewResult) {
     return res.status(409).json({ error: "This draft has already been generated" });
@@ -664,6 +667,7 @@ router.post("/preview", async (req, res) => {
   });
 
   let creditReservation = existingCheckpoint?.creditReservationId ? { id: existingCheckpoint.creditReservationId } : null;
+  let creditReservationCreatedForRequest = false;
   if (previewEntitlementsEnabled() && !isTechnicalRetry && !creditReservation) {
     const requiredCents = previewPriceCents(normalized.answers.page_count, productContract.pricingVersion);
     try {
@@ -672,6 +676,7 @@ router.post("/preview", async (req, res) => {
         amountCents: requiredCents,
         idempotencyKey: `preview:${projectId}:${project.updatedAt}`,
       });
+      creditReservationCreatedForRequest = true;
     } catch (error) {
       if (error instanceof InsufficientCreditError) {
         return res.status(402).json({
@@ -684,8 +689,9 @@ router.post("/preview", async (req, res) => {
     }
   }
 
+  let queuedContinuitySnapshot = project.continuitySnapshot;
   if (isTechnicalReferenceRecovery || isTechnicalGenerationRetry) {
-    let continuitySnapshot = {
+    queuedContinuitySnapshot = {
       ...project.continuitySnapshot,
       ...(isTechnicalReferenceRecovery ? { referenceRecovery: {
         ...referenceRecovery,
@@ -694,7 +700,7 @@ router.post("/preview", async (req, res) => {
       } } : {}),
     };
     if (isTechnicalGenerationRetry) {
-      continuitySnapshot = mergeGenerationCheckpoint(continuitySnapshot, {
+      queuedContinuitySnapshot = mergeGenerationCheckpoint(queuedContinuitySnapshot, {
         ...existingCheckpoint,
         ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
         retryAvailable: false,
@@ -702,7 +708,6 @@ router.post("/preview", async (req, res) => {
         retryConsumedAt: new Date().toISOString(),
       });
     }
-    project = await projectStore.updateForCustomer(projectId, identity, { continuitySnapshot }) || project;
   }
 
   const job = createJob({
@@ -755,21 +760,29 @@ router.post("/preview", async (req, res) => {
     await updateGenerationRun(job.id, { status: "running", currentStep: "started" });
   } catch (error) {
     updateJob(job.id, { status: "failed", error: String(error?.message || error) });
-    if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
+    if (creditReservationCreatedForRequest && creditReservation?.id) {
+      await creditStore.releasePreview(creditReservation.id).catch(() => null);
+    }
     return res.status(503).json({
       error: "The durable generation queue is temporarily unavailable. No credit was used.",
       code: "generation_queue_unavailable",
     });
   }
-  const initialCheckpoint = existingCheckpoint
+  const queuedCheckpoint = generationCheckpoint({ continuitySnapshot: queuedContinuitySnapshot }) || existingCheckpoint;
+  const initialCheckpoint = queuedCheckpoint
     ? {
-        ...existingCheckpoint,
+        ...queuedCheckpoint,
         ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
+        ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
       }
-    : { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION };
+    : {
+        fingerprint,
+        retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
+        ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
+      };
   let checkpoint = initialCheckpoint;
-  const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = project.continuitySnapshot || {};
-  const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? project.continuitySnapshot : continuityWithoutOldCheckpoint, {
+  const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = queuedContinuitySnapshot || {};
+  const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? queuedContinuitySnapshot : continuityWithoutOldCheckpoint, {
     ...initialCheckpoint,
     fingerprint,
     phase: "started",
@@ -777,14 +790,24 @@ router.post("/preview", async (req, res) => {
     failureReason: null,
     failedAt: null,
   });
+  const previewResultAtStart = previewResultForVisualProofTransition(project.previewResult, visualProofTransition);
+  if (visualProofTransition?.action === "approve") {
+    const visualBible = createApprovedCoverVisualBible(
+      { ...project, previewResult: previewResultAtStart },
+      visualProofTransition.visualProof.approvedAt,
+    );
+    if (visualBible) initialSnapshot.visualBible = visualBible;
+  }
   try {
-    await projectStore.updateForCustomer(projectId, identity, {
+    const startedProject = await projectStore.updateForCustomer(projectId, identity, {
       status: "preview_generating",
       generationJobId: job.id,
       continuitySnapshot: initialSnapshot,
-      previewResult: existingCheckpoint ? project.previewResult : null,
+      previewResult: existingCheckpoint ? previewResultAtStart : null,
       finalBlueprint: existingCheckpoint ? project.finalBlueprint : null,
     });
+    if (!startedProject) throw new Error("The project could not be linked to its durable generation job");
+    project = startedProject;
   } catch (error) {
     await updateGenerationRun(job.id, {
       status: "failed",
@@ -795,11 +818,39 @@ router.post("/preview", async (req, res) => {
       leaseExpiresAt: null,
     }).catch(() => null);
     updateJob(job.id, { status: "failed", error: String(error?.message || error) });
-    if (creditReservation?.id) await creditStore.releasePreview(creditReservation.id).catch(() => null);
+    if (creditReservationCreatedForRequest && creditReservation?.id) {
+      await creditStore.releasePreview(creditReservation.id).catch(() => null);
+    }
     return res.status(503).json({
       error: "The preview could not be queued safely. No credit was used.",
       code: "generation_queue_unavailable",
     });
+  }
+  if (visualProofTransition) {
+    if (priorVisualProofJob && priorVisualProofJob.id !== job.id
+      && priorVisualProofJob.status === "awaiting_visual_approval") {
+      updateJob(priorVisualProofJob.id, {
+        status: "done",
+        step: `visual-proof:${visualProofTransition.action}`,
+      });
+    }
+    if (priorVisualProofRun && priorVisualProofRun.id !== job.id
+      && priorVisualProofRun.status === "waiting_input") {
+      await updateGenerationRun(priorVisualProofRun.id, {
+        status: "completed",
+        currentStep: `visual-proof:${visualProofTransition.action}`,
+        completedAt: new Date().toISOString(),
+        leaseOwner: "",
+        leaseExpiresAt: null,
+      }).catch(() => null);
+    }
+    console.info("[preview] visual proof decision queued", JSON.stringify({
+      projectId,
+      jobId: job.id,
+      action: visualProofTransition.action,
+      resumed: visualProofTransition.resumed,
+      previousJobId: priorVisualProofJob?.id || priorVisualProofRun?.id || null,
+    }));
   }
   if (!projectUsesNarrativeV3(project)) {
     await enqueueNarrativeV3ProductionShadow({ project, identity }).catch((error) => {
@@ -814,7 +865,7 @@ router.post("/preview", async (req, res) => {
     jobId: job.id,
     generationStage: previewGenerationStage({
       visualProofStatus: generationCheckpoint(project)?.visualProof?.status,
-      visualProofAction,
+      visualProofAction: visualProofTransition?.action || visualProofAction,
     }),
   });
 

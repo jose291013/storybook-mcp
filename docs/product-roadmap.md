@@ -96,6 +96,17 @@ is reserved for a completed preview job. Missing interior assets are normal
 before cover approval and must never produce the expired-preview message at
 that stage.
 
+A cover-proof decision is also a transaction boundary. Approving or requesting
+the included cover regeneration is first prepared without changing the saved
+project. The service must create a durable generation job and run, then commit
+the decision, new job pointer and checkpoint in one project update. Only that
+successful commit may clear a rejected cover or close the previous
+waiting-input run. If queue startup or the project link fails, the previous
+cover, decision opportunity and reservation stay recoverable. A persisted
+`approved` or `regenerating` decision left by an older interrupted deployment is
+resumed idempotently and cannot consume another cover attempt. Technical credit
+release and final capture keep their existing idempotent accounting semantics.
+
 ## Narrative V3 structural replacement direction
 
 The current narrative pipeline is frozen for new product repair bricks except

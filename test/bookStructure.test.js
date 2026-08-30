@@ -574,7 +574,8 @@ test("preview generation reserves credits before work and captures or releases t
   assert.match(app, /preview-recover/);
   assert.match(app, /retryPreviewFree/);
   assert.match(app, /generationRetryRejected/);
-  assert.match(app, /showGenerationFailure\(null, tr\("generationRetryRejected"\)\)/);
+  assert.match(app, /generatePreviewForProject\(state\.projectId, visualProofAction\)/);
+  assert.match(app, /showGenerationFailure\(null, error\?\.message \|\| tr\("generationRetryRejected"\)\)/);
   assert.match(previewSource, /mergeGenerationCheckpoint/);
   assert.match(previewSource, /previewRequestFingerprintCandidates/);
   const checkpointDeclaration = previewSource.indexOf("let checkpoint = initialCheckpoint;");
@@ -1771,8 +1772,8 @@ test("preview repairs a rejected blueprint before spending image credits", async
   const interiorLoop = source.indexOf("for (const page of final_blueprint.pages)");
   assert.ok(proofStep > coverStep);
   assert.ok(interiorLoop > proofStep);
-  assert.match(source, /visualProofAction === "approve"/);
-  assert.match(source, /visualProofAction === "regenerate"/);
+  assert.match(source, /visualProofTransition\?\.action === "approve"/);
+  assert.match(source, /visual-proof:\$\{visualProofTransition\.action\}/);
   assert.match(source, /storyScenePlanAuditAgent/);
   assert.match(source, /story:scenario-fidelity-repair/);
   assert.match(source, /story:scenario-fidelity-targeted-repair/);
