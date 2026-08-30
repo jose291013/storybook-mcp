@@ -73,6 +73,8 @@ router.post("/finalize", async (req, res) => {
           characterCanons,
           castPresent: blueprint.cover.cast_present || [],
           scenePrompt: blueprint.cover.image_prompt,
+          wardrobeLocks: blueprint.cover.wardrobe_locks || [],
+          equipmentLocks: blueprint.cover.equipment_locks || [],
           continuityImagePath: existsSync(draftCoverPath) ? draftCoverPath : "",
         });
         finalCoverImageUrl = await generateImage({

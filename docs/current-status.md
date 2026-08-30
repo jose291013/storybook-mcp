@@ -8,8 +8,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-sealed-safety-deterministic-conformance`
-- Main checkpoint: PR #296 (sealed V3 safety authority), after PR #295 (adaptive V3 illustration quality controller)
+- Current branch: `codex/v3-appearance-equipment-resolver`
+- Main checkpoint: PR #297 (deterministic safety conformance recovery), after PR #296 (sealed V3 safety authority)
 - Completed storefront brick: book format and pricing V1
 - Current focused checkpoint: deterministic sealed V3 child-safety conformance. Scenario approval is the last semantic interpretation of the customer's situation. Strict V3 generated prose no longer enters the hybrid disclosure classifier; only explicit high-confidence deterministic drift can trigger one private page-local repair. Ambiguous fictional wording inherits the sealed approved authority and cannot block cover generation. Legacy entry-point enforcement and modification safety remain unchanged. Retry policy 42 gives policy-41 failures one bounded resume. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: retry must pass manuscript conformance and reach cover generation without a generated-manuscript classifier trace.
 - Migration hotfix: PR #234
@@ -17,6 +17,25 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
+
+## PR #298: V3 appearance/equipment resolver
+
+Clothing and functional equipment now have separate authorities. Outfit catalog
+entries and legacy resumed locks are normalized to garment-only descriptions;
+the world-law profile remains the source of breathing, communication, vision
+and pressure equipment. The resolver permits only one device per functional
+group and emits exact per-person quantities plus explicit incompatibilities.
+
+For the coral-ocean contract, one transparent breathing-and-communication
+bubble already supplies clear vision. Diving or swimming goggles, a diving
+mask, snorkel, another helmet/bubble and any second breathing apparatus are
+therefore forbidden on that wearer. Cover generation now receives the same
+equipment locks and private visual checks as interior scenes. Customer photo
+clothing remains ordinary wardrobe evidence and can never become adventure
+equipment. Existing checkpoints that embedded equipment prose in an outfit are
+normalized at the authority boundary, so the change applies to resumptions
+without rewriting their story. Focused verification passes 95/95 tests and the
+complete repository suite passes 850/850 tests.
 
 ## Candidate brick: cover-proof resume routing
 

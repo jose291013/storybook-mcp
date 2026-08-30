@@ -2,6 +2,7 @@ import path from "path";
 import { buildImageCharacterAliases, compactImageSceneContract, neutralizeImageText } from "./imageVisualContract.js";
 import { wardrobeForPhysicalSnapshot } from "./physicalRenderSnapshot.js";
 import { compileSceneRenderContractV1 } from "../contracts/sceneRenderContractV1.js";
+import { resolveAppearanceEquipment } from "./appearanceEquipmentResolver.js";
 
 const UPLOAD_DIR = path.resolve("data/uploads");
 
@@ -67,6 +68,7 @@ export function buildSceneContinuity({
   pairedText = "",
   structuredSceneContract = null,
   wardrobeLocks = [],
+  equipmentLocks = [],
   referenceAssets = new Map(),
   adjacentReferenceImages = [],
   wardrobeAuthorityReferences = [],
@@ -78,6 +80,7 @@ export function buildSceneContinuity({
   const aliasFor = (name) => identityFor(name)?.alias || safe(name);
   const characterFingerprints = [];
   const wardrobeContracts = [];
+  const equipmentContracts = [];
   const identityReferenceImages = [];
   const ordinaryWardrobeReferenceImages = [];
   const canonicalWardrobeKeys = new Map((Array.isArray(wardrobeAuthorityReferences)
@@ -143,7 +146,15 @@ export function buildSceneContinuity({
     const visualAlias = aliasFor(character.name);
     const visualIdentity = identityFor(character.name);
     const strictCharacterState = sceneRenderContract?.cast.required.find((entry) => entry.name === visualAlias);
-    const outfit = strictCharacterState?.outfit?.description || wardrobeForPhysicalSnapshot(
+    const equipmentLock = equipmentLocks.find((item) => sameCharacter(item?.name, character.name));
+    const appearance = strictCharacterState || !equipmentLock
+      ? null
+      : resolveAppearanceEquipment({
+          outfitDescription: rawOutfit,
+          equipmentStateIds: equipmentLock.equipment_state_ids,
+          characterName: visualAlias,
+        });
+    const outfit = strictCharacterState?.outfit?.description || appearance?.outfit_description || wardrobeForPhysicalSnapshot(
       rawOutfit,
       character.name,
       structuredSceneContract?.render_snapshot,
@@ -158,7 +169,6 @@ export function buildSceneContinuity({
       outfit && `FIXED OUTFIT FOR CURRENT SCENE: ${safe(outfit)}. Keep this exact generic wardrobe stable in the current scene. A different declared wardrobe state on another scene is intentional.`,
       role === "mascot" && "SPECIES LOCK: keep the exact same animal species, coat colors, markings, ears, muzzle, tail and accessories; never reinterpret it as another animal or a famous character.",
     ].filter(Boolean);
-    characterFingerprints.push(rules.join(" "));
     const isHumanIdentity = !["animal", "plush_toy"].includes(visualIdentity?.entity_type)
       && role !== "mascot";
     if (outfit && isHumanIdentity) {
@@ -168,6 +178,21 @@ export function buildSceneContinuity({
         rule: "The visible person must remain in this declared scene outfit. Reject only a clearly different outfit state or garment category, not a tiny hidden detail, harmless simplification or removed brand mark.",
       });
     }
+    const requiredEquipment = strictCharacterState?.equipment || appearance?.equipment || [];
+    if (isHumanIdentity && requiredEquipment.length) {
+      const forbiddenEquipment = strictCharacterState?.forbidden_equipment || appearance?.forbidden_equipment || [];
+      equipmentContracts.push({
+        name: visualAlias,
+        exact_quantity_per_item: 1,
+        required_equipment: requiredEquipment,
+        forbidden_equipment: forbiddenEquipment,
+      });
+      rules.push(
+        `EXCLUSIVE FUNCTIONAL EQUIPMENT: ${safe(requiredEquipment.map((item) => item.description).join("; "))}.`,
+        `FORBIDDEN REDUNDANT OR INCOMPATIBLE EQUIPMENT: ${safe(forbiddenEquipment.join(", "))}.`,
+      );
+    }
+    characterFingerprints.push(rules.join(" "));
 
     if (photoCanon?.photoId || photoCanon?.storageKey) {
       const privateAsset = referenceAssets.get(String(photoCanon.photoId));
@@ -283,7 +308,9 @@ export function buildSceneContinuity({
     const names = underwaterPeople.map((character) => aliasFor(character.name)).filter(Boolean);
     sceneRules.push(
       `MANDATORY INDIVIDUAL UNDERWATER SAFETY (${names.length} people: ${names.join(", ")}): every listed person must individually have a complete visible breathing or story-established magical air mechanism.`,
-      "Apply the same safety logic to every person, not only the hero. If one person wears a transparent diving helmet, bubble, mask-and-snorkel or other established mechanism, every other submerged person must have their own complete appropriate mechanism too.",
+      equipmentContracts.length
+        ? "EXCLUSIVE FUNCTIONAL EQUIPMENT: apply each person's declared equipment contract literally. One functional need has one declared device: never stack diving goggles, swimming goggles, diving mask, snorkel, helmet, bubble or a second breathing apparatus on the same person."
+        : "Apply the same safety logic to every person, not only the hero: every other submerged person must have their own complete appropriate mechanism. Use one complete story-established mechanism per submerged person and never combine multiple devices for the same function.",
       "No listed person may appear bare-headed and breathing normally underwater. Do not merge two people's equipment into one shared object."
     );
   }
@@ -295,9 +322,20 @@ export function buildSceneContinuity({
       ? {
           ...compactImageSceneContract(structuredSceneContract, visualAliases, { pairedText }),
           wardrobe_contracts: wardrobeContracts,
+          equipment_contracts: equipmentContracts,
           ...(sceneRenderContract ? { scene_render_contract: sceneRenderContract } : {}),
         }
-      : null,
+      : (wardrobeContracts.length || equipmentContracts.length)
+        ? {
+            named_characters: selected.map((character) => ({
+              name: aliasFor(character.name),
+              visual_role: "visible",
+              action: "present in this cover instant",
+            })),
+            wardrobe_contracts: wardrobeContracts,
+            equipment_contracts: equipmentContracts,
+          }
+        : null,
     visualAliases,
   };
 }

@@ -7,6 +7,11 @@ import { normalizePageCount, normalizeTypography } from "../config/bookOptions.j
 import { extractBlueprintCandidate } from "../services/extractBlueprintCandidate.js";
 import { normalizeWorldReality } from "../services/worldReality.js";
 import { characterTravelsInScenario } from "../services/visibleSceneCast.js";
+import {
+  coverEquipmentLocksForWorld,
+  garmentOnlyDescription,
+  resolveAppearanceEquipment,
+} from "../services/appearanceEquipmentResolver.js";
 
 function nameKey(value) {
   return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -89,6 +94,15 @@ function outfitDirective(language, heroName, outfit) {
   if (language === "ES") return `VESTUARIO FIJO DE ${heroName}: ${outfit}. Esta regla sustituye cualquier otra descripcion de ropa anterior.`;
   if (language === "EN") return `FIXED OUTFIT FOR ${heroName}: ${outfit}. This rule replaces any other earlier clothing description.`;
   return `TENUE VERROUILLEE DE ${heroName} : ${outfit}. Cette regle remplace toute autre description vestimentaire anterieure.`;
+}
+
+function equipmentDirective(language, characterName, equipment) {
+  if (!characterName || !equipment?.length) return "";
+  const descriptions = equipment.map((item) => item.description).join("; ");
+  const forbidden = [...new Set(equipment.flatMap((item) => item.forbidden_with_this_state || []))].join(", ");
+  if (language === "ES") return `EQUIPO FUNCIONAL EXCLUSIVO DE ${characterName}: ${descriptions}. No combinarlo con ${forbidden}. La ropa no sustituye ni duplica este equipo.`;
+  if (language === "EN") return `EXCLUSIVE FUNCTIONAL EQUIPMENT FOR ${characterName}: ${descriptions}. Never combine it with ${forbidden}. Clothing must neither replace nor duplicate this equipment.`;
+  return `EQUIPEMENT FONCTIONNEL EXCLUSIF DE ${characterName} : ${descriptions}. Ne jamais le combiner avec ${forbidden}. La tenue ne remplace ni ne duplique cet equipement.`;
 }
 
 function coverCompositionDirective(language) {
@@ -268,16 +282,16 @@ export function lockBlueprintContinuity(blueprint, {
     const plan = wardrobeFor(canon?.name);
     if (plan?.preference === "preserve_photo" || plan?.activationMode === "never_activate") return ordinary;
     if (plan && !followsAdventureRoute(canon?.name)) return ordinary;
-    return String(plan?.adventureDescription || (canon?.outfit_selection_explicit ? canon?.outfit_contract : "") || ordinary).trim();
+    return garmentOnlyDescription(plan?.adventureDescription || (canon?.outfit_selection_explicit ? canon?.outfit_contract : "") || ordinary);
   };
   if (childCanon?.name) result.hero.name = childCanon.name;
-  const heroOrdinaryOutfit = String(
+  const heroOrdinaryOutfit = garmentOnlyDescription(
     ordinaryOutfit(childCanon)
     || heroProfile?.outfit_lock
     || result.hero.ordinary_outfit_lock
     || result.hero.outfit_lock
     || "a dark teal long-sleeve top, warm ochre trousers and plain white sneakers"
-  ).trim();
+  );
   result.hero.outfit_lock = heroOrdinaryOutfit;
   result.hero.ordinary_outfit_lock = heroOrdinaryOutfit;
   result.hero.adventure_outfit_lock = adventureOutfit(childCanon, heroOrdinaryOutfit) || heroOrdinaryOutfit;
@@ -285,10 +299,10 @@ export function lockBlueprintContinuity(blueprint, {
   result.cast = Array.isArray(result.cast) ? result.cast : [];
   result.cast = result.cast.map((character) => {
     const photoCanon = canonicalCharacterMatch(character.name, characterCanons);
-    const characterOrdinaryOutfit = ordinaryOutfit(
+    const characterOrdinaryOutfit = garmentOnlyDescription(ordinaryOutfit(
       photoCanon,
       character.ordinary_outfit_lock || character.outfit_lock,
-    );
+    ));
     return {
       ...character,
       name: photoCanon?.name || character.name,
@@ -301,7 +315,7 @@ export function lockBlueprintContinuity(blueprint, {
   });
   for (const canon of characterCanons.filter((item) => item.role !== "child" && item.name)) {
     if (canonicalCharacterMatch(canon.name, result.cast)) continue;
-    const characterOrdinaryOutfit = ordinaryOutfit(canon);
+    const characterOrdinaryOutfit = garmentOnlyDescription(ordinaryOutfit(canon));
     result.cast.push({
       name: canon.name,
       role: canon.role || "other",
@@ -412,14 +426,15 @@ export function lockBlueprintContinuity(blueprint, {
     && (character?.ordinary_outfit_lock || character?.adventure_outfit_lock || character?.outfit_lock)
   ));
   result.cover.wardrobe_locks = [];
+  result.cover.equipment_locks = [];
   for (const page of result.pages.filter((item) => item.page_type === "image")) page.wardrobe_locks = [];
   for (const character of outfitCharacters) {
     const coverPlan = wardrobeFor(character.name);
-    const coverOutfit = !hasHumanWardrobe(character.name) || coverPlan?.preference === "preserve_photo"
+    const coverOutfit = garmentOnlyDescription(!hasHumanWardrobe(character.name) || coverPlan?.preference === "preserve_photo"
       ? character.outfit_lock
       : !followsAdventureRoute(character.name)
         ? (originalOutfitFor(character.name) || character.outfit_lock)
-        : (character.adventure_outfit_lock || coverPlan?.adventureDescription || character.outfit_lock);
+        : (character.adventure_outfit_lock || coverPlan?.adventureDescription || character.outfit_lock));
     const fixedOutfit = outfitDirective(result.language, character.name, coverOutfit);
     if (result.cover.cast_present.some((name) => sameName(name, character.name))) {
       result.cover.image_prompt = appendDirective(result.cover.image_prompt, fixedOutfit);
@@ -433,6 +448,23 @@ export function lockBlueprintContinuity(blueprint, {
         page.image_prompt = appendDirective(page.image_prompt, outfitDirective(result.language, character.name, sceneOutfit));
       }
     }
+  }
+  const coverHumanTravelers = result.cover.cast_present.filter((name) => (
+    hasHumanWardrobe(name) && followsAdventureRoute(name)
+  ));
+  result.cover.equipment_locks = coverEquipmentLocksForWorld({
+    universeId: approvedScenario?.worldContract?.id || approvedScenario?.world_contract?.id || result.world?.id,
+    characterNames: coverHumanTravelers,
+  });
+  for (const lock of result.cover.equipment_locks) {
+    const appearance = resolveAppearanceEquipment({
+      equipmentStateIds: lock.equipment_state_ids,
+      characterName: lock.name,
+    });
+    result.cover.image_prompt = appendDirective(
+      result.cover.image_prompt,
+      equipmentDirective(result.language, lock.name, appearance.equipment),
+    );
   }
   return result;
 }

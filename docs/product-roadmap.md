@@ -2251,6 +2251,32 @@ commerce or credit rule, model-call allowance, acceptance relaxation,
 private-asset exposure or series-canon mutation. Focused verification is 60/60
 tests and complete repository verification is 829/829 tests passing.
 
+## V3 appearance and functional-equipment authority
+
+Wardrobe, identity and functional equipment are orthogonal contracts. An
+outfit describes garments, colors, footwear and stable visible design only; it
+must not embed a breathing, communication, vision or pressure mechanism. Those
+functions belong to the world-law equipment ledger. Customer-upload clothing
+is ordinary wardrobe evidence and never becomes universe equipment merely
+because it appears in an identity photo.
+
+Every visible wearer receives an exact equipment state with a quantity and one
+functional group. A functional group may have only one active device. In the
+coral-ocean universe the transparent breathing-and-communication bubble also
+provides clear vision and pressure protection, so goggles, diving masks,
+snorkels, another helmet or bubble, and a second breathing apparatus are
+mutually exclusive. These exclusions are compiled before image generation and
+verified from private evidence afterwards.
+
+The approved cover and every interior scene use the same resolver. Cover cast
+members who follow the adventure route receive the same equipment locks as
+their corresponding scene state; non-travelers do not inherit them. Legacy
+checkpoints whose outfit prose still contains a bubble, helmet or goggles are
+normalized at this authority boundary without changing narrative content,
+accepted pages, credits, commerce, private-asset policy or series canon.
+Focused verification passes 95/95 tests and complete repository verification
+passes 850/850 tests.
+
 ## V3 monotonic wardrobe-repair checkpoint
 
 A private wardrobe recomposition can make strict, measurable progress without

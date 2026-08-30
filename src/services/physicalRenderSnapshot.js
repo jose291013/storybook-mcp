@@ -3,6 +3,7 @@ import { physicalStateRenderRules } from "../contracts/scenePhysicalStateV1.js";
 import { cameraBoundaryRule, compileWorldPhysicalTopology } from "./worldPhysicalTopology.js";
 import { compileWorldFixedEntityRegistry } from "./worldFixedEntityRegistry.js";
 import { sceneStateBoundaryRenderRules } from "../contracts/sceneStateBoundaryV1.js";
+import { garmentOnlyDescription } from "./appearanceEquipmentResolver.js";
 
 export const PHYSICAL_RENDER_SNAPSHOT_VERSION = 4;
 
@@ -176,12 +177,8 @@ export function compilePhysicalRenderSnapshot({
 
 export function wardrobeForPhysicalSnapshot(outfit = "", owner = "", snapshot = null) {
   const equipment = list(snapshot?.equipment, 20).filter((item) => (
-    key(item?.owner) === key(owner) && item?.state !== "worn"
+    key(item?.owner) === key(owner)
   ));
   if (!equipment.length) return String(outfit || "").trim();
-  return String(outfit || "")
-    .replace(/\s+(?:and|with)\s+(?:the\s+)?(?:story-established\s+)?(?:transparent\s+)?(?:breathing(?:\s+and\s+communication)?\s+(?:bubble|mechanism)|bubble\s+or\s+helmet)[^,.;]*/giu, "")
-    .replace(/\s{2,}/g, " ")
-    .replace(/\s+([,.;])/g, "$1")
-    .trim();
+  return garmentOnlyDescription(outfit);
 }

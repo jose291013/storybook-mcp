@@ -7,19 +7,19 @@ const OUTFITS = {
     { id: "magical_botanist", prompt: "a leaf-green utility vest over a long-sleeve cream top, brown trousers and sturdy boots" },
   ],
   starry_space: [
-    { id: "space_explorer", prompt: "a navy and turquoise child-safe space suit, secured gloves and boots, with a transparent helmet whenever outside the protected cabin" },
+    { id: "space_explorer", prompt: "a navy and turquoise child-safe space suit with secured gloves and boots" },
     { id: "cosmic_pilot", prompt: "a deep-blue flight suit with coral piping, secured footwear and a compact safety belt" },
-    { id: "star_researcher", prompt: "a plum and silver research suit, practical boots and a transparent helmet whenever outside the protected cabin" },
+    { id: "star_researcher", prompt: "a plum and silver research suit with practical boots" },
   ],
   coral_ocean: [
-    { id: "reef_explorer", prompt: "a turquoise and coral full-body child-safe wetsuit with reef shoes and the story-established transparent breathing bubble or helmet" },
-    { id: "ocean_scientist", prompt: "a navy and aqua marine exploration suit, secured utility belt, reef shoes and the story-established breathing mechanism" },
-    { id: "aquatic_adventurer", prompt: "a streamlined teal aquatic suit with warm coral accents, flexible reef shoes and the story-established breathing mechanism" },
+    { id: "reef_explorer", prompt: "a turquoise and coral full-body child-safe wetsuit with reef shoes" },
+    { id: "ocean_scientist", prompt: "a navy and aqua marine exploration suit with a secured utility belt and reef shoes" },
+    { id: "aquatic_adventurer", prompt: "a streamlined teal aquatic suit with warm coral accents and flexible reef shoes" },
   ],
   cloud_castle: [
     { id: "sky_explorer", prompt: "a pale-blue windproof jacket, secured short cape, navy trousers and sturdy cloud-walking boots" },
     { id: "cloud_guardian", prompt: "a cream and gold practical tunic with a secured belt, soft blue trousers and ankle boots" },
-    { id: "airship_crew", prompt: "a teal flight suit, warm ochre utility vest, secured boots and protective goggles only when useful" },
+    { id: "airship_crew", prompt: "a teal flight suit, warm ochre utility vest and secured boots" },
   ],
   dinosaur_valley: [
     { id: "field_explorer", prompt: "a sand-colored long-sleeve field shirt, olive cargo trousers, sturdy walking boots and a soft sun hat" },
@@ -29,7 +29,7 @@ const OUTFITS = {
   wonder_city: [
     { id: "workshop_apprentice", prompt: "a teal rolled-sleeve top, rust workshop apron, navy trousers and sturdy closed shoes" },
     { id: "city_explorer", prompt: "a coral jacket, cream top, comfortable teal trousers and plain walking shoes" },
-    { id: "young_inventor", prompt: "a deep-green utility vest over a cream shirt, ochre trousers, sturdy boots and protective goggles only inside a workshop" },
+    { id: "young_inventor", prompt: "a deep-green utility vest over a cream shirt, ochre trousers and sturdy boots" },
   ],
 };
 
