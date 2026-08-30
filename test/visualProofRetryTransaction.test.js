@@ -93,3 +93,22 @@ test("the route commits the visual decision with the new job and only then close
   );
   assert.match(app, /visualProofStatus === "regenerating"[\s\S]*?generatePreviewForProject\(state\.projectId, visualProofAction\)/);
 });
+
+test("a failed project restores its preserved cover decision instead of posting an empty retry", async () => {
+  const [route, app] = await Promise.all([
+    fs.readFile("src/routes/preview.js", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
+  ]);
+
+  const recoveryProofGate = route.indexOf('if (visualProof?.status === "awaiting_approval")');
+  const recoveryStatusGate = route.indexOf('if (project.status !== "preview_generating")');
+  assert.ok(recoveryProofGate >= 0);
+  assert.ok(recoveryStatusGate > recoveryProofGate);
+  assert.match(route, /project\.status === "preview_failed"[\s\S]*?pendingVisualProof\?\.status === "awaiting_approval"/);
+  assert.match(route, /Boolean\(visualProofTransition\)[\s\S]*?technicalPreviewRetryAvailable/);
+
+  assert.match(app, /function showPersistedVisualProof\(project/);
+  assert.match(app, /\["preview_generating", "preview_failed"\]\.includes\(project\?\.status\)[\s\S]*?preview-recover/);
+  assert.match(app, /if \(recoveryResult\.visualProofRequired\)[\s\S]*?showPersistedVisualProof\(refreshedProject\)/);
+  assert.match(app, /\["preview_generating", "preview_failed"\]\.includes\(project\?\.status\)[\s\S]*?showPersistedVisualProof\(project, \{ scroll: false \}\)/);
+});

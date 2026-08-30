@@ -423,12 +423,16 @@ router.post("/projects/:id/preview-recover", async (req, res) => {
   if (!identity) return res.status(401).json({ error: "Authentication required" });
   const project = await projectStore.getForCustomer(String(req.params.id || ""), identity);
   if (!project) return res.status(404).json({ error: "Project not found" });
-  if (project.status !== "preview_generating") {
-    return res.json({ recovered: false, status: project.status, retryAvailable: technicalPreviewRetryAvailable(project) });
-  }
   const visualProof = generationCheckpoint(project)?.visualProof;
   if (visualProof?.status === "awaiting_approval") {
-    return res.json({ recovered: false, status: project.status, visualProofRequired: true, retryAvailable: false });
+    const preservedCover = project.previewResult?.coverPreviewUrl || project.previewResult?.coverImageUrl;
+    return res.json({
+      recovered: false,
+      status: project.status,
+      ...(preservedCover
+        ? { visualProofRequired: true, retryAvailable: false }
+        : { visualProofAction: "regenerate", retryAvailable: true }),
+    });
   }
   const visualProofAction = resumableVisualProofAction(visualProof);
   if (visualProofAction) {
@@ -438,6 +442,9 @@ router.post("/projects/:id/preview-recover", async (req, res) => {
       visualProofAction,
       retryAvailable: true,
     });
+  }
+  if (project.status !== "preview_generating") {
+    return res.json({ recovered: false, status: project.status, retryAvailable: technicalPreviewRetryAvailable(project) });
   }
   try {
     const recovered = await recoverAbandonedPreview({ project, identity });
@@ -585,12 +592,33 @@ router.post("/preview", async (req, res) => {
         code: "preview_interrupted",
       });
     }
-  } else if (project.status === "preview_failed" && resumableVisualProofAction(pendingVisualProof)) {
-    visualProofTransition = prepareVisualProofTransition({
-      visualProof: pendingVisualProof,
-      requestedAction: visualProofAction,
-      resume: true,
-    });
+  } else if (project.status === "preview_failed") {
+    if (pendingVisualProof?.status === "awaiting_approval") {
+      try {
+        visualProofTransition = prepareVisualProofTransition({
+          visualProof: pendingVisualProof,
+          requestedAction: visualProofAction,
+        });
+      } catch (error) {
+        console.warn("[preview] start rejected", JSON.stringify({
+          projectId,
+          status: project.status,
+          visualProofStatus: pendingVisualProof.status,
+          code: error?.code || "visual_proof_required",
+        }));
+        return res.status(409).json({
+          error: String(error?.message || error),
+          code: error?.code || "visual_proof_required",
+          visualProofRequired: true,
+        });
+      }
+    } else if (resumableVisualProofAction(pendingVisualProof)) {
+      visualProofTransition = prepareVisualProofTransition({
+        visualProof: pendingVisualProof,
+        requestedAction: visualProofAction,
+        resume: true,
+      });
+    }
   }
   if (project.status === "preview_ready" && project.previewResult) {
     return res.status(409).json({ error: "This draft has already been generated" });
@@ -656,7 +684,9 @@ router.post("/preview", async (req, res) => {
         priorRecovery: storedCausalRecovery,
       });
   const isTechnicalGenerationRetry = Boolean(existingCheckpoint)
-    && (technicalPreviewRetryAvailable(project) || preparedCausalRecovery?.available === true);
+    && (Boolean(visualProofTransition)
+      || technicalPreviewRetryAvailable(project)
+      || preparedCausalRecovery?.available === true);
   const causalRecoveryRun = isTechnicalGenerationRetry && preparedCausalRecovery?.available === true
     ? consumePreviewCausalRecovery(preparedCausalRecovery)
     : null;

@@ -2375,6 +2375,23 @@ resume. This checkpoint adds no migration, environment variable, commerce or
 credit change, private-data exposure, extra routine model call, or series-canon
 mutation.
 
+## Preview resume state machine
+
+The cover-proof decision remains authoritative even when a later technical
+failure changes the project status to `preview_failed`. Project restoration and
+the free-retry action first inspect the durable visual-proof state: a preserved
+cover awaiting approval reopens the customer decision, while an absent cover
+selects bounded regeneration. Approved and regenerating decisions resume
+idempotently from either failed or generating project status.
+
+The server accepts only an explicit approve/regenerate transition and treats it
+as continuation of the existing technical transaction. It does not reserve a
+second credit or consume another customer cover attempt. The client consumes
+the structured recovery response and displays the real refusal when another
+gate blocks startup, so a safety-authority trace can no longer masquerade as a
+started generation. This changes no schema, environment variable, generation
+allowance, commerce rule, private-asset policy or series canon.
+
 ## Resume prompt for a new Codex task
 
 > Continue the Storybook MCP project from `docs/product-roadmap.md` and `AGENTS.md`. Inspect Git status and open PRs first. Preserve `data/jobs.json`. Continue the first incomplete delivery phase, run tests, then publish a focused draft PR.
