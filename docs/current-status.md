@@ -8,8 +8,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/resilient-page-repair-queue`
-- Main checkpoint: PR #300 (preview resume state machine), after PR #299 (transactional cover-proof retry)
+- Current branch: `main`
+- Main checkpoint: PR #301 (resilient per-page preview repair queue), after PR #300 (preview resume state machine)
 - Completed storefront brick: book format and pricing V1
 - Current focused checkpoint: resilient per-page preview repair queue. Provider-safety gaps and strict V3 quarantines are aggregated into one durable, non-sensitive queue; accepted pages remain immutable, the UI reports the exact completed/total count plus pending page numbers, and one eligible causal continuation starts automatically when the browser remains open. The next live verification is project `de94edbb-63bb-4966-bc31-bc325bceed78`: its accepted 33/36 pages must be preserved while only pages 8, 11 and 35 remain repair targets, with `[preview] resilient page repair queued` followed by one bounded causal continuation rather than a generic whole-book reconstruction.
 - Migration hotfix: PR #234
@@ -18,7 +18,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: resilient per-page preview repair queue
+## Completed brick: resilient per-page preview repair queue
 
 The final illustration sweep now compiles provider-safety gaps and strict V3
 quality quarantines into one versioned checkpoint. It stores page numbers,
