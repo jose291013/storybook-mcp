@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 
 import { buildFinalPrompt } from "../src/services/imageRunner.js";
 import {
+  providerSafeFinalNeedsFoundation,
+  providerSafeFoundationDecision,
+  providerSafeFoundationPrompt,
   providerSafeFinishingPrompt,
   providerSafePositiveCorrectionPrompt,
 } from "../src/services/imageQualityGate.js";
@@ -145,4 +148,36 @@ test("positive correction compiler accepts codes rather than raw provider-sensit
   assert.match(prompt, /declared location on the declared side/i);
   assert.match(prompt, /Apply each identity reference/i);
   assert.doesNotMatch(prompt, /unknown_raw_error|sensitive_words/i);
+});
+
+test("structure-first foundation maps visible defects to bounded positive codes", () => {
+  const decision = providerSafeFoundationDecision({
+    technicalInspection: { approved: true, issues: [] },
+    sceneInspection: {
+      approved: false,
+      issues: [
+        "Physical environment is wrong: the people are dry instead of underwater.",
+        "Landmark location is wrong: the passage boundary is not respected.",
+        "The main action has the wrong subject.",
+      ],
+    },
+  });
+
+  assert.equal(decision.approved, false);
+  assert.deepEqual(decision.issueCodes, [
+    "wrong_physical_medium",
+    "wrong_location_or_boundary",
+    "main_action_mismatch",
+  ]);
+  const prompt = providerSafeFoundationPrompt("MINIMAL CONTRACT", decision.issueCodes);
+  assert.match(prompt, /create a fresh complete composition/i);
+  assert.match(prompt, /Fill the complete camera environment/i);
+  assert.match(prompt, /declared side of the passage boundary/i);
+  assert.doesNotMatch(prompt, /people are dry|not respected|wrong subject/i);
+});
+
+test("structural final failures restart from the approved foundation while wardrobe and style remain local", () => {
+  assert.equal(providerSafeFinalNeedsFoundation(["wrong_physical_medium"]), true);
+  assert.equal(providerSafeFinalNeedsFoundation(["main_action_mismatch", "wardrobe_state_mismatch"]), true);
+  assert.equal(providerSafeFinalNeedsFoundation(["wardrobe_state_mismatch", "style_continuity_mismatch"]), false);
 });

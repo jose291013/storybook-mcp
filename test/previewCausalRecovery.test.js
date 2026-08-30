@@ -40,7 +40,7 @@ test("causal recovery compiles distinct page strategies without customer prose",
 
   assert.equal(recovery.available, true);
   assert.deepEqual(recovery.pages.map((page) => page.pageNumber), [8, 11]);
-  assert.deepEqual(previewCausalRecoveryPage(recovery, 8).strategies, ["provider_safe_two_pass_finishing"]);
+  assert.deepEqual(previewCausalRecoveryPage(recovery, 8).strategies, ["provider_safe_structure_first"]);
   assert.deepEqual(previewCausalRecoveryPage(recovery, 11).strategies, [
     "canonical_scene_recompose",
     "wardrobe_reference_isolation",
@@ -213,7 +213,7 @@ test("provider recovery removes all source pixels and selects the minimal projec
     { kind: "continuity", storageKey: "cover" },
     { kind: "identity", storageKey: "child-photo" },
   ], page), []);
-  assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /PROVIDER-SAFE TWO-PASS FINISHING V1/);
+  assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /PROVIDER-SAFE STRUCTURE-FIRST V1/);
   assert.match(causalRecoveryPrompt("BASE CONTRACT", page), /BASE CONTRACT/);
   const once = causalRecoveryPrompt("BASE CONTRACT", page);
   assert.equal(causalRecoveryPrompt(once, page), once);

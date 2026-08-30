@@ -81,6 +81,7 @@ const SCENE_CAST_ASSERTION_CODES = new Set([
 ]);
 
 const PROVIDER_SAFE_POSITIVE_CORRECTIONS = Object.freeze({
+  corrupted_asset: "Produce one complete coherent image with no blank, truncated or corrupted region.",
   wardrobe_state_mismatch: "Dress every traveler in the exact declared outfit state and garment category.",
   equipment_state_mismatch: "Show the exact declared functional equipment once on its declared traveler.",
   wrong_physical_medium: "Fill the complete camera environment with the declared physical medium and use its declared movement and posture.",
@@ -95,6 +96,54 @@ const PROVIDER_SAFE_POSITIVE_CORRECTIONS = Object.freeze({
   style_continuity_mismatch: "Apply the approved artistic medium consistently across the entire scene.",
 });
 
+export const PROVIDER_SAFE_FOUNDATION_REVIEW_CODES = Object.freeze([
+  "required_cast_missing",
+  "identity_duplicate",
+  "identity_fusion",
+  "identity_substitution",
+  "forbidden_element",
+  "wrong_physical_environment",
+  "conditional_equipment_state",
+  "conditional_equipment_duplicate",
+  "wardrobe_state_mismatch",
+  "multi_phase_composite",
+  "unique_landmark_duplicate",
+  "landmark_wrong_location",
+  "object_state",
+  "main_action",
+]);
+
+const PROVIDER_SAFE_FOUNDATION_CODE_MAP = Object.freeze({
+  technical_integrity: "corrupted_asset",
+  required_cast_missing: "identity_cardinality_mismatch",
+  identity_duplicate: "duplicated_required_identity",
+  identity_fusion: "identity_cardinality_mismatch",
+  identity_substitution: "identity_cardinality_mismatch",
+  forbidden_element: "forbidden_character_present",
+  wrong_physical_environment: "wrong_physical_medium",
+  conditional_equipment_state: "equipment_state_mismatch",
+  conditional_equipment_duplicate: "equipment_state_mismatch",
+  wardrobe_state_mismatch: "wardrobe_state_mismatch",
+  multi_phase_composite: "main_action_mismatch",
+  unique_landmark_duplicate: "landmark_cardinality_mismatch",
+  landmark_wrong_location: "wrong_location_or_boundary",
+  object_state: "object_state_mismatch",
+  main_action: "main_action_mismatch",
+});
+
+const PROVIDER_SAFE_FINAL_STRUCTURE_CODES = new Set([
+  "corrupted_asset",
+  "duplicated_required_identity",
+  "identity_cardinality_mismatch",
+  "forbidden_character_present",
+  "equipment_state_mismatch",
+  "wrong_physical_medium",
+  "wrong_location_or_boundary",
+  "main_action_mismatch",
+  "object_state_mismatch",
+  "landmark_cardinality_mismatch",
+]);
+
 export function providerSafePositiveCorrectionPrompt(issueCodes = []) {
   const directives = [...new Set((Array.isArray(issueCodes) ? issueCodes : [])
     .map((code) => PROVIDER_SAFE_POSITIVE_CORRECTIONS[String(code || "").trim()])
@@ -106,6 +155,41 @@ export function providerSafePositiveCorrectionPrompt(issueCodes = []) {
 
 export function providerSafeFinishingPrompt(basePrompt, issueCodes = []) {
   return `${String(basePrompt || "").trim()}\n\nPRIVATE TWO-PASS FINISHING V1: keep the supplied scene foundation as the exact composition and apply the private identity, outfit and artistic-medium references only to their declared roles.${providerSafePositiveCorrectionPrompt(issueCodes)}`.trim();
+}
+
+export function providerSafeFoundationPrompt(basePrompt, issueCodes = []) {
+  return `${String(basePrompt || "").trim()}\n\nPROVIDER-SAFE STRUCTURAL FOUNDATION RECOMPOSITION V1: create a fresh complete composition from the minimal scene contract. Do not preserve or imitate pixels from an earlier attempt.${providerSafePositiveCorrectionPrompt(issueCodes)}`.trim();
+}
+
+export function providerSafeFoundationDecision({
+  technicalInspection = { approved: true, issues: [] },
+  sceneInspection = { approved: true, issues: [] },
+} = {}) {
+  const technicalIssues = technicalInspection?.approved === true
+    ? []
+    : (Array.isArray(technicalInspection?.issues) ? technicalInspection.issues : []);
+  const sceneIssues = sceneInspection?.approved === true
+    ? []
+    : (Array.isArray(sceneInspection?.issues) ? sceneInspection.issues : []);
+  const legacyCodes = [
+    ...classifyVisualIssues(technicalIssues, { source: "technical" }),
+    ...classifyVisualIssues(sceneIssues, { source: "scene" }),
+  ].map((classification) => classification.code);
+  const issueCodes = [...new Set(legacyCodes
+    .map((code) => PROVIDER_SAFE_FOUNDATION_CODE_MAP[code])
+    .filter(Boolean))];
+  return {
+    approved: technicalInspection?.approved === true
+      && sceneInspection?.approved === true
+      && issueCodes.length === 0,
+    issues: [...technicalIssues, ...sceneIssues],
+    issueCodes,
+  };
+}
+
+export function providerSafeFinalNeedsFoundation(issueCodes = []) {
+  return (Array.isArray(issueCodes) ? issueCodes : [])
+    .some((code) => PROVIDER_SAFE_FINAL_STRUCTURE_CODES.has(String(code || "").trim()));
 }
 const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "identity_duplicate",
@@ -1500,16 +1584,128 @@ export async function generateQualityCheckedImage({
   const evidenceReferenceImages = Array.isArray(qualityReferenceImages)
     ? qualityReferenceImages
     : (generationOptions.referenceImages || []);
-  const providerSafetyTwoPass = generationOptions.providerSafetyMinimal === true;
+  const providerSafetyStructureFirst = generationOptions.providerSafetyMinimal === true;
   let previousIssues = [];
   let previousIssueCodes = [];
   let previousRejectionKind = "technical";
   let safetyFallbackStage = normalizeImageSafetyFallbackStage(initialSafetyFallbackStage);
   let visualReferencePolicyStage = VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE;
-  let attemptLimit = providerSafetyTwoPass ? Math.min(2, maximumAttempts) : maximumAttempts;
+  let attemptLimit = providerSafetyStructureFirst ? Math.min(2, maximumAttempts) : maximumAttempts;
   let lastCandidateImageUrl = "";
   let providerSafeScaffoldUrl = "";
   let lastRepairPolicy = null;
+  if (providerSafetyStructureFirst) {
+    const foundationAttemptLimit = 2;
+    const baseFoundationPrompt = safetyFallbackPrompt || prompt;
+    let foundationCorrectionCodes = [];
+    let foundationFailure = { issues: [], issueCodes: [], candidateImageUrl: "" };
+    for (let foundationAttempt = 1; foundationAttempt <= foundationAttemptLimit; foundationAttempt += 1) {
+      onAttempt?.({
+        phase: "foundation-started",
+        attempt: foundationAttempt,
+        maximumAttempts: foundationAttemptLimit,
+        pageLabel,
+        model: generationOptions.model || process.env.IMAGE_MODEL || "gpt-image-2",
+        safetyFallback: true,
+        safetyFallbackStage: IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY,
+        referencePolicyStage: "structure_only",
+        referenceKinds: [],
+      });
+      let foundationUrl = "";
+      try {
+        foundationUrl = await generateImage({
+          ...generationOptions,
+          referenceImages: [],
+          prompt: providerSafeFoundationPrompt(baseFoundationPrompt, foundationCorrectionCodes),
+          outName: `${generationOptions.outName || "image"}-foundation-attempt${foundationAttempt}`,
+        });
+      } catch (error) {
+        onAttempt?.({
+          phase: "foundation-failed",
+          attempt: foundationAttempt,
+          maximumAttempts: foundationAttemptLimit,
+          pageLabel,
+          error: String(error?.message || error),
+        });
+        if (isImageSafetyRejection(error)) {
+          if (foundationAttempt < foundationAttemptLimit) continue;
+          throw new IllustrationSafetyQuarantineError({ attemptCount: foundationAttempt });
+        }
+        if (foundationAttempt < foundationAttemptLimit && isTransientImageGenerationError(error)) continue;
+        throw error;
+      }
+      foundationFailure.candidateImageUrl = foundationUrl;
+      onAttempt?.({
+        phase: "foundation-generated",
+        attempt: foundationAttempt,
+        maximumAttempts: foundationAttemptLimit,
+        pageLabel,
+      });
+      let technicalInspection;
+      try {
+        technicalInspection = await inspectGeneratedIllustration({
+          imagePath: outputImagePath(foundationUrl),
+          pageLabel: `${pageLabel} structural foundation`,
+          sceneContract: sceneFidelityContract,
+        });
+      } catch (error) {
+        if (!isTransientOpenAIError(error)) throw error;
+        technicalInspection = { approved: true, issues: [], warning: String(error?.message || error) };
+      }
+      let sceneInspection = { approved: false, issues: ["The structural foundation could not be verified."] };
+      if (technicalInspection.approved) {
+        try {
+          sceneInspection = await inspectSceneFidelity({
+            imagePath: outputImagePath(foundationUrl),
+            sceneContract: sceneFidelityContract,
+            pageLabel: `${pageLabel} structural foundation`,
+            issueScope: PROVIDER_SAFE_FOUNDATION_REVIEW_CODES,
+          });
+        } catch (error) {
+          // Final strict V3 verification remains authoritative. A temporary
+          // foundation-QA outage must not destroy a page that can still pass it.
+          if (!isTransientOpenAIError(error)) throw error;
+          sceneInspection = { approved: true, issues: [], warning: String(error?.message || error) };
+        }
+      }
+      const foundationDecision = providerSafeFoundationDecision({
+        technicalInspection,
+        sceneInspection,
+      });
+      if (foundationDecision.approved) {
+        providerSafeScaffoldUrl = foundationUrl;
+        onAttempt?.({
+          phase: "foundation-approved",
+          attempt: foundationAttempt,
+          maximumAttempts: foundationAttemptLimit,
+          pageLabel,
+        });
+        break;
+      }
+      foundationFailure = {
+        candidateImageUrl: foundationUrl,
+        issues: foundationDecision.issues,
+        issueCodes: foundationDecision.issueCodes,
+      };
+      foundationCorrectionCodes = foundationDecision.issueCodes;
+      onAttempt?.({
+        phase: "foundation-rejected",
+        attempt: foundationAttempt,
+        maximumAttempts: foundationAttemptLimit,
+        pageLabel,
+        issues: foundationDecision.issues,
+        issueCodes: foundationDecision.issueCodes,
+      });
+    }
+    if (!providerSafeScaffoldUrl) {
+      throw new IllustrationQualityError({
+        candidateImageUrl: foundationFailure.candidateImageUrl,
+        rejectionKind: "scene",
+        issues: foundationFailure.issues,
+        attemptCount: foundationAttemptLimit,
+      });
+    }
+  }
   for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
     const semanticReferences = referencesForVisualPolicy(
       generationOptions.referenceImages,
@@ -1538,7 +1734,7 @@ export async function generateQualityCheckedImage({
       lastRepairPolicy,
       referenceImagesForAttempt,
     );
-    const repairNote = !providerSafetyTwoPass && previousIssues.length
+    const repairNote = !providerSafetyStructureFirst && previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
         : previousRejectionKind === "identity"
@@ -1549,24 +1745,12 @@ export async function generateQualityCheckedImage({
       : "";
     try {
       let imageUrl;
-      if (providerSafetyTwoPass) {
-        const sceneFoundationUrl = attempt === 1 || (!lastCandidateImageUrl && !providerSafeScaffoldUrl)
-          ? await generateImage({
-              ...generationOptions,
-              referenceImages: [],
-              prompt: safetyFallbackPrompt || prompt,
-              outName: `${generationOptions.outName || "image"}-scaffold-attempt${attempt}`,
-            })
-          : lastCandidateImageUrl || providerSafeScaffoldUrl;
-        providerSafeScaffoldUrl = sceneFoundationUrl;
-        if (attempt === 1) {
-          onAttempt?.({
-            phase: "scaffold-generated",
-            attempt,
-            maximumAttempts: attemptLimit,
-            pageLabel,
-          });
-        }
+      if (providerSafetyStructureFirst) {
+        const sceneFoundationUrl = attempt === 1
+          || providerSafeFinalNeedsFoundation(previousIssueCodes)
+          || !lastCandidateImageUrl
+          ? providerSafeScaffoldUrl
+          : lastCandidateImageUrl;
         const finishingStage = visualReferencePolicyStage === VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE
           ? VISUAL_REFERENCE_POLICY_STAGES.STYLE_IDENTITY
           : visualReferencePolicyStage;
@@ -1857,7 +2041,7 @@ export async function generateQualityCheckedImage({
       if (nextReferencePolicyStage) {
         visualReferencePolicyStage = nextReferencePolicyStage;
       }
-      const quarantineImmediately = providerSafetyTwoPass
+      const quarantineImmediately = providerSafetyStructureFirst
         ? false
         : strictV3EvidenceRequired
         ? strictRetryPolicy?.strategy?.mode === "targeted_repair"
@@ -1899,7 +2083,7 @@ export async function generateQualityCheckedImage({
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts: attemptLimit, pageLabel, error: String(error?.message || error) });
       if (isImageSafetyRejection(error)) {
-        if (providerSafetyTwoPass && attempt < attemptLimit) {
+        if (providerSafetyStructureFirst && attempt < attemptLimit) {
           visualReferencePolicyStage = VISUAL_REFERENCE_POLICY_STAGES.CONTRACT_IDENTITY;
           previousRejectionKind = "technical";
           previousIssues = [];

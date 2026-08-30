@@ -1287,7 +1287,7 @@ test("provider safety fallback removes risky pixels monotonically and ends in pr
     fs.readFile("src/services/imageQualityGate.js", "utf8"),
     fs.readFile("public/app.js", "utf8"),
   ]);
-  assert.match(qualityGate, /let attemptLimit = providerSafetyTwoPass \? Math\.min\(2, maximumAttempts\) : maximumAttempts/);
+  assert.match(qualityGate, /let attemptLimit = providerSafetyStructureFirst \? Math\.min\(2, maximumAttempts\) : maximumAttempts/);
   assert.match(qualityGate, /if \(attempt === attemptLimit\) attemptLimit \+= 1/);
   assert.match(qualityGate, /IMAGE_SAFETY_FALLBACK_STAGES\.CONTINUITY_ONLY/);
   assert.match(qualityGate, /IMAGE_SAFETY_FALLBACK_STAGES\.CONTRACT_ONLY/);
