@@ -353,6 +353,7 @@ function reportImageAttempt(jobId, stepPrefix) {
     maximumAttempts,
     error = "",
     issues = [],
+    issueCodes = [],
     model = "",
     safetyFallback = false,
     safetyFallbackStage = "",
@@ -373,6 +374,7 @@ function reportImageAttempt(jobId, stepPrefix) {
       wardrobeDiagnostics: wardrobeDiagnostics || undefined,
       error: error || undefined,
       issues: issues.length ? issues : undefined,
+      issueCodes: issueCodes.length ? issueCodes : undefined,
     }));
   };
 }
@@ -2271,6 +2273,7 @@ router.post("/preview", async (req, res) => {
         const providerSafeProjection = pageRecovery?.strategies?.some((strategy) => [
           "provider_safe_minimal_projection",
           "provider_safe_two_pass_finishing",
+          "provider_safe_structure_first",
         ].includes(strategy))
           ? buildProviderSafeImageProjection({
               sceneFidelityContract: sceneContinuity.sceneFidelityContract,
@@ -2373,6 +2376,7 @@ router.post("/preview", async (req, res) => {
                 "provider_safe_reexpression",
                 "provider_safe_minimal_projection",
                 "provider_safe_two_pass_finishing",
+                "provider_safe_structure_first",
               ].includes(strategy))
                 ? IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY
                 : IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES,
@@ -2431,18 +2435,21 @@ router.post("/preview", async (req, res) => {
               qualityIssueCodes = Array.isArray(error.issueCodes) && error.issueCodes.length
                 ? error.issueCodes
                 : qualityRepairPolicy.targetCodes;
-              const providerSafeTwoPassPage = pageRecovery?.strategies?.includes("provider_safe_two_pass_finishing") === true;
+              const providerSafeBoundedPage = pageRecovery?.strategies?.some((strategy) => [
+                "provider_safe_two_pass_finishing",
+                "provider_safe_structure_first",
+              ].includes(strategy)) === true;
               console.warn("[preview] page quarantined for repair", JSON.stringify({
                 jobId: job.id,
                 projectId,
                 pageNumber: page.page_number,
                 rejectionKind: qualityKind,
                 issueCodes: qualityIssueCodes,
-                automaticRepair: providerSafeTwoPassPage ? false : qualityRepairPolicy.automaticRepair,
+                automaticRepair: providerSafeBoundedPage ? false : qualityRepairPolicy.automaticRepair,
                 wardrobeTargets: qualityRepairPolicy.wardrobeTargets || [],
                 wardrobeDiagnostics: qualityRepairPolicy.wardrobeDiagnostics || undefined,
               }));
-              qualityStatus = providerSafeTwoPassPage
+              qualityStatus = providerSafeBoundedPage
                 ? "strict_quarantined"
                 : qualityRepairPolicy.automaticRepair
                 ? "repair_pending"

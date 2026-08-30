@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 8;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 9;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
 
 function text(value) {
@@ -60,7 +60,7 @@ function recoveryPage({
 }) {
   const codes = unique(issueCodes);
   const strategies = unique([
-    providerSafety ? "provider_safe_two_pass_finishing" : "",
+    providerSafety ? "provider_safe_structure_first" : "",
     codes.includes("wardrobe_state_mismatch") ? "wardrobe_reference_isolation" : "",
     monotonicTargetedEdit ? "monotonic_targeted_edit" : "",
     !providerSafety && !monotonicTargetedEdit ? "canonical_scene_recompose" : "",
@@ -104,6 +104,7 @@ export function buildPreviewCausalRecovery({ previewResult = {}, priorRecovery =
         "provider_safe_reexpression",
         "provider_safe_minimal_projection",
         "provider_safe_two_pass_finishing",
+        "provider_safe_structure_first",
       ].includes(strategy)) === true,
       monotonicTargetedEdit: page?.qualityRepairPolicy?.monotonicProgress?.eligibleForTargetedEdit === true,
     }));
@@ -245,6 +246,7 @@ export function causalRecoveryReferences(references = [], pageRecovery = null) {
     "provider_safe_reexpression",
     "provider_safe_minimal_projection",
     "provider_safe_two_pass_finishing",
+    "provider_safe_structure_first",
   ].includes(strategy))) return [];
   if (!pageRecovery.strategies?.includes("wardrobe_reference_isolation")) return source;
   const monotonicTargetedEdit = pageRecovery.strategies?.includes("monotonic_targeted_edit") === true;
@@ -282,6 +284,10 @@ Create a fresh, calm, non-threatening children's-book composition from the immut
   if (pageRecovery.strategies?.includes("provider_safe_two_pass_finishing")
     && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — PROVIDER-SAFE TWO-PASS FINISHING V1:")) {
     directives.push("CAUSAL RECOVERY MODE — PROVIDER-SAFE TWO-PASS FINISHING V1: first build the allowlisted pseudonymous scene foundation, then apply private identity, outfit and artistic-medium authorities in a separate positive-only finishing edit. Keep the same exact visible instant and do not add another event.");
+  }
+  if (pageRecovery.strategies?.includes("provider_safe_structure_first")
+    && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — PROVIDER-SAFE STRUCTURE-FIRST V1:")) {
+    directives.push("CAUSAL RECOVERY MODE — PROVIDER-SAFE STRUCTURE-FIRST V1: validate the reference-free physical foundation before any private visual finishing. Recompose a failed foundation without its pixels. After structural approval, apply identity, outfit and artistic-medium authorities without changing the approved instant.");
   }
   if (pageRecovery.strategies?.includes("wardrobe_reference_isolation")
     && !normalizedBasePrompt.includes("CAUSAL RECOVERY MODE — WARDROBE-ISOLATED RECOMPOSITION V2:")) {

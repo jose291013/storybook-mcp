@@ -1,6 +1,30 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-30
+Last updated: 2026-08-31
+
+## Provider-safe structure-first illustration finishing
+
+Recovery version 9 and retry policy 45 separate physical-scene construction
+from private appearance finishing. A reference-free pseudonymous foundation is
+checked first against the immutable scene authority for technical integrity,
+exact cast, forbidden cast, broad wardrobe mode, equipment, physical medium,
+causal phase, passage boundary, main action, objects and landmarks. Identity
+likeness and artistic-medium continuity are intentionally deferred because
+their private references are not present yet.
+
+A failed foundation is never used as an edit source. One fresh recomposition
+may receive only positive deterministic directives compiled from bounded issue
+codes. Once the foundation passes, private identity, wardrobe and style
+authorities are applied in a distinct finishing edit. A later structural
+regression restarts finishing from the approved foundation; only appearance-
+local wardrobe or style defects may edit the finished candidate itself.
+
+The exceptional provider-safe recovery spends at most two foundation images
+and two finished images on the one isolated page. Existing accepted pages stay
+immutable. Full strict V3 evidence remains mandatory, and exhaustion returns
+the page to the durable private queue. This adds no migration, environment
+variable, commerce, credit, expiry, private-asset exposure, QA relaxation or
+series-canon mutation.
 
 ## Provider-safe two-pass illustration finishing
 
