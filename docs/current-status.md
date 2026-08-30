@@ -8,17 +8,17 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/provider-safe-alternate-beat`
-- Main checkpoint: PR #301 (resilient per-page preview repair queue), after PR #300 (preview resume state machine)
+- Current branch: `main`
+- Main checkpoint: PR #304 (provider-safe minimal illustration projection), after PR #301 (resilient per-page preview repair queue)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: provider-safe minimal illustration projection candidate. Project `de94edbb-63bb-4966-bc31-bc325bceed78` already preserves 35/36 accepted pages; only page 8 remains blocked by provider request `req_3289cb8d6e7e4dffb6c98557b90373dc`. Recovery version 7 / retry policy 43 must retry only page 8 with `provider_safe_minimal_projection`, no reference pixels, photo fingerprints, customer names or reader prose, while the complete immutable scene contract and private references remain the post-generation QA authority.
+- Current focused checkpoint: provider-safe minimal illustration projection. Project `de94edbb-63bb-4966-bc31-bc325bceed78` already preserves 35/36 accepted pages; only page 8 remains blocked by provider request `req_3289cb8d6e7e4dffb6c98557b90373dc`. Recovery version 7 / retry policy 43 must retry only page 8 with `provider_safe_minimal_projection`, no reference pixels, photo fingerprints, customer names or reader prose, while the complete immutable scene contract and private references remain the post-generation QA authority.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: provider-safe minimal illustration projection
+## Completed brick: provider-safe minimal illustration projection
 
 One provider-rejected page now receives a genuinely smaller generation request
 instead of the previous full contract repeated without image references. The
