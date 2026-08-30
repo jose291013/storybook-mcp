@@ -1618,22 +1618,6 @@ router.post("/preview", async (req, res) => {
             authority: safetyAuthority,
             pageTexts: Object.fromEntries(draftTextByPage),
             storyScenePlan,
-            assess: async ({ text, pageNumber }) => guardChildSafety({
-              text,
-              childAge: Number(project.questionnaire?.age),
-              locale: project.locale,
-              scope: pageNumber
-                ? `generated_manuscript_conformance_page_${pageNumber}`
-                : "generated_manuscript_conformance",
-            }, {
-              onTrace: (trace) => console.info("child-safety assessed", trace),
-              onError: (error) => console.warn("child-safety deterministic fallback", {
-                scope: pageNumber
-                  ? `generated_manuscript_conformance_page_${pageNumber}`
-                  : "generated_manuscript_conformance",
-                error: String(error?.message || error),
-              }),
-            }),
             repair: async ({ attempt, approvedSafety, pages, priorFailure }) => {
               updateJob(job.id, { step: `draft:manuscript:safety-conformance:${attempt}` });
               await updateGenerationRun(job.id, {

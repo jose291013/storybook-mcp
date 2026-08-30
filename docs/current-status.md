@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-sealed-safety-conformance`
+- Current branch: `codex/v3-sealed-safety-deterministic-conformance`
 - Main checkpoint: PR #296 (sealed V3 safety authority), after PR #295 (adaptive V3 illustration quality controller)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: sealed V3 child-safety authority and generated-manuscript conformance. Child-safety remains customer-facing only before scenario approval; approval now seals the structured safety profile into the digest-bound V3 approval. Generated prose is checked only for AI-introduced drift, receives one private page-local repair when needed, and otherwise fails technically without reclassifying the customer's approved intent as a disclosure. Legacy entry-point enforcement and modification safety remain unchanged. Retry policy 41 gives the currently interrupted preview one bounded resume. The next live verification is one approved protective-education story: no `child_safety_support_required` may occur after scenario approval, while genuinely unsafe generated drift must remain private.
+- Current focused checkpoint: deterministic sealed V3 child-safety conformance. Scenario approval is the last semantic interpretation of the customer's situation. Strict V3 generated prose no longer enters the hybrid disclosure classifier; only explicit high-confidence deterministic drift can trigger one private page-local repair. Ambiguous fictional wording inherits the sealed approved authority and cannot block cover generation. Legacy entry-point enforcement and modification safety remain unchanged. Retry policy 42 gives policy-41 failures one bounded resume. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: retry must pass manuscript conformance and reach cover generation without a generated-manuscript classifier trace.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`

@@ -2319,6 +2319,25 @@ This checkpoint adds no database migration, environment variable, commerce or
 credit change, customer-data exposure, model-call allowance outside the single
 exceptional repair, or series-canon mutation.
 
+## Deterministic sealed V3 safety conformance
+
+Scenario approval is now literally the final semantic interpretation of the
+customer's situation. Strict V3 generated prose is never submitted to the
+hybrid child-disclosure classifier, whose customer-input semantics can mistake
+fictional first-person or emotional prose for a real disclosure. Post-approval
+conformance consumes only the sealed, digest-bound scenario authority and a
+deterministic drift guard.
+
+The guard may open one private page-local repair only for an explicit,
+high-confidence prohibited pattern. Medium-confidence or ambiguous wording is
+not a new safety decision and remains allowed under the approved scenario.
+Explicit exploitative or disclosure drift still remains private and must be
+repaired without changing cast, chronology, objects, physics, wardrobe,
+message or word range. Retry policy 42 grants policy-41 failures one bounded
+resume. This checkpoint adds no migration, environment variable, commerce or
+credit change, private-data exposure, extra routine model call, or series-canon
+mutation.
+
 ## Resume prompt for a new Codex task
 
 > Continue the Storybook MCP project from `docs/product-roadmap.md` and `AGENTS.md`. Inspect Git status and open PRs first. Preserve `data/jobs.json`. Continue the first incomplete delivery phase, run tests, then publish a focused draft PR.

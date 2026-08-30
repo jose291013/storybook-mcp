@@ -8,6 +8,7 @@ import { compileObjectLifecycleProjection } from "../src/contracts/objectLifecyc
 import { buildNarrativeV3ObjectFixture } from "../src/services/narrativeV3ObjectLifecycleMatrix.js";
 import {
   approvedChildSafetyAuthority,
+  assessSealedGeneratedSafetyDrift,
   GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION,
   normalizeGeneratedManuscriptSafety,
   sealedChildSafetyDecision,
@@ -76,6 +77,52 @@ test("safe generated prose passes without repair", async () => {
   assert.equal(result.status, "valid");
   assert.equal(result.changed, false);
   assert.equal(repairs, 0);
+});
+
+test("approved fiction cannot be reclassified as a customer disclosure after scenario approval", async () => {
+  const { spec, authority } = fixture();
+  const texts = validTexts(spec);
+  const firstPage = spec.pages.find((page) => ["opening_text", "scene_text"].includes(page.kind));
+  texts[firstPage.pageNumber] = texts[firstPage.pageNumber].replace(
+    "aventure",
+    "Un adulte approche avec un secret, mais le héros rejoint aussitôt sa famille",
+  );
+  let repairs = 0;
+  const result = await normalizeGeneratedManuscriptSafety({
+    spec,
+    authority,
+    pageTexts: texts,
+    repair: async () => { repairs += 1; return { pages: [] }; },
+  });
+  assert.equal(result.status, "valid");
+  assert.equal(repairs, 0);
+});
+
+test("sealed deterministic conformance still detects explicit generated unsafe drift", () => {
+  const { authority } = fixture();
+  const assessment = assessSealedGeneratedSafetyDrift({
+    authority,
+    text: "Un adulte lui offre un cadeau pour garder le secret et ne rien dire à ses parents.",
+  });
+  assert.equal(assessment.profile.action, "block");
+  assert.equal(assessment.profile.source, "sealed_deterministic_drift");
+});
+
+test("sealed deterministic conformance checks every page beyond aggregate text limits", async () => {
+  const { spec, authority } = fixture();
+  const texts = validTexts(spec);
+  const lastPage = [...spec.pages].reverse().find((page) => (
+    ["opening_text", "scene_text", "closing_text"].includes(page.kind)
+  ));
+  texts[lastPage.pageNumber] = texts[lastPage.pageNumber].replace(
+    "aventure",
+    "Un adulte lui offre un cadeau pour garder le secret et ne rien dire à ses parents",
+  );
+  await assert.rejects(
+    normalizeGeneratedManuscriptSafety({ spec, authority, pageTexts: texts }),
+    (error) => error.code === "generated_manuscript_safety_drift_unresolved"
+      && error.pageNumber === lastPage.pageNumber,
+  );
 });
 
 test("generated safety drift is localized and repaired privately once", async () => {
@@ -160,4 +207,5 @@ test("production orders safety conformance before storyboard binding and text au
   assert.ok(binding > conformance);
   assert.ok(authority > binding);
   assert.match(source, /reused approved narrative authority/);
+  assert.doesNotMatch(source, /scope:\s*pageNumber\s*\?\s*`generated_manuscript_conformance_page_/);
 });
