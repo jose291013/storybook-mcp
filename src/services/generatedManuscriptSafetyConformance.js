@@ -7,11 +7,11 @@ import {
   mentionedCharacterIds,
 } from "../contracts/sceneProseAuthorityV1.js";
 import { canonicalNarrativeV2Safety } from "./narrativeV2Shadow.js";
-import { childSafetyContract } from "./childSafety.js";
+import { childSafetyContract, deterministicChildSafety } from "./childSafety.js";
 import { manuscriptSceneCastIssues } from "./manuscriptSceneCastPreflight.js";
 import { manuscriptWordTargetIssues } from "./manuscriptWordPreflight.js";
 
-export const GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION = 1;
+export const GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION = 2;
 export const GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_MAX_ATTEMPTS = 1;
 
 const TEXT_KINDS = new Set(["opening_text", "scene_text", "closing_text"]);
@@ -137,6 +137,37 @@ async function assessText(assess, text, pageNumber = null) {
   return assess({ text, pageNumber });
 }
 
+// Scenario approval is the last semantic interpretation of the customer's
+// situation. Generated fiction must never be sent back through the hybrid
+// disclosure classifier: prose written in the voice of a character can look
+// like a real-world disclosure even though the approved scenario is safe.
+// This post-approval guard therefore recognizes only explicit, high-confidence
+// deterministic drift introduced by generation. Ambiguous wording remains
+// bound to the sealed scenario authority instead of becoming a new decision.
+export function assessSealedGeneratedSafetyDrift({ text, authority } = {}) {
+  if (!validAuthority(authority?.childSafety)) {
+    throw conformanceError("approved_safety_contract_invalid", [{
+      path: "/authority",
+      message: "Generated prose must descend from an approved scenario safety authority.",
+    }]);
+  }
+  const detected = deterministicChildSafety({ text });
+  const explicitDrift = detected.restricted === true && detected.confidence === "high";
+  return {
+    profile: explicitDrift
+      ? { ...detected, source: "sealed_deterministic_drift" }
+      : {
+          version: detected.version,
+          category: authority.childSafety.category,
+          action: "allow",
+          restricted: false,
+          confidence: "high",
+          safetyContractId: authority.childSafety.contractId || "",
+          source: "approved_scenario",
+        },
+  };
+}
+
 export async function normalizeGeneratedManuscriptSafety({
   spec: rawSpec,
   authority,
@@ -152,15 +183,20 @@ export async function normalizeGeneratedManuscriptSafety({
       message: "Generated prose must descend from the exact approved scenario safety authority.",
     }]);
   }
-  if (typeof assess !== "function") {
-    throw conformanceError("manuscript_safety_assessor_missing", [{ path: "/assess", message: "A private safety assessor is required." }]);
-  }
+  const assessGeneratedDrift = typeof assess === "function"
+    ? assess
+    : ({ text }) => assessSealedGeneratedSafetyDrift({ text, authority });
   const texts = textMap(pageTexts);
   const original = new Map(texts);
-  const allText = spec.pages.filter((page) => TEXT_KINDS.has(page.kind))
-    .map((page) => texts.get(page.pageNumber) || "").join("\n");
-  const initial = await assessText(assess, allText);
-  if (assessmentAction(initial) === "allow") {
+  const assessments = new Map();
+  for (const page of spec.pages.filter((candidate) => TEXT_KINDS.has(candidate.kind))) {
+    const result = await assessText(assessGeneratedDrift, texts.get(page.pageNumber) || "", page.pageNumber);
+    assessments.set(page.pageNumber, result);
+  }
+  const unsafePages = new Set([...assessments]
+    .filter(([, result]) => assessmentAction(result) !== "allow")
+    .map(([pageNumber]) => pageNumber));
+  if (!unsafePages.size) {
     return {
       version: GENERATED_MANUSCRIPT_SAFETY_CONFORMANCE_VERSION,
       status: "valid",
@@ -171,24 +207,11 @@ export async function normalizeGeneratedManuscriptSafety({
     };
   }
   if (typeof repair !== "function") {
+    const pageNumber = [...unsafePages].sort((a, b) => a - b)[0] || null;
     throw conformanceError("generated_manuscript_safety_drift_unresolved", [{
-      path: "/manuscript",
+      path: pageNumber ? `/pages/${pageNumber}/text` : "/manuscript",
+      pageNumber,
       message: "The generated manuscript diverged from its approved safety authority.",
-    }]);
-  }
-
-  const assessments = new Map();
-  for (const page of spec.pages.filter((candidate) => TEXT_KINDS.has(candidate.kind))) {
-    const result = await assessText(assess, texts.get(page.pageNumber) || "", page.pageNumber);
-    assessments.set(page.pageNumber, result);
-  }
-  const unsafePages = new Set([...assessments]
-    .filter(([, result]) => assessmentAction(result) !== "allow")
-    .map(([pageNumber]) => pageNumber));
-  if (!unsafePages.size) {
-    throw conformanceError("generated_manuscript_safety_drift_unresolved", [{
-      path: "/manuscript",
-      message: "The manuscript-level safety drift could not be localized to a bounded page repair.",
     }]);
   }
 
@@ -230,16 +253,8 @@ export async function normalizeGeneratedManuscriptSafety({
   if (contractIssues.length) {
     throw conformanceError("manuscript_safety_conformance_contract_drift", contractIssues, "The safety repair changed another immutable manuscript fact.");
   }
-  const repairedText = spec.pages.filter((page) => TEXT_KINDS.has(page.kind))
-    .map((page) => texts.get(page.pageNumber) || "").join("\n");
-  const finalAssessment = await assessText(assess, repairedText);
-  if (assessmentAction(finalAssessment) !== "allow") {
-    throw conformanceError("generated_manuscript_safety_drift_unresolved", [...unsafePages].map((pageNumber) => ({
-      path: `/pages/${pageNumber}/text`, pageNumber, message: "The bounded private repair did not restore the approved safety profile.",
-    })));
-  }
   for (const pageNumber of unsafePages) {
-    const pageAssessment = await assessText(assess, texts.get(pageNumber) || "", pageNumber);
+    const pageAssessment = await assessText(assessGeneratedDrift, texts.get(pageNumber) || "", pageNumber);
     if (assessmentAction(pageAssessment) !== "allow") {
       throw conformanceError("generated_manuscript_safety_drift_unresolved", [{
         path: `/pages/${pageNumber}/text`, pageNumber, message: "This generated page still conflicts with the approved safety profile.",

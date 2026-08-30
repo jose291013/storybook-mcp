@@ -215,7 +215,7 @@ test("only an allowed structured profile is persisted and protective requests re
 });
 
 test("all paid or generative entry points enforce child safety before credit or output", async () => {
-  const [intentions, suggestions, drafts, scenario, preview, modifications, app, html] = await Promise.all([
+  const [intentions, suggestions, drafts, scenario, preview, modifications, app, html, safetyConformance] = await Promise.all([
     fs.readFile("src/routes/storyIntentions.js", "utf8"),
     fs.readFile("src/routes/storySuggestions.js", "utf8"),
     fs.readFile("src/routes/drafts.js", "utf8"),
@@ -224,6 +224,7 @@ test("all paid or generative entry points enforce child safety before credit or 
     fs.readFile("src/routes/previewModifications.js", "utf8"),
     fs.readFile("public/app.js", "utf8"),
     fs.readFile("public/index.html", "utf8"),
+    fs.readFile("src/services/generatedManuscriptSafetyConformance.js", "utf8"),
   ]);
   assert.match(intentions, /childSafetyIntervention/);
   assert.match(intentions, /\/story-safety/);
@@ -234,7 +235,9 @@ test("all paid or generative entry points enforce child safety before credit or 
   assert.ok(modifications.indexOf('scope: "preview_modification"') < modifications.indexOf("previewRevisionStore.create"));
   assert.match(preview, /scope: "generated_manuscript"/);
   assert.match(preview, /normalizeGeneratedManuscriptSafety/);
-  assert.match(preview, /generated_manuscript_conformance/);
+  assert.doesNotMatch(preview, /generated_manuscript_conformance/);
+  assert.match(safetyConformance, /deterministicChildSafety/);
+  assert.match(safetyConformance, /sealed_deterministic_drift/);
   assert.match(preview, /sealedChildSafetyDecision/);
   assert.match(scenario, /childSafety: canonicalNarrativeV2Safety\(project\)\.childSafety/);
   assert.match(app, /childSafetyIntervention/);
