@@ -193,7 +193,12 @@ const elements = {
 };
 
 class TechnicalGenerationError extends Error {
-  constructor(message, code = "preview_generation_failed") { super(message); this.code = code; this.technical = true; }
+  constructor(message, code = "preview_generation_failed", details = {}) {
+    super(message);
+    this.code = code;
+    this.technical = true;
+    Object.assign(this, details && typeof details === "object" ? details : {});
+  }
 }
 
 const IMPROVABLE_QUESTION_IDS = new Set(["favorite_activities", "personality", "dream", "challenge", "message", "signature_object", "extra_notes"]);
@@ -2857,7 +2862,10 @@ async function pollJob(jobId) {
     const job = await response.json();
     if (!response.ok) throw new TechnicalGenerationError(tr("generationFailed"), "preview_interrupted");
     elements.generationBar.style.width = `${generationProgress(job.step)}%`;
-    elements.generationStep.textContent = friendlyStep(job.step);
+    elements.generationStep.textContent = job.repairQueue?.status === "repairing"
+      && (!job.step || job.step === "started")
+      ? repairQueueSummary(job.repairQueue)
+      : friendlyStep(job.step);
     renderGenerationJourney(job.step);
     if (["done", "awaiting_visual_approval", "quality_review_required"].includes(job.status)) return job;
     if (job.status === "failed") {
@@ -2865,6 +2873,7 @@ async function pollJob(jobId) {
       throw new TechnicalGenerationError(
         billingUnavailable ? tr("generationProviderBillingUnavailable") : tr("generationFailed"),
         job.errorCode || "preview_generation_failed",
+        { repairQueue: job.repairQueue || null },
       );
     }
     await new Promise((resolve) => setTimeout(resolve, 2200));
@@ -3051,7 +3060,7 @@ function renderBook(job, { initialPageNumber = 0 } = {}) {
   paintFrame();
 }
 
-function showGenerationPanel(stage = "cover") {
+function showGenerationPanel(stage = "cover", repairQueue = null) {
   const stages = GENERATION_STAGE_TEXT[state.locale] || GENERATION_STAGE_TEXT.FR;
   const copy = stages[stage] || stages.cover;
   document.querySelector("#creator").hidden = true;
@@ -3066,7 +3075,7 @@ function showGenerationPanel(stage = "cover") {
   elements.generationMessage.textContent = copy.message;
   elements.generationNextStep.textContent = copy.next;
   elements.generationBar.style.width = "5%";
-  elements.generationStep.textContent = friendlyStep("preparing");
+  elements.generationStep.textContent = repairQueue ? repairQueueSummary(repairQueue) : friendlyStep("preparing");
   renderGenerationJourney("preparing");
   elements.generationPanel.scrollIntoView({ behavior: "smooth" });
 }
@@ -3110,6 +3119,37 @@ function showPersistedVisualProof(project, { scroll = true } = {}) {
   return true;
 }
 
+function projectRepairQueue(project) {
+  const queue = project?.continuitySnapshot?.generationCheckpoint?.repairQueue;
+  return queue?.version === 1 && Number(queue.pendingPageCount || 0) > 0 ? queue : null;
+}
+
+function repairQueueSummary(queue) {
+  return tr("pageRepairQueueSummary", {
+    ready: Number(queue?.readyPageCount || 0),
+    total: Number(queue?.totalPageCount || state.pageCount),
+    pending: Number(queue?.pendingPageCount || 0),
+  });
+}
+
+function visualProofActionForProject(project) {
+  const status = project?.continuitySnapshot?.generationCheckpoint?.visualProof?.status;
+  return status === "approved" ? "approve" : status === "regenerating" ? "regenerate" : "";
+}
+
+async function waitForRepairQueueCheckpoint(projectId, attempts = 10) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, { cache: "no-store" }).catch(() => null);
+    if (response?.ok) {
+      const project = (await response.json()).project;
+      const queue = projectRepairQueue(project);
+      if (project?.status === "preview_failed" && queue) return { project, queue };
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 450));
+  }
+  return null;
+}
+
 async function showGenerationFailure(project = null, feedback = "") {
   if (!project && state.projectId) {
     const response = await fetch(`/api/projects/${encodeURIComponent(state.projectId)}`, { cache: "no-store" });
@@ -3131,11 +3171,19 @@ async function showGenerationFailure(project = null, feedback = "") {
   elements.generationFailurePanel.hidden = false;
   const exhausted = project?.technicalPreviewRetryExhausted === true;
   const providerBillingUnavailable = project?.previewFailureReason === "preview_provider_billing_unavailable";
+  const repairQueue = projectRepairQueue(project);
   elements.retryPreviewButton.hidden = exhausted;
   if (!feedback && providerBillingUnavailable) feedback = tr("generationProviderBillingUnavailable");
-  elements.generationFailureFeedback.textContent = feedback;
-  elements.generationFailureFeedback.hidden = !feedback;
-  elements.generationFailureSupport.textContent = providerBillingUnavailable
+  const queueFeedback = repairQueue ? repairQueueSummary(repairQueue) : "";
+  elements.generationFailureFeedback.textContent = queueFeedback || feedback;
+  elements.generationFailureFeedback.hidden = !(queueFeedback || feedback);
+  elements.retryPreviewButton.dataset.repairQueue = repairQueue ? "1" : "";
+  elements.retryPreviewButton.textContent = repairQueue ? tr("pageRepairQueueRetry") : tr("retryPreviewFree");
+  elements.generationFailureSupport.textContent = repairQueue
+    ? tr(repairQueue.retryAvailable === false ? "pageRepairQueueExhausted" : "pageRepairQueueSupport", {
+        pages: (repairQueue.pendingPageNumbers || []).join(", "),
+      })
+    : providerBillingUnavailable
     ? tr("generationProviderBillingSupport")
     : exhausted ? tr("generationFailureExhausted") : tr("generationFailureSupport");
   elements.generationFailurePanel.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -3176,7 +3224,9 @@ async function retryPreviewFree() {
     await showGenerationFailure(null, error?.message || tr("generationRetryRejected"));
   } finally {
     elements.retryPreviewButton.disabled = false;
-    elements.retryPreviewButton.textContent = tr("retryPreviewFree");
+    elements.retryPreviewButton.textContent = elements.retryPreviewButton.dataset.repairQueue === "1"
+      ? tr("pageRepairQueueRetry")
+      : tr("retryPreviewFree");
   }
 }
 
@@ -3618,7 +3668,7 @@ function showVisualProof(job, { scroll = true, attempts = 1 } = {}) {
   if (scroll) elements.visualProofPanel.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
-async function generatePreviewForProject(projectId, visualProofAction = "") {
+async function generatePreviewForProject(projectId, visualProofAction = "", { automaticPageRepair = true } = {}) {
   const response = await fetch("/api/preview", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -3641,9 +3691,29 @@ async function generatePreviewForProject(projectId, visualProofAction = "") {
       : visualProofAction === "regenerate"
         ? "regenerate"
         : "cover";
-  showGenerationPanel(generationStage);
+  showGenerationPanel(generationStage, payload.repairQueue || null);
   state.jobId = payload.jobId;
-  const job = await pollJob(payload.jobId);
+  let job;
+  try {
+    job = await pollJob(payload.jobId);
+  } catch (error) {
+    if (automaticPageRepair && error?.code === "preview_page_repair_required") {
+      elements.generationStep.textContent = tr("pageRepairQueueAutomatic");
+      const ready = await waitForRepairQueueCheckpoint(projectId);
+      if (ready?.queue?.retryAvailable !== false) {
+        console.info("[preview-ui] automatic page repair continuation", {
+          projectId,
+          pendingPageNumbers: ready.queue.pendingPageNumbers || [],
+        });
+        return generatePreviewForProject(
+          projectId,
+          visualProofActionForProject(ready.project),
+          { automaticPageRepair: false },
+        );
+      }
+    }
+    throw error;
+  }
   if (job.status === "awaiting_visual_approval") {
     showVisualProof(job, { attempts: job.visualProof?.attempts || 1 });
     return;

@@ -26,7 +26,7 @@ test("the preview route returns the authoritative stage and the client obeys it"
 
   assert.match(route, /generationStage: previewGenerationStage/);
   assert.match(app, /includes\(payload\.generationStage\)/);
-  assert.match(app, /showGenerationPanel\(generationStage\)/);
+  assert.match(app, /showGenerationPanel\(generationStage, payload\.repairQueue \|\| null\)/);
   assert.equal(isPreviewGenerationStage("interior"), true);
   assert.equal(isPreviewGenerationStage("unknown"), false);
 });

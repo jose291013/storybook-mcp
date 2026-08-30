@@ -3,10 +3,11 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 
 test("preview generation quarantines one page, continues the book and performs a bounded repair sweep", async () => {
-  const [preview, qualityGate, jobs] = await Promise.all([
+  const [preview, qualityGate, jobs, app] = await Promise.all([
     fs.readFile("src/routes/preview.js", "utf8"),
     fs.readFile("src/services/imageQualityGate.js", "utf8"),
     fs.readFile("src/routes/jobs.js", "utf8"),
+    fs.readFile("public/app.js", "utf8"),
   ]);
 
   assert.match(qualityGate, /class IllustrationQualityError extends Error/);
@@ -53,7 +54,14 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /accepted_after_repair/);
   assert.match(preview, /status: "preview_quality_review"/);
   assert.match(preview, /completed with pages awaiting quality review/);
+  assert.match(preview, /buildPreviewRepairQueue/);
+  assert.match(preview, /resilient page repair queued/);
+  assert.match(preview, /preview_page_repair_required/);
+  assert.match(preview, /repairQueue: null/);
   assert.match(jobs, /quality_review_required/);
+  assert.match(app, /automatic page repair continuation/);
+  assert.match(app, /waitForRepairQueueCheckpoint/);
+  assert.match(app, /pageRepairQueueSummary/);
 
   const repairSweepPosition = preview.indexOf("const pendingRepairPages");
   const completedPosition = preview.indexOf('status: "done"', repairSweepPosition);

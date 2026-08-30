@@ -8,15 +8,32 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/resilient-page-repair-queue`
 - Main checkpoint: PR #300 (preview resume state machine), after PR #299 (transactional cover-proof retry)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: preview resume state machine. A preserved cover awaiting customer approval is restored for both `preview_generating` and `preview_failed` projects instead of posting an empty retry. A missing preserved cover resumes as regeneration, and persisted `approved`/`regenerating` decisions remain technical retries without a second charge. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: reopening or retrying must either restore its cover proof or emit `[preview] visual proof decision queued` followed by `[preview] started`; repeated child-safety reuse without either transition is no longer valid.
+- Current focused checkpoint: resilient per-page preview repair queue. Provider-safety gaps and strict V3 quarantines are aggregated into one durable, non-sensitive queue; accepted pages remain immutable, the UI reports the exact completed/total count plus pending page numbers, and one eligible causal continuation starts automatically when the browser remains open. The next live verification is project `de94edbb-63bb-4966-bc31-bc325bceed78`: its accepted 33/36 pages must be preserved while only pages 8, 11 and 35 remain repair targets, with `[preview] resilient page repair queued` followed by one bounded causal continuation rather than a generic whole-book reconstruction.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
+
+## Candidate brick: resilient per-page preview repair queue
+
+The final illustration sweep now compiles provider-safety gaps and strict V3
+quality quarantines into one versioned checkpoint. It stores page numbers,
+bounded issue codes, counters and a digest only. Accepted pages are preserved;
+the retry path receives the existing causal recovery plan and never restarts a
+completed page.
+
+The creator now sees the actual progress and pending page numbers. If the
+browser remains open, the client waits until that checkpoint is durable and
+starts one eligible free technical continuation automatically. Reopening the
+creation exposes the same durable retry. Success clears the queue; exhaustion
+remains a private actionable page state. This neither relaxes QA nor adds a
+model-call, credit, commerce, migration, environment, expiry, private-asset or
+series-canon rule. Focused verification passes 7/7 tests and the complete
+repository regression passes 859/859 tests.
 
 ## PR #298: V3 appearance/equipment resolver
 

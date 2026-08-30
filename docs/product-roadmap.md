@@ -2,6 +2,29 @@
 
 Last updated: 2026-08-30
 
+## Resilient per-page preview repair queue
+
+An illustration defect is a page-level pending state, not a reason to restart
+or hide an otherwise completed book. After the normal bounded generation and
+repair sweep, provider-safety gaps and strict Narrative V3 quarantines are
+compiled into one durable, versioned repair queue. The queue contains only page
+numbers, bounded issue codes, counters and a blocker digest; it never persists
+customer prose, names, photos, provider prompts or rejected pixels.
+
+Every already accepted page remains immutable and reusable. A free technical
+continuation resumes only the queue's pending pages through the existing causal
+recovery policy, while the creator sees the exact completed/total count and the
+pending page numbers. When the browser remains open, one eligible continuation
+starts automatically after the failed checkpoint is durable; reopening the
+project exposes the same explicit retry. A successful delivery clears the
+queue. An exhausted queue remains private and actionable instead of being
+reported as an unexplained whole-book reconstruction.
+
+This queue unifies provider-safety and strict-quality blockers without relaxing
+identity, physical-world, equipment, action, boundary or wardrobe invariants.
+It adds no model-call allowance, migration, environment variable, credit,
+commerce, preview-expiry, private-asset or series-canon change.
+
 ## Narrative V3 adaptive illustration quality controller
 
 Strict Narrative V3 separates semantic correctness from secondary visual
