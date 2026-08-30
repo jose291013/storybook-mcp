@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/v3-appearance-equipment-resolver`
-- Main checkpoint: PR #297 (deterministic safety conformance recovery), after PR #296 (sealed V3 safety authority)
+- Current branch: `codex/transactional-cover-proof-retry`
+- Main checkpoint: PR #298 (V3 appearance/equipment resolver), after PR #297 (deterministic safety conformance recovery)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: deterministic sealed V3 child-safety conformance. Scenario approval is the last semantic interpretation of the customer's situation. Strict V3 generated prose no longer enters the hybrid disclosure classifier; only explicit high-confidence deterministic drift can trigger one private page-local repair. Ambiguous fictional wording inherits the sealed approved authority and cannot block cover generation. Legacy entry-point enforcement and modification safety remain unchanged. Retry policy 42 gives policy-41 failures one bounded resume. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: retry must pass manuscript conformance and reach cover generation without a generated-manuscript classifier trace.
+- Current focused checkpoint: transactional cover-proof decisions. Approving or regenerating a cover remains a reversible in-memory transition until a new durable generation run exists; the project then commits the decision and new job pointer together. A startup failure preserves the previous cover, waiting-input state and reservation. Projects stranded by the former destructive transition can resume their persisted `approved` or `regenerating` decision idempotently. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: retrying the cover must emit `[preview] visual proof decision queued`, then `[preview] started`, without the generic “reprise n'a pas pu démarrer” state.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -36,6 +36,26 @@ equipment. Existing checkpoints that embedded equipment prose in an outfit are
 normalized at the authority boundary, so the change applies to resumptions
 without rewriting their story. Focused verification passes 95/95 tests and the
 complete repository suite passes 850/850 tests.
+
+## Candidate brick: transactional cover-proof retry
+
+Cover approval and cover regeneration are now prepared without mutating the
+project. The server creates the new durable job and run first, then one project
+update commits the visual-proof decision, new job id and queued checkpoint. A
+regeneration clears the previous cover only inside that successful commit. The
+old waiting-input run is closed only after the new project/job link exists.
+
+Queue creation or project-link failure therefore leaves the approved candidate,
+the customer's pending decision and any existing credit reservation intact.
+The recovery endpoint no longer converts a persisted `approved` or
+`regenerating` visual-proof decision into a generic failed preview. The client
+forwards that durable decision on retry, and older projects stranded between the
+decision and queue creation resume it without consuming another cover attempt.
+Released technical reservations remain compatible with the existing
+idempotent capture-on-success path, so this introduces neither a second debit
+nor an unearned permanent preview. No migration, environment variable,
+generation-order, model allowance, private-asset, commerce or series-canon rule
+changes.
 
 ## Candidate brick: cover-proof resume routing
 
