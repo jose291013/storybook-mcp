@@ -1797,6 +1797,7 @@ router.post("/preview", async (req, res) => {
           castPresent: final_blueprint.cover.cast_present || [],
           scenePrompt: final_blueprint.cover.image_prompt,
           wardrobeLocks: final_blueprint.cover.wardrobe_locks || [],
+          equipmentLocks: final_blueprint.cover.equipment_locks || [],
           referenceAssets,
         });
         localCoverImageUrl = await generateQualityCheckedImage({

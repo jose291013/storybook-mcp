@@ -1,13 +1,10 @@
 import { outfitOptionsForUniverse } from "../config/outfitOptions.js";
 import { canonicalDigest } from "./narrativeV3Canonical.js";
+import { resolveAppearanceEquipment } from "../services/appearanceEquipmentResolver.js";
 
 export const SCENE_RENDER_CONTRACT_VERSION = 1;
 export const SCENE_RENDER_CONTRACT_ID = "calitiki.scene-render-contract.v1";
-export const SCENE_RENDER_CONTRACT_COMPILER_VERSION = 2;
-
-const EQUIPMENT_DESCRIPTIONS = new Map([
-  ["breathing_voice_bubble_worn", "one complete individual transparent breathing and communication bubble worn around this person's head"],
-]);
+export const SCENE_RENDER_CONTRACT_COMPILER_VERSION = 3;
 
 function renderError(code, message) {
   const error = new Error(message);
@@ -111,17 +108,19 @@ export function compileSceneRenderContractV1({
       universeId,
       ordinaryOutfit: ordinaryOutfits.get(characterId) || ordinaryOutfits.get(canonicalName),
     });
+    const appearance = resolveAppearanceEquipment({
+      outfitDescription: outfit.description,
+      equipmentStateIds: unique(wardrobe.equipment_state_ids),
+      characterName: alias,
+    });
     return {
       character_id: characterId,
       name: alias,
       kind: text(character.kind),
       exact_quantity: 1,
-      outfit,
-      equipment: unique(wardrobe.equipment_state_ids).map((stateId) => ({
-        state_id: stateId,
-        exact_quantity: 1,
-        description: EQUIPMENT_DESCRIPTIONS.get(stateId) || `canonical equipment state ${stateId}`,
-      })),
+      outfit: { ...outfit, description: appearance.outfit_description },
+      equipment: appearance.equipment,
+      forbidden_equipment: appearance.forbidden_equipment,
     };
   });
   const forbidden = forbiddenIds.map((characterId) => {

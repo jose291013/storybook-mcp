@@ -1588,7 +1588,8 @@ test("approved wardrobe changes only from its declared scenario scene", () => {
     })),
   };
   const photoOutfit = "grey t-shirt, red shorts and plain shoes";
-  const adventureOutfit = "turquoise wetsuit, reef shoes and transparent breathing bubble";
+  const legacyAdventureOutfit = "turquoise wetsuit, reef shoes and transparent breathing bubble";
+  const adventureOutfit = "turquoise wetsuit, reef shoes";
   const result = lockBlueprintContinuity(blueprint, {
     language: "EN",
     pageCount: 24,
@@ -1596,13 +1597,13 @@ test("approved wardrobe changes only from its declared scenario scene", () => {
       name: "Nolan",
       role: "child",
       outfit_lock: photoOutfit,
-      outfit_contract: adventureOutfit,
+      outfit_contract: legacyAdventureOutfit,
     }],
     approvedScenario: {
       wardrobePlan: [{
         characterName: "Nolan",
         preference: "selected",
-        adventureDescription: adventureOutfit,
+        adventureDescription: legacyAdventureOutfit,
         activationSceneNumber: 3,
       }],
     },
