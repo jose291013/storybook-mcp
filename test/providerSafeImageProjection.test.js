@@ -1,0 +1,104 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { buildFinalPrompt } from "../src/services/imageRunner.js";
+import {
+  buildProviderSafeImageProjection,
+  PROVIDER_SAFE_IMAGE_PROJECTION_VERSION,
+} from "../src/services/providerSafeImageProjection.js";
+
+function contract() {
+  return {
+    paired_text: "Mathéo remembers a frightening customer sentence that must stay private.",
+    forbidden_elements: ["never show the frightening rejected event"],
+    causal_history: ["a rejected provider request"],
+    main_action: { subject: "Mathéo", verb: "places", target: "the pearl beside Nolan" },
+    named_characters: [
+      { name: "Mathéo", entity_type: "human child", action: "Mathéo places the pearl beside Nolan" },
+      { name: "Nolan", entity_type: "human child", action: "Nolan watches Mathéo" },
+    ],
+    visual_entity_states: [{
+      name: "pearl",
+      state: "resting safely",
+      owner: "Mathéo",
+      location: "on the coral table beside Nolan",
+      visibility: "required",
+      exact_quantity: 1,
+    }],
+    render_snapshot: {
+      location: "quiet reef workshop",
+      physical_medium: "underwater",
+      gravity_model: "buoyant",
+    },
+    scene_render_contract: {
+      physical_world: {
+        location: "quiet reef workshop",
+        physical_medium: "underwater",
+        gravity_model: "buoyant",
+        allowed_locomotion: ["float"],
+        allowed_postures: ["upright floating"],
+        required_survival_mechanisms: ["one breathing bubble per traveler"],
+      },
+      cast: {
+        required: [
+          {
+            name: "Mathéo",
+            kind: "human child",
+            exact_quantity: 1,
+            outfit: { state_id: "reef_explorer", description: "turquoise full-body suit" },
+            equipment: [{ description: "one breathing bubble" }],
+          },
+          {
+            name: "Nolan",
+            kind: "human child",
+            exact_quantity: 1,
+            outfit: { state_id: "reef_explorer", description: "coral full-body suit" },
+            equipment: [{ description: "one breathing bubble" }],
+          },
+        ],
+      },
+    },
+  };
+}
+
+test("provider-safe projection is deterministic, pseudonymous and limited to visible facts", () => {
+  const source = contract();
+  const before = structuredClone(source);
+  const first = buildProviderSafeImageProjection({
+    sceneFidelityContract: source,
+    stylePrompt: "soft watercolor storybook art",
+  });
+  const second = buildProviderSafeImageProjection({
+    sceneFidelityContract: source,
+    stylePrompt: "soft watercolor storybook art",
+  });
+
+  assert.equal(first.version, PROVIDER_SAFE_IMAGE_PROJECTION_VERSION);
+  assert.deepEqual(first, second);
+  assert.deepEqual(source, before);
+  assert.match(first.prompt, /quiet reef workshop/i);
+  assert.match(first.prompt, /underwater/i);
+  assert.match(first.prompt, /traveler_1 places the pearl beside traveler_2/i);
+  assert.match(first.prompt, /turquoise full-body suit/i);
+  assert.match(first.prompt, /one breathing bubble/i);
+  assert.match(first.prompt, /1 pearl/i);
+  assert.doesNotMatch(first.prompt, /Mathéo|Nolan/u);
+  assert.doesNotMatch(first.prompt, /customer sentence|rejected provider|frightening rejected event/i);
+});
+
+test("minimal image mode ignores accidental fingerprints and reference pixels", () => {
+  const projection = buildProviderSafeImageProjection({ sceneFidelityContract: contract() });
+  const finalPrompt = buildFinalPrompt({
+    prompt: projection.prompt,
+    sceneContract: projection.sceneContract,
+    providerSafetyMinimal: true,
+    characterFingerprint: "PRIVATE FACE FINGERPRINT SHOULD NOT LEAK",
+    referenceImages: [{ kind: "identity", label: "PRIVATE CHILD PHOTO" }],
+  });
+
+  assert.match(finalPrompt, /provider-safe minimal scene contract/i);
+  assert.doesNotMatch(finalPrompt, /PRIVATE FACE FINGERPRINT|PRIVATE CHILD PHOTO/);
+  assert.doesNotMatch(finalPrompt, /LOCKED CHARACTER CANON|REFERENCE IMAGE CONTRACT/);
+  assert.doesNotMatch(finalPrompt, /Identity fidelity target|Reference photos may contain/i);
+  assert.doesNotMatch(finalPrompt, /injury|restraint|weapon|medical detail/i);
+});

@@ -9,14 +9,38 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Main checkpoint: PR #301 (resilient per-page preview repair queue), after PR #300 (preview resume state machine)
+- Main checkpoint: PR #304 (provider-safe minimal illustration projection), after PR #301 (resilient per-page preview repair queue)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: resilient per-page preview repair queue. Provider-safety gaps and strict V3 quarantines are aggregated into one durable, non-sensitive queue; accepted pages remain immutable, the UI reports the exact completed/total count plus pending page numbers, and one eligible causal continuation starts automatically when the browser remains open. The next live verification is project `de94edbb-63bb-4966-bc31-bc325bceed78`: its accepted 33/36 pages must be preserved while only pages 8, 11 and 35 remain repair targets, with `[preview] resilient page repair queued` followed by one bounded causal continuation rather than a generic whole-book reconstruction.
+- Current focused checkpoint: provider-safe minimal illustration projection. Project `de94edbb-63bb-4966-bc31-bc325bceed78` already preserves 35/36 accepted pages; only page 8 remains blocked by provider request `req_3289cb8d6e7e4dffb6c98557b90373dc`. Recovery version 7 / retry policy 43 must retry only page 8 with `provider_safe_minimal_projection`, no reference pixels, photo fingerprints, customer names or reader prose, while the complete immutable scene contract and private references remain the post-generation QA authority.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
+
+## Completed brick: provider-safe minimal illustration projection
+
+One provider-rejected page now receives a genuinely smaller generation request
+instead of the previous full contract repeated without image references. The
+projection is deterministic and pseudonymous, and allowlists only the exact
+visible location, physical medium, cast cardinality, action, wardrobe,
+equipment and required objects. Reader prose, customer names, photo
+fingerprints, causal history, forbidden-list wording, rejected pixels and all
+visual references are absent from the provider request.
+
+The original Narrative V3 scene authority and private identity, wardrobe and
+style references remain unchanged for independent strict acceptance after the
+candidate is returned. A defense-in-depth guard in the image runner discards
+any accidentally forwarded fingerprints or references in minimal mode.
+Recovery version 7 and retry policy 43 make this one new causal strategy
+available to an already exhausted project without increasing the bounded
+model-call allowance. Expected live signal: `[preview] causal recovery applied`
+with `provider_safe_minimal_projection`, then generation of page 8 only. If the
+provider still rejects that minimal request, page 8 remains the sole explicit
+repair target rather than restarting the book.
+
+Verification: focused recovery/projection tests pass 49/49 and the complete
+repository regression passes 861/861 tests.
 
 ## Completed brick: resilient per-page preview repair queue
 

@@ -105,6 +105,7 @@ import {
   startPreviewRepairQueue,
 } from "../services/previewRepairQueue.js";
 import { monotonicWardrobeRepairProgress } from "../services/previewMonotonicRepair.js";
+import { buildProviderSafeImageProjection } from "../services/providerSafeImageProjection.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
 import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
@@ -2267,6 +2268,12 @@ router.post("/preview", async (req, res) => {
         }
         const qualityReferenceImages = sceneContinuity.referenceImages || [];
         const pageRecovery = previewCausalRecoveryPage(causalRecoveryRun, page.page_number);
+        const providerSafeProjection = pageRecovery?.strategies?.includes("provider_safe_minimal_projection")
+          ? buildProviderSafeImageProjection({
+              sceneFidelityContract: sceneContinuity.sceneFidelityContract,
+              stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+            })
+          : null;
         if (pageRecovery) {
           sceneContinuity = {
             ...sceneContinuity,
@@ -2274,18 +2281,32 @@ router.post("/preview", async (req, res) => {
               sceneContinuity.referenceImages || [],
               pageRecovery,
             ),
+            ...(providerSafeProjection ? {
+              characterFingerprint: "",
+              characterFingerprints: [],
+              providerSafetyMinimal: true,
+              sceneContract: providerSafeProjection.sceneContract,
+            } : {}),
           };
         }
-        const visualPrompt = causalRecoveryPrompt(sceneContractImagePrompt({
+        const visualPrompt = providerSafeProjection?.prompt || causalRecoveryPrompt(sceneContractImagePrompt({
           contract: page.scene_contract,
           stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
           fallbackPrompt: page.image_prompt,
           visualAliases: sceneContinuity.visualAliases,
         }), pageRecovery);
+        const safetyFallbackPrompt = providerSafeProjection?.prompt || causalRecoveryPrompt(sceneContractImagePrompt({
+          contract: page.scene_contract,
+          stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
+          fallbackPrompt: page.image_prompt,
+          visualAliases: sceneContinuity.visualAliases,
+          safetyFallback: true,
+        }), pageRecovery);
         return {
           pairedText,
           sceneContinuity,
           visualPrompt,
+          safetyFallbackPrompt,
           adjacentReferenceImages,
           pageRecovery,
           qualityReferenceImages,
@@ -2316,6 +2337,7 @@ router.post("/preview", async (req, res) => {
           const {
             sceneContinuity,
             visualPrompt,
+            safetyFallbackPrompt,
             pageRecovery,
             qualityReferenceImages,
           } = visualRequest;
@@ -2343,14 +2365,11 @@ router.post("/preview", async (req, res) => {
           try {
             localImageUrl = await generateQualityCheckedImage({
               prompt: visualPrompt,
-              safetyFallbackPrompt: causalRecoveryPrompt(sceneContractImagePrompt({
-                contract: page.scene_contract,
-                stylePrompt: final_blueprint.style?.style_prompt || final_blueprint.style?.prompt || "",
-                fallbackPrompt: page.image_prompt,
-                visualAliases: sceneContinuity.visualAliases,
-                safetyFallback: true,
-              }), pageRecovery),
-              initialSafetyFallbackStage: pageRecovery?.strategies?.includes("provider_safe_reexpression")
+              safetyFallbackPrompt,
+              initialSafetyFallbackStage: pageRecovery?.strategies?.some((strategy) => [
+                "provider_safe_reexpression",
+                "provider_safe_minimal_projection",
+              ].includes(strategy))
                 ? IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY
                 : IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES,
               qualityReferenceImages,
