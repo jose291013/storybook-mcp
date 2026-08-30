@@ -233,6 +233,10 @@ test("all paid or generative entry points enforce child safety before credit or 
   assert.ok(preview.indexOf('scope: "preview_request"') < preview.indexOf("creditStore.reservePreview"));
   assert.ok(modifications.indexOf('scope: "preview_modification"') < modifications.indexOf("previewRevisionStore.create"));
   assert.match(preview, /scope: "generated_manuscript"/);
+  assert.match(preview, /normalizeGeneratedManuscriptSafety/);
+  assert.match(preview, /generated_manuscript_conformance/);
+  assert.match(preview, /sealedChildSafetyDecision/);
+  assert.match(scenario, /childSafety: canonicalNarrativeV2Safety\(project\)\.childSafety/);
   assert.match(app, /childSafetyIntervention/);
   assert.match(app, /revealIntentionSafetyNotice/);
   assert.doesNotMatch(app, /state\.childSafetyIntervention = payload\.code;\s*throw new Error\(""\)/);

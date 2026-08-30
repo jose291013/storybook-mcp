@@ -306,8 +306,8 @@ test("a structured plan exhausted under policy fifteen receives the targeted tex
   assert.equal(technicalPreviewRetryExhausted(exhaustedStructuredPlan), false);
 });
 
-test("the adaptive illustration quality controller is retry policy forty", () => {
-  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 40);
+test("sealed manuscript safety conformance is retry policy forty-one", () => {
+  assert.equal(PREVIEW_RETRY_POLICY_VERSION, 41);
 });
 
 test("a wardrobe quarantine exhausted before monotonic repair receives one bounded resume", () => {
