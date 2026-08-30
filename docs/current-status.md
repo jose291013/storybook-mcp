@@ -8,8 +8,8 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/preview-resume-state-machine`
-- Main checkpoint: PR #299 (transactional cover-proof retry), after PR #298 (V3 appearance/equipment resolver)
+- Current branch: `main`
+- Main checkpoint: PR #300 (preview resume state machine), after PR #299 (transactional cover-proof retry)
 - Completed storefront brick: book format and pricing V1
 - Current focused checkpoint: preview resume state machine. A preserved cover awaiting customer approval is restored for both `preview_generating` and `preview_failed` projects instead of posting an empty retry. A missing preserved cover resumes as regeneration, and persisted `approved`/`regenerating` decisions remain technical retries without a second charge. The next live verification is project `1aa56a18-b29f-487c-9f21-5f6ef7eacea3`: reopening or retrying must either restore its cover proof or emit `[preview] visual proof decision queued` followed by `[preview] started`; repeated child-safety reuse without either transition is no longer valid.
 - Migration hotfix: PR #234
@@ -57,7 +57,7 @@ nor an unearned permanent preview. No migration, environment variable,
 generation-order, model allowance, private-asset, commerce or series-canon rule
 changes.
 
-## Candidate brick: preview resume state machine
+## Completed brick: preview resume state machine
 
 Cover proof is now recovered before the generic project-status gate. A project
 marked `preview_failed` may still own a valid preserved cover awaiting the
