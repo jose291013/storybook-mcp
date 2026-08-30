@@ -79,6 +79,34 @@ const SCENE_CAST_ASSERTION_CODES = new Set([
   "identity_fusion",
   "identity_substitution",
 ]);
+
+const PROVIDER_SAFE_POSITIVE_CORRECTIONS = Object.freeze({
+  wardrobe_state_mismatch: "Dress every traveler in the exact declared outfit state and garment category.",
+  equipment_state_mismatch: "Show the exact declared functional equipment once on its declared traveler.",
+  wrong_physical_medium: "Fill the complete camera environment with the declared physical medium and use its declared movement and posture.",
+  wrong_location_or_boundary: "Place the complete scene at the declared location on the declared side of the passage boundary.",
+  main_action_mismatch: "Make the declared subject, visible verb and declared target the single unmistakable central action.",
+  object_state_mismatch: "Show every required object once with its declared owner, state and location.",
+  landmark_cardinality_mismatch: "Show the declared landmark once at its canonical location.",
+  forbidden_character_present: "Show only the exact declared visible cast count.",
+  duplicated_required_identity: "Show one complete separate figure for each declared traveler.",
+  identity_cardinality_mismatch: "Show one complete separate figure for each declared traveler.",
+  identity_likeness_mismatch: "Apply each identity reference to its corresponding complete traveler.",
+  style_continuity_mismatch: "Apply the approved artistic medium consistently across the entire scene.",
+});
+
+export function providerSafePositiveCorrectionPrompt(issueCodes = []) {
+  const directives = [...new Set((Array.isArray(issueCodes) ? issueCodes : [])
+    .map((code) => PROVIDER_SAFE_POSITIVE_CORRECTIONS[String(code || "").trim()])
+    .filter(Boolean))];
+  return directives.length
+    ? `\n\nPOSITIVE FINISHING CORRECTIONS:\n- ${directives.join("\n- ")}`
+    : "";
+}
+
+export function providerSafeFinishingPrompt(basePrompt, issueCodes = []) {
+  return `${String(basePrompt || "").trim()}\n\nPRIVATE TWO-PASS FINISHING V1: keep the supplied scene foundation as the exact composition and apply the private identity, outfit and artistic-medium references only to their declared roles.${providerSafePositiveCorrectionPrompt(issueCodes)}`.trim();
+}
 const AUTOMATIC_TARGETED_REPAIR_CODES = new Set([
   "identity_duplicate",
   "identity_fusion",
@@ -1472,12 +1500,15 @@ export async function generateQualityCheckedImage({
   const evidenceReferenceImages = Array.isArray(qualityReferenceImages)
     ? qualityReferenceImages
     : (generationOptions.referenceImages || []);
+  const providerSafetyTwoPass = generationOptions.providerSafetyMinimal === true;
   let previousIssues = [];
+  let previousIssueCodes = [];
   let previousRejectionKind = "technical";
   let safetyFallbackStage = normalizeImageSafetyFallbackStage(initialSafetyFallbackStage);
   let visualReferencePolicyStage = VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE;
-  let attemptLimit = maximumAttempts;
+  let attemptLimit = providerSafetyTwoPass ? Math.min(2, maximumAttempts) : maximumAttempts;
   let lastCandidateImageUrl = "";
+  let providerSafeScaffoldUrl = "";
   let lastRepairPolicy = null;
   for (let attempt = 1; attempt <= attemptLimit; attempt += 1) {
     const semanticReferences = referencesForVisualPolicy(
@@ -1507,7 +1538,7 @@ export async function generateQualityCheckedImage({
       lastRepairPolicy,
       referenceImagesForAttempt,
     );
-    const repairNote = previousIssues.length
+    const repairNote = !providerSafetyTwoPass && previousIssues.length
       ? previousRejectionKind === "style"
         ? `\n\nSTYLE CONTINUITY REGENERATION: the previous output differed from the locked reference because ${previousIssues.join("; ")}. Treat the continuity reference as authoritative. Preserve its same broad rendering family and visual medium. Do not switch between realistic dimensional illustration, painterly watercolor/gouache, flat drawn cartoon/manga, or crafted paper/collage. Differences in scene and lighting are allowed.`
         : previousRejectionKind === "identity"
@@ -1517,12 +1548,67 @@ export async function generateQualityCheckedImage({
           : `\n\nTECHNICAL REGENERATION: the previous output was rejected because ${previousIssues.join("; ")}. Produce a complete, coherent illustration of the requested scene and do not reproduce that defect.`
       : "";
     try {
-      const imageUrl = await generateImage({
-        ...generationOptions,
-        referenceImages: referenceImagesForAttempt,
-        prompt: `${safetyFallbackActive && safetyFallbackPrompt ? safetyFallbackPrompt : prompt}${repairNote}`,
-        outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
-      });
+      let imageUrl;
+      if (providerSafetyTwoPass) {
+        const sceneFoundationUrl = attempt === 1 || (!lastCandidateImageUrl && !providerSafeScaffoldUrl)
+          ? await generateImage({
+              ...generationOptions,
+              referenceImages: [],
+              prompt: safetyFallbackPrompt || prompt,
+              outName: `${generationOptions.outName || "image"}-scaffold-attempt${attempt}`,
+            })
+          : lastCandidateImageUrl || providerSafeScaffoldUrl;
+        providerSafeScaffoldUrl = sceneFoundationUrl;
+        if (attempt === 1) {
+          onAttempt?.({
+            phase: "scaffold-generated",
+            attempt,
+            maximumAttempts: attemptLimit,
+            pageLabel,
+          });
+        }
+        const finishingStage = visualReferencePolicyStage === VISUAL_REFERENCE_POLICY_STAGES.FULL_COMPATIBLE
+          ? VISUAL_REFERENCE_POLICY_STAGES.STYLE_IDENTITY
+          : visualReferencePolicyStage;
+        const finishingAuthorities = referencesForVisualPolicy(
+          evidenceReferenceImages,
+          finishingStage,
+        ).filter((reference) => ["continuity", "wardrobe", "identity"].includes(reference?.kind));
+        const finishingReferences = [
+          {
+            kind: "repair_source",
+            path: outputImagePath(sceneFoundationUrl),
+            label: "private scene foundation",
+          },
+          ...finishingAuthorities,
+        ];
+        onAttempt?.({
+          phase: "finishing-started",
+          attempt,
+          maximumAttempts: attemptLimit,
+          pageLabel,
+          model: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+          referencePolicyStage: finishingStage,
+          referenceKinds: finishingReferences.map((reference) => reference.kind),
+        });
+        imageUrl = await generateImage({
+          ...generationOptions,
+          providerSafetyMinimal: false,
+          providerSafetyFinishing: true,
+          characterFingerprint: "",
+          characterFingerprints: [],
+          referenceImages: finishingReferences,
+          prompt: providerSafeFinishingPrompt(prompt, previousIssueCodes),
+          outName: `${generationOptions.outName || "image"}-finish-attempt${attempt}`,
+        });
+      } else {
+        imageUrl = await generateImage({
+          ...generationOptions,
+          referenceImages: referenceImagesForAttempt,
+          prompt: `${safetyFallbackActive && safetyFallbackPrompt ? safetyFallbackPrompt : prompt}${repairNote}`,
+          outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
+        });
+      }
       lastCandidateImageUrl = imageUrl;
       onAttempt?.({ phase: "generated", attempt, maximumAttempts: attemptLimit, pageLabel });
       const inspection = await inspectGeneratedIllustration({
@@ -1762,6 +1848,7 @@ export async function generateQualityCheckedImage({
           ? strictV3Evidence?.issues || ["Strict V3 illustration evidence is incomplete."]
           : [...styleInspection.issues, ...sceneInspection.issues, ...identityInspection.issues]
         : inspection.issues;
+      previousIssueCodes = candidateIssueCodes;
       previousRejectionKind = inspection.approved
         ? strictV3EvidenceRequired
           ? "scene"
@@ -1770,7 +1857,9 @@ export async function generateQualityCheckedImage({
       if (nextReferencePolicyStage) {
         visualReferencePolicyStage = nextReferencePolicyStage;
       }
-      const quarantineImmediately = strictV3EvidenceRequired
+      const quarantineImmediately = providerSafetyTwoPass
+        ? false
+        : strictV3EvidenceRequired
         ? strictRetryPolicy?.strategy?.mode === "targeted_repair"
         : inspection.approved
           && targetedRepairAvailable
@@ -1810,6 +1899,13 @@ export async function generateQualityCheckedImage({
     } catch (error) {
       onAttempt?.({ phase: "failed", attempt, maximumAttempts: attemptLimit, pageLabel, error: String(error?.message || error) });
       if (isImageSafetyRejection(error)) {
+        if (providerSafetyTwoPass && attempt < attemptLimit) {
+          visualReferencePolicyStage = VISUAL_REFERENCE_POLICY_STAGES.CONTRACT_IDENTITY;
+          previousRejectionKind = "technical";
+          previousIssues = [];
+          previousIssueCodes = [];
+          continue;
+        }
         const nextFallbackStage = nextImageSafetyFallbackStage(
           generationOptions.referenceImages,
           safetyFallbackStage,
