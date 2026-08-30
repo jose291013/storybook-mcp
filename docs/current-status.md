@@ -8,10 +8,10 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/provider-safe-two-pass`
-- Main checkpoint: PR #304 (provider-safe minimal illustration projection), after PR #301 (resilient per-page preview repair queue)
+- Current branch: `main`
+- Main checkpoint: PR #305 (provider-safe two-pass illustration finishing), after PR #304 (provider-safe minimal illustration projection)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: provider-safe two-pass finishing candidate. Project `de94edbb-63bb-4966-bc31-bc325bceed78` preserves 35/36 accepted pages. Its V7 minimal foundation passed provider generation once but necessarily failed wardrobe, physical-medium, boundary, main-action and style QA, then the raw QA repair wording triggered provider request `req_e9c33a4624e54769a358519f27230f29`. Recovery version 8 / retry policy 44 must retry only page 8 with `provider_safe_two_pass_finishing`: pseudonymous scene foundation, then private identity/outfit/style finishing, followed by at most one positive-code-only finishing correction.
+- Current focused checkpoint: provider-safe two-pass finishing. Project `de94edbb-63bb-4966-bc31-bc325bceed78` preserves 35/36 accepted pages. Its V7 minimal foundation passed provider generation once but necessarily failed wardrobe, physical-medium, boundary, main-action and style QA, then the raw QA repair wording triggered provider request `req_e9c33a4624e54769a358519f27230f29`. Recovery version 8 / retry policy 44 retries only page 8 with `provider_safe_two_pass_finishing`: pseudonymous scene foundation, then private identity/outfit/style finishing, followed by at most one positive-code-only finishing correction.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -42,7 +42,7 @@ repair target rather than restarting the book.
 Verification: focused recovery/projection tests pass 49/49 and the complete
 repository regression passes 861/861 tests.
 
-## Candidate brick: provider-safe two-pass finishing
+## Completed brick: provider-safe two-pass finishing
 
 The provider-safe path no longer asks a reference-free foundation to satisfy
 identity and style QA by itself. It generates one pseudonymous physical scene,
