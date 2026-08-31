@@ -1,8 +1,9 @@
 import crypto from "crypto";
 import { isStrictV3AcceptedImagePage, strictPageIssueCodes } from "./previewPageRecovery.js";
 
-export const PREVIEW_CAUSAL_RECOVERY_VERSION = 9;
+export const PREVIEW_CAUSAL_RECOVERY_VERSION = 10;
 export const PREVIEW_CAUSAL_RECOVERY_LIMIT = 3;
+export const PROVIDER_SAFE_STRUCTURE_REQUIRED_CODE = "provider_safe_structure_required";
 
 function text(value) {
   return String(value || "").trim();
@@ -59,11 +60,14 @@ function recoveryPage({
   monotonicTargetedEdit = false,
 }) {
   const codes = unique(issueCodes);
+  const requiresProviderSafeStructure = providerSafety
+    || codes.includes("provider_safety_rejection")
+    || codes.includes(PROVIDER_SAFE_STRUCTURE_REQUIRED_CODE);
   const strategies = unique([
-    providerSafety ? "provider_safe_structure_first" : "",
+    requiresProviderSafeStructure ? "provider_safe_structure_first" : "",
     codes.includes("wardrobe_state_mismatch") ? "wardrobe_reference_isolation" : "",
     monotonicTargetedEdit ? "monotonic_targeted_edit" : "",
-    !providerSafety && !monotonicTargetedEdit ? "canonical_scene_recompose" : "",
+    !requiresProviderSafeStructure && !monotonicTargetedEdit ? "canonical_scene_recompose" : "",
   ]);
   return {
     pageNumber: number,

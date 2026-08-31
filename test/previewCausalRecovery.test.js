@@ -219,6 +219,27 @@ test("provider recovery removes all source pixels and selects the minimal projec
   assert.equal(causalRecoveryPrompt(once, page), once);
 });
 
+test("a provider-safe foundation quarantine preserves provider-safe lineage on the next retry", () => {
+  const recovery = buildPreviewCausalRecovery({
+    previewResult: {
+      draftPages: [quarantinedPage(8, [
+        "wrong_physical_environment",
+        "wardrobe_state_mismatch",
+        "provider_safe_structure_required",
+      ])],
+    },
+  });
+  const page = previewCausalRecoveryPage(recovery, 8);
+
+  assert.ok(page.strategies.includes("provider_safe_structure_first"));
+  assert.ok(page.strategies.includes("wardrobe_reference_isolation"));
+  assert.equal(page.strategies.includes("canonical_scene_recompose"), false);
+  assert.deepEqual(causalRecoveryReferences([
+    { kind: "repair_source", storageKey: "rejected" },
+    { kind: "identity", storageKey: "child-photo" },
+  ], page), []);
+});
+
 test("wardrobe recovery excludes cover, adjacent and rejected pixels while deduplicating identity authority", () => {
   const recovery = buildPreviewCausalRecovery({
     previewResult: { draftPages: [quarantinedPage(11, ["wardrobe_state_mismatch"], [{

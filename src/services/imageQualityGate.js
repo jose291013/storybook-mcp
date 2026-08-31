@@ -105,7 +105,6 @@ export const PROVIDER_SAFE_FOUNDATION_REVIEW_CODES = Object.freeze([
   "wrong_physical_environment",
   "conditional_equipment_state",
   "conditional_equipment_duplicate",
-  "wardrobe_state_mismatch",
   "multi_phase_composite",
   "unique_landmark_duplicate",
   "landmark_wrong_location",
@@ -123,7 +122,6 @@ const PROVIDER_SAFE_FOUNDATION_CODE_MAP = Object.freeze({
   wrong_physical_environment: "wrong_physical_medium",
   conditional_equipment_state: "equipment_state_mismatch",
   conditional_equipment_duplicate: "equipment_state_mismatch",
-  wardrobe_state_mismatch: "wardrobe_state_mismatch",
   multi_phase_composite: "main_action_mismatch",
   unique_landmark_duplicate: "landmark_cardinality_mismatch",
   landmark_wrong_location: "wrong_location_or_boundary",
@@ -171,18 +169,20 @@ export function providerSafeFoundationDecision({
   const sceneIssues = sceneInspection?.approved === true
     ? []
     : (Array.isArray(sceneInspection?.issues) ? sceneInspection.issues : []);
-  const legacyCodes = [
+  const mappedIssues = [
     ...classifyVisualIssues(technicalIssues, { source: "technical" }),
     ...classifyVisualIssues(sceneIssues, { source: "scene" }),
-  ].map((classification) => classification.code);
-  const issueCodes = [...new Set(legacyCodes
-    .map((code) => PROVIDER_SAFE_FOUNDATION_CODE_MAP[code])
-    .filter(Boolean))];
+  ].map((classification) => ({
+    issue: classification.issue,
+    code: PROVIDER_SAFE_FOUNDATION_CODE_MAP[classification.code],
+  })).filter((classification) => classification.code);
+  const issueCodes = [...new Set(mappedIssues.map((classification) => classification.code))];
   return {
     approved: technicalInspection?.approved === true
-      && sceneInspection?.approved === true
       && issueCodes.length === 0,
-    issues: [...technicalIssues, ...sceneIssues],
+    // Foundation QA owns physical structure only. Exact garment details are
+    // verified after private wardrobe references are applied in finishing.
+    issues: mappedIssues.map((classification) => classification.issue),
     issueCodes,
   };
 }

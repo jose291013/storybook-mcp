@@ -44,6 +44,7 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(qualityGate, /providerSafeFinishingPrompt\(prompt, previousIssueCodes\)/);
   assert.match(qualityGate, /providerSafeFinalNeedsFoundation\(previousIssueCodes\)/);
   assert.match(preview, /providerSafeBoundedPage\s*\? "strict_quarantined"/);
+  assert.match(preview, /PROVIDER_SAFE_STRUCTURE_REQUIRED_CODE/);
   assert.match(preview, /strictRecoveryPageNumbers\.has\(Number\(page\.page_number\)\) \? 3 : 2/);
   assert.match(preview, /upsertPreviewDraftPage\(draftPages/);
   assert.match(preview, /issueCodes: strictPageIssueCodes\(page\)/);

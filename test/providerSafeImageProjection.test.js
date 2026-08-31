@@ -93,6 +93,43 @@ test("provider-safe projection is deterministic, pseudonymous and limited to vis
   assert.doesNotMatch(first.prompt, /customer sentence|rejected provider|frightening rejected event/i);
 });
 
+test("provider-safe projection gives the exact camera-side snapshot authority over the destination world", () => {
+  const source = contract();
+  source.render_snapshot = {
+    location: "dry origin workshop beside the closed passage",
+    physical_medium: "breathable_air",
+    gravity_model: "normal_gravity",
+    allowed_locomotion: ["walk"],
+    allowed_postures: ["standing"],
+    required_survival_mechanisms: [],
+    camera_environment: {
+      camera_side: "origin",
+      camera_zone: "dry workshop",
+      ambient_medium: "breathable_air",
+      other_side_zone: "submerged reef",
+      other_side_medium: "underwater",
+      boundary_rule: "The travelers remain dry on the origin side.",
+    },
+  };
+  for (const character of source.scene_render_contract.cast.required) {
+    character.outfit = { state_id: "ordinary_outfit", description: "ordinary dry clothes" };
+  }
+  source.render_snapshot.equipment = [];
+
+  const result = buildProviderSafeImageProjection({ sceneFidelityContract: source });
+
+  assert.equal(result.projection.setting.location, "dry origin workshop beside the closed passage");
+  assert.equal(result.projection.setting.medium, "breathable_air");
+  assert.equal(result.projection.setting.gravity, "normal_gravity");
+  assert.deepEqual(result.projection.setting.locomotion, ["walk"]);
+  assert.deepEqual(result.projection.setting.posture, ["standing"]);
+  assert.deepEqual(result.projection.setting.survivalMechanisms, []);
+  assert.ok(result.projection.cast.every((character) => character.equipment.length === 0));
+  assert.match(result.prompt, /CAMERA-SIDE ENVIRONMENT: dry workshop/i);
+  assert.match(result.prompt, /travelers remain dry on the origin side/i);
+  assert.doesNotMatch(result.prompt, /REQUIRED SAFETY MECHANISMS/i);
+});
+
 test("minimal image mode ignores accidental fingerprints and reference pixels", () => {
   const projection = buildProviderSafeImageProjection({ sceneFidelityContract: contract() });
   const finalPrompt = buildFinalPrompt({
@@ -174,6 +211,33 @@ test("structure-first foundation maps visible defects to bounded positive codes"
   assert.match(prompt, /Fill the complete camera environment/i);
   assert.match(prompt, /declared side of the passage boundary/i);
   assert.doesNotMatch(prompt, /people are dry|not respected|wrong subject/i);
+});
+
+test("structure-first foundation defers exact wardrobe evidence to private finishing", () => {
+  const wardrobeOnly = providerSafeFoundationDecision({
+    technicalInspection: { approved: true, issues: [] },
+    sceneInspection: {
+      approved: false,
+      issues: ["Required wardrobe state conflicts with the current scene."],
+    },
+  });
+  assert.deepEqual(wardrobeOnly, { approved: true, issues: [], issueCodes: [] });
+
+  const mixed = providerSafeFoundationDecision({
+    technicalInspection: { approved: true, issues: [] },
+    sceneInspection: {
+      approved: false,
+      issues: [
+        "Required wardrobe state conflicts with the current scene.",
+        "Physical environment is wrong: the people are underwater instead of in breathable air.",
+      ],
+    },
+  });
+  assert.equal(mixed.approved, false);
+  assert.deepEqual(mixed.issueCodes, ["wrong_physical_medium"]);
+  assert.deepEqual(mixed.issues, [
+    "Physical environment is wrong: the people are underwater instead of in breathable air.",
+  ]);
 });
 
 test("structural final failures restart from the approved foundation while wardrobe and style remain local", () => {

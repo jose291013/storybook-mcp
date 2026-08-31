@@ -96,6 +96,7 @@ import {
   causalRecoveryReferences,
   consumePreviewCausalRecovery,
   PREVIEW_CAUSAL_RECOVERY_VERSION,
+  PROVIDER_SAFE_STRUCTURE_REQUIRED_CODE,
   previewCausalRecoveryPage,
   rehydrateCausalWardrobeRepairPolicy,
 } from "../services/previewCausalRecovery.js";
@@ -2439,6 +2440,12 @@ router.post("/preview", async (req, res) => {
                 "provider_safe_two_pass_finishing",
                 "provider_safe_structure_first",
               ].includes(strategy)) === true;
+              if (providerSafeBoundedPage) {
+                qualityIssueCodes = [...new Set([
+                  ...qualityIssueCodes,
+                  PROVIDER_SAFE_STRUCTURE_REQUIRED_CODE,
+                ])];
+              }
               console.warn("[preview] page quarantined for repair", JSON.stringify({
                 jobId: job.id,
                 projectId,
