@@ -8,17 +8,17 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/image-provider-transport-recovery`
-- Main checkpoint: PR #307 (provider-safe snapshot lineage V9.1), after PR #306 (provider-safe structure-first finishing)
+- Current branch: `main`
+- Main checkpoint: PR #308 (image-provider transport recovery), after PR #307 (provider-safe snapshot lineage V9.1)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: image-provider transport recovery candidate in PR #308 after PR #307. Live project `c043602f-00c1-4d3f-93ab-6f77e2c16e93` preserved its approved cover, text authority, wardrobe authorities and approved page 3, then stopped on page 4 with `Unable to verify model access right now. Please retry.` This is a transient provider interruption, not a narrative or image-quality failure. The candidate preserves provider status/code/header evidence, gives wardrobe authority one transport retry without spending a visual-QA attempt, maps an exhausted transient request to durable `preview_interrupted`, and raises retry policy 47 so existing failed projects can resume from their last persisted page.
+- Current focused checkpoint: image-provider transport recovery merged in PR #308. Live project `c043602f-00c1-4d3f-93ab-6f77e2c16e93` preserves its approved cover, text authority, wardrobe authorities and approved page 3. Once Render serves merge `131a39b`, use its free technical continuation; expected behavior is a resume at page 4, with transient image-provider outages recorded as durable `preview_interrupted` rather than terminal `preview_generation_failed`.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: image-provider transport recovery
+## Completed brick: image-provider transport recovery
 
 Image generation errors retain their upstream status, type, code, request id,
 headers and nested provider payload instead of being flattened into a message-
