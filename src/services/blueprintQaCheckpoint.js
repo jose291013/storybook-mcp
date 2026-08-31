@@ -1,5 +1,7 @@
-import { isTransientOpenAIError } from "./openaiErrorPolicy.js";
-import { isProviderBillingUnavailable } from "./providerBillingError.js";
+import {
+  isPreviewProviderInterruption,
+  tagPreviewProviderInterruption,
+} from "./providerInterruption.js";
 
 export const BLUEPRINT_QA_CHECKPOINT_VERSION = 1;
 
@@ -44,13 +46,15 @@ export function blueprintQaCheckpoint({ status, attempt = 0, qa = null, now = ne
 }
 
 export function isBlueprintProviderInterruption(error) {
-  if (isProviderBillingUnavailable(error)) return false;
-  return error?.code === "scenario_background_timeout" || isTransientOpenAIError(error);
+  return error?.code === "scenario_background_timeout" || isPreviewProviderInterruption(error);
 }
 
 export function tagBlueprintProviderInterruption(error, artifactType = "blueprint_qa_repair") {
   if (!isBlueprintProviderInterruption(error)) return error;
-  error.code = "preview_interrupted";
-  error.artifactType = artifactType;
-  return error;
+  if (error?.code === "scenario_background_timeout") {
+    error.code = "preview_interrupted";
+    error.artifactType = artifactType;
+    return error;
+  }
+  return tagPreviewProviderInterruption(error, artifactType);
 }

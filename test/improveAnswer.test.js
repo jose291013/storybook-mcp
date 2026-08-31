@@ -49,6 +49,9 @@ test("the observed service-auth failure is transient and creator errors stay loc
     type: "server_error",
     headers: { "x-openai-ide-root-error-code": "service_auth_failure" },
   }), true);
+  assert.equal(isTransientOpenAIError(new Error(
+    "Unable to verify model access right now. Please retry.",
+  )), true);
   assert.equal(isTransientOpenAIError(Object.assign(new Error("Invalid request"), { status: 400 })), false);
 
   for (const locale of ["FR", "ES", "EN"]) {
