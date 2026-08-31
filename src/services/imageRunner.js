@@ -12,6 +12,17 @@ function getClient() {
   return createOpenAIClient({ kind: "image" });
 }
 
+export function normalizeImageProviderError(error) {
+  const message = error?.error?.message || error?.message || "Image generation failed (unknown error)";
+  const normalized = new Error(message, error instanceof Error ? { cause: error } : undefined);
+  for (const key of ["status", "statusCode", "code", "type", "headers", "request_id", "response", "error"]) {
+    if (error?.[key] != null) normalized[key] = error[key];
+  }
+  normalized.provider = "openai";
+  normalized.providerOperation = "image_generation";
+  return normalized;
+}
+
 export { sanitizeBrandSensitiveText } from "./imageVisualContract.js";
 
 export function prioritizeVisualReferences(referenceImages = []) {
@@ -215,8 +226,7 @@ export async function generateImage({
       res = await getClient().images.generate({ model, prompt: finalPrompt, size, quality });
     }
   } catch (error) {
-    const message = error?.error?.message || error?.message || "Image generation failed (unknown error)";
-    throw new Error(message);
+    throw normalizeImageProviderError(error);
   }
 
   const item = res?.data?.[0];

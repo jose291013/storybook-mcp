@@ -2,6 +2,28 @@
 
 Last updated: 2026-08-31
 
+## Image-provider transport recovery
+
+Provider transport and access-verification outages are technical interruptions,
+not narrative failures. Image-generation errors must preserve upstream status,
+type, code, request id, headers and nested error evidence long enough for the
+shared provider classifier to distinguish transient service/authentication
+failures from billing exhaustion and permanent invalid requests.
+
+Wardrobe-authority generation receives one same-attempt transport retry; this
+does not spend one of its two visual-QA attempts and does not enlarge the
+successful-image allowance. If any cover, wardrobe, interior-page or image-QA
+request remains transiently unavailable, the preview is checkpointed as
+`preview_interrupted`. Every already persisted authority and accepted image
+remains immutable, and the customer's free continuation starts at the first
+missing durable step. Retry policy 47 grants projects exhausted under the
+previous classification one migration continuation.
+
+Billing/quota exhaustion remains separately classified and never loops as a
+transport retry. This changes no narrative contract, strict-QA invariant,
+commerce, credit, expiry, private-asset, database, environment or series-canon
+rule.
+
 ## Provider-safe snapshot lineage V9.1
 
 The exact `render_snapshot` is the generation authority for a scene's visible

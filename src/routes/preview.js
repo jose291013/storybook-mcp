@@ -57,6 +57,10 @@ import {
   isProviderBillingUnavailable,
   tagProviderBillingUnavailable,
 } from "../services/providerBillingError.js";
+import {
+  isPreviewProviderInterruption,
+  tagPreviewProviderInterruption,
+} from "../services/providerInterruption.js";
 import { photoDescriptorAgent } from "../agents/photoDescriptor.js";
 import { manuscriptWriterAgent } from "../agents/manuscriptWriter.js";
 import { manuscriptEditorAgent, manuscriptReviewFidelityIssues } from "../agents/manuscriptEditor.js";
@@ -2083,7 +2087,9 @@ router.post("/preview", async (req, res) => {
           const reportAttempt = reportImageAttempt(job.id, `draft:wardrobe-authority:${authority.authorityId}`);
           let acceptedAsset = null;
           let lastIssueCodes = [];
-          for (let attempt = 1; attempt <= 2; attempt += 1) {
+          let attempt = 1;
+          let transportRetryUsed = false;
+          while (attempt <= 2) {
             reportAttempt({
               phase: "started",
               attempt,
@@ -2092,16 +2098,34 @@ router.post("/preview", async (req, res) => {
               referencePolicyStage: "locked_style_garment_only",
               referenceKinds: ["continuity"],
             });
-            const candidateUrl = await generateImage({
-              prompt: wardrobeAuthorityPrompt(authority),
-              outName: `wardrobe-${authority.authorityId}-${job.id}-attempt${attempt}`,
-              referenceImages: [styleReference],
-              sceneContract: `WARDROBE VISUAL AUTHORITY V1: exactly one complete garment-only outfit on one anonymous headless mannequin; no person or identity; exact outfit ${authority.stateId}: ${authority.description}`,
-              renderingMode: answers.rendering_mode,
-              likenessGoal: answers.likeness_goal,
-              quality: "low",
-              model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
-            });
+            let candidateUrl;
+            try {
+              candidateUrl = await generateImage({
+                prompt: wardrobeAuthorityPrompt(authority),
+                outName: `wardrobe-${authority.authorityId}-${job.id}-attempt${attempt}`,
+                referenceImages: [styleReference],
+                sceneContract: `WARDROBE VISUAL AUTHORITY V1: exactly one complete garment-only outfit on one anonymous headless mannequin; no person or identity; exact outfit ${authority.stateId}: ${authority.description}`,
+                renderingMode: answers.rendering_mode,
+                likenessGoal: answers.likeness_goal,
+                quality: "low",
+                model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+              });
+            } catch (error) {
+              if (!transportRetryUsed && isPreviewProviderInterruption(error)) {
+                transportRetryUsed = true;
+                reportAttempt({
+                  phase: "transport-retry",
+                  attempt,
+                  maximumAttempts: 2,
+                  error: "temporary_provider_interruption",
+                  referencePolicyStage: "locked_style_garment_only",
+                  referenceKinds: ["continuity"],
+                });
+                continue;
+              }
+              error.artifactType = String(error.artifactType || "wardrobe_visual_authority_v1");
+              throw error;
+            }
             reportAttempt({ phase: "generated", attempt, maximumAttempts: 2 });
             const evidence = await inspectWardrobeVisualAuthority({
               imagePath: outputImagePath(candidateUrl),
@@ -2117,6 +2141,7 @@ router.post("/preview", async (req, res) => {
                 issues: evidence.issueCodes,
                 referencePolicyStage: "locked_style_garment_only",
               });
+              attempt += 1;
               continue;
             }
             const persisted = await persistPreviewAsset({ projectId, assetUrl: candidateUrl });
@@ -3052,7 +3077,10 @@ router.post("/preview", async (req, res) => {
     } catch (error) {
       const classifiedError = isProviderBillingUnavailable(error)
         ? tagProviderBillingUnavailable(error)
-        : error;
+        : tagPreviewProviderInterruption(
+            error,
+            error?.providerOperation === "image_generation" ? "image_generation" : "provider_request",
+          );
       const boundedErrorCode = classifiedError?.code === "preview_page_repair_required"
         ? "preview_page_repair_required"
         : classifiedError?.code === "preview_provider_safety_quarantine"
@@ -3064,6 +3092,8 @@ router.post("/preview", async (req, res) => {
             : "preview_generation_failed";
       const publicErrorMessage = boundedErrorCode === "preview_provider_billing_unavailable"
         ? "The illustration service is temporarily unavailable. The project remains saved and retryable."
+        : boundedErrorCode === "preview_interrupted"
+          ? "The generation service was temporarily unavailable. The project remains saved and will resume from its last durable step."
         : String(classifiedError?.message || classifiedError);
       updateJob(job.id, {
         status: "failed",
