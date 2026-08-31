@@ -9,9 +9,9 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `main`
-- Main checkpoint: PR #306 (provider-safe structure-first finishing), after PR #305 (provider-safe two-pass illustration finishing)
+- Main checkpoint: PR #307 (provider-safe snapshot lineage V9.1), after PR #306 (provider-safe structure-first finishing)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: provider-safe snapshot lineage V9.1 candidate. Project `de94edbb-63bb-4966-bc31-bc325bceed78` still preserves 35/36 accepted pages. Live V9 exposed three remaining gaps: the minimal request preferred the destination-world defaults over the exact dry camera-side snapshot, foundation QA incorrectly required exact clothes before private references were applied, and a quarantined foundation lost its provider-safe lineage on the next resume. Recovery version 10 / retry policy 46 corrects all three without reopening accepted pages.
+- Current focused checkpoint: provider-safe snapshot lineage V9.1 merged in PR #307. Project `de94edbb-63bb-4966-bc31-bc325bceed78` still preserves 35/36 accepted pages. Live V9 exposed three remaining gaps: the minimal request preferred the destination-world defaults over the exact dry camera-side snapshot, foundation QA incorrectly required exact clothes before private references were applied, and a quarantined foundation lost its provider-safe lineage on the next resume. Recovery version 10 / retry policy 46 corrects all three without reopening accepted pages. Next verification target: retry page 8 only after Render serves PR #307.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -42,7 +42,7 @@ repair target rather than restarting the book.
 Verification: focused recovery/projection tests pass 49/49 and the complete
 repository regression passes 861/861 tests.
 
-## Candidate brick: provider-safe snapshot lineage V9.1
+## Completed brick: provider-safe snapshot lineage V9.1
 
 The provider-safe projection now treats `render_snapshot` as the authority for
 the exact visible instant. Camera-side location, medium, gravity, movement,
