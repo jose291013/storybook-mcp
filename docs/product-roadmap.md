@@ -2,6 +2,27 @@
 
 Last updated: 2026-08-31
 
+## Provider-safe snapshot lineage V9.1
+
+The exact `render_snapshot` is the generation authority for a scene's visible
+instant. Its camera-side location and medium, gravity, permitted movement and
+posture, survival mechanisms, equipment, action and visible object states take
+precedence over broader destination-universe defaults. Explicit empty lists
+are meaningful: they forbid carrying destination equipment or physics into a
+dry origin, preparation or return scene.
+
+Reference-free foundation QA blocks physical, cast, equipment, boundary,
+action, object and landmark contradictions. It does not block on exact garment
+details that can only be judged after private wardrobe authorities are applied
+in finishing; final strict V3 wardrobe evidence remains mandatory. A bounded
+foundation quarantine stores a non-sensitive provider-safe lineage marker, so
+the next durable page-level continuation cannot fall back to legacy scene
+recomposition. Recovery version 10 and retry policy 46 provide the migration
+resume while preserving every accepted page.
+
+This changes no model-call allowance, migration, environment variable,
+commerce, credit, expiry, private-asset exposure or series-canon rule.
+
 ## Provider-safe structure-first illustration finishing
 
 Recovery version 9 and retry policy 45 separate physical-scene construction

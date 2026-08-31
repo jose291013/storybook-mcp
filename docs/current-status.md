@@ -11,7 +11,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Current branch: `main`
 - Main checkpoint: PR #306 (provider-safe structure-first finishing), after PR #305 (provider-safe two-pass illustration finishing)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: provider-safe structure-first finishing. Project `de94edbb-63bb-4966-bc31-bc325bceed78` still preserves 35/36 accepted pages. Live V8 generated and finished page 8, but QA rejected its wardrobe, physical medium, passage boundary and main action. The second finishing call then reused that structurally wrong image as an exact composition and was rejected by provider request `req_fe32744ae8da44efbd55b5046177d243`. Recovery version 9 / retry policy 45 validates and, when necessary, recomposes the reference-free foundation before private appearance finishing.
+- Current focused checkpoint: provider-safe snapshot lineage V9.1 candidate. Project `de94edbb-63bb-4966-bc31-bc325bceed78` still preserves 35/36 accepted pages. Live V9 exposed three remaining gaps: the minimal request preferred the destination-world defaults over the exact dry camera-side snapshot, foundation QA incorrectly required exact clothes before private references were applied, and a quarantined foundation lost its provider-safe lineage on the next resume. Recovery version 10 / retry policy 46 corrects all three without reopening accepted pages.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
@@ -41,6 +41,27 @@ repair target rather than restarting the book.
 
 Verification: focused recovery/projection tests pass 49/49 and the complete
 repository regression passes 861/861 tests.
+
+## Candidate brick: provider-safe snapshot lineage V9.1
+
+The provider-safe projection now treats `render_snapshot` as the authority for
+the exact visible instant. Camera-side location, medium, gravity, movement,
+posture, survival mechanisms, equipment, action and visible objects override
+broader universe defaults. An explicitly empty snapshot list remains empty, so
+a dry origin scene cannot inherit underwater locomotion, breathing equipment
+or objects from the destination world.
+
+Foundation QA remains strict for physical structure, cast, equipment,
+boundaries, action, objects and landmarks, but defers exact garment evidence to
+the private finishing pass where wardrobe references are actually present. If
+that bounded path is quarantined, a durable non-sensitive issue code preserves
+the provider-safe strategy on the next resume instead of selecting legacy
+canonical recomposition. Recovery version 10 and retry policy 46 expose one
+new bounded continuation for the existing page-8 gap; the 35 accepted pages
+remain immutable.
+
+Verification: focused snapshot, quality, recovery and checkpoint tests pass
+56/56 and the complete repository regression passes 868/868 tests.
 
 ## Completed brick: provider-safe structure-first finishing
 
