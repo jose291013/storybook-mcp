@@ -112,6 +112,7 @@ import {
 import { monotonicWardrobeRepairProgress } from "../services/previewMonotonicRepair.js";
 import { buildProviderSafeImageProjection } from "../services/providerSafeImageProjection.js";
 import { notifyPreviewMilestone, notifyPreviewReady } from "../services/previewNotification.js";
+import { shouldNotifyPreviewGenerationFailure } from "../services/previewFailureNotificationPolicy.js";
 import { startTemporaryPreviewAccess } from "../services/temporaryPreviewAccess.js";
 import { approvedStoryScenario, storyScenarioRequired } from "../services/storyScenario.js";
 import { generationRunStore } from "../services/generationRunStore.js";
@@ -3209,16 +3210,28 @@ router.post("/preview", async (req, res) => {
           generationJobId: job.id,
           continuitySnapshot,
         });
-        try {
-          await notifyPreviewMilestoneIfRequested({
+        if (shouldNotifyPreviewGenerationFailure({
+          errorCode: boundedErrorCode,
+          repairQueue,
+          retryAvailable,
+        })) {
+          try {
+            await notifyPreviewMilestoneIfRequested({
+              projectId,
+              identity,
+              event: "generation_failed",
+              eventId: `${job.id}:generation_failed`,
+              retryAvailable,
+            });
+          } catch (notificationError) {
+            console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
+          }
+        } else {
+          console.info("[preview] failure email deferred for bounded page repair", JSON.stringify({
+            jobId: job.id,
             projectId,
-            identity,
-            event: "generation_failed",
-            eventId: `${job.id}:generation_failed`,
-            retryAvailable,
-          });
-        } catch (notificationError) {
-          console.warn("[preview] failure email failed", JSON.stringify({ projectId, error: String(notificationError?.message || notificationError) }));
+            pendingPageNumbers: repairQueue.pendingPageNumbers,
+          }));
         }
       }
     } finally {

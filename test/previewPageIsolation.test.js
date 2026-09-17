@@ -72,6 +72,8 @@ test("preview generation quarantines one page, continues the book and performs a
   assert.match(preview, /buildPreviewRepairQueue/);
   assert.match(preview, /resilient page repair queued/);
   assert.match(preview, /preview_page_repair_required/);
+  assert.match(preview, /shouldNotifyPreviewGenerationFailure/);
+  assert.match(preview, /failure email deferred for bounded page repair/);
   assert.match(preview, /repairQueue: null/);
   assert.match(jobs, /quality_review_required/);
   assert.match(app, /automatic page repair continuation/);
