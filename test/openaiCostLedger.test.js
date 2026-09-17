@@ -74,6 +74,23 @@ test("GPT Image 2 calculation uses separate text, image and output-image rates",
   assert.equal(result.costUsdMicros, 127500);
 });
 
+test("GPT Image 2.5 Flare and Sunburst use their documented token rates", () => {
+  const usage = {
+    inputTextTokens: 200,
+    inputImageTokens: 1000,
+    cachedImageTokens: 250,
+    outputImageTokens: 4000,
+  };
+  for (const model of [
+    "gpt-image-2.5-flare-2026-09-08",
+    "gpt-image-2.5-sunburst-2026-09-08",
+  ]) {
+    const result = calculateOpenAICost({ model, endpoint: "images.edit", usage });
+    assert.equal(result.pricingComplete, true);
+    assert.equal(result.costUsdMicros, 127500);
+  }
+});
+
 test("GPT-4o mini TTS calculation uses text input and audio output token rates", () => {
   const result = calculateOpenAICost({
     model: "gpt-4o-mini-tts",

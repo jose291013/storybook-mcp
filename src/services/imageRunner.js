@@ -7,6 +7,8 @@ import { createOpenAIClient } from "./openaiClient.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { sanitizeBrandSensitiveText } from "./imageVisualContract.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
+import { currentOpenAICostContext } from "./openaiCostContext.js";
+import { selectImageModel } from "./imageModelPolicy.js";
 
 function getClient() {
   return createOpenAIClient({ kind: "image" });
@@ -182,6 +184,7 @@ export async function generateImage({
   size = "1024x1024",
   quality = process.env.IMAGE_QUALITY || "low",
   model = process.env.IMAGE_MODEL || "gpt-image-2",
+  modelRole = "generation",
   providerSafetyMinimal = false,
   providerSafetyFinishing = false,
 }) {
@@ -207,8 +210,13 @@ export async function generateImage({
 
   let res;
   try {
+    const policy = currentOpenAICostContext()?.imageModelPolicy;
     if (usableReferences.length) {
-      const referenceModel = process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2";
+      const referenceModel = selectImageModel({
+        policy,
+        role: modelRole,
+        fallbackModel: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+      });
       const payload = {
         model: referenceModel,
         image: await loadReferenceFiles(usableReferences),
@@ -223,7 +231,8 @@ export async function generateImage({
       }
       res = await getClient().images.edit(payload);
     } else {
-      res = await getClient().images.generate({ model, prompt: finalPrompt, size, quality });
+      const selectedModel = selectImageModel({ policy, role: modelRole, fallbackModel: model });
+      res = await getClient().images.generate({ model: selectedModel, prompt: finalPrompt, size, quality });
     }
   } catch (error) {
     throw normalizeImageProviderError(error);

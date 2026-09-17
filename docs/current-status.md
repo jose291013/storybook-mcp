@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-08-31
+Last updated: 2026-09-17
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,15 +8,34 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `main`
+- Current branch: `codex/gpt-image-25-hybrid-canary`
 - Main checkpoint: PR #308 (image-provider transport recovery), after PR #307 (provider-safe snapshot lineage V9.1)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: image-provider transport recovery merged in PR #308. Live project `c043602f-00c1-4d3f-93ab-6f77e2c16e93` preserves its approved cover, text authority, wardrobe authorities and approved page 3. Once Render serves merge `131a39b`, use its free technical continuation; expected behavior is a resume at page 4, with transient image-provider outages recorded as durable `preview_interrupted` rather than terminal `preview_generation_failed`.
+- Current focused checkpoint: GPT Image 2.5 hybrid canary candidate. New projects are deterministically assigned once; 10% use Flare for routine generation and Sunburst for covers, retries, repairs and final high-precision illustrations. Existing projects and the control cohort preserve their prior GPT Image route.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
+
+## Candidate brick: GPT Image 2.5 hybrid canary
+
+The image-model choice is stored inside the durable generation checkpoint and
+reused by free retries, private repairs, creator modifications and finalization.
+A book can therefore never change image-model cohort in the middle of its
+production. Projects whose checkpoint predates this brick remain on the legacy
+route.
+
+The default canary is 10% of new projects. Flare handles the initial interior
+pages, wardrobe authorities and provider-safe foundations. Sunburst handles the
+cover, second attempts, private finishing, targeted repairs, creator-requested
+alternatives and final print illustrations. The existing strict Narrative V3
+acceptance gates, call bounds, credits, privacy and series-canon rules remain
+unchanged. The model ids are dated and configurable, and cost attribution now
+recognizes both 2.5 variants at their published token rates.
+
+Verification: focused image-routing, transport, QA and cost tests pass 65/65,
+and the complete repository regression passes 877/877 tests.
 
 ## Completed brick: image-provider transport recovery
 

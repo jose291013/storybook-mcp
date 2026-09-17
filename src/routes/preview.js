@@ -128,6 +128,10 @@ import {
 } from "../services/storyPlanCompiler.js";
 import { inferAttemptKind, withOpenAICostContext } from "../services/openaiCostContext.js";
 import {
+  assignImageModelPolicy,
+  selectImageModel,
+} from "../services/imageModelPolicy.js";
+import {
   applyManuscriptCorrections,
   manuscriptBatches,
   mergeManuscriptBatch,
@@ -686,6 +690,7 @@ router.post("/preview", async (req, res) => {
   // a changed non-empty answer compatible.
   const fingerprint = approvedScenario?.fingerprint || fingerprintCandidates[0] || previewRequestFingerprint(normalized);
   const existingCheckpoint = generationCheckpoint(project, fingerprint);
+  const imageModelPolicy = assignImageModelPolicy({ projectId, existingCheckpoint });
   const storedCausalRecovery = existingCheckpoint?.causalRecovery || null;
   // A retry-policy bump must not consume its one resume merely to carry an
   // obsolete recovery document forward. Recompile the current blocker set
@@ -763,6 +768,7 @@ router.post("/preview", async (req, res) => {
     creditReservationId: creditReservation?.id || null,
     referencePhotos: normalized.photos,
     projectId,
+    imageModelPolicy,
     productConfiguration: {
       page_count: normalized.answers.page_count,
       product_type: normalized.answers.product_type,
@@ -802,6 +808,7 @@ router.post("/preview", async (req, res) => {
         pageCount: normalized.answers.page_count,
         renderingMode: normalized.answers.rendering_mode,
         styleId: normalized.answers.style_id,
+        imageModelCohort: imageModelPolicy.cohort,
       },
     });
     await updateGenerationRun(job.id, { status: "running", currentStep: "started" });
@@ -819,12 +826,14 @@ router.post("/preview", async (req, res) => {
   const initialCheckpoint = queuedCheckpoint
     ? {
         ...queuedCheckpoint,
+        imageModelPolicy,
         ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
         ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
       }
     : {
         fingerprint,
         retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
+        imageModelPolicy,
         ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
       };
   let checkpoint = initialCheckpoint;
@@ -908,7 +917,22 @@ router.post("/preview", async (req, res) => {
       }));
     });
   }
-  console.info("[preview] started", JSON.stringify({ jobId: job.id, projectId, pageCount: normalized.answers.page_count }));
+  console.info("[preview] started", JSON.stringify({
+    jobId: job.id,
+    projectId,
+    pageCount: normalized.answers.page_count,
+    imageModelCohort: imageModelPolicy.cohort,
+    generationModel: selectImageModel({
+      policy: imageModelPolicy,
+      role: "generation",
+      fallbackModel: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+    }),
+    precisionModel: selectImageModel({
+      policy: imageModelPolicy,
+      role: "precision",
+      fallbackModel: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+    }),
+  }));
   res.json({
     jobId: job.id,
     generationStage: previewGenerationStage({
@@ -922,6 +946,7 @@ router.post("/preview", async (req, res) => {
     projectId,
     runId: job.id,
     workflow: "preview",
+    imageModelPolicy,
     getStage: () => getJob(job.id)?.step || checkpoint?.phase || "preview",
     getAttemptKind: () => inferAttemptKind(getJob(job.id)?.step || checkpoint?.phase),
   }, async () => {
@@ -1918,6 +1943,7 @@ router.post("/preview", async (req, res) => {
           renderingMode: answers.rendering_mode,
           likenessGoal: answers.likeness_goal,
           model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+          modelRole: "precision",
         });
         const localCoverPreviewUrl = await composeBookPagePNG({
           baseUrl,
@@ -2094,7 +2120,11 @@ router.post("/preview", async (req, res) => {
               phase: "started",
               attempt,
               maximumAttempts: 2,
-              model: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+              model: selectImageModel({
+                policy: imageModelPolicy,
+                role: "generation",
+                fallbackModel: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+              }),
               referencePolicyStage: "locked_style_garment_only",
               referenceKinds: ["continuity"],
             });
@@ -2109,6 +2139,7 @@ router.post("/preview", async (req, res) => {
                 likenessGoal: answers.likeness_goal,
                 quality: "low",
                 model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+                modelRole: "generation",
               });
             } catch (error) {
               if (!transportRetryUsed && isPreviewProviderInterruption(error)) {
@@ -2703,6 +2734,7 @@ router.post("/preview", async (req, res) => {
             renderingMode: answers.rendering_mode,
             likenessGoal: answers.likeness_goal,
             model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+            modelRole: "precision",
             qualityReviewScope: repairPolicy.targetCodes,
             revisionInstruction: (pendingPage.qualityIssues || []).join("; "),
             strictV3EvidenceRequired: strictV3Rendering,

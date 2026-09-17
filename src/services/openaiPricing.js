@@ -1,4 +1,4 @@
-export const OPENAI_PRICE_VERSION = "openai-standard-2026-08-10-tts-duration";
+export const OPENAI_PRICE_VERSION = "openai-standard-2026-09-17-image25";
 
 const TEXT_PRICES = [
   { pattern: /^gpt-5\.6-sol(?:-|$)/, input: 5, cached: 0.5, cacheWrite: 6.25, output: 30, longInput: 10, longCached: 1, longCacheWrite: 12.5, longOutput: 45 },
@@ -9,6 +9,7 @@ const TEXT_PRICES = [
 ];
 
 const IMAGE_PRICES = [
+  { pattern: /^gpt-image-2\.5-(?:flare|sunburst)(?:-|$)/, textInput: 5, textCached: 1.25, imageInput: 8, imageCached: 2, imageOutput: 30 },
   { pattern: /^gpt-image-2(?:-|$)/, textInput: 5, textCached: 1.25, imageInput: 8, imageCached: 2, imageOutput: 30 },
   { pattern: /^gpt-image-1\.5(?:-|$)/, textInput: 5, textCached: 1.25, imageInput: 8, imageCached: 2, imageOutput: 32 },
   { pattern: /^gpt-image-1-mini(?:-|$)/, textInput: 2, textCached: 0.2, imageInput: 2.5, imageCached: 0.25, imageOutput: 8 },

@@ -15,6 +15,7 @@ export function withOpenAICostContext(context, callback) {
     stage: clean(context?.stage, 160),
     getStage: typeof context?.getStage === "function" ? context.getStage : null,
     getAttemptKind: typeof context?.getAttemptKind === "function" ? context.getAttemptKind : null,
+    ...(context?.imageModelPolicy ? { imageModelPolicy: context.imageModelPolicy } : {}),
   };
   return storage.run(normalized, callback);
 }
@@ -36,6 +37,7 @@ export function currentOpenAICostContext() {
     workflow: context.workflow,
     stage: clean(stage, 160),
     attemptKind: clean(attemptKind || "normal", 40),
+    ...(context.imageModelPolicy ? { imageModelPolicy: context.imageModelPolicy } : {}),
   };
 }
 

@@ -33,6 +33,7 @@ import { visualBibleCoverStorageKey } from "../services/visualBible.js";
 import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
 import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
 import { findBookFormat } from "../config/bookFormats.js";
+import { imageModelPolicyForProject } from "../services/imageModelPolicy.js";
 
 const router = express.Router();
 const resolvingProjects = new Set();
@@ -349,6 +350,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
     projectId: project.id,
     runId: job.id,
     workflow: "quality_review",
+    imageModelPolicy: imageModelPolicyForProject(project),
     attemptKind: "quality_repair",
     getStage: () => `quality:${scope}:page:${pageNumber}`,
   }, async () => {
@@ -534,6 +536,7 @@ router.post("/projects/:id/quality-review/pages/:pageNumber/repair", async (req,
         renderingMode: selectedStyle.renderingMode,
         likenessGoal: selectedStyle.likeness,
         model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+        modelRole: "precision",
         maximumAttempts: 1,
         verifyExactCast: true,
         revisionInstruction: `${priorIssues}; ${instruction}`,
