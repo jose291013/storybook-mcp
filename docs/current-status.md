@@ -8,17 +8,30 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/gpt-image-25-hybrid-canary`
-- Main checkpoint: PR #308 (image-provider transport recovery), after PR #307 (provider-safe snapshot lineage V9.1)
+- Current branch: `codex/defer-bounded-repair-failure-email`
+- Main checkpoint: PR #309 (GPT Image 2.5 hybrid canary), after PR #308 (image-provider transport recovery)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: GPT Image 2.5 hybrid canary candidate. New projects are deterministically assigned once; 10% use Flare for routine generation and Sunburst for covers, retries, repairs and final high-precision illustrations. Existing projects and the control cohort preserve their prior GPT Image route.
+- Current focused checkpoint: bounded repair notification deferral candidate. A valid retryable page-repair queue keeps its durable automatic continuation but no longer sends a premature generation-failed e-mail; malformed or exhausted queues and genuine terminal failures retain the existing notification.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: GPT Image 2.5 hybrid canary
+## Candidate brick: bounded repair notification deferral
+
+`preview_page_repair_required` remains a durable `preview_failed` checkpoint so
+the browser and **My creations** preserve the same automatic/free continuation.
+The generation-failed e-mail is deferred only when its versioned queue is
+non-empty, internally consistent, `awaiting_retry` and still retryable. Queue
+exhaustion, malformed state, infrastructure interruption, billing unavailability
+and ordinary generation failure continue to notify. Successful repair sends the
+normal ready e-mail.
+
+Focused verification passes 12/12 tests and the complete repository regression
+passes 881/881 tests.
+
+## Completed brick: GPT Image 2.5 hybrid canary
 
 The image-model choice is stored inside the durable generation checkpoint and
 reused by free retries, private repairs, creator modifications and finalization.

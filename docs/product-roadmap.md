@@ -1,6 +1,23 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-08-31
+Last updated: 2026-09-17
+
+## Bounded repair notification deferral
+
+A durable `preview_page_repair_required` checkpoint with a valid, non-empty
+and retryable page-repair queue is an intermediate manufacturing state, not a
+customer-facing book failure. Calitiki keeps the existing `preview_failed`
+checkpoint so the browser and **My creations** can start the same free,
+idempotent continuation, but it does not send the `generation_failed` e-mail
+while that bounded repair remains available.
+
+The notification is deferred only when the persisted queue is versioned,
+internally consistent, explicitly `awaiting_retry` and still retryable. A
+missing, malformed or exhausted queue sends the existing failure e-mail, as do
+provider interruptions, billing unavailability and ordinary terminal
+generation failures. When repair succeeds, the normal single ready e-mail is
+sent. This changes no model call, repair allowance, retry state, credit,
+commerce, private-asset, expiry or series-canon rule.
 
 ## Image-provider transport recovery
 
