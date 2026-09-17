@@ -21,6 +21,7 @@ import { adjacentApprovedIllustrationReferences } from "../services/adjacentVisu
 import { generationCheckpoint } from "../services/previewGenerationCheckpoint.js";
 import { wardrobeVisualReferencesFromCheckpoint } from "../services/wardrobeVisualAuthorityV1.js";
 import { findBookFormat } from "../config/bookFormats.js";
+import { imageModelPolicyForProject } from "../services/imageModelPolicy.js";
 
 const router = express.Router();
 const runningModifications = new Set();
@@ -187,6 +188,7 @@ async function regenerateSpreadIllustration({ project, spread, pairedText, instr
     renderingMode: style.renderingMode,
     likenessGoal: style.likeness,
     model: process.env.DRAFT_IMAGE_MODEL || "gpt-image-2",
+    modelRole: "precision",
     maximumAttempts: 2,
     onAttempt,
     verifyExactCast: true,
@@ -306,7 +308,7 @@ async function buildCandidate(modification, jobId) {
   };
 }
 
-function startGeneration(modification, reservation) {
+function startGeneration(modification, reservation, imageModelPolicy) {
   const job = createJob({
     status: "running",
     kind: "preview_modification",
@@ -320,6 +322,7 @@ function startGeneration(modification, reservation) {
     runId: job.id,
     workflow: "preview_modification",
     attemptKind: "customer_change",
+    imageModelPolicy,
     stage: `modification:spread:${modification.spreadNumber}:generating`,
   }, async () => {
     try {
@@ -521,7 +524,7 @@ router.post("/projects/:id/preview-modifications", async (req, res) => {
       status: "reserved",
       reservationId: reservation.id,
     });
-    const job = startGeneration(reserved, reservation);
+    const job = startGeneration(reserved, reservation, imageModelPolicyForProject(project));
     res.status(202).json({
       jobId: job.id,
       modification: modificationView(reserved),
@@ -592,7 +595,7 @@ router.post("/projects/:id/preview-modifications/:modificationId/retry", async (
       status: "reserved",
       reservationId: reservation.id,
     });
-    const job = startGeneration(reserved, reservation);
+    const job = startGeneration(reserved, reservation, imageModelPolicyForProject(project));
     res.status(202).json({ jobId: job.id, modification: modificationView(reserved) });
   } catch (error) {
     res.status(error instanceof InsufficientCreditError ? 402 : 500).json({ error: String(error?.message || error) });

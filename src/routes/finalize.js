@@ -30,6 +30,7 @@ router.post("/finalize", async (req, res) => {
     projectId: job.projectId || "",
     runId: jobId,
     workflow: "finalization",
+    imageModelPolicy: job.imageModelPolicy,
     getStage: () => getJob(jobId)?.step || "finalization",
   }, async () => {
     try {
@@ -84,6 +85,7 @@ router.post("/finalize", async (req, res) => {
           size: findBookFormat(blueprint.format?.id).imageSize,
           quality: process.env.FINAL_IMAGE_QUALITY || "high",
           model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",
+          modelRole: "precision",
         });
         finalCoverUrl = await composeBookPagePNG({
           baseUrl,
@@ -145,6 +147,7 @@ router.post("/finalize", async (req, res) => {
             size: findBookFormat(blueprint.format?.id).imageSize,
             quality: process.env.FINAL_IMAGE_QUALITY || "high",
             model: process.env.FINAL_IMAGE_MODEL || "gpt-image-1",
+            modelRole: "precision",
           });
         }
         if (text) previousText = text;

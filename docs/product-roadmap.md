@@ -2520,6 +2520,32 @@ gate blocks startup, so a safety-authority trace can no longer masquerade as a
 started generation. This changes no schema, environment variable, generation
 allowance, commerce rule, private-asset policy or series canon.
 
+## GPT Image 2.5 hybrid canary
+
+Image-model migrations are project assignments, not global mid-run switches.
+At the first preview request, a deterministic percentage of new projects is
+assigned to a versioned hybrid policy and that policy is persisted in the
+durable generation checkpoint. Every continuation, quality repair, customer
+modification and finalization reuses it. Existing projects without this policy
+remain on their previous route.
+
+The initial rollout is 10% and is controlled by
+`GPT_IMAGE_25_ROLLOUT_PERCENT`. The hybrid cohort uses the dated
+`gpt-image-2.5-flare-2026-09-08` model for routine page generation, wardrobe
+authorities and safe structural foundations, and the dated
+`gpt-image-2.5-sunburst-2026-09-08` model for covers, retry attempts, private
+finishing, targeted repairs, creator-requested alternatives and final print
+illustrations. The exact ids may be updated with
+`GPT_IMAGE_25_FLARE_MODEL` and `GPT_IMAGE_25_SUNBURST_MODEL` only for newly
+assigned projects; already assigned books retain their stored ids.
+
+The control cohort retains the current GPT Image configuration. No new model
+call, relaxed QA rule, customer price, credit rule, private-asset exposure or
+series-canon mutation is introduced. GPT Image 2.5 Flare and Sunburst are
+recorded in the private cost ledger using their published standard token rates
+so the canary can be evaluated on completion rate, repair rate, latency and
+real cost before increasing the rollout percentage.
+
 ## Resume prompt for a new Codex task
 
 > Continue the Storybook MCP project from `docs/product-roadmap.md` and `AGENTS.md`. Inspect Git status and open PRs first. Preserve `data/jobs.json`. Continue the first incomplete delivery phase, run tests, then publish a focused draft PR.

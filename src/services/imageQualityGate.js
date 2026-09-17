@@ -6,6 +6,8 @@ import { createOpenAIClient } from "./openaiClient.js";
 import { getDeliveryStorage } from "./deliveryStorage.js";
 import { storageBodyToBuffer } from "./previewAssetStorage.js";
 import { isTransientOpenAIError } from "./openaiErrorPolicy.js";
+import { currentOpenAICostContext } from "./openaiCostContext.js";
+import { selectImageModel } from "./imageModelPolicy.js";
 import {
   VISUAL_REFERENCE_POLICY_STAGES,
   nextVisualReferencePolicyStage,
@@ -1581,6 +1583,14 @@ export async function generateQualityCheckedImage({
   strictV3EvidenceRequired = false,
   ...generationOptions
 }) {
+  const imageModelPolicy = currentOpenAICostContext()?.imageModelPolicy;
+  const reportedModel = ({ references = [], role = "generation" } = {}) => selectImageModel({
+    policy: imageModelPolicy,
+    role,
+    fallbackModel: references.length
+      ? (process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2")
+      : (generationOptions.model || process.env.IMAGE_MODEL || "gpt-image-2"),
+  });
   const evidenceReferenceImages = Array.isArray(qualityReferenceImages)
     ? qualityReferenceImages
     : (generationOptions.referenceImages || []);
@@ -1605,7 +1615,7 @@ export async function generateQualityCheckedImage({
         attempt: foundationAttempt,
         maximumAttempts: foundationAttemptLimit,
         pageLabel,
-        model: generationOptions.model || process.env.IMAGE_MODEL || "gpt-image-2",
+        model: reportedModel({ role: "generation" }),
         safetyFallback: true,
         safetyFallbackStage: IMAGE_SAFETY_FALLBACK_STAGES.CONTRACT_ONLY,
         referencePolicyStage: "structure_only",
@@ -1615,6 +1625,7 @@ export async function generateQualityCheckedImage({
       try {
         foundationUrl = await generateImage({
           ...generationOptions,
+          modelRole: "generation",
           referenceImages: [],
           prompt: providerSafeFoundationPrompt(baseFoundationPrompt, foundationCorrectionCodes),
           outName: `${generationOptions.outName || "image"}-foundation-attempt${foundationAttempt}`,
@@ -1716,9 +1727,10 @@ export async function generateQualityCheckedImage({
       safetyFallbackStage,
     );
     const safetyFallbackActive = safetyFallbackStage !== IMAGE_SAFETY_FALLBACK_STAGES.FULL_REFERENCES;
-    const model = referenceImagesForAttempt?.length
-      ? (process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2")
-      : (generationOptions.model || process.env.IMAGE_MODEL || "gpt-image-2");
+    const modelRole = generationOptions.modelRole === "precision" || attempt > 1 || previousIssues.length
+      ? "precision"
+      : "generation";
+    const model = reportedModel({ references: referenceImagesForAttempt, role: modelRole });
     onAttempt?.({
       phase: "started",
       attempt,
@@ -1771,12 +1783,13 @@ export async function generateQualityCheckedImage({
           attempt,
           maximumAttempts: attemptLimit,
           pageLabel,
-          model: process.env.REFERENCE_IMAGE_MODEL || "gpt-image-2",
+          model: reportedModel({ references: finishingReferences, role: "precision" }),
           referencePolicyStage: finishingStage,
           referenceKinds: finishingReferences.map((reference) => reference.kind),
         });
         imageUrl = await generateImage({
           ...generationOptions,
+          modelRole: "precision",
           providerSafetyMinimal: false,
           providerSafetyFinishing: true,
           characterFingerprint: "",
@@ -1788,6 +1801,7 @@ export async function generateQualityCheckedImage({
       } else {
         imageUrl = await generateImage({
           ...generationOptions,
+          modelRole,
           referenceImages: referenceImagesForAttempt,
           prompt: `${safetyFallbackActive && safetyFallbackPrompt ? safetyFallbackPrompt : prompt}${repairNote}`,
           outName: `${generationOptions.outName || "image"}-attempt${attempt}`,
