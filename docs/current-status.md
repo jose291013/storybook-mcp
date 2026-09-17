@@ -8,17 +8,17 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/defer-bounded-repair-failure-email`
-- Main checkpoint: PR #309 (GPT Image 2.5 hybrid canary), after PR #308 (image-provider transport recovery)
+- Current branch: `main` after PR #310
+- Main checkpoint: PR #310 (bounded repair notification deferral), after PR #309 (GPT Image 2.5 hybrid canary)
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: bounded repair notification deferral candidate. A valid retryable page-repair queue keeps its durable automatic continuation but no longer sends a premature generation-failed e-mail; malformed or exhausted queues and genuine terminal failures retain the existing notification.
+- Current focused checkpoint: PR #310 is merged and the Render health check is green. A valid retryable page-repair queue keeps its durable automatic continuation but no longer sends a premature generation-failed e-mail; malformed or exhausted queues and genuine terminal failures retain the existing notification.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: bounded repair notification deferral
+## Completed brick: bounded repair notification deferral
 
 `preview_page_repair_required` remains a durable `preview_failed` checkpoint so
 the browser and **My creations** preserve the same automatic/free continuation.
@@ -29,7 +29,7 @@ and ordinary generation failure continue to notify. Successful repair sends the
 normal ready e-mail.
 
 Focused verification passes 12/12 tests and the complete repository regression
-passes 881/881 tests.
+passes 881/881 tests. PR #310 is merged; post-merge Render health is green.
 
 ## Completed brick: GPT Image 2.5 hybrid canary
 
