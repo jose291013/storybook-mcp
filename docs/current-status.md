@@ -8,29 +8,42 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/ordinary-outfit-resume` (isolated checkout)
-- Review: PR #312 is published at https://github.com/jose291013/storybook-mcp/pull/312; merge and deployment pending.
-- Main checkpoint: PR #310 (bounded repair notification deferral); candidate based on `1db4cd3`
+- Current branch: `codex/canonical-hero-dedup` (reused isolated checkout)
+- Review: hero narrative projection compatibility, publication pending.
+- Main checkpoint: PR #312 merged on 2026-10-07 as `2562b7204991ca1ade2ca48f8526438b0230f665`.
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: canonical ordinary-outfit binding and cover continuation candidate; not deployed. Canonical ids and unambiguous normalized names/aliases bind scene wardrobe to private identity sources. A deterministic full-book check precedes cover generation. Normal cover decisions no longer consume a technical retry; exhausted legacy pre-wardrobe failures receive one versioned free continuation.
+- Current focused checkpoint: correct PR #312's false ambiguous-identity rejection when the blueprint repeats its hero in the cast. The scenario and manuscript pass, but this deterministic pre-cover check can stop the saved book before any cover call. The fix coalesces only positive hero projections and preserves genuine private-photo ambiguity guards.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate: ordinary outfit binding and cover continuation
+## Candidate: hero narrative projection compatibility
+
+Positive hero projections in the blueprint cast are resolved through the
+dedicated hero record. Exact canonical ids or unambiguous normalized
+names/aliases plus hero roles are required; conflicting roles, ids, private
+references and competing photo canons remain guarded. The saved blueprint,
+scenario and photo canons are not mutated. Failure logs now include the page
+and source collection without private source details.
+
+Verification: 21 binding/render tests and all 902 repository tests pass.
+No migration, retry-policy bump, environment variable or additional image call.
+Next live check after deployment: use the saved book's existing free retry,
+confirm `scene render bindings verified`, then cover generation and the normal
+cover-approval pause. No production generation was launched during testing.
+
+## Merged: ordinary outfit binding and cover continuation
 
 Binding version 1 is committed with the next queued generation. Existing
 approved covers, manuscript and completed pages are reused. Current-policy
 exhaustion remains enforced; no environment variable, database migration,
 image model or extra image allowance is introduced.
 
-Verification: 71 focused checks and all 893 repository tests pass. Next live check
-after an approved merge/deployment: reopen the affected saved book, confirm
-free continuation, then look for `scene render bindings verified` before
-wardrobe production without a second cover approval. Do not restart Render
-while a preview is generating.
+Verification at PR #312: 71 focused checks and all 893 repository tests passed.
+Live observation subsequently exposed the hero/cast projection issue addressed
+above. Do not restart Render while a preview is generating.
 
 ## Completed brick: bounded repair notification deferral
 
