@@ -6,9 +6,10 @@ export const SCENE_RENDER_CONTRACT_VERSION = 1;
 export const SCENE_RENDER_CONTRACT_ID = "calitiki.scene-render-contract.v1";
 export const SCENE_RENDER_CONTRACT_COMPILER_VERSION = 3;
 
-function renderError(code, message) {
+function renderError(code, message, context = {}) {
   const error = new Error(message);
   error.code = code;
+  Object.assign(error, context);
   throw error;
 }
 
@@ -26,7 +27,7 @@ function digestProjection(contract) {
   return projection;
 }
 
-function resolveOutfit({ stateId, universeId, ordinaryOutfit }) {
+function resolveOutfit({ stateId, universeId, ordinaryOutfit, characterId, pageNumber }) {
   if (stateId === "natural_appearance") {
     return {
       state_id: stateId,
@@ -40,6 +41,7 @@ function resolveOutfit({ stateId, universeId, ordinaryOutfit }) {
       renderError(
         "scene_render_ordinary_outfit_unbound",
         "An ordinary outfit state needs one concrete immutable visual description.",
+        { characterId, pageNumber },
       );
     }
     return { state_id: stateId, description, source: "private_identity_binding" };
@@ -107,6 +109,8 @@ export function compileSceneRenderContractV1({
       stateId: text(wardrobe.outfit_state_id),
       universeId,
       ordinaryOutfit: ordinaryOutfits.get(characterId) || ordinaryOutfits.get(canonicalName),
+      characterId,
+      pageNumber: sceneContract.image_page_number,
     });
     const appearance = resolveAppearanceEquipment({
       outfitDescription: outfit.description,

@@ -5,7 +5,7 @@ import {
   compileSceneRenderContractV1,
   SCENE_RENDER_CONTRACT_ID,
 } from "../src/contracts/sceneRenderContractV1.js";
-import { buildSceneContinuity } from "../src/services/visualContinuity.js";
+import { buildBookSceneContinuity, buildSceneContinuity } from "../src/services/visualContinuity.js";
 
 function source(overrides = {}) {
   return {
@@ -42,6 +42,66 @@ function source(overrides = {}) {
     ...overrides,
   };
 }
+
+test("ordinary wardrobe joins canonical ids across accent and case variations without changing source data", () => {
+  const blueprint = {
+    hero: { name: "Matheo", outfit_lock: "adventure jacket" },
+    cast: [{ name: "NOLAN", role: "family", outfit_lock: "legacy adventure suit" }],
+  };
+  const characterCanons = [
+    { name: "MATHÉO", role: "child", photoId: "synthetic-hero.jpg", outfit_lock: "blue cotton shirt and jeans" },
+    { name: "nolan", role: "family", photoId: "synthetic-brother.jpg", outfit_lock: "red shirt and shorts" },
+  ];
+  const contract = source({ wardrobe_states: source().wardrobe_states.map((entry) => ({ ...entry, outfit_state_id: "ordinary_outfit" })) });
+  const before = structuredClone({ blueprint, characterCanons, contract });
+  const continuity = buildSceneContinuity({ blueprint, characterCanons, structuredSceneContract: contract, castPresent: ["Mathéo", "Nolan"] });
+  const cast = continuity.sceneFidelityContract.scene_render_contract.cast.required;
+  assert.deepEqual(cast.map((entry) => entry.outfit.description), ["blue cotton shirt and jeans", "red shirt and shorts"]);
+  const photo = continuity.referenceImages.find((entry) => entry.kind === "identity" && entry.characterId === "character_brother");
+  assert.match(photo.path, /synthetic-brother.jpg$/);
+  assert.deepEqual({ blueprint, characterCanons, contract }, before);
+});
+
+test("stable ids and explicit aliases bind renamed participants without substring identity matching", () => {
+  const blueprint = {
+    hero: { name: "Mathéo", outfit_lock: "blue shirt" },
+    cast: [{ character_id: "character_brother", name: "NoNo", role: "family" },
+      { name: "Nolana", role: "family", outfit_lock: "WRONG green dress" }],
+  };
+  const characterCanons = [{ name: "Nono", aliases: ["Nolan"], role: "family", photoId: "synthetic-brother.jpg", outfit_lock: "red cotton shirt" }];
+  const continuity = buildSceneContinuity({ blueprint, characterCanons, structuredSceneContract: source(), castPresent: ["Mathéo", "Nolan"] });
+  const cast = continuity.sceneFidelityContract.scene_render_contract.cast.required;
+  assert.equal(cast.length, 2);
+  assert.equal(cast[1].character_id, "character_brother");
+  assert.equal(cast[1].outfit.description, "red cotton shirt");
+  assert.ok(continuity.referenceImages.some((entry) => entry.kind === "identity" && entry.characterId === "character_brother"));
+  assert.doesNotMatch(continuity.sceneContract, /WRONG green dress/);
+});
+
+test("a full-book preflight detects an unbound companion on a later page without substituting the hero", () => {
+  const blueprint = {
+    hero: { name: "Mathéo", outfit_lock: "blue shirt" },
+    cast: [{ name: "Nolana", role: "family", outfit_lock: "green dress" }],
+    pages: [{ page_number: 9, page_type: "image", cast_present: ["Mathéo", "Nolan"], scene_contract: source() }],
+  };
+  assert.throws(() => buildBookSceneContinuity({ blueprint, characterCanons: [] }),
+    (error) => error.code === "scene_render_visible_character_unbound"
+      && error.characterId === "character_brother" && error.pageNumber === 9);
+});
+
+test("two normalized names cannot silently exchange private identity references", () => {
+  assert.throws(() => buildSceneContinuity({
+    blueprint: { hero: { name: "Mathéo", outfit_lock: "blue shirt" }, cast: [{ name: "Nolan", role: "family" }] },
+    characterCanons: [{ name: "Nolan", photoId: "synthetic-one.jpg" }, { name: "NOLAN", photoId: "synthetic-two.jpg" }],
+    structuredSceneContract: source(),
+  }), (error) => error.code === "scene_render_character_binding_ambiguous");
+});
+
+test("ordinary-outfit failures carry the canonical character and page without private prose", () => {
+  assert.throws(() => compileSceneRenderContractV1({ sceneContract: source() }),
+    (error) => error.code === "scene_render_ordinary_outfit_unbound"
+      && error.characterId === "character_brother" && error.pageNumber === 9);
+});
 
 test("SceneRenderContract v1 resolves one exact cast partition and concrete outfit per visible identity", () => {
   const contract = compileSceneRenderContractV1({

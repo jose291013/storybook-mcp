@@ -1,6 +1,6 @@
 # Calitiki current status
 
-Last updated: 2026-09-17
+Last updated: 2026-10-07
 
 Operational memory only. `docs/product-roadmap.md` remains the product-direction authority and `AGENTS.md` remains the repository working agreement.
 
@@ -8,17 +8,31 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
-- Current branch: `codex/defer-bounded-repair-failure-email`
-- Main checkpoint: PR #309 (GPT Image 2.5 hybrid canary), after PR #308 (image-provider transport recovery)
+- Current branch: `codex/ordinary-outfit-resume` (isolated checkout)
+- Review: PR #312 is published at https://github.com/jose291013/storybook-mcp/pull/312; merge and deployment pending.
+- Main checkpoint: PR #310 (bounded repair notification deferral); candidate based on `1db4cd3`
 - Completed storefront brick: book format and pricing V1
-- Current focused checkpoint: bounded repair notification deferral candidate. A valid retryable page-repair queue keeps its durable automatic continuation but no longer sends a premature generation-failed e-mail; malformed or exhausted queues and genuine terminal failures retain the existing notification.
+- Current focused checkpoint: canonical ordinary-outfit binding and cover continuation candidate; not deployed. Canonical ids and unambiguous normalized names/aliases bind scene wardrobe to private identity sources. A deterministic full-book check precedes cover generation. Normal cover decisions no longer consume a technical retry; exhausted legacy pre-wardrobe failures receive one versioned free continuation.
 - Migration hotfix: PR #234
 - WordPress Bridge source candidate: `0.8.2`; installed production package last reported as `0.8.1`
 - WordPress theme source candidate: `1.2.3`; installed production theme last recorded as `1.2.0`
 - Render: `https://storybook-mcp.onrender.com`
 - Storefront: `https://calitiki.com`
 
-## Candidate brick: bounded repair notification deferral
+## Candidate: ordinary outfit binding and cover continuation
+
+Binding version 1 is committed with the next queued generation. Existing
+approved covers, manuscript and completed pages are reused. Current-policy
+exhaustion remains enforced; no environment variable, database migration,
+image model or extra image allowance is introduced.
+
+Verification: 71 focused checks and all 893 repository tests pass. Next live check
+after an approved merge/deployment: reopen the affected saved book, confirm
+free continuation, then look for `scene render bindings verified` before
+wardrobe production without a second cover approval. Do not restart Render
+while a preview is generating.
+
+## Completed brick: bounded repair notification deferral
 
 `preview_page_repair_required` remains a durable `preview_failed` checkpoint so
 the browser and **My creations** preserve the same automatic/free continuation.

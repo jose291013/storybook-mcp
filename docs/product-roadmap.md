@@ -1,6 +1,29 @@
 # Product roadmap and durable handoff
 
-Last updated: 2026-09-17
+Last updated: 2026-10-07
+
+## Canonical ordinary wardrobe and cover continuation
+
+Strict V3 binds visible participants to their blueprint and private photo canon
+by canonical character id, then an unambiguous normalized name or explicit
+alias. Substring matches cannot transfer another participant's clothes or
+photo. Ordinary outfits are keyed by canonical id; the photo canon retains
+priority over legacy adventure outfit locks. All interior scene bindings and
+the deterministic wardrobe plan are checked before the cover image call.
+The same compiler is reused after cover approval with the approved cover as
+the existing style reference.
+
+A fresh cover approval or the included cover regeneration continues the
+original reservation without consuming a technical retry. A genuine failed
+continuation consumes the existing bounded retry, and exhausted requests are
+rejected before queueing or reserving credit. Binding version 1 grants one
+continuation to an exhausted legacy ordinary-binding failure, including the
+old generic failure at the approved-text/approved-cover boundary before any
+wardrobe authority existed. The version is committed with the queued job;
+queue failure does not consume it. This migration does not reopen other
+current-policy exhausted jobs. Approved text, cover and accepted pages are
+reused. No database migration, environment variable, paid model call allowance,
+image-QA, purchase, expiry or series-canon rule changes.
 
 ## Bounded repair notification deferral
 

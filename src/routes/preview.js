@@ -12,7 +12,7 @@ import {
 import { normalizeBookRequest } from "../services/normalizeBookRequest.js";
 import { composeBookPagePNG } from "../services/composeBookPagePNG.js";
 import { buildNarrativeContext } from "../services/buildNarrativeContext.js";
-import { buildSceneContinuity } from "../services/visualContinuity.js";
+import { buildBookSceneContinuity, buildSceneContinuity } from "../services/visualContinuity.js";
 import { generateImage } from "../services/imageRunner.js";
 import {
   acceptedWardrobeAuthorityAssets,
@@ -85,6 +85,8 @@ import {
   generationCheckpoint,
   mergeGenerationCheckpoint,
   PREVIEW_RETRY_POLICY_VERSION,
+  ORDINARY_OUTFIT_BINDING_VERSION,
+  previewContinuationPolicy,
   previewRequestFingerprint,
   previewRequestFingerprintCandidates,
   technicalPreviewRetryAvailable,
@@ -702,17 +704,24 @@ router.post("/preview", async (req, res) => {
         previewResult: project.previewResult || {},
         priorRecovery: storedCausalRecovery,
       });
-  const isTechnicalGenerationRetry = Boolean(existingCheckpoint)
-    && (Boolean(visualProofTransition)
-      || technicalPreviewRetryAvailable(project)
-      || preparedCausalRecovery?.available === true);
+  const continuation = previewContinuationPolicy({
+    project, checkpoint: existingCheckpoint, visualProofTransition,
+    causalRecoveryAvailable: preparedCausalRecovery?.available === true,
+  });
+  if (continuation.exhausted && !isTechnicalReferenceRecovery) {
+    return res.status(409).json({
+      error: "The included technical continuation has already been used.",
+      code: "preview_retry_exhausted",
+    });
+  }
+  const isTechnicalGenerationRetry = continuation.technicalRetry;
   const causalRecoveryRun = isTechnicalGenerationRetry && preparedCausalRecovery?.available === true
     ? consumePreviewCausalRecovery(preparedCausalRecovery)
     : null;
   const activeRepairQueue = causalRecoveryRun && existingCheckpoint?.repairQueue
     ? startPreviewRepairQueue(existingCheckpoint.repairQueue)
     : existingCheckpoint?.repairQueue || null;
-  const isTechnicalRetry = isTechnicalReferenceRecovery || isTechnicalGenerationRetry;
+  const isTechnicalRetry = isTechnicalReferenceRecovery || continuation.reusesEntitlement;
   const productContract = existingBookProductContract({
     questionnaire: normalized.answers,
     productConfiguration: project.productConfiguration,
@@ -824,19 +833,16 @@ router.post("/preview", async (req, res) => {
     });
   }
   const queuedCheckpoint = generationCheckpoint({ continuitySnapshot: queuedContinuitySnapshot }) || existingCheckpoint;
-  const initialCheckpoint = queuedCheckpoint
-    ? {
-        ...queuedCheckpoint,
-        imageModelPolicy,
-        ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
-        ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
-      }
-    : {
-        fingerprint,
-        retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION,
-        imageModelPolicy,
-        ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
-      };
+  const initialCheckpoint = {
+    ...(queuedCheckpoint || { fingerprint, retryPolicyVersion: PREVIEW_RETRY_POLICY_VERSION }),
+    imageModelPolicy,
+    ...(causalRecoveryRun ? { causalRecovery: causalRecoveryRun } : {}),
+    ...(visualProofTransition ? { visualProof: visualProofTransition.visualProof } : {}),
+    ordinaryOutfitBindingVersion: ORDINARY_OUTFIT_BINDING_VERSION,
+    failureReason: null,
+    failureDetailCode: null,
+    failedAt: null,
+  };
   let checkpoint = initialCheckpoint;
   const { generationCheckpoint: discardedCheckpoint, ...continuityWithoutOldCheckpoint } = queuedContinuitySnapshot || {};
   const initialSnapshot = mergeGenerationCheckpoint(existingCheckpoint ? queuedContinuitySnapshot : continuityWithoutOldCheckpoint, {
@@ -845,8 +851,6 @@ router.post("/preview", async (req, res) => {
     phase: "started",
     ...(activeRepairQueue ? { repairQueue: activeRepairQueue } : {}),
     creditReservationId: creditReservation?.id || initialCheckpoint.creditReservationId || null,
-    failureReason: null,
-    failedAt: null,
   });
   const previewResultAtStart = previewResultForVisualProofTransition(project.previewResult, visualProofTransition);
   if (visualProofTransition?.action === "approve") {
@@ -1907,6 +1911,15 @@ router.post("/preview", async (req, res) => {
           artifactDigest: narrativeV3TextAuthority.artifactDigest.slice(0, 12),
         }));
       }
+      if (strictV3Rendering) {
+        updateJob(job.id, { step: "draft:scene-render-preflight" });
+        const sceneInputs = buildBookSceneContinuity({ blueprint: final_blueprint, characterCanons });
+        compileWardrobeVisualAuthorityPlan(sceneInputs.map((entry) => entry.sceneRenderContract).filter(Boolean));
+        console.info("[preview] scene render bindings verified", JSON.stringify({
+          jobId: job.id, projectId, sceneCount: sceneInputs.length,
+          bindingVersion: ORDINARY_OUTFIT_BINDING_VERSION,
+        }));
+      }
       updateJob(job.id, { step: "draft:cover" });
       const storedProject = await projectStore.get(job.projectId);
       const priorResult = existingCheckpoint ? (storedProject?.previewResult || {}) : {};
@@ -2024,27 +2037,11 @@ router.post("/preview", async (req, res) => {
           status: "running",
           currentStep: "draft:wardrobe-visual-authority",
         });
-        const authoritySceneInputs = final_blueprint.pages
-          .filter((page) => page.page_type === "image" && page.scene_contract)
-          .map((page) => {
-            const continuity = buildSceneContinuity({
-              blueprint: final_blueprint,
-              characterCanons,
-              castPresent: page.cast_present || [],
-              scenePrompt: page.image_prompt,
-              visualState: page.visual_state || {},
-              ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
-              ...(!coverReferencePath && lockedCoverStorageKey ? { continuityImageStorageKey: lockedCoverStorageKey } : {}),
-              structuredSceneContract: page.scene_contract,
-              wardrobeLocks: page.wardrobe_locks || [],
-              referenceAssets,
-            });
-            return {
-              page,
-              continuity,
-              sceneRenderContract: continuity.sceneFidelityContract?.scene_render_contract || null,
-            };
-          });
+        const authoritySceneInputs = buildBookSceneContinuity({
+          blueprint: final_blueprint, characterCanons, referenceAssets,
+          ...(coverReferencePath ? { continuityImagePath: coverReferencePath } : {}),
+          ...(!coverReferencePath && lockedCoverStorageKey ? { continuityImageStorageKey: lockedCoverStorageKey } : {}),
+        });
         const wardrobeAuthorityPlan = compileWardrobeVisualAuthorityPlan(
           authoritySceneInputs.map((entry) => entry.sceneRenderContract).filter(Boolean),
         );
@@ -3203,6 +3200,8 @@ router.post("/preview", async (req, res) => {
           ...(nextCausalRecovery ? { causalRecovery: nextCausalRecovery } : {}),
           ...(repairQueue ? { repairQueue } : {}),
           failureReason: boundedErrorCode,
+          failureDetailCode: classifiedError?.code === "scene_render_ordinary_outfit_unbound"
+            ? "scene_render_ordinary_outfit_unbound" : null,
           failedAt: new Date().toISOString(),
         });
         await projectStore.update(job.projectId, {

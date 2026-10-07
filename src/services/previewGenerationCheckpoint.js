@@ -2,6 +2,7 @@ import crypto from "crypto";
 
 const VERSION = 1;
 export const PREVIEW_RETRY_POLICY_VERSION = 47;
+export const ORDINARY_OUTFIT_BINDING_VERSION = 1;
 
 // Fingerprints created before V23 did not contain this optional authority.
 // Keep every compatibility projection explicit and append-only: future input
@@ -76,11 +77,39 @@ export function mergeGenerationCheckpoint(snapshot = {}, checkpoint = {}) {
 export function technicalPreviewRetryAvailable(project) {
   const checkpoint = generationCheckpoint(project);
   if (!checkpoint) return false;
+  if (ordinaryOutfitBindingRecoveryAvailable(project)) return true;
   if (checkpoint.causalRecovery?.available === true) return true;
   if (["preview_interrupted", "preview_provider_billing_unavailable"].includes(checkpoint.failureReason)) return true;
   if (checkpoint.retryAvailable === true) return true;
   return checkpoint.retryExhausted === true
     && Number(checkpoint.retryPolicyVersion || 1) < PREVIEW_RETRY_POLICY_VERSION;
+}
+
+export function ordinaryOutfitBindingRecoveryAvailable(project) {
+  const checkpoint = generationCheckpoint(project);
+  if (!checkpoint || project?.status !== "preview_failed" || checkpoint.retryExhausted !== true
+    || Number(checkpoint.ordinaryOutfitBindingVersion || 0) >= ORDINARY_OUTFIT_BINDING_VERSION) return false;
+  if (checkpoint.failureDetailCode === "scene_render_ordinary_outfit_unbound") return true;
+  // Older checkpoints persisted only the public error code. Recognize the
+  // narrow boundary after approved text/cover, before any wardrobe asset.
+  return checkpoint.failureReason === "preview_generation_failed"
+    && checkpoint.phase === "v3-text-authority"
+    && checkpoint.visualProof?.status === "approved"
+    && !checkpoint.wardrobeVisualAuthority;
+}
+
+export function previewContinuationPolicy({ project, checkpoint, visualProofTransition, causalRecoveryAvailable = false }) {
+  // A customer's first approve/regenerate decision is part of the original
+  // production. Resuming that decision after a failure is a technical retry.
+  const freshCoverDecision = Boolean(visualProofTransition && !visualProofTransition.resumed);
+  const technicalRetry = Boolean(checkpoint) && !freshCoverDecision
+    && (technicalPreviewRetryAvailable(project) || causalRecoveryAvailable
+      || (project.status === "preview_generating" && visualProofTransition?.resumed === true));
+  return {
+    technicalRetry,
+    reusesEntitlement: technicalRetry || Boolean(checkpoint && visualProofTransition),
+    exhausted: Boolean(checkpoint && project.status === "preview_failed" && !freshCoverDecision && !technicalRetry),
+  };
 }
 
 export function technicalPreviewRetryExhausted(project) {
