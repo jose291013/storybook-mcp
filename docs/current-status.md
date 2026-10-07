@@ -9,6 +9,7 @@ Operational memory only. `docs/product-roadmap.md` remains the product-direction
 - Repository: `jose291013/storybook-mcp`
 - Local folder: `C:\Dev\storybook-mcp`
 - Current branch: `codex/ordinary-outfit-resume` (isolated checkout)
+- Review: PR #312 is published at https://github.com/jose291013/storybook-mcp/pull/312; merge and deployment pending.
 - Main checkpoint: PR #310 (bounded repair notification deferral); candidate based on `1db4cd3`
 - Completed storefront brick: book format and pricing V1
 - Current focused checkpoint: canonical ordinary-outfit binding and cover continuation candidate; not deployed. Canonical ids and unambiguous normalized names/aliases bind scene wardrobe to private identity sources. A deterministic full-book check precedes cover generation. Normal cover decisions no longer consume a technical retry; exhausted legacy pre-wardrobe failures receive one versioned free continuation.
