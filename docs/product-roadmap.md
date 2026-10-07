@@ -2,6 +2,22 @@
 
 Last updated: 2026-10-07
 
+## Hero narrative projection compatibility
+
+The pre-cover and post-approval scene compiler treats a positively identified
+hero entry in `blueprint.cast` as a projection of `blueprint.hero`, not as a
+second visual identity. This requires a matching canonical id or an exact
+normalized name/explicit alias plus a hero role. Conflicting ids, participant
+roles or private-source references are never collapsed. The dedicated hero
+record stays authoritative and the saved manuscript/scenario is not rewritten.
+Private photo canons remain separate: an ambiguous photo join still fails closed.
+Binding failures now identify the page and bounded source collection in logs,
+without exposing private names, photo paths or fingerprints.
+
+This deterministic compatibility fix also applies to saved blueprints on the
+existing free continuation. No migration, retry-policy increment, added model
+call, environment variable, credit change or visual-QA relaxation is introduced.
+
 ## Canonical ordinary wardrobe and cover continuation
 
 Strict V3 binds visible participants to their blueprint and private photo canon

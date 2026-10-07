@@ -97,6 +97,34 @@ test("two normalized names cannot silently exchange private identity references"
   }), (error) => error.code === "scene_render_character_binding_ambiguous");
 });
 
+test("pre-cover full-book compilation reuses saved hero/cast projections with one identity per scene", () => {
+  const blueprint = {
+    hero: { name: "Mathéo", outfit_lock: "legacy adventure suit" },
+    cast: [
+      { name: "MATHÉO", role: "child", story_role: "hero", outfit_lock: "another adventure suit" },
+      { name: "Nolan", role: "family" },
+    ],
+    pages: [3, 9].map((page_number) => ({ page_number, page_type: "image", cast_present: ["Mathéo", "Nolan"],
+      scene_contract: source({ image_page_number: page_number,
+        wardrobe_states: source().wardrobe_states.map((entry) => ({ ...entry, outfit_state_id: "ordinary_outfit" })) }) })),
+  };
+  const characterCanons = [
+    { name: "Mathéo", role: "child", photoId: "synthetic-hero.jpg", outfit_lock: "blue shirt and jeans" },
+    { name: "Nolan", role: "family", photoId: "synthetic-companion.jpg", outfit_lock: "red shirt and shorts" },
+  ];
+  const saved = structuredClone({ blueprint, characterCanons });
+  for (const pass of [{}, { continuityImageStorageKey: "private/approved-cover.png" }]) {
+    const scenes = buildBookSceneContinuity({ blueprint, characterCanons, ...pass });
+    assert.equal(scenes.length, 2);
+    for (const { continuity, sceneRenderContract } of scenes) {
+      assert.deepEqual(sceneRenderContract.cast.required.map((entry) => entry.outfit.description),
+        ["blue shirt and jeans", "red shirt and shorts"]);
+      assert.equal(continuity.referenceImages.filter((entry) => entry.kind === "identity").length, 2);
+    }
+    assert.deepEqual({ blueprint, characterCanons }, saved);
+  }
+});
+
 test("ordinary-outfit failures carry the canonical character and page without private prose", () => {
   assert.throws(() => compileSceneRenderContractV1({ sceneContract: source() }),
     (error) => error.code === "scene_render_ordinary_outfit_unbound"
