@@ -105,7 +105,7 @@ test("a failed project restores its preserved cover decision instead of posting 
   assert.ok(recoveryProofGate >= 0);
   assert.ok(recoveryStatusGate > recoveryProofGate);
   assert.match(route, /project\.status === "preview_failed"[\s\S]*?pendingVisualProof\?\.status === "awaiting_approval"/);
-  assert.match(route, /Boolean\(visualProofTransition\)[\s\S]*?technicalPreviewRetryAvailable/);
+  assert.match(route, /previewContinuationPolicy\(\{[\s\S]*?visualProofTransition/);
 
   assert.match(app, /function showPersistedVisualProof\(project/);
   assert.match(app, /\["preview_generating", "preview_failed"\]\.includes\(project\?\.status\)[\s\S]*?preview-recover/);

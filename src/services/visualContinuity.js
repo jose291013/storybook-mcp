@@ -3,6 +3,7 @@ import { buildImageCharacterAliases, compactImageSceneContract, neutralizeImageT
 import { wardrobeForPhysicalSnapshot } from "./physicalRenderSnapshot.js";
 import { compileSceneRenderContractV1 } from "../contracts/sceneRenderContractV1.js";
 import { resolveAppearanceEquipment } from "./appearanceEquipmentResolver.js";
+import { bindSceneCharacters } from "./sceneCharacterBindings.js";
 
 const UPLOAD_DIR = path.resolve("data/uploads");
 
@@ -57,6 +58,23 @@ function isFullyUnderwaterScene(value) {
   return /(sous\s+l['’]eau|sous[- ]marine?|au\s+fond\s+de\s+l['’](?:eau|oc[eé]an)|parmi\s+les\s+coraux|underwater|fully\s+submerged|beneath\s+the\s+surface|on\s+the\s+seabed|debajo\s+del\s+agua|bajo\s+el\s+agua|sumergid[oa]s?|fondo\s+del\s+oc[eé]ano)/iu.test(String(value || ""));
 }
 
+// Shared by the pre-cover preflight and the wardrobe authority compiler.
+// This is a deterministic join only: it performs no generation or asset write.
+export function buildBookSceneContinuity({ blueprint, characterCanons, ...options }) {
+  return (blueprint.pages || []).filter((page) => page.page_type === "image" && page.scene_contract)
+    .map((page) => {
+      const continuity = buildSceneContinuity({
+        ...options, blueprint, characterCanons,
+        castPresent: page.cast_present || [],
+        scenePrompt: page.image_prompt,
+        visualState: page.visual_state || {},
+        structuredSceneContract: page.scene_contract,
+        wardrobeLocks: page.wardrobe_locks || [],
+      });
+      return { page, continuity, sceneRenderContract: continuity.sceneFidelityContract?.scene_render_contract || null };
+    });
+}
+
 export function buildSceneContinuity({
   blueprint,
   characterCanons = [],
@@ -73,10 +91,24 @@ export function buildSceneContinuity({
   adjacentReferenceImages = [],
   wardrobeAuthorityReferences = [],
 }) {
-  const selected = selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
+  const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
+  const selected = strictRenderInputs
+    ? bindSceneCharacters({ blueprint, characterCanons, sceneContract: structuredSceneContract })
+    : selectedCharacters({ blueprint, characterCanons, castPresent, scenePrompt });
   const visualAliases = buildImageCharacterAliases({ blueprint, characterCanons, castPresent });
+  if (strictRenderInputs) {
+    for (const character of selected) {
+      const identity = visualAliases.find((entry) => key(entry.name) === key(character.sourceName));
+      const canonicalIndex = visualAliases.findIndex((entry) => entry.name === character.name);
+      const alias = { ...identity, name: character.name, character_id: character.character_id };
+      if (canonicalIndex >= 0) visualAliases[canonicalIndex] = alias;
+      else visualAliases.push(alias);
+    }
+  }
   const safe = (value) => neutralizeImageText(value, visualAliases).trim();
-  const identityFor = (name) => visualAliases.find((item) => sameCharacter(item.name, name));
+  const identityFor = (name) => strictRenderInputs
+    ? visualAliases.find((item) => item.name === name)
+    : visualAliases.find((item) => sameCharacter(item.name, name));
   const aliasFor = (name) => identityFor(name)?.alias || safe(name);
   const characterFingerprints = [];
   const wardrobeContracts = [];
@@ -86,7 +118,6 @@ export function buildSceneContinuity({
   const canonicalWardrobeKeys = new Map((Array.isArray(wardrobeAuthorityReferences)
     ? wardrobeAuthorityReferences
     : []).map((reference) => [`${reference.characterId}:${reference.outfitStateId}`, reference]));
-  const strictRenderInputs = structuredSceneContract?.contract_source === "narrative_book_spec_v3_scene_render_contract_v1";
   const declaredOrdinaryOutfit = (character, photoCanon, role) => {
     const blueprintCharacter = role === "child" ? blueprint?.hero : character;
     // In strict V3 the private identity source is also the immutable ordinary
@@ -110,7 +141,7 @@ export function buildSceneContinuity({
   const ordinaryOutfits = new Map();
   for (const character of selected) {
     const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
-    const photoCanon = findPhotoCanon(characterCanons, character.name, role);
+    const photoCanon = strictRenderInputs ? character.photoCanon : findPhotoCanon(characterCanons, character.name, role);
     const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
     const identityOrdinaryOutfit = declaredOrdinaryOutfit(character, photoCanon, role);
     const ordinaryOutfit = strictRenderInputs
@@ -120,6 +151,7 @@ export function buildSceneContinuity({
       character.name,
       ordinaryOutfit || "the exact generic, unbranded clothing visible in the private identity reference",
     );
+    if (strictRenderInputs) ordinaryOutfits.set(character.character_id, ordinaryOutfits.get(character.name));
   }
   const sceneRenderContract = strictRenderInputs
     ? compileSceneRenderContractV1({ sceneContract: structuredSceneContract, aliases: visualAliases, ordinaryOutfits })
@@ -139,13 +171,13 @@ export function buildSceneContinuity({
 
   for (const character of selected) {
     const role = character.role || (sameCharacter(character.name, blueprint?.hero?.name) ? "child" : "other");
-    const photoCanon = findPhotoCanon(characterCanons, character.name, role);
+    const photoCanon = strictRenderInputs ? character.photoCanon : findPhotoCanon(characterCanons, character.name, role);
     const traits = [photoCanon?.character_fingerprint, character.canon_short].filter(Boolean).join(" ");
     const sceneWardrobe = wardrobeLocks.find((item) => sameCharacter(item?.name, character.name))?.outfit;
     const rawOutfit = sceneWardrobe || declaredOrdinaryOutfit(character, photoCanon, role);
     const visualAlias = aliasFor(character.name);
     const visualIdentity = identityFor(character.name);
-    const strictCharacterState = sceneRenderContract?.cast.required.find((entry) => entry.name === visualAlias);
+    const strictCharacterState = sceneRenderContract?.cast.required.find((entry) => entry.character_id === character.character_id);
     const equipmentLock = equipmentLocks.find((item) => sameCharacter(item?.name, character.name));
     const appearance = strictCharacterState || !equipmentLock
       ? null
